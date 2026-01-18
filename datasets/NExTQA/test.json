@@ -1,0 +1,3202 @@
+[
+    {
+        "video_name": "5219718493.mp4",
+        "qid": "5219718493",
+        "question": "where are the girls hanging out",
+        "answer": "park near monument",
+        "answer_idx": 1,
+        "options": [
+            "beach",
+            "park near monument",
+            "house",
+            "living area",
+            "in house"
+        ],
+        "type": "DL",
+        "frame_count": 706
+    },
+    {
+        "video_name": "2454809212.mp4",
+        "qid": "2454809212",
+        "question": "why did one of the men touch the groom s tie",
+        "answer": "adjust his tie",
+        "answer_idx": 4,
+        "options": [
+            "to wipe blood",
+            "uniform costume for performance",
+            "to give support",
+            "so boy can blow",
+            "adjust his tie"
+        ],
+        "type": "CW",
+        "frame_count": 1309
+    },
+    {
+        "video_name": "2535429050.mp4",
+        "qid": "2535429050",
+        "question": "how did the baby try to touch the camera",
+        "answer": "lean forward to grab camera",
+        "answer_idx": 3,
+        "options": [
+            "on lady s lap",
+            "roughly",
+            "touch the toy with fingers",
+            "lean forward to grab camera",
+            "move his legs"
+        ],
+        "type": "CH",
+        "frame_count": 2158
+    },
+    {
+        "video_name": "3252591972.mp4",
+        "qid": "3252591972",
+        "question": "what does the man do to the water gotten in the green cup",
+        "answer": "put it one side",
+        "answer_idx": 1,
+        "options": [
+            "the case on his left",
+            "put it one side",
+            "headbutt",
+            "stand up",
+            "put pebble in blue container"
+        ],
+        "type": "TC",
+        "frame_count": 2424
+    },
+    {
+        "video_name": "5292466003.mp4",
+        "qid": "5292466003",
+        "question": "who slides first",
+        "answer": "lady with white beanie",
+        "answer_idx": 4,
+        "options": [
+            "boy in floral",
+            "lead singer",
+            "lady in stripes",
+            "the 2 men in stripes",
+            "lady with white beanie"
+        ],
+        "type": "DO",
+        "frame_count": 2697
+    },
+    {
+        "video_name": "2612683715.mp4",
+        "qid": "2612683715",
+        "question": "why is the parrot moving the water out of the bowl",
+        "answer": "drink",
+        "answer_idx": 0,
+        "options": [
+            "drink",
+            "looking for food",
+            "conduct activity",
+            "try to intimidate dog",
+            "it s dirty"
+        ],
+        "type": "CW",
+        "frame_count": 606
+    },
+    {
+        "video_name": "4963357278.mp4",
+        "qid": "4963357278",
+        "question": "what is the snake s body curled around",
+        "answer": "plant",
+        "answer_idx": 3,
+        "options": [
+            "lap",
+            "pink",
+            "pond",
+            "plant",
+            "stroller"
+        ],
+        "type": "DO",
+        "frame_count": 2697
+    },
+    {
+        "video_name": "5357866271.mp4",
+        "qid": "5357866271",
+        "question": "how do the children feel while at the playground",
+        "answer": "happy",
+        "answer_idx": 2,
+        "options": [
+            "happy to see the baby walking",
+            "in pain",
+            "happy",
+            "restricted",
+            "scared"
+        ],
+        "type": "TC",
+        "frame_count": 1259
+    },
+    {
+        "video_name": "3013532781.mp4",
+        "qid": "3013532781",
+        "question": "why is the man pushing the boy from his back",
+        "answer": "create momentum for swing",
+        "answer_idx": 4,
+        "options": [
+            "play with the baby",
+            "to start the sled",
+            "to play",
+            "touch the bed",
+            "create momentum for swing"
+        ],
+        "type": "CW",
+        "frame_count": 319
+    },
+    {
+        "video_name": "9586602092.mp4",
+        "qid": "9586602092",
+        "question": "why is the man in checkered shirt sitting on the stool and not moving",
+        "answer": "listening to the man talking",
+        "answer_idx": 3,
+        "options": [
+            "eating",
+            "playing piano",
+            "hold the baby",
+            "listening to the man talking",
+            "cooking fish"
+        ],
+        "type": "CW",
+        "frame_count": 2089
+    },
+    {
+        "video_name": "6951351121.mp4",
+        "qid": "6951351121",
+        "question": "what did the man in black do after receiving the ball at the end",
+        "answer": "pass to man in blue",
+        "answer_idx": 3,
+        "options": [
+            "walk away",
+            "turn behind",
+            "kick his right foot",
+            "pass to man in blue",
+            "touch brown dog s paw"
+        ],
+        "type": "TN",
+        "frame_count": 472
+    },
+    {
+        "video_name": "8549638298.mp4",
+        "qid": "8549638298",
+        "question": "what did the dog do after approching the cage in the middle of the video",
+        "answer": "move towel aside",
+        "answer_idx": 4,
+        "options": [
+            "go under sofa",
+            "caress dog",
+            "stand up",
+            "chase the dog",
+            "move towel aside"
+        ],
+        "type": "TN",
+        "frame_count": 729
+    },
+    {
+        "video_name": "2681849266.mp4",
+        "qid": "2681849266",
+        "question": "what pattern are they forming with the wooden sticks",
+        "answer": "create unifrom patterns",
+        "answer_idx": 1,
+        "options": [
+            "lying on the chair",
+            "create unifrom patterns",
+            "running in the forest",
+            "throw the stick in the air",
+            "curious"
+        ],
+        "type": "TC",
+        "frame_count": 2262
+    },
+    {
+        "video_name": "4946916131.mp4",
+        "qid": "4946916131",
+        "question": "what did the cat do after turning around when it reached across the dog",
+        "answer": "walk back",
+        "answer_idx": 0,
+        "options": [
+            "walk back",
+            "move its head",
+            "play with the other cat",
+            "paw at it",
+            "look at baby"
+        ],
+        "type": "TN",
+        "frame_count": 396
+    },
+    {
+        "video_name": "4254574573.mp4",
+        "qid": "4254574573",
+        "question": "why does the user touch the screen",
+        "answer": "to check the effects",
+        "answer_idx": 4,
+        "options": [
+            "it is a barrier",
+            "hand gesture for bear",
+            "typing",
+            "live webcam",
+            "to check the effects"
+        ],
+        "type": "CW",
+        "frame_count": 975
+    },
+    {
+        "video_name": "3152504882.mp4",
+        "qid": "3152504882",
+        "question": "how did the boy move around the house",
+        "answer": "walk",
+        "answer_idx": 2,
+        "options": [
+            "dancing around",
+            "jumping",
+            "walk",
+            "running",
+            "went forwards and backwards"
+        ],
+        "type": "CH",
+        "frame_count": 2403
+    },
+    {
+        "video_name": "9861231734.mp4",
+        "qid": "9861231734",
+        "question": "what is the lady in red doing as she sings into the microphone",
+        "answer": "raise and clap her hands",
+        "answer_idx": 2,
+        "options": [
+            "play the guitar",
+            "adjusts her microphone",
+            "raise and clap her hands",
+            "sitting down",
+            "eating food"
+        ],
+        "type": "TC",
+        "frame_count": 836
+    },
+    {
+        "video_name": "6335208280.mp4",
+        "qid": "6335208280",
+        "question": "what is currently happening in this video",
+        "answer": "martial arts class",
+        "answer_idx": 3,
+        "options": [
+            "babies playing",
+            "trekking",
+            "mountain climbing",
+            "martial arts class",
+            "speech"
+        ],
+        "type": "TC",
+        "frame_count": 1248
+    },
+    {
+        "video_name": "13004616293.mp4",
+        "qid": "13004616293",
+        "question": "how does the man raise the cloth up",
+        "answer": "pull a string",
+        "answer_idx": 4,
+        "options": [
+            "turn tap",
+            "move to the left",
+            "move their hands up and down",
+            "up and down",
+            "pull a string"
+        ],
+        "type": "CH",
+        "frame_count": 1274
+    },
+    {
+        "video_name": "3144909171.mp4",
+        "qid": "3144909171",
+        "question": "why did the woman jump up on the bed",
+        "answer": "excited",
+        "answer_idx": 0,
+        "options": [
+            "excited",
+            "preparing to leave",
+            "watch tv",
+            "slipped",
+            "she is playing"
+        ],
+        "type": "CW",
+        "frame_count": 942
+    },
+    {
+        "video_name": "3104804865.mp4",
+        "qid": "3104804865",
+        "question": "where could this be happening",
+        "answer": "zoo",
+        "answer_idx": 1,
+        "options": [
+            "road",
+            "zoo",
+            "bedroom",
+            "bouncy castle",
+            "dining room"
+        ],
+        "type": "DL",
+        "frame_count": 1695
+    },
+    {
+        "video_name": "4689978684.mp4",
+        "qid": "4689978684",
+        "question": "why did not the girl go in between the two cars instead",
+        "answer": "avoid sun exposure",
+        "answer_idx": 2,
+        "options": [
+            "loading items",
+            "playing",
+            "avoid sun exposure",
+            "pick ball up",
+            "car is closed"
+        ],
+        "type": "CW",
+        "frame_count": 780
+    },
+    {
+        "video_name": "6818400710.mp4",
+        "qid": "6818400710",
+        "question": "what did the children do after turning one round at the end",
+        "answer": "dance again",
+        "answer_idx": 1,
+        "options": [
+            "jumping near the adult s knee",
+            "dance again",
+            "pose for camera",
+            "play with owl toy",
+            "reach hand out"
+        ],
+        "type": "TN",
+        "frame_count": 960
+    },
+    {
+        "video_name": "3385351378.mp4",
+        "qid": "3385351378",
+        "question": "why did the man pass the vacuum machine to the baby at the start",
+        "answer": "for baby to clean floor",
+        "answer_idx": 4,
+        "options": [
+            "put baby over shoulder",
+            "to move it around",
+            "learning to use it",
+            "baby dropped it",
+            "for baby to clean floor"
+        ],
+        "type": "CW",
+        "frame_count": 1111
+    },
+    {
+        "video_name": "8442904731.mp4",
+        "qid": "8442904731",
+        "question": "where is this place",
+        "answer": "living room",
+        "answer_idx": 2,
+        "options": [
+            "martial arts classroom",
+            "wedding hall",
+            "living room",
+            "restaurant",
+            "dog cage"
+        ],
+        "type": "DL",
+        "frame_count": 986
+    },
+    {
+        "video_name": "11841740245.mp4",
+        "qid": "11841740245",
+        "question": "why is the man kneeling on the shore near the start",
+        "answer": "digs out sand",
+        "answer_idx": 0,
+        "options": [
+            "digs out sand",
+            "feeding penguin",
+            "play with him",
+            "fell off from the swing",
+            "watching his steps"
+        ],
+        "type": "CW",
+        "frame_count": 420
+    },
+    {
+        "video_name": "5566028125.mp4",
+        "qid": "5566028125",
+        "question": "why did the baby leave when the man wants to put her on the swing",
+        "answer": "does not want to swing",
+        "answer_idx": 0,
+        "options": [
+            "does not want to swing",
+            "caress cat",
+            "play with camera",
+            "look at the ground",
+            "practicing swing"
+        ],
+        "type": "CW",
+        "frame_count": 1421
+    },
+    {
+        "video_name": "4554929703.mp4",
+        "qid": "4554929703",
+        "question": "what does the shirtless man do after bending his knees on the rock",
+        "answer": "jump into water",
+        "answer_idx": 3,
+        "options": [
+            "attack him",
+            "clap",
+            "free himself",
+            "jump into water",
+            "pats the cat"
+        ],
+        "type": "TN",
+        "frame_count": 836
+    },
+    {
+        "video_name": "4028034957.mp4",
+        "qid": "4028034957",
+        "question": "what did the man do after nudging the baby with the toy",
+        "answer": "move his mouth",
+        "answer_idx": 2,
+        "options": [
+            "stand there",
+            "reading",
+            "move his mouth",
+            "look at the camera",
+            "walk away"
+        ],
+        "type": "TN",
+        "frame_count": 512
+    },
+    {
+        "video_name": "10011660054.mp4",
+        "qid": "10011660054",
+        "question": "what does the lady do after bringing the blue screen in",
+        "answer": "put her hands up",
+        "answer_idx": 0,
+        "options": [
+            "put her hands up",
+            "cover her face",
+            "look at lady in black",
+            "the girls riding",
+            "search the bag"
+        ],
+        "type": "TN",
+        "frame_count": 2728
+    },
+    {
+        "video_name": "3066966990.mp4",
+        "qid": "3066966990",
+        "question": "why did the boy in white run over to the boy with the bat when he failed to hit the pinata",
+        "answer": "his turn",
+        "answer_idx": 2,
+        "options": [
+            "try to stand up",
+            "to prevent littering",
+            "his turn",
+            "position ball",
+            "throw too high up"
+        ],
+        "type": "CW",
+        "frame_count": 2678
+    },
+    {
+        "video_name": "6884969066.mp4",
+        "qid": "6884969066",
+        "question": "what does the lady do while the baby attempts to stand up",
+        "answer": "support baby",
+        "answer_idx": 2,
+        "options": [
+            "raise her hand",
+            "jump and cry",
+            "support baby",
+            "spin toy",
+            "wave and dance"
+        ],
+        "type": "TC",
+        "frame_count": 1331
+    },
+    {
+        "video_name": "13718923365.mp4",
+        "qid": "13718923365",
+        "question": "how does the lady carry the child",
+        "answer": "using a baby carrier",
+        "answer_idx": 3,
+        "options": [
+            "sitting",
+            "kneel",
+            "on white lady s arms",
+            "using a baby carrier",
+            "strap baby to body"
+        ],
+        "type": "CH",
+        "frame_count": 1253
+    },
+    {
+        "video_name": "4655255240.mp4",
+        "qid": "4655255240",
+        "question": "why did the lady in red holding on to a rope",
+        "answer": "to belay the climber",
+        "answer_idx": 4,
+        "options": [
+            "yes",
+            "dancing",
+            "raise a toast",
+            "intrigues with the architecture",
+            "to belay the climber"
+        ],
+        "type": "CW",
+        "frame_count": 916
+    },
+    {
+        "video_name": "5211277413.mp4",
+        "qid": "5211277413",
+        "question": "why are the women seated around a table at the start",
+        "answer": "talking and relaxing",
+        "answer_idx": 1,
+        "options": [
+            "watch video game",
+            "talking and relaxing",
+            "dinner",
+            "play music instruments",
+            "shake her butt against lady sitting"
+        ],
+        "type": "CW",
+        "frame_count": 643
+    },
+    {
+        "video_name": "5867564434.mp4",
+        "qid": "5867564434",
+        "question": "where is this video taken",
+        "answer": "kitchen",
+        "answer_idx": 0,
+        "options": [
+            "kitchen",
+            "swimming pool",
+            "beach",
+            "forest",
+            "zoo"
+        ],
+        "type": "DL",
+        "frame_count": 945
+    },
+    {
+        "video_name": "2548039509.mp4",
+        "qid": "2548039509",
+        "question": "how does the man react after the light comes up",
+        "answer": "smiling",
+        "answer_idx": 4,
+        "options": [
+            "wave",
+            "kayaking",
+            "continue typing",
+            "move away the keyboard",
+            "smiling"
+        ],
+        "type": "TN",
+        "frame_count": 2017
+    },
+    {
+        "video_name": "6247230354.mp4",
+        "qid": "6247230354",
+        "question": "why do all the people look at the same direction over the rocks near the beginning",
+        "answer": "looking at the path they covered",
+        "answer_idx": 3,
+        "options": [
+            "for defense",
+            "looking at the screen",
+            "fencing",
+            "looking at the path they covered",
+            "waiting for their turn"
+        ],
+        "type": "CW",
+        "frame_count": 2370
+    },
+    {
+        "video_name": "3389558639.mp4",
+        "qid": "3389558639",
+        "question": "why do the boys lean in towards the end of the video",
+        "answer": "to talk to camera",
+        "answer_idx": 2,
+        "options": [
+            "stabilise bicycle",
+            "rest",
+            "to talk to camera",
+            "keep the book on the side",
+            "stop playing with baby"
+        ],
+        "type": "CW",
+        "frame_count": 1341
+    },
+    {
+        "video_name": "6137698705.mp4",
+        "qid": "6137698705",
+        "question": "why are the pigs sniffing on the ground under the tree",
+        "answer": "for food",
+        "answer_idx": 3,
+        "options": [
+            "find worms",
+            "to find egg shell",
+            "waiting instructions from man",
+            "for food",
+            "to pass time"
+        ],
+        "type": "CW",
+        "frame_count": 674
+    },
+    {
+        "video_name": "7487518302.mp4",
+        "qid": "7487518302",
+        "question": "why does the boy move the bike so slowly",
+        "answer": "not experienced in cycling",
+        "answer_idx": 1,
+        "options": [
+            "do nt want to get stuck",
+            "not experienced in cycling",
+            "looking at the pedals",
+            "uneven ground",
+            "change direction"
+        ],
+        "type": "CW",
+        "frame_count": 1377
+    },
+    {
+        "video_name": "4904173487.mp4",
+        "qid": "4904173487",
+        "question": "why did the boy place a towel over his head and walk around near the start",
+        "answer": "for fun",
+        "answer_idx": 2,
+        "options": [
+            "place the giraffe on top",
+            "oversee",
+            "for fun",
+            "practicing",
+            "wipe face"
+        ],
+        "type": "CW",
+        "frame_count": 1801
+    },
+    {
+        "video_name": "3468545337.mp4",
+        "qid": "3468545337",
+        "question": "why is the lady in red dressed so dapper",
+        "answer": "service staff",
+        "answer_idx": 3,
+        "options": [
+            "signal finish line",
+            "look at the bald man",
+            "laughing",
+            "service staff",
+            "intrigues with the architecture"
+        ],
+        "type": "CW",
+        "frame_count": 2134
+    },
+    {
+        "video_name": "3541521522.mp4",
+        "qid": "3541521522",
+        "question": "why did the person caress the dog for a while then stop",
+        "answer": "observe the dog s behavior change",
+        "answer_idx": 0,
+        "options": [
+            "observe the dog s behavior change",
+            "compliment dog and show affection",
+            "tear out meat",
+            "slipped",
+            "get its attention"
+        ],
+        "type": "CW",
+        "frame_count": 977
+    },
+    {
+        "video_name": "5295188880.mp4",
+        "qid": "5295188880",
+        "question": "why is the man using a toy stick to play with the dog",
+        "answer": "make it jump",
+        "answer_idx": 2,
+        "options": [
+            "to show him where to go",
+            "stop him",
+            "make it jump",
+            "hold in place",
+            "tug of war"
+        ],
+        "type": "CW",
+        "frame_count": 1361
+    },
+    {
+        "video_name": "3832966100.mp4",
+        "qid": "3832966100",
+        "question": "why does the fish shake its body vigorously after being taken out of the water",
+        "answer": "out of breathe",
+        "answer_idx": 2,
+        "options": [
+            "swim",
+            "wind blowing",
+            "out of breathe",
+            "help them swim",
+            "fish biting on it"
+        ],
+        "type": "CW",
+        "frame_count": 568
+    },
+    {
+        "video_name": "4014883995.mp4",
+        "qid": "4014883995",
+        "question": "who is lying on the sofa",
+        "answer": "a boy",
+        "answer_idx": 1,
+        "options": [
+            "lady in flower dress",
+            "a boy",
+            "the girl blowing the candles",
+            "man in blue gloves",
+            "boy in red"
+        ],
+        "type": "DO",
+        "frame_count": 451
+    },
+    {
+        "video_name": "5852331173.mp4",
+        "qid": "5852331173",
+        "question": "how many people are walking together in the video",
+        "answer": "three",
+        "answer_idx": 0,
+        "options": [
+            "three",
+            "one",
+            "six",
+            "four",
+            "seven"
+        ],
+        "type": "DC",
+        "frame_count": 645
+    },
+    {
+        "video_name": "8319941339.mp4",
+        "qid": "8319941339",
+        "question": "why does the boy cross his legs on the bed",
+        "answer": "put keyboard on his lap",
+        "answer_idx": 1,
+        "options": [
+            "resting",
+            "put keyboard on his lap",
+            "wants to get on the bed",
+            "point to the video recorder",
+            "follow the instructions"
+        ],
+        "type": "CW",
+        "frame_count": 318
+    },
+    {
+        "video_name": "2856992427.mp4",
+        "qid": "2856992427",
+        "question": "why did the man touch the dog",
+        "answer": "get its attention",
+        "answer_idx": 2,
+        "options": [
+            "playing with it by biting",
+            "to pat it",
+            "get its attention",
+            "touch dog s nose",
+            "wants to play more"
+        ],
+        "type": "CW",
+        "frame_count": 408
+    },
+    {
+        "video_name": "2549562657.mp4",
+        "qid": "2549562657",
+        "question": "how is the baby in blue shirt positioned",
+        "answer": "sitting",
+        "answer_idx": 1,
+        "options": [
+            "heat up metal",
+            "sitting",
+            "standing",
+            "sitting at the sofa",
+            "throw away the blue toy"
+        ],
+        "type": "TC",
+        "frame_count": 884
+    },
+    {
+        "video_name": "7004267908.mp4",
+        "qid": "7004267908",
+        "question": "why is the blue shirt woman looking at the purple shirt woman while drying her hand",
+        "answer": "talking",
+        "answer_idx": 2,
+        "options": [
+            "pass the lady a pin",
+            "pay attention",
+            "talking",
+            "drink from it",
+            "show off the artworks"
+        ],
+        "type": "CW",
+        "frame_count": 849
+    },
+    {
+        "video_name": "3265232322.mp4",
+        "qid": "3265232322",
+        "question": "what did the man in striped pants do after he walked past the christmas tree",
+        "answer": "carry the ball on the other side",
+        "answer_idx": 0,
+        "options": [
+            "carry the ball on the other side",
+            "watch him",
+            "shook off the snow",
+            "look around",
+            "video other leopards"
+        ],
+        "type": "TN",
+        "frame_count": 929
+    },
+    {
+        "video_name": "4827388766.mp4",
+        "qid": "4827388766",
+        "question": "how is the baby held",
+        "answer": "in a baby carrier",
+        "answer_idx": 1,
+        "options": [
+            "in the mothers arm",
+            "in a baby carrier",
+            "laying on the ground",
+            "in the lady s arm",
+            "lady hold baby in standing position"
+        ],
+        "type": "CH",
+        "frame_count": 654
+    },
+    {
+        "video_name": "2514339576.mp4",
+        "qid": "2514339576",
+        "question": "why did the nurse with black sleeves hold the woman s head",
+        "answer": "support head",
+        "answer_idx": 3,
+        "options": [
+            "gesture of affection",
+            "show her how to stir",
+            "holding the console",
+            "support head",
+            "tidy it"
+        ],
+        "type": "CW",
+        "frame_count": 410
+    },
+    {
+        "video_name": "2508411246.mp4",
+        "qid": "2508411246",
+        "question": "how did the man show affection to the baby near the end",
+        "answer": "kiss the baby",
+        "answer_idx": 0,
+        "options": [
+            "kiss the baby",
+            "play with child",
+            "kick the ball",
+            "carry in his arms",
+            "put on his lap"
+        ],
+        "type": "CH",
+        "frame_count": 951
+    },
+    {
+        "video_name": "5128771839.mp4",
+        "qid": "5128771839",
+        "question": "what do the children do after the lady in blue puts the black bar down at the start",
+        "answer": "put their arm on black bar",
+        "answer_idx": 3,
+        "options": [
+            "hold the girl s stomach",
+            "leans forward",
+            "wipe her mouth",
+            "put their arm on black bar",
+            "try to move the crab"
+        ],
+        "type": "TN",
+        "frame_count": 1197
+    },
+    {
+        "video_name": "3298468604.mp4",
+        "qid": "3298468604",
+        "question": "what is the relationship between the two children",
+        "answer": "siblings",
+        "answer_idx": 3,
+        "options": [
+            "classmates",
+            "classmate",
+            "school mates",
+            "siblings",
+            "friends"
+        ],
+        "type": "DO",
+        "frame_count": 856
+    },
+    {
+        "video_name": "2974908351.mp4",
+        "qid": "2974908351",
+        "question": "what did the man do after he raised his cup for the second time",
+        "answer": "drink from cup",
+        "answer_idx": 1,
+        "options": [
+            "put phone on table",
+            "drink from cup",
+            "shake its body",
+            "talk to his friend",
+            "pour the drink away"
+        ],
+        "type": "TN",
+        "frame_count": 1500
+    },
+    {
+        "video_name": "6302902395.mp4",
+        "qid": "6302902395",
+        "question": "what is the person doing with the bird",
+        "answer": "disturbing",
+        "answer_idx": 2,
+        "options": [
+            "feeding water to bird",
+            "rock climbing",
+            "disturbing",
+            "cooking bird",
+            "teaching bird tricks"
+        ],
+        "type": "TC",
+        "frame_count": 455
+    },
+    {
+        "video_name": "6187760154.mp4",
+        "qid": "6187760154",
+        "question": "what does the lady do after getting onto the horse",
+        "answer": "moves with horse",
+        "answer_idx": 2,
+        "options": [
+            "swing her right hand",
+            "slide down",
+            "moves with horse",
+            "wave to camera",
+            "rub her hands"
+        ],
+        "type": "TN",
+        "frame_count": 1206
+    },
+    {
+        "video_name": "11976171036.mp4",
+        "qid": "11976171036",
+        "question": "judging from the attire of the older people and the children what is the weather like",
+        "answer": "cold",
+        "answer_idx": 2,
+        "options": [
+            "sunny",
+            "rainy",
+            "cold",
+            "misty",
+            "forest"
+        ],
+        "type": "DO",
+        "frame_count": 1065
+    },
+    {
+        "video_name": "6610987705.mp4",
+        "qid": "6610987705",
+        "question": "what does the boy do after playing the green toy at the side of the toy car",
+        "answer": "bring toy to other side",
+        "answer_idx": 1,
+        "options": [
+            "turn on the wand",
+            "bring toy to other side",
+            "go to the camera",
+            "pull his pants",
+            "throw it"
+        ],
+        "type": "TN",
+        "frame_count": 965
+    },
+    {
+        "video_name": "4949142411.mp4",
+        "qid": "4949142411",
+        "question": "why are there fence around the tracks",
+        "answer": "prevent trains from moving out",
+        "answer_idx": 1,
+        "options": [
+            "lady to control dog",
+            "prevent trains from moving out",
+            "ensure safety",
+            "used to dry the dog",
+            "watching the show"
+        ],
+        "type": "CW",
+        "frame_count": 872
+    },
+    {
+        "video_name": "5817155547.mp4",
+        "qid": "5817155547",
+        "question": "what does the man in cap do after finishing his exercise",
+        "answer": "clap his hands",
+        "answer_idx": 2,
+        "options": [
+            "digs soil",
+            "adjust his shirt",
+            "clap his hands",
+            "moves hands",
+            "kneel down"
+        ],
+        "type": "TN",
+        "frame_count": 351
+    },
+    {
+        "video_name": "3136054080.mp4",
+        "qid": "3136054080",
+        "question": "why is the christmas tree lighted in the background",
+        "answer": "its christmas time",
+        "answer_idx": 0,
+        "options": [
+            "its christmas time",
+            "birthday celebration",
+            "hiking",
+            "festive season",
+            "light other candles"
+        ],
+        "type": "CW",
+        "frame_count": 1200
+    },
+    {
+        "video_name": "4916201843.mp4",
+        "qid": "4916201843",
+        "question": "why does the lady wipe the wet tissue on the body on the baby",
+        "answer": "clean the baby",
+        "answer_idx": 3,
+        "options": [
+            "prevent getting wet",
+            "clean the table",
+            "keep baby from falling",
+            "clean the baby",
+            "facilitate proper injection"
+        ],
+        "type": "CW",
+        "frame_count": 1576
+    },
+    {
+        "video_name": "4825249972.mp4",
+        "qid": "4825249972",
+        "question": "how did the brown dog support itself when it was at the table",
+        "answer": "place front paws on table",
+        "answer_idx": 2,
+        "options": [
+            "fed by the cameraman",
+            "sitting",
+            "place front paws on table",
+            "lady passed them the food",
+            "lady holds the cup to dog"
+        ],
+        "type": "CH",
+        "frame_count": 926
+    },
+    {
+        "video_name": "2687160943.mp4",
+        "qid": "2687160943",
+        "question": "what did the man do before he went into the room",
+        "answer": "talk in the camera",
+        "answer_idx": 4,
+        "options": [
+            "move his hands",
+            "smile",
+            "stop",
+            "jump",
+            "talk in the camera"
+        ],
+        "type": "TP",
+        "frame_count": 1565
+    },
+    {
+        "video_name": "13514394984.mp4",
+        "qid": "13514394984",
+        "question": "why did the short hair girl stand up on the piano chair after playing the piano for awhile",
+        "answer": "get something from the piano top",
+        "answer_idx": 3,
+        "options": [
+            "even out cake",
+            "to slide from left to right",
+            "prevent her from eating",
+            "get something from the piano top",
+            "make musical sound"
+        ],
+        "type": "CW",
+        "frame_count": 2667
+    },
+    {
+        "video_name": "4227122551.mp4",
+        "qid": "4227122551",
+        "question": "what is the relationship between the kids and the man",
+        "answer": "parent offspring",
+        "answer_idx": 3,
+        "options": [
+            "classmates",
+            "teacher student",
+            "friends",
+            "parent offspring",
+            "team mates"
+        ],
+        "type": "DO",
+        "frame_count": 756
+    },
+    {
+        "video_name": "6002172187.mp4",
+        "qid": "6002172187",
+        "question": "where are they possibly at",
+        "answer": "classroom",
+        "answer_idx": 0,
+        "options": [
+            "classroom",
+            "zoo",
+            "toilet",
+            "lake side",
+            "tennis courts"
+        ],
+        "type": "DL",
+        "frame_count": 845
+    },
+    {
+        "video_name": "2457895589.mp4",
+        "qid": "2457895589",
+        "question": "why is the girl wearing purple dress standing in front of the other girls",
+        "answer": "lead singer",
+        "answer_idx": 1,
+        "options": [
+            "listening to her talk",
+            "lead singer",
+            "writing",
+            "signal for the girl to talk",
+            "celebrate"
+        ],
+        "type": "CW",
+        "frame_count": 1753
+    },
+    {
+        "video_name": "8072793932.mp4",
+        "qid": "8072793932",
+        "question": "why did the child in blue in checkered shirt go to look at the white pail",
+        "answer": "look at how much was squeezed",
+        "answer_idx": 1,
+        "options": [
+            "remove cold water",
+            "look at how much was squeezed",
+            "playing with the balloon",
+            "play with a child",
+            "paint the wall"
+        ],
+        "type": "CW",
+        "frame_count": 1455
+    },
+    {
+        "video_name": "5433732542.mp4",
+        "qid": "5433732542",
+        "question": "why did the lady in grey lift up the paper on her hand",
+        "answer": "check her notes",
+        "answer_idx": 2,
+        "options": [
+            "refer to script",
+            "finding phone",
+            "check her notes",
+            "show what she s talking about",
+            "let the baby recite"
+        ],
+        "type": "CW",
+        "frame_count": 2611
+    },
+    {
+        "video_name": "4464727975.mp4",
+        "qid": "4464727975",
+        "question": "why did the man stand beside the baby while she reads",
+        "answer": "guide baby in reading skills",
+        "answer_idx": 4,
+        "options": [
+            "want to open book",
+            "to know what baby is feeling",
+            "talking about cleanliness to audience",
+            "reading for baby",
+            "guide baby in reading skills"
+        ],
+        "type": "CW",
+        "frame_count": 2471
+    },
+    {
+        "video_name": "2434959705.mp4",
+        "qid": "2434959705",
+        "question": "why did the elephant use its trunk to turn the black toy",
+        "answer": "playing with it",
+        "answer_idx": 1,
+        "options": [
+            "it wanted to climb up",
+            "playing with it",
+            "find food under it",
+            "to get cooled with water",
+            "protect from the sun"
+        ],
+        "type": "CW",
+        "frame_count": 2469
+    },
+    {
+        "video_name": "4660797892.mp4",
+        "qid": "4660797892",
+        "question": "why are the girls wearing the same outfits",
+        "answer": "group performance",
+        "answer_idx": 2,
+        "options": [
+            "school uniform",
+            "they are twins",
+            "group performance",
+            "wedding outfits",
+            "sport team"
+        ],
+        "type": "CW",
+        "frame_count": 2697
+    },
+    {
+        "video_name": "7592105758.mp4",
+        "qid": "7592105758",
+        "question": "where is this happening",
+        "answer": "room",
+        "answer_idx": 1,
+        "options": [
+            "wooded areas",
+            "room",
+            "beach",
+            "washroom",
+            "karaoke room"
+        ],
+        "type": "DL",
+        "frame_count": 878
+    },
+    {
+        "video_name": "2478396375.mp4",
+        "qid": "2478396375",
+        "question": "what could be the relationship between the baby and the kid",
+        "answer": "siblings",
+        "answer_idx": 3,
+        "options": [
+            "classmate",
+            "friends",
+            "school mates",
+            "siblings",
+            "parent and child"
+        ],
+        "type": "DO",
+        "frame_count": 1050
+    },
+    {
+        "video_name": "5250826364.mp4",
+        "qid": "5250826364",
+        "question": "what happened after the smaller girl jumped at the end of the video",
+        "answer": "fell",
+        "answer_idx": 0,
+        "options": [
+            "fell",
+            "roll around on the floor",
+            "point to camera",
+            "dance",
+            "clap"
+        ],
+        "type": "TN",
+        "frame_count": 551
+    },
+    {
+        "video_name": "13842949604.mp4",
+        "qid": "13842949604",
+        "question": "what did the dog do after the man in blue came out of the house at the start",
+        "answer": "went into the house",
+        "answer_idx": 2,
+        "options": [
+            "hug dog",
+            "moves the object",
+            "went into the house",
+            "runs toward the tutrle",
+            "bite"
+        ],
+        "type": "TN",
+        "frame_count": 2204
+    },
+    {
+        "video_name": "2407060164.mp4",
+        "qid": "2407060164",
+        "question": "where is this happening",
+        "answer": "park",
+        "answer_idx": 0,
+        "options": [
+            "park",
+            "in the middle of the sea",
+            "footpath",
+            "swimming pool",
+            "bowling alley"
+        ],
+        "type": "DL",
+        "frame_count": 1248
+    },
+    {
+        "video_name": "2408870922.mp4",
+        "qid": "2408870922",
+        "question": "what does the brown cat on the left do after approaching the squirrel at the start",
+        "answer": "sniff the squirrel",
+        "answer_idx": 2,
+        "options": [
+            "jump off",
+            "hold its head",
+            "sniff the squirrel",
+            "walk away",
+            "agitated"
+        ],
+        "type": "TN",
+        "frame_count": 2697
+    },
+    {
+        "video_name": "6439508131.mp4",
+        "qid": "6439508131",
+        "question": "what did the girl in green do after she moved her head backwards",
+        "answer": "adjust the paper",
+        "answer_idx": 4,
+        "options": [
+            "sewing",
+            "sit down",
+            "raised up both hands",
+            "whispering",
+            "adjust the paper"
+        ],
+        "type": "TN",
+        "frame_count": 855
+    },
+    {
+        "video_name": "5901242685.mp4",
+        "qid": "5901242685",
+        "question": "why is the baby sitting on the table throughout the video",
+        "answer": "play around",
+        "answer_idx": 1,
+        "options": [
+            "someone put her there",
+            "play around",
+            "having dinner",
+            "support himself",
+            "waiting for woman"
+        ],
+        "type": "CW",
+        "frame_count": 1954
+    },
+    {
+        "video_name": "3052870588.mp4",
+        "qid": "3052870588",
+        "question": "why did the boy bend down in the middle of the video",
+        "answer": "pick up the bicycle",
+        "answer_idx": 3,
+        "options": [
+            "interested in balloon",
+            "pick out food",
+            "gesturing to the girl",
+            "pick up the bicycle",
+            "take his cap"
+        ],
+        "type": "CW",
+        "frame_count": 2697
+    },
+    {
+        "video_name": "6422715075.mp4",
+        "qid": "6422715075",
+        "question": "how do the people feel while dancing",
+        "answer": "satisfied",
+        "answer_idx": 1,
+        "options": [
+            "bored and uninterested",
+            "satisfied",
+            "awkward",
+            "restless",
+            "comfortable"
+        ],
+        "type": "TC",
+        "frame_count": 438
+    },
+    {
+        "video_name": "2471485240.mp4",
+        "qid": "2471485240",
+        "question": "how does the man in white communicate to the audience",
+        "answer": "speaking on stage",
+        "answer_idx": 0,
+        "options": [
+            "speaking on stage",
+            "pulling the side and playing keyboard",
+            "expressive",
+            "use hand gestures",
+            "nod his head up and down"
+        ],
+        "type": "CH",
+        "frame_count": 2697
+    },
+    {
+        "video_name": "5994972300.mp4",
+        "qid": "5994972300",
+        "question": "why does the black dog lay on the ground when the man walks near him",
+        "answer": "want to be caressed",
+        "answer_idx": 4,
+        "options": [
+            "make snow angel",
+            "rest",
+            "to pet it",
+            "searching for something",
+            "want to be caressed"
+        ],
+        "type": "CW",
+        "frame_count": 1399
+    },
+    {
+        "video_name": "2637595500.mp4",
+        "qid": "2637595500",
+        "question": "how does the boy move from one place to another",
+        "answer": "crawl",
+        "answer_idx": 2,
+        "options": [
+            "carry him",
+            "talk and touch",
+            "crawl",
+            "dancing together",
+            "dad push toy train"
+        ],
+        "type": "CH",
+        "frame_count": 509
+    },
+    {
+        "video_name": "3004725629.mp4",
+        "qid": "3004725629",
+        "question": "why are the children standing still while speaking",
+        "answer": "performing",
+        "answer_idx": 2,
+        "options": [
+            "restrict access",
+            "posing for a picture",
+            "performing",
+            "dozing off",
+            "looking where he is going"
+        ],
+        "type": "CW",
+        "frame_count": 2697
+    },
+    {
+        "video_name": "8313454466.mp4",
+        "qid": "8313454466",
+        "question": "how did the man try to show the girl how to play the piano",
+        "answer": "hold her hand and play piano",
+        "answer_idx": 0,
+        "options": [
+            "hold her hand and play piano",
+            "playing videos",
+            "press the keys",
+            "show directions to her",
+            "lift the girl up"
+        ],
+        "type": "CH",
+        "frame_count": 1605
+    },
+    {
+        "video_name": "3255347533.mp4",
+        "qid": "3255347533",
+        "question": "why did the man pointed to the candle in the middle of the video",
+        "answer": "asked girl to blow",
+        "answer_idx": 2,
+        "options": [
+            "check if there s milk any left",
+            "unlocking door",
+            "asked girl to blow",
+            "to keep the mug on the table",
+            "pick up the bicycle"
+        ],
+        "type": "CW",
+        "frame_count": 1167
+    },
+    {
+        "video_name": "2830844169.mp4",
+        "qid": "2830844169",
+        "question": "why did the boy stood at the same spot throughout the video",
+        "answer": "drinking",
+        "answer_idx": 0,
+        "options": [
+            "drinking",
+            "adjust his seat",
+            "trying to reach for something",
+            "hold it in a different way",
+            "encourage baby to play with boy"
+        ],
+        "type": "CW",
+        "frame_count": 826
+    },
+    {
+        "video_name": "6416879557.mp4",
+        "qid": "6416879557",
+        "question": "how many people are there",
+        "answer": "four",
+        "answer_idx": 0,
+        "options": [
+            "four",
+            "two",
+            "one",
+            "eleven",
+            "seven"
+        ],
+        "type": "DC",
+        "frame_count": 1350
+    },
+    {
+        "video_name": "4963040001.mp4",
+        "qid": "4963040001",
+        "question": "why does the baby enjoy bumping his head on the toy above",
+        "answer": "fun",
+        "answer_idx": 2,
+        "options": [
+            "kick off the ground",
+            "curious",
+            "fun",
+            "talking",
+            "it s sunny"
+        ],
+        "type": "CW",
+        "frame_count": 2697
+    },
+    {
+        "video_name": "7967750522.mp4",
+        "qid": "7967750522",
+        "question": "what activity is being done",
+        "answer": "running across water fountain",
+        "answer_idx": 4,
+        "options": [
+            "swing",
+            "boxing",
+            "cycling",
+            "canoeing",
+            "running across water fountain"
+        ],
+        "type": "TC",
+        "frame_count": 342
+    },
+    {
+        "video_name": "5040632101.mp4",
+        "qid": "5040632101",
+        "question": "where is this happening",
+        "answer": "house",
+        "answer_idx": 0,
+        "options": [
+            "house",
+            "bus",
+            "beach",
+            "backyard",
+            "docks"
+        ],
+        "type": "DL",
+        "frame_count": 2642
+    },
+    {
+        "video_name": "6543990975.mp4",
+        "qid": "6543990975",
+        "question": "what is the man carrying",
+        "answer": "child",
+        "answer_idx": 2,
+        "options": [
+            "uniform",
+            "cup",
+            "child",
+            "bike",
+            "things needed for hike"
+        ],
+        "type": "DO",
+        "frame_count": 674
+    },
+    {
+        "video_name": "5843576225.mp4",
+        "qid": "5843576225",
+        "question": "where is this video taken",
+        "answer": "playroom",
+        "answer_idx": 4,
+        "options": [
+            "lake side",
+            "sea",
+            "carnival",
+            "computer table",
+            "playroom"
+        ],
+        "type": "DL",
+        "frame_count": 1621
+    },
+    {
+        "video_name": "4417983931.mp4",
+        "qid": "4417983931",
+        "question": "why do the people hold a stick while walking",
+        "answer": "help walk on snowing slope",
+        "answer_idx": 2,
+        "options": [
+            "to chase away animals",
+            "to throw at each other",
+            "help walk on snowing slope",
+            "fishing",
+            "they are old"
+        ],
+        "type": "CW",
+        "frame_count": 1200
+    },
+    {
+        "video_name": "5936609774.mp4",
+        "qid": "5936609774",
+        "question": "why do the people on stage look red",
+        "answer": "red lighting",
+        "answer_idx": 4,
+        "options": [
+            "performers",
+            "bring attention to performance",
+            "speech",
+            "facilitating activity",
+            "red lighting"
+        ],
+        "type": "CW",
+        "frame_count": 1079
+    },
+    {
+        "video_name": "12952480344.mp4",
+        "qid": "12952480344",
+        "question": "why did the lady stretch her left hand up in the video",
+        "answer": "turn the tap",
+        "answer_idx": 3,
+        "options": [
+            "paddling",
+            "to get the toy keys",
+            "to cut deep into crab",
+            "turn the tap",
+            "pull rope with strength"
+        ],
+        "type": "CW",
+        "frame_count": 386
+    },
+    {
+        "video_name": "7470108174.mp4",
+        "qid": "7470108174",
+        "question": "why did the man move the baby s hands",
+        "answer": "make baby laugh",
+        "answer_idx": 0,
+        "options": [
+            "make baby laugh",
+            "take the food",
+            "walking",
+            "looking at them play",
+            "soothing baby"
+        ],
+        "type": "CW",
+        "frame_count": 1729
+    },
+    {
+        "video_name": "3880293461.mp4",
+        "qid": "3880293461",
+        "question": "why is the lady not moving when she is standing on the rocks",
+        "answer": "pose",
+        "answer_idx": 1,
+        "options": [
+            "chewing",
+            "pose",
+            "want to taste the water dripping",
+            "watching the elephants",
+            "hold still for pedicure"
+        ],
+        "type": "CW",
+        "frame_count": 924
+    },
+    {
+        "video_name": "7437836140.mp4",
+        "qid": "7437836140",
+        "question": "how many people are filmed",
+        "answer": "two",
+        "answer_idx": 3,
+        "options": [
+            "four",
+            "three",
+            "one",
+            "two",
+            "seven"
+        ],
+        "type": "DC",
+        "frame_count": 612
+    },
+    {
+        "video_name": "3151486948.mp4",
+        "qid": "3151486948",
+        "question": "where is this video taken",
+        "answer": "living room",
+        "answer_idx": 2,
+        "options": [
+            "by a lake",
+            "speech event",
+            "living room",
+            "playground",
+            "dancing hall"
+        ],
+        "type": "DL",
+        "frame_count": 373
+    },
+    {
+        "video_name": "3468317018.mp4",
+        "qid": "3468317018",
+        "question": "why is the woman sitting beside the dog",
+        "answer": "introducing dog",
+        "answer_idx": 1,
+        "options": [
+            "look at water",
+            "introducing dog",
+            "to be brushed",
+            "play with dog",
+            "rest"
+        ],
+        "type": "CW",
+        "frame_count": 1764
+    },
+    {
+        "video_name": "10786013204.mp4",
+        "qid": "10786013204",
+        "question": "why are different curries being displayed in the beginning",
+        "answer": "many to choose from",
+        "answer_idx": 2,
+        "options": [
+            "yawning",
+            "show he finish chewing",
+            "many to choose from",
+            "look at cat",
+            "looking at drumstick"
+        ],
+        "type": "CW",
+        "frame_count": 343
+    },
+    {
+        "video_name": "11313345705.mp4",
+        "qid": "11313345705",
+        "question": "what is the colour of the phone",
+        "answer": "black",
+        "answer_idx": 4,
+        "options": [
+            "navy blue",
+            "light brown",
+            "yellow and blue",
+            "white and red",
+            "black"
+        ],
+        "type": "DO",
+        "frame_count": 754
+    },
+    {
+        "video_name": "3188565645.mp4",
+        "qid": "3188565645",
+        "question": "why is the man in black recording men in blue and red",
+        "answer": "capture them talking",
+        "answer_idx": 1,
+        "options": [
+            "mixing things",
+            "capture them talking",
+            "observing the reaction",
+            "playing music",
+            "hot sun"
+        ],
+        "type": "CW",
+        "frame_count": 780
+    },
+    {
+        "video_name": "6442711009.mp4",
+        "qid": "6442711009",
+        "question": "what does the brown dog after it manages to get up after the middle part of the video",
+        "answer": "run to the black dog",
+        "answer_idx": 1,
+        "options": [
+            "eat from the plate",
+            "run to the black dog",
+            "pick up something from floor",
+            "sit and look around",
+            "walk away"
+        ],
+        "type": "TN",
+        "frame_count": 1554
+    },
+    {
+        "video_name": "8521113411.mp4",
+        "qid": "8521113411",
+        "question": "why does the boy in blue make different facial expressions",
+        "answer": "nervous",
+        "answer_idx": 2,
+        "options": [
+            "uninterested",
+            "ready to catch the toy",
+            "nervous",
+            "approach the man",
+            "film the dancers"
+        ],
+        "type": "CW",
+        "frame_count": 454
+    },
+    {
+        "video_name": "9388233379.mp4",
+        "qid": "9388233379",
+        "question": "why does the man in light blue hold the cymbal as he hits it",
+        "answer": "playing the instrument",
+        "answer_idx": 0,
+        "options": [
+            "playing the instrument",
+            "be expressive",
+            "gaming",
+            "music performance",
+            "let go of girl"
+        ],
+        "type": "CW",
+        "frame_count": 1387
+    },
+    {
+        "video_name": "6016490500.mp4",
+        "qid": "6016490500",
+        "question": "how did the lady in hat react when she realised the video was on her",
+        "answer": "look at camera",
+        "answer_idx": 2,
+        "options": [
+            "stand in a corner",
+            "look away",
+            "look at camera",
+            "stand up",
+            "hug the dog"
+        ],
+        "type": "TC",
+        "frame_count": 660
+    },
+    {
+        "video_name": "2615681431.mp4",
+        "qid": "2615681431",
+        "question": "what does the man in pink do after finish taking the photos",
+        "answer": "stand up",
+        "answer_idx": 4,
+        "options": [
+            "adjust them",
+            "walk nearer",
+            "looks out at the sea",
+            "walk out of gate",
+            "stand up"
+        ],
+        "type": "TN",
+        "frame_count": 729
+    },
+    {
+        "video_name": "8267897544.mp4",
+        "qid": "8267897544",
+        "question": "what did the man in green do after he put his hand down",
+        "answer": "looks down",
+        "answer_idx": 1,
+        "options": [
+            "walk back and forth",
+            "looks down",
+            "push the dog away",
+            "get off stage",
+            "turns the wood"
+        ],
+        "type": "TN",
+        "frame_count": 930
+    },
+    {
+        "video_name": "2942623423.mp4",
+        "qid": "2942623423",
+        "question": "how do the people make themselves different from one another on the dance floor",
+        "answer": "dance in different way",
+        "answer_idx": 1,
+        "options": [
+            "on horses",
+            "dance in different way",
+            "holding each other",
+            "hold and spin her",
+            "follow routine"
+        ],
+        "type": "CH",
+        "frame_count": 735
+    },
+    {
+        "video_name": "8315788918.mp4",
+        "qid": "8315788918",
+        "question": "why did the baby fall to the side as the man was getting off the trampoline",
+        "answer": "off balance",
+        "answer_idx": 2,
+        "options": [
+            "look at the man",
+            "to do a stunt again",
+            "off balance",
+            "play himeself",
+            "pushed by another boy"
+        ],
+        "type": "CW",
+        "frame_count": 1577
+    },
+    {
+        "video_name": "3210496292.mp4",
+        "qid": "3210496292",
+        "question": "where is this place",
+        "answer": "kitchen",
+        "answer_idx": 3,
+        "options": [
+            "park",
+            "classroom",
+            "outside a house",
+            "kitchen",
+            "living room"
+        ],
+        "type": "DL",
+        "frame_count": 618
+    },
+    {
+        "video_name": "2469129438.mp4",
+        "qid": "2469129438",
+        "question": "where is this happening",
+        "answer": "karaoke room",
+        "answer_idx": 4,
+        "options": [
+            "classroom",
+            "office",
+            "outdoor",
+            "car",
+            "karaoke room"
+        ],
+        "type": "DL",
+        "frame_count": 897
+    },
+    {
+        "video_name": "8378416042.mp4",
+        "qid": "8378416042",
+        "question": "how many girls are practicing in the video",
+        "answer": "three",
+        "answer_idx": 1,
+        "options": [
+            "seven",
+            "three",
+            "one",
+            "five",
+            "six"
+        ],
+        "type": "DC",
+        "frame_count": 668
+    },
+    {
+        "video_name": "4861754967.mp4",
+        "qid": "4861754967",
+        "question": "where is this",
+        "answer": "laboratory",
+        "answer_idx": 1,
+        "options": [
+            "aracade",
+            "laboratory",
+            "lake",
+            "factory",
+            "outdoor"
+        ],
+        "type": "DL",
+        "frame_count": 756
+    },
+    {
+        "video_name": "2775487424.mp4",
+        "qid": "2775487424",
+        "question": "why is there a blanket in front of the laptop",
+        "answer": "for cat to rest",
+        "answer_idx": 0,
+        "options": [
+            "for cat to rest",
+            "doing some work",
+            "controller",
+            "doing work",
+            "the lady is using it"
+        ],
+        "type": "CW",
+        "frame_count": 2697
+    },
+    {
+        "video_name": "6895784766.mp4",
+        "qid": "6895784766",
+        "question": "how many balls were in the video",
+        "answer": "two",
+        "answer_idx": 4,
+        "options": [
+            "ten",
+            "three",
+            "twelve",
+            "five",
+            "two"
+        ],
+        "type": "DC",
+        "frame_count": 1334
+    },
+    {
+        "video_name": "4132540355.mp4",
+        "qid": "4132540355",
+        "question": "what did the person do when he realised that it is not moving",
+        "answer": "touch it",
+        "answer_idx": 0,
+        "options": [
+            "touch it",
+            "jogging",
+            "skateboarding",
+            "leave his hands from the bicycle",
+            "adjusting safety wear"
+        ],
+        "type": "TC",
+        "frame_count": 960
+    },
+    {
+        "video_name": "3391727812.mp4",
+        "qid": "3391727812",
+        "question": "where is this video taken",
+        "answer": "grassland",
+        "answer_idx": 4,
+        "options": [
+            "dancing hall",
+            "front porch",
+            "sheltered area",
+            "by a lake",
+            "grassland"
+        ],
+        "type": "DL",
+        "frame_count": 1438
+    },
+    {
+        "video_name": "3126453673.mp4",
+        "qid": "3126453673",
+        "question": "what does the lady hold in her hand at the end",
+        "answer": "tickets",
+        "answer_idx": 1,
+        "options": [
+            "tidy bear",
+            "tickets",
+            "pet dog",
+            "music script",
+            "birthday gift"
+        ],
+        "type": "DO",
+        "frame_count": 475
+    },
+    {
+        "video_name": "5165813558.mp4",
+        "qid": "5165813558",
+        "question": "how does the baby react to the camera in the middle",
+        "answer": "stares",
+        "answer_idx": 2,
+        "options": [
+            "splash water",
+            "smile",
+            "stares",
+            "rotates head and makes faces",
+            "stretch out his hand"
+        ],
+        "type": "TC",
+        "frame_count": 768
+    },
+    {
+        "video_name": "6096381083.mp4",
+        "qid": "6096381083",
+        "question": "how did the other people react about the speech",
+        "answer": "happy",
+        "answer_idx": 1,
+        "options": [
+            "pleased",
+            "happy",
+            "awkward",
+            "annoyed",
+            "sleepy"
+        ],
+        "type": "TC",
+        "frame_count": 1661
+    },
+    {
+        "video_name": "4330113365.mp4",
+        "qid": "4330113365",
+        "question": "how did the man in yellow to produce a musical sound from his instrument",
+        "answer": "push instrument up and down",
+        "answer_idx": 0,
+        "options": [
+            "push instrument up and down",
+            "a bat",
+            "tap his feet",
+            "tell him something",
+            "hit with sticks"
+        ],
+        "type": "CH",
+        "frame_count": 2697
+    },
+    {
+        "video_name": "6896837065.mp4",
+        "qid": "6896837065",
+        "question": "how many rounds did the man carried the girl around",
+        "answer": "two",
+        "answer_idx": 3,
+        "options": [
+            "one",
+            "twelve",
+            "five",
+            "two",
+            "four"
+        ],
+        "type": "DC",
+        "frame_count": 2697
+    },
+    {
+        "video_name": "3762258530.mp4",
+        "qid": "3762258530",
+        "question": "where is this video taken",
+        "answer": "park",
+        "answer_idx": 4,
+        "options": [
+            "mountain",
+            "on the plane",
+            "supermarket",
+            "studio",
+            "park"
+        ],
+        "type": "DL",
+        "frame_count": 461
+    },
+    {
+        "video_name": "4622219704.mp4",
+        "qid": "4622219704",
+        "question": "what does the lady do after standing up at the end",
+        "answer": "walk away",
+        "answer_idx": 2,
+        "options": [
+            "wave and dance",
+            "thumbs up",
+            "walk away",
+            "remove the toys from box",
+            "carry baby on her tummy"
+        ],
+        "type": "TN",
+        "frame_count": 1080
+    },
+    {
+        "video_name": "4192027724.mp4",
+        "qid": "4192027724",
+        "question": "where are the kids hanging out",
+        "answer": "living room",
+        "answer_idx": 0,
+        "options": [
+            "living room",
+            "balcony",
+            "along the road",
+            "carousel",
+            "homeindoor"
+        ],
+        "type": "DL",
+        "frame_count": 2520
+    },
+    {
+        "video_name": "7031128593.mp4",
+        "qid": "7031128593",
+        "question": "why was the dog jumping when it was in front of the lady",
+        "answer": "excited to play",
+        "answer_idx": 0,
+        "options": [
+            "excited to play",
+            "point towards the dog",
+            "being patted",
+            "leash got tangled",
+            "dancing"
+        ],
+        "type": "CW",
+        "frame_count": 2697
+    },
+    {
+        "video_name": "2480958388.mp4",
+        "qid": "2480958388",
+        "question": "what does the orange girl do as the girl in pink is shaking the toys at the start",
+        "answer": "walk past",
+        "answer_idx": 4,
+        "options": [
+            "lies down on the float",
+            "turn around",
+            "sitting by the side",
+            "talk to her",
+            "walk past"
+        ],
+        "type": "TC",
+        "frame_count": 2620
+    },
+    {
+        "video_name": "5216965406.mp4",
+        "qid": "5216965406",
+        "question": "how does the girl in pink position herself on the floor",
+        "answer": "sit up",
+        "answer_idx": 0,
+        "options": [
+            "sit up",
+            "move the items on her hands",
+            "jumps",
+            "smiles",
+            "turns around and walk"
+        ],
+        "type": "TC",
+        "frame_count": 1201
+    },
+    {
+        "video_name": "12884043065.mp4",
+        "qid": "12884043065",
+        "question": "what does the lady do after bringing the boy closer to her",
+        "answer": "point at the bicycle",
+        "answer_idx": 3,
+        "options": [
+            "bend down",
+            "wear pants",
+            "playing with the baby",
+            "point at the bicycle",
+            "bring book closer to baby"
+        ],
+        "type": "TN",
+        "frame_count": 2296
+    },
+    {
+        "video_name": "2498105674.mp4",
+        "qid": "2498105674",
+        "question": "why were the men bending down in the middle of the video",
+        "answer": "take off shoes",
+        "answer_idx": 3,
+        "options": [
+            "look at someone",
+            "immitate girl to play",
+            "stabilise bicycle",
+            "take off shoes",
+            "pick up the stick"
+        ],
+        "type": "CW",
+        "frame_count": 1392
+    },
+    {
+        "video_name": "5314706706.mp4",
+        "qid": "5314706706",
+        "question": "why did the lady smile while holding the cat",
+        "answer": "likes the company",
+        "answer_idx": 1,
+        "options": [
+            "baby laughed",
+            "likes the company",
+            "posing for photos",
+            "talking to woman",
+            "playing with it"
+        ],
+        "type": "CW",
+        "frame_count": 651
+    },
+    {
+        "video_name": "4829041184.mp4",
+        "qid": "4829041184",
+        "question": "what sort of activity is occuring",
+        "answer": "playing with bottle",
+        "answer_idx": 0,
+        "options": [
+            "playing with bottle",
+            "experimentation",
+            "karoake",
+            "horse riding",
+            "feeding session"
+        ],
+        "type": "TC",
+        "frame_count": 1853
+    },
+    {
+        "video_name": "3495538595.mp4",
+        "qid": "3495538595",
+        "question": "why are some men sitting on the sand near the waters",
+        "answer": "talking to each other",
+        "answer_idx": 2,
+        "options": [
+            "fun",
+            "reading",
+            "talking to each other",
+            "playing percussion",
+            "santa claus giving out presents"
+        ],
+        "type": "CW",
+        "frame_count": 486
+    },
+    {
+        "video_name": "3213208382.mp4",
+        "qid": "3213208382",
+        "question": "how did the baby prevent itself from falling off the sleigh",
+        "answer": "held on tightly",
+        "answer_idx": 4,
+        "options": [
+            "winter clothing",
+            "balance himself",
+            "sit between adukts",
+            "baby pulled string",
+            "held on tightly"
+        ],
+        "type": "CH",
+        "frame_count": 626
+    },
+    {
+        "video_name": "6440155903.mp4",
+        "qid": "6440155903",
+        "question": "why is the lady pushing the board with legs on which she is sitting",
+        "answer": "make it move",
+        "answer_idx": 2,
+        "options": [
+            "turn bike around",
+            "play music instruments",
+            "make it move",
+            "way of swinging",
+            "dancing"
+        ],
+        "type": "CW",
+        "frame_count": 765
+    },
+    {
+        "video_name": "5377659742.mp4",
+        "qid": "5377659742",
+        "question": "why are there food in the bowls at the back",
+        "answer": "for the cat to eat",
+        "answer_idx": 4,
+        "options": [
+            "celebrating birthday",
+            "to throw away",
+            "for photoshoot",
+            "feed rabbit",
+            "for the cat to eat"
+        ],
+        "type": "CW",
+        "frame_count": 637
+    },
+    {
+        "video_name": "9494885165.mp4",
+        "qid": "9494885165",
+        "question": "where are the people",
+        "answer": "desert",
+        "answer_idx": 3,
+        "options": [
+            "clinic",
+            "field",
+            "golf course",
+            "desert",
+            "bus"
+        ],
+        "type": "DL",
+        "frame_count": 765
+    },
+    {
+        "video_name": "2783505892.mp4",
+        "qid": "2783505892",
+        "question": "why is group of people here at the graveyard",
+        "answer": "pay respect",
+        "answer_idx": 4,
+        "options": [
+            "in bar",
+            "feed the black dog",
+            "caress the cat",
+            "watch race",
+            "pay respect"
+        ],
+        "type": "CW",
+        "frame_count": 2697
+    },
+    {
+        "video_name": "6110761249.mp4",
+        "qid": "6110761249",
+        "question": "what was the lady doing as the boy and baby played with the toy at the beginning of the video",
+        "answer": "take photos",
+        "answer_idx": 2,
+        "options": [
+            "smiles at the baby",
+            "clapping",
+            "take photos",
+            "talk",
+            "rolling on her back"
+        ],
+        "type": "TC",
+        "frame_count": 1802
+    },
+    {
+        "video_name": "8484188496.mp4",
+        "qid": "8484188496",
+        "question": "what is the man in white doing",
+        "answer": "painting",
+        "answer_idx": 2,
+        "options": [
+            "performance",
+            "making a speech",
+            "painting",
+            "babysitting",
+            "dancing"
+        ],
+        "type": "TC",
+        "frame_count": 1927
+    },
+    {
+        "video_name": "13008599135.mp4",
+        "qid": "13008599135",
+        "question": "why did the boy on the right slide down on his tummy",
+        "answer": "fear of falling forward",
+        "answer_idx": 2,
+        "options": [
+            "exploring how keyboard works",
+            "running too fast",
+            "fear of falling forward",
+            "accompany the baby",
+            "to sit down"
+        ],
+        "type": "CW",
+        "frame_count": 662
+    },
+    {
+        "video_name": "4196939189.mp4",
+        "qid": "4196939189",
+        "question": "what does the baby do when the girl in green leaned in to the baby near the end",
+        "answer": "baby touch her hand",
+        "answer_idx": 1,
+        "options": [
+            "talk to her",
+            "baby touch her hand",
+            "kiss girl",
+            "put hand into mouth",
+            "look at the paper"
+        ],
+        "type": "TC",
+        "frame_count": 1863
+    },
+    {
+        "video_name": "5974881839.mp4",
+        "qid": "5974881839",
+        "question": "what does the man do with his other free hand while he used one hand to scrape the dog s leg",
+        "answer": "hold leg",
+        "answer_idx": 4,
+        "options": [
+            "pat at baby",
+            "grab the dog s nose",
+            "use handphone",
+            "push the dog",
+            "hold leg"
+        ],
+        "type": "TC",
+        "frame_count": 575
+    },
+    {
+        "video_name": "4581248625.mp4",
+        "qid": "4581248625",
+        "question": "how are the two people interacting with their hair",
+        "answer": "whipping it up and down",
+        "answer_idx": 2,
+        "options": [
+            "push with stroller",
+            "sitting",
+            "whipping it up and down",
+            "shake left and right",
+            "in a row"
+        ],
+        "type": "CH",
+        "frame_count": 538
+    },
+    {
+        "video_name": "6190625745.mp4",
+        "qid": "6190625745",
+        "question": "what was the man in green doing as the people stood outside the glass panel",
+        "answer": "skipping",
+        "answer_idx": 0,
+        "options": [
+            "skipping",
+            "giving a lecture",
+            "hold skateboard",
+            "guide the tractor",
+            "dancing"
+        ],
+        "type": "TC",
+        "frame_count": 1260
+    },
+    {
+        "video_name": "2785792401.mp4",
+        "qid": "2785792401",
+        "question": "why does the girl move her body front and back",
+        "answer": "enjoy the music",
+        "answer_idx": 4,
+        "options": [
+            "talking",
+            "driving",
+            "wind",
+            "playing",
+            "enjoy the music"
+        ],
+        "type": "CW",
+        "frame_count": 897
+    },
+    {
+        "video_name": "5262313272.mp4",
+        "qid": "5262313272",
+        "question": "how did the man express himself while talking",
+        "answer": "hand gestures",
+        "answer_idx": 0,
+        "options": [
+            "hand gestures",
+            "pressing buttons",
+            "speak to microphone",
+            "with a drawing",
+            "stand behind the baby"
+        ],
+        "type": "CH",
+        "frame_count": 731
+    },
+    {
+        "video_name": "11505582875.mp4",
+        "qid": "11505582875",
+        "question": "what are the men doing in this video",
+        "answer": "performing",
+        "answer_idx": 3,
+        "options": [
+            "skiing",
+            "working",
+            "surfing",
+            "performing",
+            "crossing the road"
+        ],
+        "type": "TC",
+        "frame_count": 1260
+    },
+    {
+        "video_name": "6487405415.mp4",
+        "qid": "6487405415",
+        "question": "what does the girl do after she has finished reading off the paper",
+        "answer": "look up and smile",
+        "answer_idx": 3,
+        "options": [
+            "stood up",
+            "play toy",
+            "clap hand",
+            "look up and smile",
+            "turn behind"
+        ],
+        "type": "TN",
+        "frame_count": 618
+    },
+    {
+        "video_name": "2448077748.mp4",
+        "qid": "2448077748",
+        "question": "why do the people stop playing for a while in the middle of the video",
+        "answer": "taking a break",
+        "answer_idx": 2,
+        "options": [
+            "unsure",
+            "help the man get off zipline",
+            "taking a break",
+            "looking at the dog",
+            "take a breather"
+        ],
+        "type": "CW",
+        "frame_count": 2697
+    },
+    {
+        "video_name": "10041199716.mp4",
+        "qid": "10041199716",
+        "question": "how did the boy fell onto the sofa at the beginning of the video",
+        "answer": "pushed by girl",
+        "answer_idx": 0,
+        "options": [
+            "pushed by girl",
+            "pushed by the cat",
+            "sit down",
+            "with the remote control",
+            "run"
+        ],
+        "type": "CH",
+        "frame_count": 1945
+    },
+    {
+        "video_name": "8787162041.mp4",
+        "qid": "8787162041",
+        "question": "what does the man do after the baby moves forwards",
+        "answer": "put the baby back",
+        "answer_idx": 0,
+        "options": [
+            "put the baby back",
+            "play with toy",
+            "hi-five",
+            "the man stretches his hand",
+            "shake his head"
+        ],
+        "type": "TN",
+        "frame_count": 2325
+    },
+    {
+        "video_name": "5205452346.mp4",
+        "qid": "5205452346",
+        "question": "why did the man in black wave his hand in front the camera near the end of the video",
+        "answer": "tell stop camera",
+        "answer_idx": 0,
+        "options": [
+            "tell stop camera",
+            "he lost",
+            "point at the dogs",
+            "block camera",
+            "gesture for the filming"
+        ],
+        "type": "CW",
+        "frame_count": 1561
+    },
+    {
+        "video_name": "3148635011.mp4",
+        "qid": "3148635011",
+        "question": "why did the boy stand up from his seat after flipping through the book",
+        "answer": "look for other toys to play",
+        "answer_idx": 1,
+        "options": [
+            "read book",
+            "look for other toys to play",
+            "curious",
+            "to greet someone",
+            "point to the video recorder"
+        ],
+        "type": "CW",
+        "frame_count": 1300
+    },
+    {
+        "video_name": "3133586911.mp4",
+        "qid": "3133586911",
+        "question": "how does the man react to the baby yawning",
+        "answer": "smiling",
+        "answer_idx": 3,
+        "options": [
+            "pull away",
+            "play with book",
+            "hit the man chin",
+            "smiling",
+            "stopped crying"
+        ],
+        "type": "TC",
+        "frame_count": 733
+    },
+    {
+        "video_name": "2811672042.mp4",
+        "qid": "2811672042",
+        "question": "why do the people wear different costume",
+        "answer": "costume party",
+        "answer_idx": 3,
+        "options": [
+            "riding scooter",
+            "uniform",
+            "indicate different direction",
+            "costume party",
+            "make face"
+        ],
+        "type": "CW",
+        "frame_count": 679
+    },
+    {
+        "video_name": "3579333191.mp4",
+        "qid": "3579333191",
+        "question": "where is the cat playing with the white object",
+        "answer": "living room",
+        "answer_idx": 1,
+        "options": [
+            "hammock",
+            "living room",
+            "next to the lady",
+            "behind a door",
+            "toilet"
+        ],
+        "type": "DL",
+        "frame_count": 2095
+    },
+    {
+        "video_name": "6913450810.mp4",
+        "qid": "6913450810",
+        "question": "what does the boy in grey do after finsihing dancing",
+        "answer": "take something from table",
+        "answer_idx": 2,
+        "options": [
+            "put thumbs up",
+            "points backwards",
+            "take something from table",
+            "looking at him",
+            "start dancing too"
+        ],
+        "type": "TN",
+        "frame_count": 587
+    },
+    {
+        "video_name": "4516647839.mp4",
+        "qid": "4516647839",
+        "question": "why did an adult sit next to the baby at the edge of the bed when the baby is resting on the bed",
+        "answer": "support baby",
+        "answer_idx": 3,
+        "options": [
+            "cover baby while sleeping",
+            "lost balance",
+            "make it soft for baby",
+            "support baby",
+            "protection action"
+        ],
+        "type": "CW",
+        "frame_count": 1656
+    },
+    {
+        "video_name": "4764302721.mp4",
+        "qid": "4764302721",
+        "question": "what did the man do after taking his keys",
+        "answer": "unlock door",
+        "answer_idx": 1,
+        "options": [
+            "walk away",
+            "unlock door",
+            "throw keys away",
+            "start dancing",
+            "look under the bells"
+        ],
+        "type": "TN",
+        "frame_count": 1022
+    },
+    {
+        "video_name": "3124632694.mp4",
+        "qid": "3124632694",
+        "question": "what does the lady in red do as the boys were sliding down",
+        "answer": "watch",
+        "answer_idx": 2,
+        "options": [
+            "stands in front of camera",
+            "put hands together",
+            "watch",
+            "scolded",
+            "sit still on the chair"
+        ],
+        "type": "TC",
+        "frame_count": 578
+    },
+    {
+        "video_name": "6447014305.mp4",
+        "qid": "6447014305",
+        "question": "why did the child place the toy on the person s hand",
+        "answer": "to get the person s attention",
+        "answer_idx": 4,
+        "options": [
+            "wants to hold hands",
+            "share her favourite toys",
+            "ask for food",
+            "stabilize toy car",
+            "to get the person s attention"
+        ],
+        "type": "CW",
+        "frame_count": 1817
+    },
+    {
+        "video_name": "12451389064.mp4",
+        "qid": "12451389064",
+        "question": "why is the baby cradle moving",
+        "answer": "baby shakes it",
+        "answer_idx": 3,
+        "options": [
+            "lady pushes it",
+            "change posture",
+            "rocked by boy",
+            "baby shakes it",
+            "try pull baby to sit up"
+        ],
+        "type": "CW",
+        "frame_count": 472
+    },
+    {
+        "video_name": "5482316216.mp4",
+        "qid": "5482316216",
+        "question": "how many people are there",
+        "answer": "two",
+        "answer_idx": 4,
+        "options": [
+            "seven",
+            "six",
+            "one",
+            "eleven",
+            "two"
+        ],
+        "type": "DC",
+        "frame_count": 1750
+    },
+    {
+        "video_name": "2401079660.mp4",
+        "qid": "2401079660",
+        "question": "why is the man holding out his hands as the baby tries to walk up the stairs",
+        "answer": "ready to catch the baby",
+        "answer_idx": 3,
+        "options": [
+            "for support",
+            "feel bored",
+            "play with dog",
+            "ready to catch the baby",
+            "chicken went away from him"
+        ],
+        "type": "CW",
+        "frame_count": 605
+    },
+    {
+        "video_name": "3260805075.mp4",
+        "qid": "3260805075",
+        "question": "why did the green shorts man put the fire near his arms at the start",
+        "answer": "demonstrate stunt",
+        "answer_idx": 3,
+        "options": [
+            "to burn the wood",
+            "hype the crowd",
+            "finished smoking",
+            "demonstrate stunt",
+            "wide hole on the ground"
+        ],
+        "type": "CW",
+        "frame_count": 525
+    },
+    {
+        "video_name": "5196189396.mp4",
+        "qid": "5196189396",
+        "question": "how does the person position her kness when skiing down",
+        "answer": "bend slightly",
+        "answer_idx": 1,
+        "options": [
+            "with her ski",
+            "bend slightly",
+            "bend severely",
+            "swing around with the ski handle",
+            "ski"
+        ],
+        "type": "TC",
+        "frame_count": 596
+    },
+    {
+        "video_name": "2822875146.mp4",
+        "qid": "2822875146",
+        "question": "what does the man have as safety gear when engaging in this sport",
+        "answer": "lifeguard",
+        "answer_idx": 1,
+        "options": [
+            "rock climbing",
+            "lifeguard",
+            "rugby",
+            "skiiing",
+            "frisbee"
+        ],
+        "type": "TC",
+        "frame_count": 585
+    },
+    {
+        "video_name": "3388614426.mp4",
+        "qid": "3388614426",
+        "question": "what does the lady hold in her hand as she stood in front of the man in white",
+        "answer": "flowers",
+        "answer_idx": 4,
+        "options": [
+            "sit down on the floor",
+            "child",
+            "stop walking",
+            "sit and nod",
+            "flowers"
+        ],
+        "type": "TC",
+        "frame_count": 1263
+    },
+    {
+        "video_name": "9517698187.mp4",
+        "qid": "9517698187",
+        "question": "what was the girl doing before she started going downhill",
+        "answer": "standing",
+        "answer_idx": 3,
+        "options": [
+            "turned around",
+            "walk around it",
+            "move to her left",
+            "standing",
+            "stomp her foot"
+        ],
+        "type": "TP",
+        "frame_count": 345
+    },
+    {
+        "video_name": "13983574774.mp4",
+        "qid": "13983574774",
+        "question": "where is this place",
+        "answer": "living room",
+        "answer_idx": 1,
+        "options": [
+            "waterfall",
+            "living room",
+            "farm",
+            "martial arts classroom",
+            "home"
+        ],
+        "type": "DL",
+        "frame_count": 1271
+    },
+    {
+        "video_name": "5443388088.mp4",
+        "qid": "5443388088",
+        "question": "what does the lady in black do after walking away from the room at the end",
+        "answer": "went to the kitchen",
+        "answer_idx": 3,
+        "options": [
+            "kiss the boy",
+            "puts it back on",
+            "turn around",
+            "went to the kitchen",
+            "run around stage"
+        ],
+        "type": "TN",
+        "frame_count": 2549
+    },
+    {
+        "video_name": "4414047871.mp4",
+        "qid": "4414047871",
+        "question": "what does the girl with ponytail does after she lost her balance",
+        "answer": "falls down",
+        "answer_idx": 2,
+        "options": [
+            "fall down from sofa",
+            "catch back balloon",
+            "falls down",
+            "make it move",
+            "pick up blanket"
+        ],
+        "type": "TN",
+        "frame_count": 2697
+    },
+    {
+        "video_name": "6051291805.mp4",
+        "qid": "6051291805",
+        "question": "where is this happening",
+        "answer": "house",
+        "answer_idx": 4,
+        "options": [
+            "hilltop",
+            "desert",
+            "in the middle of the sea",
+            "on the road",
+            "house"
+        ],
+        "type": "DL",
+        "frame_count": 2160
+    },
+    {
+        "video_name": "8718633296.mp4",
+        "qid": "8718633296",
+        "question": "why does the man with white hair sit still while the woman is talking",
+        "answer": "pay attention",
+        "answer_idx": 1,
+        "options": [
+            "propose to her",
+            "pay attention",
+            "listening to him",
+            "wait the microphone",
+            "distracted"
+        ],
+        "type": "CW",
+        "frame_count": 1812
+    },
+    {
+        "video_name": "4772810451.mp4",
+        "qid": "4772810451",
+        "question": "why does the dog try to jump on the cameraman s leg",
+        "answer": "wants to play",
+        "answer_idx": 1,
+        "options": [
+            "so that it could grab it",
+            "wants to play",
+            "try to drag dog",
+            "keep the dog close to him",
+            "follows the cameraman"
+        ],
+        "type": "CW",
+        "frame_count": 889
+    },
+    {
+        "video_name": "3517067405.mp4",
+        "qid": "3517067405",
+        "question": "why did the man hold the microphone with 2 hands after strumming the guitar for a while",
+        "answer": "very into performace",
+        "answer_idx": 4,
+        "options": [
+            "fun",
+            "keep the beat",
+            "he is playing the guitar",
+            "to enjoy the music",
+            "very into performace"
+        ],
+        "type": "CW",
+        "frame_count": 2697
+    },
+    {
+        "video_name": "5255136217.mp4",
+        "qid": "5255136217",
+        "question": "why did the singer sing and play the piano at the same time",
+        "answer": "performance",
+        "answer_idx": 2,
+        "options": [
+            "comedy",
+            "entertain baby",
+            "performance",
+            "excited about singing",
+            "to arouse baby interest in playing"
+        ],
+        "type": "CW",
+        "frame_count": 1350
+    },
+    {
+        "video_name": "7500947428.mp4",
+        "qid": "7500947428",
+        "question": "what animal is in the video",
+        "answer": "dog",
+        "answer_idx": 4,
+        "options": [
+            "bird",
+            "turtle",
+            "duck",
+            "squirrel",
+            "dog"
+        ],
+        "type": "DO",
+        "frame_count": 1647
+    },
+    {
+        "video_name": "5717777815.mp4",
+        "qid": "5717777815",
+        "question": "how did the boy feel when he realised he is caught on camera",
+        "answer": "happy",
+        "answer_idx": 1,
+        "options": [
+            "unhappy",
+            "happy",
+            "intrigued",
+            "passionate",
+            "disappointed"
+        ],
+        "type": "TC",
+        "frame_count": 322
+    },
+    {
+        "video_name": "5554662027.mp4",
+        "qid": "5554662027",
+        "question": "what does the baby do after being let go on the floor",
+        "answer": "crawl",
+        "answer_idx": 1,
+        "options": [
+            "chew food",
+            "crawl",
+            "stand up",
+            "happy",
+            "jump"
+        ],
+        "type": "TN",
+        "frame_count": 1668
+    },
+    {
+        "video_name": "8526667660.mp4",
+        "qid": "8526667660",
+        "question": "how many babies are in the video",
+        "answer": "two",
+        "answer_idx": 4,
+        "options": [
+            "three",
+            "kitchen",
+            "one",
+            "four",
+            "two"
+        ],
+        "type": "DC",
+        "frame_count": 641
+    },
+    {
+        "video_name": "2800751485.mp4",
+        "qid": "2800751485",
+        "question": "why is the creature opening and closing its mouth",
+        "answer": "waiting for prey",
+        "answer_idx": 1,
+        "options": [
+            "singing and dancing",
+            "waiting for prey",
+            "show a sign",
+            "move the cycle",
+            "moving along with the current"
+        ],
+        "type": "CW",
+        "frame_count": 518
+    },
+    {
+        "video_name": "5435480796.mp4",
+        "qid": "5435480796",
+        "question": "why are there people sitting in the video",
+        "answer": "audience",
+        "answer_idx": 3,
+        "options": [
+            "eating",
+            "listeing to class",
+            "public area",
+            "audience",
+            "having a meal"
+        ],
+        "type": "CW",
+        "frame_count": 2697
+    },
+    {
+        "video_name": "5929504257.mp4",
+        "qid": "5929504257",
+        "question": "how many people standing in front",
+        "answer": "four",
+        "answer_idx": 4,
+        "options": [
+            "eleven",
+            "one",
+            "two",
+            "five",
+            "four"
+        ],
+        "type": "DC",
+        "frame_count": 2265
+    },
+    {
+        "video_name": "3416462403.mp4",
+        "qid": "3416462403",
+        "question": "what is the baby doing",
+        "answer": "ride toy car",
+        "answer_idx": 3,
+        "options": [
+            "feeding the dog",
+            "watching video on tablet",
+            "play driving",
+            "ride toy car",
+            "dancing"
+        ],
+        "type": "TC",
+        "frame_count": 485
+    },
+    {
+        "video_name": "4608689081.mp4",
+        "qid": "4608689081",
+        "question": "why is the lady fiddling with the toy in her hands",
+        "answer": "looking for something",
+        "answer_idx": 4,
+        "options": [
+            "repair the toy",
+            "moving the joystick",
+            "assist the girl in swimming",
+            "turn bike around",
+            "looking for something"
+        ],
+        "type": "CW",
+        "frame_count": 834
+    },
+    {
+        "video_name": "3387916195.mp4",
+        "qid": "3387916195",
+        "question": "where is this happening",
+        "answer": "outdoors",
+        "answer_idx": 3,
+        "options": [
+            "residential area",
+            "stage",
+            "forest",
+            "outdoors",
+            "garden"
+        ],
+        "type": "DL",
+        "frame_count": 842
+    },
+    {
+        "video_name": "5842153096.mp4",
+        "qid": "5842153096",
+        "question": "why does the place become so much darker near the end of the video",
+        "answer": "put out the fire",
+        "answer_idx": 2,
+        "options": [
+            "clouds cover sky",
+            "lights broke",
+            "put out the fire",
+            "blew the candle",
+            "shelter cover"
+        ],
+        "type": "CW",
+        "frame_count": 618
+    }
+]
