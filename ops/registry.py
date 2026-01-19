@@ -32,6 +32,19 @@ BUCKETS = {
 # Catalog definitions: region + model selections
 # =========================================================
 
+# 基础区域配置，方便做笛卡尔积
+GCP_REGIONS = [
+    {"region": "us-west1", "bucket_key": "gcp_us"},
+    {"region": "europe-west1", "bucket_key": "gcp_eu"},
+    {"region": "asia-southeast1", "bucket_key": "gcp_sg"},
+]
+
+AWS_REGIONS = [
+    {"region": "us-west-2", "bucket_key": "aws_us"},
+    {"region": "eu-central-1", "bucket_key": "aws_eu"},
+    {"region": "ap-southeast-1", "bucket_key": "aws_sg"},
+]
+
 # 1) Video segmentation
 VIDEO_SEGMENT_CATALOG = [
     # Google Video Intelligence
@@ -45,31 +58,114 @@ VIDEO_SEGMENT_CATALOG = [
 ]
 
 # 2) Visual captioning
-VISUAL_CAPTION_CATALOG = [
-    # Google Vertex AI (Gemini 2.5)
-    {"pid": "cap_google_flash_lite_us", "cls": GoogleVertexCaptionImpl, "provider": "google", "region": "us-west1", "bucket_key": "gcp_us", "model": "gemini-2.5-flash-lite"},
-    {"pid": "cap_google_flash_eu",       "cls": GoogleVertexCaptionImpl, "provider": "google", "region": "europe-west1", "bucket_key": "gcp_eu", "model": "gemini-2.5-flash"},
-    {"pid": "cap_google_flash_sg",       "cls": GoogleVertexCaptionImpl, "provider": "google", "region": "asia-southeast1", "bucket_key": "gcp_sg", "model": "gemini-2.5-flash"},
-    # Amazon Bedrock (Nova)
-    {"pid": "cap_aws_nova_lite_us", "cls": AmazonBedrockCaptionImpl, "provider": "amazon", "region": "us-west-2", "bucket_key": "aws_us", "model": "nova-lite"},
-    {"pid": "cap_aws_nova_pro_eu", "cls": AmazonBedrockCaptionImpl, "provider": "amazon", "region": "eu-central-1", "bucket_key": "aws_eu", "model": "nova-pro"},
-    {"pid": "cap_aws_nova_pro_sg", "cls": AmazonBedrockCaptionImpl, "provider": "amazon", "region": "ap-southeast-1", "bucket_key": "aws_sg", "model": "nova-pro"},
-]
+VISUAL_CAPTION_CATALOG = []
+
+# Google Vertex AI (Gemini 2.5) - 模型 x 区域 笛卡尔积
+_gcp_cap_models = {
+    "gemini-2.5-flash-lite": "flash_lite",
+    "gemini-2.5-flash": "flash",
+}
+for model, slug in _gcp_cap_models.items():
+    for reg in GCP_REGIONS:
+        pid = f"cap_google_{slug}_{reg['region'].split('-')[0]}" if 'west1' in reg['region'] or 'east1' in reg['region'] else f"cap_google_{slug}_{reg['region'].split('-')[1]}"
+        # 更直观的 pid：使用区域简称
+        if reg["region"] == "us-west1":
+            pid = f"cap_google_{slug}_us"
+        elif reg["region"] == "europe-west1":
+            pid = f"cap_google_{slug}_eu"
+        elif reg["region"] == "asia-southeast1":
+            pid = f"cap_google_{slug}_sg"
+        VISUAL_CAPTION_CATALOG.append({
+            "pid": pid,
+            "cls": GoogleVertexCaptionImpl,
+            "provider": "google",
+            "region": reg["region"],
+            "bucket_key": reg["bucket_key"],
+            "model": model
+        })
+
+# Amazon Bedrock (Nova) - 模型 x 区域 笛卡尔积
+_aws_cap_models = {
+    "nova-lite": "nova_lite",
+    "nova-pro": "nova_pro",
+}
+for model, slug in _aws_cap_models.items():
+    for reg in AWS_REGIONS:
+        if reg["region"] == "us-west-2":
+            pid_suffix = "us"
+        elif reg["region"] == "eu-central-1":
+            pid_suffix = "eu"
+        elif reg["region"] == "ap-southeast-1":
+            pid_suffix = "sg"
+        else:
+            pid_suffix = reg["region"].replace("-", "_")
+        pid = f"cap_aws_{slug}_{pid_suffix}"
+        VISUAL_CAPTION_CATALOG.append({
+            "pid": pid,
+            "cls": AmazonBedrockCaptionImpl,
+            "provider": "amazon",
+            "region": reg["region"],
+            "bucket_key": reg["bucket_key"],
+            "model": model
+        })
 
 # 3) LLM querying
-LLM_CATALOG = [
-    # Google Vertex AI (Gemini 2.5)
-    {"pid": "llm_google_flash_us", "cls": GoogleVertexLLMImpl, "provider": "google", "region": "us-west1", "bucket_key": "gcp_us", "model": "gemini-2.5-flash"},
-    {"pid": "llm_google_pro_eu",   "cls": GoogleVertexLLMImpl, "provider": "google", "region": "europe-west1", "bucket_key": "gcp_eu", "model": "gemini-2.5-pro"},
-    {"pid": "llm_google_pro_sg",   "cls": GoogleVertexLLMImpl, "provider": "google", "region": "asia-southeast1", "bucket_key": "gcp_sg", "model": "gemini-2.5-pro"},
-    # Amazon Bedrock (Claude)
-    {"pid": "llm_aws_haiku_us",   "cls": AmazonBedrockLLMImpl, "provider": "amazon", "region": "us-west-2", "bucket_key": "aws_us", "model": "claude-3-haiku"},
-    {"pid": "llm_aws_sonnet_eu",  "cls": AmazonBedrockLLMImpl, "provider": "amazon", "region": "eu-central-1", "bucket_key": "aws_eu", "model": "claude-3.5-sonnet"},
-    {"pid": "llm_aws_sonnet_sg",  "cls": AmazonBedrockLLMImpl, "provider": "amazon", "region": "ap-southeast-1", "bucket_key": "aws_sg", "model": "claude-3.5-sonnet"},
-    # OpenAI
+LLM_CATALOG = []
+
+# Google Vertex AI (Gemini 2.5) - 模型 x 区域
+_gcp_llm_models = {
+    "gemini-2.5-flash": "flash",
+    "gemini-2.5-pro": "pro",
+}
+for model, slug in _gcp_llm_models.items():
+    for reg in GCP_REGIONS:
+        if reg["region"] == "us-west1":
+            pid = f"llm_google_{slug}_us"
+        elif reg["region"] == "europe-west1":
+            pid = f"llm_google_{slug}_eu"
+        elif reg["region"] == "asia-southeast1":
+            pid = f"llm_google_{slug}_sg"
+        else:
+            pid = f"llm_google_{slug}_{reg['region'].replace('-', '_')}"
+        LLM_CATALOG.append({
+            "pid": pid,
+            "cls": GoogleVertexLLMImpl,
+            "provider": "google",
+            "region": reg["region"],
+            "bucket_key": reg["bucket_key"],
+            "model": model
+        })
+
+# Amazon Bedrock (Claude) - 模型 x 区域
+_aws_llm_models = {
+    "claude-3-haiku": "haiku",
+    "claude-3.5-sonnet": "sonnet",
+}
+for model, slug in _aws_llm_models.items():
+    for reg in AWS_REGIONS:
+        if reg["region"] == "us-west-2":
+            pid_suffix = "us"
+        elif reg["region"] == "eu-central-1":
+            pid_suffix = "eu"
+        elif reg["region"] == "ap-southeast-1":
+            pid_suffix = "sg"
+        else:
+            pid_suffix = reg["region"].replace("-", "_")
+        pid = f"llm_aws_{slug}_{pid_suffix}"
+        LLM_CATALOG.append({
+            "pid": pid,
+            "cls": AmazonBedrockLLMImpl,
+            "provider": "amazon",
+            "region": reg["region"],
+            "bucket_key": reg["bucket_key"],
+            "model": model
+        })
+
+# OpenAI (无区域概念)
+LLM_CATALOG.extend([
     {"pid": "llm_openai_gpt4o_mini", "cls": OpenAILLMImpl, "provider": "openai", "region": "global", "bucket_key": None, "model": "gpt-4o-mini"},
     {"pid": "llm_openai_gpt4o",      "cls": OpenAILLMImpl, "provider": "openai", "region": "global", "bucket_key": None, "model": "gpt-4o"},
-]
+])
 
 # =========================================================
 # Register all combinations from catalogs
