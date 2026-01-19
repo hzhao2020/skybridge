@@ -1,80 +1,89 @@
-from typing import Dict
+# ops/registry.py
 from ops.base import Operation
 from ops.impl.google_ops import GoogleVideoSegmentImpl, GoogleVertexCaptionImpl, GoogleVertexLLMImpl
 from ops.impl.amazon_ops import AmazonRekognitionSegmentImpl, AmazonBedrockCaptionImpl, AmazonBedrockLLMImpl
 from ops.impl.openai_ops import OpenAILLMImpl
 
-REGISTRY: Dict[str, Operation] = {}
+REGISTRY = {}
 
+def register(pid: str, instance: Operation):
+    REGISTRY[pid] = instance
 
-def register(physical_id: str, instance: Operation):
-    REGISTRY[physical_id] = instance
+def get_operation(pid: str) -> Operation:
+    if pid not in REGISTRY:
+        raise ValueError(f"Physical ID '{pid}' not found.")
+    return REGISTRY[pid]
 
-
-# ==========================================
-# Bucket Configuration (假设你已经在云端创建了这些 Bucket)
-# ==========================================
+# --- 存储配置 (请在云端创建对应名称的 Bucket) ---
 BUCKETS = {
-    # Google Buckets
-    "gcp_us": "skybridge-gcp-us-west1",
-    "gcp_eu": "skybridge-gcp-eu-west1",
-    "gcp_asia": "skybridge-gcp-asia-east1",
-    "gcp_sg": "skybridge-gcp-asia-se1",
-
-    # AWS Buckets
-    "aws_us": "skybridge-aws-us-west-2",
-    "aws_eu": "skybridge-aws-eu-central-1",
-    "aws_sg": "skybridge-aws-ap-se-1"
+    # Google (Region buckets)
+    "gcp_us": "video_us",
+    "gcp_eu": "video_eu",
+    "gcp_tw": "video_tw",
+    "gcp_sg": "video_sg",
+    # AWS (Region buckets)
+    # Note: boto3 S3 API 需要 Bucket Name，不是 ARN；下面已从 ARN 提取为 bucket 名称。
+    "aws_us": "sky-video-us",
+    "aws_eu": "sky-video-eu",
+    "aws_sg": "sky-video-sg"
 }
 
-# ==========================================
-# 1. Video Segment
-# ==========================================
-register("gcp_vid_us_west1", GoogleVideoSegmentImpl("google", "us-west1", BUCKETS["gcp_us"]))
-register("gcp_vid_eu_west1", GoogleVideoSegmentImpl("google", "europe-west1", BUCKETS["gcp_eu"]))
-register("gcp_vid_asia_east1", GoogleVideoSegmentImpl("google", "asia-east1", BUCKETS["gcp_asia"]))
+# =========================================================
+# Catalog definitions: region + model selections
+# =========================================================
 
-register("aws_rek_us_west2", AmazonRekognitionSegmentImpl("amazon", "us-west-2", BUCKETS["aws_us"]))
-register("aws_rek_eu_central1", AmazonRekognitionSegmentImpl("amazon", "eu-central-1", BUCKETS["aws_eu"]))
-register("aws_rek_ap_southeast1", AmazonRekognitionSegmentImpl("amazon", "ap-southeast-1", BUCKETS["aws_sg"]))
+# 1) Video segmentation
+VIDEO_SEGMENT_CATALOG = [
+    # Google Video Intelligence
+    {"pid": "vid_google_us", "cls": GoogleVideoSegmentImpl, "provider": "google", "region": "us-west1", "bucket_key": "gcp_us"},
+    {"pid": "vid_google_eu", "cls": GoogleVideoSegmentImpl, "provider": "google", "region": "europe-west1", "bucket_key": "gcp_eu"},
+    {"pid": "vid_google_tw", "cls": GoogleVideoSegmentImpl, "provider": "google", "region": "asia-east1", "bucket_key": "gcp_tw"},
+    # Amazon Rekognition Video
+    {"pid": "vid_aws_us", "cls": AmazonRekognitionSegmentImpl, "provider": "amazon", "region": "us-west-2", "bucket_key": "aws_us"},
+    {"pid": "vid_aws_eu", "cls": AmazonRekognitionSegmentImpl, "provider": "amazon", "region": "eu-central-1", "bucket_key": "aws_eu"},
+    {"pid": "vid_aws_sg", "cls": AmazonRekognitionSegmentImpl, "provider": "amazon", "region": "ap-southeast-1", "bucket_key": "aws_sg"},
+]
 
-# ==========================================
-# 2. Visual Caption
-# ==========================================
-# Google
-register("gcp_cap_us_west1_flash_lite",
-         GoogleVertexCaptionImpl("google", "us-west1", BUCKETS["gcp_us"], "gemini-2.5-flash-lite"))
-register("gcp_cap_eu_west1_flash",
-         GoogleVertexCaptionImpl("google", "europe-west1", BUCKETS["gcp_eu"], "gemini-2.5-flash"))
-register("gcp_cap_sg_flash",
-         GoogleVertexCaptionImpl("google", "asia-southeast1", BUCKETS["gcp_sg"], "gemini-2.5-flash"))
+# 2) Visual captioning
+VISUAL_CAPTION_CATALOG = [
+    # Google Vertex AI (Gemini 2.5)
+    {"pid": "cap_google_flash_lite_us", "cls": GoogleVertexCaptionImpl, "provider": "google", "region": "us-west1", "bucket_key": "gcp_us", "model": "gemini-2.5-flash-lite"},
+    {"pid": "cap_google_flash_eu",       "cls": GoogleVertexCaptionImpl, "provider": "google", "region": "europe-west1", "bucket_key": "gcp_eu", "model": "gemini-2.5-flash"},
+    {"pid": "cap_google_flash_sg",       "cls": GoogleVertexCaptionImpl, "provider": "google", "region": "asia-southeast1", "bucket_key": "gcp_sg", "model": "gemini-2.5-flash"},
+    # Amazon Bedrock (Nova)
+    {"pid": "cap_aws_nova_lite_us", "cls": AmazonBedrockCaptionImpl, "provider": "amazon", "region": "us-west-2", "bucket_key": "aws_us", "model": "nova-lite"},
+    {"pid": "cap_aws_nova_pro_eu", "cls": AmazonBedrockCaptionImpl, "provider": "amazon", "region": "eu-central-1", "bucket_key": "aws_eu", "model": "nova-pro"},
+    {"pid": "cap_aws_nova_pro_sg", "cls": AmazonBedrockCaptionImpl, "provider": "amazon", "region": "ap-southeast-1", "bucket_key": "aws_sg", "model": "nova-pro"},
+]
 
-# Amazon
-register("aws_cap_us_west2_nova_lite", AmazonBedrockCaptionImpl("amazon", "us-west-2", BUCKETS["aws_us"], "nova-lite"))
-register("aws_cap_eu_central1_nova_pro",
-         AmazonBedrockCaptionImpl("amazon", "eu-central-1", BUCKETS["aws_eu"], "nova-pro"))
-register("aws_cap_sg_nova_pro", AmazonBedrockCaptionImpl("amazon", "ap-southeast-1", BUCKETS["aws_sg"], "nova-pro"))
+# 3) LLM querying
+LLM_CATALOG = [
+    # Google Vertex AI (Gemini 2.5)
+    {"pid": "llm_google_flash_us", "cls": GoogleVertexLLMImpl, "provider": "google", "region": "us-west1", "bucket_key": "gcp_us", "model": "gemini-2.5-flash"},
+    {"pid": "llm_google_pro_eu",   "cls": GoogleVertexLLMImpl, "provider": "google", "region": "europe-west1", "bucket_key": "gcp_eu", "model": "gemini-2.5-pro"},
+    {"pid": "llm_google_pro_sg",   "cls": GoogleVertexLLMImpl, "provider": "google", "region": "asia-southeast1", "bucket_key": "gcp_sg", "model": "gemini-2.5-pro"},
+    # Amazon Bedrock (Claude)
+    {"pid": "llm_aws_haiku_us",   "cls": AmazonBedrockLLMImpl, "provider": "amazon", "region": "us-west-2", "bucket_key": "aws_us", "model": "claude-3-haiku"},
+    {"pid": "llm_aws_sonnet_eu",  "cls": AmazonBedrockLLMImpl, "provider": "amazon", "region": "eu-central-1", "bucket_key": "aws_eu", "model": "claude-3.5-sonnet"},
+    {"pid": "llm_aws_sonnet_sg",  "cls": AmazonBedrockLLMImpl, "provider": "amazon", "region": "ap-southeast-1", "bucket_key": "aws_sg", "model": "claude-3.5-sonnet"},
+    # OpenAI
+    {"pid": "llm_openai_gpt4o_mini", "cls": OpenAILLMImpl, "provider": "openai", "region": "global", "bucket_key": None, "model": "gpt-4o-mini"},
+    {"pid": "llm_openai_gpt4o",      "cls": OpenAILLMImpl, "provider": "openai", "region": "global", "bucket_key": None, "model": "gpt-4o"},
+]
 
-# ==========================================
-# 3. LLM Query
-# ==========================================
-# Google
-register("gcp_llm_us_west1_flash", GoogleVertexLLMImpl("google", "us-west1", BUCKETS["gcp_us"], "gemini-2.5-flash"))
-register("gcp_llm_eu_west1_pro", GoogleVertexLLMImpl("google", "europe-west1", BUCKETS["gcp_eu"], "gemini-2.5-pro"))
-register("gcp_llm_sg_pro", GoogleVertexLLMImpl("google", "asia-southeast1", BUCKETS["gcp_sg"], "gemini-2.5-pro"))
+# =========================================================
+# Register all combinations from catalogs
+# =========================================================
+for item in VIDEO_SEGMENT_CATALOG:
+    register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]]))
 
-# Amazon
-register("aws_llm_us_west2_haiku", AmazonBedrockLLMImpl("amazon", "us-west-2", BUCKETS["aws_us"], "claude-3-haiku"))
-register("aws_llm_eu_central1_sonnet",
-         AmazonBedrockLLMImpl("amazon", "eu-central-1", BUCKETS["aws_eu"], "claude-3.5-sonnet"))
-register("aws_llm_sg_sonnet", AmazonBedrockLLMImpl("amazon", "ap-southeast-1", BUCKETS["aws_sg"], "claude-3.5-sonnet"))
+for item in VISUAL_CAPTION_CATALOG:
+    register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]], item["model"]))
 
-# OpenAI (No bucket needed)
-register("openai_gpt4o_mini", OpenAILLMImpl("gpt-4o-mini"))
-register("openai_gpt4o", OpenAILLMImpl("gpt-4o"))
-
-
-def get_operation(physical_id: str) -> Operation:
-    if physical_id not in REGISTRY:
-        raise ValueError(f"Physical ID {physical_id} not found.")
-    return REGISTRY[physical_id]
+for item in LLM_CATALOG:
+    bucket = BUCKETS[item["bucket_key"]] if item["bucket_key"] else None
+    # OpenAI 的实现只需要 model_name，其余忽略 bucket/region
+    if item["provider"] == "openai":
+        register(item["pid"], item["cls"](item["model"]))
+    else:
+        register(item["pid"], item["cls"](item["provider"], item["region"], bucket, item["model"]))
