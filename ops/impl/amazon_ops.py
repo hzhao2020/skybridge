@@ -1,38 +1,58 @@
-# ops/impl/amazon_ops.py
 import time
 from typing import Dict, Any
 from ops.base import VideoSegmenter, VisualCaptioner, LLMQuery
 
-# --- 1. Amazon Rekognition (Segmentation) ---
+
 class AmazonRekognitionSegmentImpl(VideoSegmenter):
     def execute(self, video_uri: str, **kwargs) -> Dict[str, Any]:
-        print(f"[AWS Rekognition] Region: {self.region} | Input: {video_uri}")
-        # 模拟 API 调用: boto3.client('rekognition').start_segment_detection
+        print(f"--- [AWS Rekognition] Node: {self.region} ---")
+
+        # 1. [Data Gravity] 智能搬运：确保视频在 AWS S3
+        target_uri = self.transmitter.smart_move(
+            source_uri=video_uri,
+            target_provider='amazon',
+            target_bucket=self.storage_bucket
+        )
+        print(f"    Data ready at: {target_uri}")
+
+        # 2. 调用 API
+        # rekognition.start_segment_detection(...)
         time.sleep(1)
+
         return {
             "provider": "amazon",
             "region": self.region,
-            "segments": [{"start": 2, "end": 8}]
+            "segments": [{"start": 2, "end": 8}],
+            "source_used": target_uri
         }
 
-# --- 2. Amazon Bedrock (Visual Captioning) ---
-# 注意：Bedrock 的多模态模型（如 Nova, Claude 3）既可以做 Caption 也可以做 LLM
+
 class AmazonBedrockCaptionImpl(VisualCaptioner):
     def execute(self, video_uri: str, **kwargs) -> Dict[str, Any]:
-        print(f"[AWS Bedrock Caption] Model: {self.model_name} | Region: {self.region} | Input: {video_uri}")
-        # 模拟 API 调用: boto3.client('bedrock-runtime').invoke_model
+        print(f"--- [AWS Bedrock Caption] Node: {self.region} ({self.model_name}) ---")
+
+        # 1. [Data Gravity] 智能搬运
+        target_uri = self.transmitter.smart_move(
+            source_uri=video_uri,
+            target_provider='amazon',
+            target_bucket=self.storage_bucket
+        )
+        print(f"    Data ready at: {target_uri}")
+
+        # 2. 调用 API
         return {
             "provider": "amazon_bedrock",
             "model": self.model_name,
-            "caption": f"Caption by AWS {self.model_name}"
+            "caption": "A dog running on grass.",
+            "source_used": target_uri
         }
 
-# --- 3. Amazon Bedrock (LLM Query) ---
+
 class AmazonBedrockLLMImpl(LLMQuery):
     def execute(self, prompt: str, **kwargs) -> Dict[str, Any]:
-        print(f"[AWS Bedrock LLM] Model: {self.model_name} | Region: {self.region}")
+        print(f"--- [AWS Bedrock LLM] Node: {self.region} ({self.model_name}) ---")
         return {
             "provider": "amazon_bedrock",
             "model": self.model_name,
-            "response": f"AWS {self.model_name} says: {prompt}"
+            "response": f"Bedrock response to: {prompt[:10]}..."
         }
