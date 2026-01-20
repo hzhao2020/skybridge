@@ -33,10 +33,18 @@ BUCKETS = {
 # =========================================================
 
 # 基础区域配置，方便做笛卡尔积
+# Vertex AI 支持的区域：us-west1, europe-west1, asia-southeast1
 GCP_REGIONS = [
     {"region": "us-west1", "bucket_key": "gcp_us"},
     {"region": "europe-west1", "bucket_key": "gcp_eu"},
     {"region": "asia-southeast1", "bucket_key": "gcp_sg"},
+]
+
+# Google Video Intelligence 支持的区域：us-west1, europe-west1, asia-east1
+GCP_VIDEO_INTELLIGENCE_REGIONS = [
+    {"region": "us-west1", "bucket_key": "gcp_us"},
+    {"region": "europe-west1", "bucket_key": "gcp_eu"},
+    {"region": "asia-east1", "bucket_key": "gcp_tw"},
 ]
 
 AWS_REGIONS = [
@@ -46,8 +54,9 @@ AWS_REGIONS = [
 ]
 
 # 1) Video segmentation
+# Google Video Intelligence: 仅支持 us-west1, europe-west1, asia-east1
 VIDEO_SEGMENT_CATALOG = [
-    # Google Video Intelligence
+    # Google Video Intelligence (3个区域)
     {"pid": "vid_google_us", "cls": GoogleVideoSegmentImpl, "provider": "google", "region": "us-west1", "bucket_key": "gcp_us"},
     {"pid": "vid_google_eu", "cls": GoogleVideoSegmentImpl, "provider": "google", "region": "europe-west1", "bucket_key": "gcp_eu"},
     {"pid": "vid_google_tw", "cls": GoogleVideoSegmentImpl, "provider": "google", "region": "asia-east1", "bucket_key": "gcp_tw"},
@@ -61,12 +70,13 @@ VIDEO_SEGMENT_CATALOG = [
 VISUAL_CAPTION_CATALOG = []
 
 # Google Vertex AI (Gemini 2.5) - 模型 x 区域 笛卡尔积
+# Vertex AI 仅支持 us-west1, europe-west1, asia-southeast1
 _gcp_cap_models = {
     "gemini-2.5-flash-lite": "flash_lite",
     "gemini-2.5-flash": "flash",
 }
 for model, slug in _gcp_cap_models.items():
-    for reg in GCP_REGIONS:
+    for reg in GCP_REGIONS:  # GCP_REGIONS 已包含正确的3个区域
         pid = f"cap_google_{slug}_{reg['region'].split('-')[0]}" if 'west1' in reg['region'] or 'east1' in reg['region'] else f"cap_google_{slug}_{reg['region'].split('-')[1]}"
         # 更直观的 pid：使用区域简称
         if reg["region"] == "us-west1":
@@ -113,12 +123,13 @@ for model, slug in _aws_cap_models.items():
 LLM_CATALOG = []
 
 # Google Vertex AI (Gemini 2.5) - 模型 x 区域
+# Vertex AI 仅支持 us-west1, europe-west1, asia-southeast1
 _gcp_llm_models = {
     "gemini-2.5-flash": "flash",
     "gemini-2.5-pro": "pro",
 }
 for model, slug in _gcp_llm_models.items():
-    for reg in GCP_REGIONS:
+    for reg in GCP_REGIONS:  # GCP_REGIONS 已包含正确的3个区域
         if reg["region"] == "us-west1":
             pid = f"llm_google_{slug}_us"
         elif reg["region"] == "europe-west1":

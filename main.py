@@ -11,6 +11,9 @@ from utils.dataset import (
 )
 from ops.registry import get_operation, REGISTRY
 
+os.environ["https_proxy"] = "http://127.0.0.1:7897"
+os.environ["https_proxy"] = "http://127.0.0.1:7897"
+
 
 # 尽量在 Windows 控制台下正确输出中文
 if hasattr(sys.stdout, "reconfigure"):
@@ -58,12 +61,12 @@ def run_demo():
     
     # 视频分割 (Video Segmentation)
     # 可选: vid_google_us, vid_google_eu, vid_google_tw, vid_aws_us, vid_aws_eu, vid_aws_sg
-    segment_pid = "vid_google_us"
+    segment_pid = "vid_google_tw"
     
     # 视觉描述 (Visual Captioning)  
     # Google: cap_google_flash_lite_us, cap_google_flash_us, cap_google_flash_lite_eu, ...
     # Amazon: cap_aws_nova_lite_us, cap_aws_nova_pro_us, cap_aws_nova_lite_eu, ...
-    caption_pid = "cap_google_flash_us"
+    caption_pid = "cap_google_flash_sg"
     
     # LLM 查询
     # Google: llm_google_flash_us, llm_google_pro_us, llm_google_flash_eu, ...
@@ -99,7 +102,7 @@ def run_demo():
     # 上传路径说明：我们会把视频上传到 bucket 下的这个目录（避免散落在根目录）
     # 例如 GCP: gs://video_us/inputs/egoschema/<qid>/<filename>
     # 例如 AWS: s3://sky-video-us/inputs/egoschema/<qid>/<filename>
-    upload_target_path = f"inputs/egoschema/{qid}"
+    upload_target_path = f"videos/egoschema/"
 
     # ========== 3) 获取操作实例（按 pid 选择 provider/region/model） ==========
     segment_op = get_operation(segment_pid) if enable_video_segment else None
@@ -124,6 +127,7 @@ def run_demo():
     # ========== 4) 执行（可选）视频分割 / 视觉描述 ==========
     segments = None
     caption = None
+    segment_captions = []  # 存储每个片段的 caption
 
     if (enable_video_segment or enable_video_caption) and (not video_path or not os.path.exists(video_path)):
         raise FileNotFoundError(
@@ -131,13 +135,50 @@ def run_demo():
             f"请确认 datasets/EgoSchema/videos_sampled 下存在对应视频，或先关闭 enable_video_segment/enable_video_caption"
         )
 
+    # 先执行视频分割
     if enable_video_segment and segment_op is not None:
         seg_res = segment_op.execute(video_path, target_path=upload_target_path)
         segments = seg_res.get("segments")
+        print(f"\n=== 视频分割完成，共 {len(segments) if segments else 0} 个片段 ===\n")
 
+    # 如果启用了 caption 且有 segments，对每个片段进行 caption
     if enable_video_caption and caption_op is not None:
-        cap_res = caption_op.execute(video_path, target_path=upload_target_path)
-        caption = cap_res.get("caption")
+        if segments and len(segments) > 0:
+            # 对每个 segment 进行 caption
+            print(f"=== 开始对 {len(segments)} 个片段进行描述 ===\n")
+            for idx, seg in enumerate(segments):
+                start_time = seg.get('start', 0)
+                end_time = seg.get('end', 0)
+                print(f"  [{idx+1}/{len(segments)}] 处理片段: {start_time:.2f}s - {end_time:.2f}s")
+                
+                try:
+                    cap_res = caption_op.execute(
+                        video_path, 
+                        target_path=upload_target_path,
+                        start_time=start_time,
+                        end_time=end_time
+                    )
+                    seg_caption = cap_res.get("caption", "")
+                    segment_captions.append({
+                        "segment_idx": idx + 1,
+                        "start": start_time,
+                        "end": end_time,
+                        "caption": seg_caption
+                    })
+                    print(f"    描述: {seg_caption[:80]}...\n")
+                except Exception as e:
+                    print(f"    警告: 片段 {idx+1} 描述失败: {e}\n")
+                    segment_captions.append({
+                        "segment_idx": idx + 1,
+                        "start": start_time,
+                        "end": end_time,
+                        "caption": f"[描述失败: {str(e)}]"
+                    })
+        else:
+            # 如果没有 segments，对整个视频进行 caption
+            print("=== 对整个视频进行描述 ===\n")
+            cap_res = caption_op.execute(video_path, target_path=upload_target_path)
+            caption = cap_res.get("caption")
 
     # ========== 5) 组装 prompt，跑 LLM（默认可跑） ==========
     # 说明：LLM 本身只接收文本。这里我们把“问题 + 选项 + (可选)caption/segments摘要”拼成一个 prompt。
@@ -151,16 +192,27 @@ def run_demo():
         letter = chr(ord("A") + i)
         lines.append(f"{letter}. {opt}")
 
-    if caption:
+    # 如果有片段级别的 caption，优先使用（已包含时间信息）
+    if segment_captions:
+        lines.append("")
+        lines.append("辅助信息（视频片段描述，按时间顺序）：")
+        # 限制显示前10个片段，避免 prompt 过长
+        for seg_cap in segment_captions[:10]:
+            lines.append(f"片段 {seg_cap['segment_idx']} ({seg_cap['start']:.1f}s - {seg_cap['end']:.1f}s): {seg_cap['caption']}")
+        if len(segment_captions) > 10:
+            lines.append(f"... (还有 {len(segment_captions) - 10} 个片段未显示)")
+    elif caption:
+        # 如果没有片段级别的 caption，使用整个视频的 caption
         lines.append("")
         lines.append("辅助信息（视频描述/caption）：")
         lines.append(caption)
-
-    if segments:
-        lines.append("")
-        lines.append("辅助信息（分割片段，单位秒，最多显示前10段）：")
-        for s in segments[:10]:
-            lines.append(f"- start={s.get('start')} end={s.get('end')}")
+        
+        # 如果有 segments 但没有片段级别的 caption，显示时间戳
+        if segments:
+            lines.append("")
+            lines.append("辅助信息（分割片段时间戳，单位秒，最多显示前10段）：")
+            for s in segments[:10]:
+                lines.append(f"- start={s.get('start')} end={s.get('end')}")
 
     prompt = "\n".join(lines)
 
@@ -206,10 +258,6 @@ def run_demo():
 
 
 if __name__ == "__main__":
-    # 示例：加载 EgoSchema 训练集的第一条样本
-    egoschema_dataset_train = build_dataset("EgoSchema", "train")
-    pprint(egoschema_dataset_train[0])
-
     # 打印可用的 (provider, region, model) 组合
     list_available_ops()
 
