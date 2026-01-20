@@ -17,3 +17,6 @@ pandas>=2.0.0
 
 # 进度条工具
 tqdm>=4.65.0
+
+# HTTP 请求库（用于 Cloud Functions 调用）
+requests>=2.31.0

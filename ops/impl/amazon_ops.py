@@ -2,9 +2,9 @@
 import os
 import time
 import json
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 from urllib.parse import urlparse
-from ops.base import VideoSegmenter, VisualCaptioner, LLMQuery
+from ops.base import VideoSegmenter, VisualCaptioner, LLMQuery, VideoSplitter
 
 try:
     import boto3
@@ -302,3 +302,112 @@ class AmazonBedrockLLMImpl(LLMQuery):
             raise RuntimeError(f"AWS Bedrock API error ({error_code}): {error_message}")
         except Exception as e:
             raise RuntimeError(f"Failed to invoke Bedrock model: {e}")
+
+
+class AWSLambdaSplitImpl(VideoSplitter):
+    """
+    使用 AWS Lambda 进行视频分割
+    
+    需要先部署一个 Lambda 函数，该函数接收视频 URI 和片段列表，
+    使用 ffmpeg 在云端切割视频，并将结果上传到 S3。
+    """
+    
+    def __init__(self, provider: str, region: str, storage_bucket: str, function_name: Optional[str] = None):
+        super().__init__(provider, region, storage_bucket)
+        self._lambda_client = None
+        
+        # 如果提供了 function_name，直接使用；否则根据 region 构建默认名称
+        if function_name:
+            self.function_name = function_name
+        else:
+            # 默认函数名称格式：video-split-{region}
+            region_suffix = region.replace('-', '_')
+            self.function_name = f"video-split-{region_suffix}"
+        
+        print(f"    Lambda Function Name: {self.function_name}")
+    
+    @property
+    def lambda_client(self):
+        """懒加载 AWS Lambda 客户端"""
+        if self._lambda_client is None:
+            import boto3
+            self._lambda_client = boto3.client('lambda', region_name=self.region)
+        return self._lambda_client
+    
+    def _parse_uri(self, uri: str):
+        """解析 S3 URI，返回 bucket 和 key"""
+        parsed = urlparse(uri)
+        bucket = parsed.netloc
+        key = parsed.path.lstrip('/')
+        return bucket, key
+    
+    def execute(self, video_uri: str, segments: List[Dict[str, float]], **kwargs) -> Dict[str, Any]:
+        """
+        执行视频分割
+        
+        Args:
+            video_uri: 视频 URI（本地路径或云存储 URI）
+            segments: 片段列表，每个片段包含 'start' 和 'end'（秒）
+            **kwargs:
+                - target_path: 输出路径
+                - output_format: 输出格式（默认 mp4）
+                - function_name: 可选的 Lambda 函数名称（覆盖默认）
+        """
+        print(f"--- [AWS Lambda Video Split] Region: {self.region} ---")
+        
+        # 1. 确保视频在 AWS S3
+        target_path = kwargs.get('target_path')
+        target_uri = self.transmitter.smart_move(video_uri, 'amazon', self.storage_bucket, target_path)
+        print(f"    Video Ready: {target_uri}")
+        
+        # 2. 准备输出路径
+        output_format = kwargs.get('output_format', 'mp4')
+        if target_path:
+            output_base_path = f"{target_path}/split_segments"
+        else:
+            output_base_path = "split_segments"
+        
+        # 3. 构建 Lambda 请求负载
+        payload = {
+            "video_uri": target_uri,
+            "segments": segments,
+            "output_bucket": self.storage_bucket,
+            "output_path": output_base_path,
+            "output_format": output_format
+        }
+        
+        # 4. 调用 Lambda 函数
+        function_name = kwargs.get('function_name', self.function_name)
+        print(f"    Invoking Lambda function: {function_name}")
+        print(f"    Processing {len(segments)} segments...")
+        
+        try:
+            response = self.lambda_client.invoke(
+                FunctionName=function_name,
+                InvocationType='RequestResponse',  # 同步调用
+                Payload=json.dumps(payload)
+            )
+            
+            # 解析响应
+            response_payload = json.loads(response['Payload'].read())
+            
+            if response.get('FunctionError'):
+                error_message = response_payload.get('errorMessage', 'Unknown error')
+                raise RuntimeError(f"Lambda function error: {error_message}")
+            
+            output_uris = response_payload.get("output_uris", [])
+            print(f"    Successfully split video into {len(output_uris)} segments")
+            
+            return {
+                "provider": "aws_lambda",
+                "region": self.region,
+                "input_video": target_uri,
+                "segments": segments,
+                "output_uris": output_uris,
+                "output_count": len(output_uris)
+            }
+            
+        except Exception as e:
+            if isinstance(e, RuntimeError):
+                raise e
+            raise RuntimeError(f"Lambda invocation failed: {e}")

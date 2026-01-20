@@ -1,8 +1,10 @@
 # ops/registry.py
 from ops.base import Operation
-from ops.impl.google_ops import GoogleVideoSegmentImpl, GoogleVertexCaptionImpl, GoogleVertexLLMImpl
-from ops.impl.amazon_ops import AmazonRekognitionSegmentImpl, AmazonBedrockCaptionImpl, AmazonBedrockLLMImpl
+from ops.impl.google_ops import GoogleVideoSegmentImpl, GoogleVertexCaptionImpl, GoogleVertexLLMImpl, GoogleCloudFunctionSplitImpl
+from ops.impl.amazon_ops import AmazonRekognitionSegmentImpl, AmazonBedrockCaptionImpl, AmazonBedrockLLMImpl, AWSLambdaSplitImpl
 from ops.impl.openai_ops import OpenAILLMImpl
+from ops.impl.storage_ops import GoogleStorageImpl, AmazonStorageImpl
+from ops.impl.transmission_ops import DataTransmissionImpl, S3ToGCSImpl, GCSToS3Impl
 
 REGISTRY = {}
 
@@ -53,7 +55,7 @@ AWS_REGIONS = [
     {"region": "ap-southeast-1", "bucket_key": "aws_sg"},
 ]
 
-# 1) Video segmentation
+# 1) Video segmentation (shot detection)
 # Google Video Intelligence: 仅支持 us-west1, europe-west1, asia-east1
 VIDEO_SEGMENT_CATALOG = [
     # Google Video Intelligence (3个区域)
@@ -64,6 +66,49 @@ VIDEO_SEGMENT_CATALOG = [
     {"pid": "vid_aws_us", "cls": AmazonRekognitionSegmentImpl, "provider": "amazon", "region": "us-west-2", "bucket_key": "aws_us"},
     {"pid": "vid_aws_eu", "cls": AmazonRekognitionSegmentImpl, "provider": "amazon", "region": "eu-central-1", "bucket_key": "aws_eu"},
     {"pid": "vid_aws_sg", "cls": AmazonRekognitionSegmentImpl, "provider": "amazon", "region": "ap-southeast-1", "bucket_key": "aws_sg"},
+]
+
+# 1.5) Video splitting (physical cutting)
+# Google Cloud Functions: 支持多个区域
+# AWS Lambda: 支持多个区域
+VIDEO_SPLIT_CATALOG = [
+    # Google Cloud Functions (支持多个区域)
+    {"pid": "split_google_us", "cls": GoogleCloudFunctionSplitImpl, "provider": "google", "region": "us-west1", "bucket_key": "gcp_us"},
+    {"pid": "split_google_eu", "cls": GoogleCloudFunctionSplitImpl, "provider": "google", "region": "europe-west1", "bucket_key": "gcp_eu"},
+    {"pid": "split_google_sg", "cls": GoogleCloudFunctionSplitImpl, "provider": "google", "region": "asia-southeast1", "bucket_key": "gcp_sg"},
+    {"pid": "split_google_tw", "cls": GoogleCloudFunctionSplitImpl, "provider": "google", "region": "asia-east1", "bucket_key": "gcp_tw"},
+    # AWS Lambda
+    {"pid": "split_aws_us", "cls": AWSLambdaSplitImpl, "provider": "amazon", "region": "us-west-2", "bucket_key": "aws_us"},
+    {"pid": "split_aws_eu", "cls": AWSLambdaSplitImpl, "provider": "amazon", "region": "eu-central-1", "bucket_key": "aws_eu"},
+    {"pid": "split_aws_sg", "cls": AWSLambdaSplitImpl, "provider": "amazon", "region": "ap-southeast-1", "bucket_key": "aws_sg"},
+]
+
+# 1.6) Data Storage operations
+STORAGE_CATALOG = [
+    # Google Cloud Storage
+    {"pid": "storage_google_us", "cls": GoogleStorageImpl, "provider": "google", "region": "us-west1", "bucket_key": "gcp_us"},
+    {"pid": "storage_google_eu", "cls": GoogleStorageImpl, "provider": "google", "region": "europe-west1", "bucket_key": "gcp_eu"},
+    {"pid": "storage_google_sg", "cls": GoogleStorageImpl, "provider": "google", "region": "asia-southeast1", "bucket_key": "gcp_sg"},
+    {"pid": "storage_google_tw", "cls": GoogleStorageImpl, "provider": "google", "region": "asia-east1", "bucket_key": "gcp_tw"},
+    # Amazon S3
+    {"pid": "storage_aws_us", "cls": AmazonStorageImpl, "provider": "amazon", "region": "us-west-2", "bucket_key": "aws_us"},
+    {"pid": "storage_aws_eu", "cls": AmazonStorageImpl, "provider": "amazon", "region": "eu-central-1", "bucket_key": "aws_eu"},
+    {"pid": "storage_aws_sg", "cls": AmazonStorageImpl, "provider": "amazon", "region": "ap-southeast-1", "bucket_key": "aws_sg"},
+]
+
+# 1.7) Data Transmission operations
+TRANSMISSION_CATALOG = [
+    # 通用传输（智能路由）
+    {"pid": "transmission_google_us", "cls": DataTransmissionImpl, "provider": "google", "region": "us-west1", "bucket_key": "gcp_us"},
+    {"pid": "transmission_google_eu", "cls": DataTransmissionImpl, "provider": "google", "region": "europe-west1", "bucket_key": "gcp_eu"},
+    {"pid": "transmission_aws_us", "cls": DataTransmissionImpl, "provider": "amazon", "region": "us-west-2", "bucket_key": "aws_us"},
+    {"pid": "transmission_aws_eu", "cls": DataTransmissionImpl, "provider": "amazon", "region": "eu-central-1", "bucket_key": "aws_eu"},
+    # S3 -> GCS 专用传输
+    {"pid": "transmission_s3_to_gcs_us", "cls": S3ToGCSImpl, "provider": "google", "region": "us-west1", "bucket_key": "gcp_us"},
+    {"pid": "transmission_s3_to_gcs_eu", "cls": S3ToGCSImpl, "provider": "google", "region": "europe-west1", "bucket_key": "gcp_eu"},
+    # GCS -> S3 专用传输
+    {"pid": "transmission_gcs_to_s3_us", "cls": GCSToS3Impl, "provider": "amazon", "region": "us-west-2", "bucket_key": "aws_us"},
+    {"pid": "transmission_gcs_to_s3_eu", "cls": GCSToS3Impl, "provider": "amazon", "region": "eu-central-1", "bucket_key": "aws_eu"},
 ]
 
 # 2) Visual captioning
@@ -182,6 +227,15 @@ LLM_CATALOG.extend([
 # Register all combinations from catalogs
 # =========================================================
 for item in VIDEO_SEGMENT_CATALOG:
+    register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]]))
+
+for item in VIDEO_SPLIT_CATALOG:
+    register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]]))
+
+for item in STORAGE_CATALOG:
+    register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]]))
+
+for item in TRANSMISSION_CATALOG:
     register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]]))
 
 for item in VISUAL_CAPTION_CATALOG:
