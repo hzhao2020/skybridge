@@ -1,7 +1,7 @@
 # ops/base.py
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
-from core.transmission import DataTransmission
+from ops.utils import DataTransmission
 
 
 class Operation(ABC):

@@ -478,37 +478,19 @@ class GoogleVertexLLMImpl(LLMQuery):
         }
 
 
-class GoogleCloudFunctionSplitImpl(VideoSplitter):
+class GoogleCloudRunSplitImpl(VideoSplitter):
     """
-    使用 Google Cloud Functions 进行视频分割
+    使用 Google Cloud Run（HTTP 服务）进行视频分割
     
-    需要先部署一个 Cloud Function，该函数接收视频 URI 和片段列表，
+    需要先部署一个 Cloud Run 服务，该服务接收视频 URI 和片段列表，
     使用 ffmpeg 在云端切割视频，并将结果上传到 GCS。
     """
     
-    def __init__(self, provider: str, region: str, storage_bucket: str, function_url: Optional[str] = None):
+    def __init__(self, provider: str, region: str, storage_bucket: str, service_url: Optional[str] = None):
         super().__init__(provider, region, storage_bucket)
-        # Cloud Functions 支持的区域映射
-        self.region_to_location = {
-            'us-west1': 'us-west1',
-            'us-central1': 'us-central1',
-            'us-east1': 'us-east1',
-            'europe-west1': 'europe-west1',
-            'europe-west4': 'europe-west4',
-            'asia-east1': 'asia-east1',
-            'asia-southeast1': 'asia-southeast1',
-        }
-        
-        # 如果提供了 function_url，直接使用；否则根据 region 构建
-        if function_url:
-            self.function_url = function_url
-        else:
-            # 默认函数名称格式：video-split-{region}
-            function_name = f"video-split-{region.replace('-', '_')}"
-            # 注意：实际使用时需要替换为你的项目ID和函数名称
-            self.function_url = f"https://{region}-YOUR_PROJECT_ID.cloudfunctions.net/{function_name}"
-        
-        print(f"    Cloud Function URL: {self.function_url}")
+        # Cloud Run 的 URL 没有稳定的可推导规则（与项目/服务名/区域/是否自定义域名有关），
+        # 因此这里不自动拼接默认 URL，而是由调用方显式传入。
+        self.service_url = service_url
     
     def _parse_uri(self, uri: str):
         """解析 URI，返回 bucket 和 blob/key"""
@@ -527,9 +509,9 @@ class GoogleCloudFunctionSplitImpl(VideoSplitter):
             **kwargs: 
                 - target_path: 输出路径
                 - output_format: 输出格式（默认 mp4）
-                - function_url: 可选的 Cloud Function URL（覆盖默认）
+                - service_url: 可选的 Cloud Run 服务 URL（覆盖默认）
         """
-        print(f"--- [Google Cloud Functions Video Split] Region: {self.region} ---")
+        print(f"--- [Google Cloud Run Video Split] Region: {self.region} ---")
         
         # 1. 确保视频在 Google Bucket
         target_path = kwargs.get('target_path')
@@ -552,14 +534,19 @@ class GoogleCloudFunctionSplitImpl(VideoSplitter):
             "output_format": output_format
         }
         
-        # 4. 调用 Cloud Function
-        function_url = kwargs.get('function_url', self.function_url)
-        print(f"    Calling Cloud Function: {function_url}")
+        # 4. 调用 Cloud Run 服务
+        service_url = kwargs.get('service_url', self.service_url)
+        if not service_url:
+            raise ValueError(
+                "Missing Cloud Run service_url. "
+                "请在构造 GoogleCloudRunSplitImpl(service_url=...) 或 execute(..., service_url=...) 时提供。"
+            )
+        print(f"    Calling Cloud Run: {service_url}")
         print(f"    Processing {len(segments)} segments...")
         
         try:
             response = requests.post(
-                function_url,
+                service_url,
                 json=request_body,
                 headers={"Content-Type": "application/json"},
                 timeout=600  # 10分钟超时
@@ -571,7 +558,7 @@ class GoogleCloudFunctionSplitImpl(VideoSplitter):
             print(f"    Successfully split video into {len(output_uris)} segments")
             
             return {
-                "provider": "google_cloud_functions",
+                "provider": "google_cloud_run",
                 "region": self.region,
                 "input_video": target_uri,
                 "segments": segments,
@@ -580,6 +567,6 @@ class GoogleCloudFunctionSplitImpl(VideoSplitter):
             }
             
         except requests.exceptions.RequestException as e:
-            raise RuntimeError(f"Cloud Function call failed: {e}")
+            raise RuntimeError(f"Cloud Run call failed: {e}")
         except json.JSONDecodeError as e:
-            raise RuntimeError(f"Invalid response from Cloud Function: {e}")
+            raise RuntimeError(f"Invalid response from Cloud Run: {e}")

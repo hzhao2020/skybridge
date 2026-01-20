@@ -1,7 +1,6 @@
 import os
 import re
 import sys
-from pprint import pprint
 
 from utils.dataset import (
     build_dataset,
@@ -11,8 +10,9 @@ from utils.dataset import (
 )
 from ops.registry import get_operation, REGISTRY
 
-os.environ["https_proxy"] = "http://127.0.0.1:7897"
-os.environ["https_proxy"] = "http://127.0.0.1:7897"
+# 配置代理（如果环境变量未设置，则使用默认值）
+if "https_proxy" not in os.environ:
+    os.environ["https_proxy"] = "http://127.0.0.1:7897"
 
 
 # 尽量在 Windows 控制台下正确输出中文
@@ -41,8 +41,8 @@ def run_demo():
     - 也可以先运行 `list_available_ops()`，从输出的 pid 列表里挑你想要的组合。
     
     pid 命名规则：
-        - 视频分割: vid_{provider}_{region简称}
-            例: vid_google_us, vid_aws_eu
+        - 视频分割: seg_{provider}_{region简称}
+            例: seg_google_us, seg_aws_eu
         
         - 视觉描述: cap_{provider}_{model简称}_{region简称}
             例: cap_google_flash_us, cap_aws_nova_lite_sg
@@ -60,8 +60,8 @@ def run_demo():
     # 默认仅跑 LLM（最容易跑通）；如果你已配置好 GCP/AWS 凭证，可打开视频相关步骤。
     
     # 视频分割 (Video Segmentation)
-    # 可选: vid_google_us, vid_google_eu, vid_google_tw, vid_aws_us, vid_aws_eu, vid_aws_sg
-    segment_pid = "vid_google_tw"
+    # 可选: seg_google_us, seg_google_eu, seg_google_tw, seg_aws_us, seg_aws_eu, seg_aws_sg
+    segment_pid = "seg_google_tw"
     
     # 视觉描述 (Visual Captioning)  
     # Google: cap_google_flash_lite_us, cap_google_flash_us, cap_google_flash_lite_eu, ...
@@ -124,10 +124,9 @@ def run_demo():
     print(f"视频上传目录: {upload_target_path}")
     print()
     
-    # ========== 4) 执行（可选）视频分割 / 视觉描述 ==========
+    # ========== 4) Workflow: Segment → Caption → LLM ==========
     segments = None
-    caption = None
-    segment_captions = []  # 存储每个片段的 caption
+    all_captions = []  # 存储所有片段的 caption，用于后续合并
 
     if (enable_video_segment or enable_video_caption) and (not video_path or not os.path.exists(video_path)):
         raise FileNotFoundError(
@@ -135,17 +134,36 @@ def run_demo():
             f"请确认 datasets/EgoSchema/videos_sampled 下存在对应视频，或先关闭 enable_video_segment/enable_video_caption"
         )
 
-    # 先执行视频分割
+    # Step 1: 视频分割 (Video Segmentation)
     if enable_video_segment and segment_op is not None:
+        print("\n" + "="*60)
+        print("Step 1: 视频分割 (Video Segmentation)")
+        print("="*60)
         seg_res = segment_op.execute(video_path, target_path=upload_target_path)
         segments = seg_res.get("segments")
-        print(f"\n=== 视频分割完成，共 {len(segments) if segments else 0} 个片段 ===\n")
+        print(f"✓ 视频分割完成，共 {len(segments) if segments else 0} 个片段\n")
+        
+        if segments:
+            print("片段列表：")
+            for idx, seg in enumerate(segments[:5]):  # 只显示前5个
+                print(f"  片段 {idx+1}: {seg.get('start', 0):.2f}s - {seg.get('end', 0):.2f}s")
+            if len(segments) > 5:
+                print(f"  ... (还有 {len(segments) - 5} 个片段)")
+            print()
+    else:
+        print("\n" + "="*60)
+        print("Step 1: 视频分割 (跳过)")
+        print("="*60 + "\n")
 
-    # 如果启用了 caption 且有 segments，对每个片段进行 caption
+    # Step 2: 对每个视频片段进行 Caption (Video Captioning)
     if enable_video_caption and caption_op is not None:
+        print("="*60)
+        print("Step 2: 视频片段描述 (Video Captioning)")
+        print("="*60)
+        
         if segments and len(segments) > 0:
             # 对每个 segment 进行 caption
-            print(f"=== 开始对 {len(segments)} 个片段进行描述 ===\n")
+            print(f"开始对 {len(segments)} 个片段进行描述...\n")
             for idx, seg in enumerate(segments):
                 start_time = seg.get('start', 0)
                 end_time = seg.get('end', 0)
@@ -159,27 +177,74 @@ def run_demo():
                         end_time=end_time
                     )
                     seg_caption = cap_res.get("caption", "")
-                    segment_captions.append({
+                    all_captions.append({
                         "segment_idx": idx + 1,
                         "start": start_time,
                         "end": end_time,
                         "caption": seg_caption
                     })
-                    print(f"    描述: {seg_caption[:80]}...\n")
+                    print(f"    ✓ 描述: {seg_caption[:100]}...\n")
                 except Exception as e:
-                    print(f"    警告: 片段 {idx+1} 描述失败: {e}\n")
-                    segment_captions.append({
+                    print(f"    ✗ 警告: 片段 {idx+1} 描述失败: {e}\n")
+                    all_captions.append({
                         "segment_idx": idx + 1,
                         "start": start_time,
                         "end": end_time,
                         "caption": f"[描述失败: {str(e)}]"
                     })
+            
+            print(f"✓ 完成所有片段描述，共 {len(all_captions)} 个片段\n")
         else:
             # 如果没有 segments，对整个视频进行 caption
-            print("=== 对整个视频进行描述 ===\n")
-            cap_res = caption_op.execute(video_path, target_path=upload_target_path)
-            caption = cap_res.get("caption")
+            print("未找到片段，对整个视频进行描述...\n")
+            try:
+                cap_res = caption_op.execute(video_path, target_path=upload_target_path)
+                full_caption = cap_res.get("caption", "")
+                all_captions.append({
+                    "segment_idx": 0,
+                    "start": 0,
+                    "end": 0,
+                    "caption": full_caption
+                })
+                print(f"✓ 视频描述完成: {full_caption[:100]}...\n")
+            except Exception as e:
+                print(f"✗ 视频描述失败: {e}\n")
+    else:
+        print("="*60)
+        print("Step 2: 视频片段描述 (跳过)")
+        print("="*60 + "\n")
 
+    # Step 3: 合并所有 Captions (Concentrate Captions)
+    print("="*60)
+    print("Step 3: 合并视频描述 (Concentrate Captions)")
+    print("="*60)
+    
+    if all_captions:
+        # 将所有 captions 合并成一个字符串
+        caption_parts = []
+        for cap_info in all_captions:
+            if cap_info['segment_idx'] > 0:
+                # 片段级别的 caption
+                caption_parts.append(
+                    f"[片段 {cap_info['segment_idx']} ({cap_info['start']:.1f}s-{cap_info['end']:.1f}s)] "
+                    f"{cap_info['caption']}"
+                )
+            else:
+                # 整个视频的 caption
+                caption_parts.append(f"[完整视频] {cap_info['caption']}")
+        
+        concentrated_captions = "\n\n".join(caption_parts)
+        print(f"✓ 已合并 {len(all_captions)} 个片段的描述")
+        print(f"  总长度: {len(concentrated_captions)} 字符\n")
+    else:
+        concentrated_captions = ""
+        print("⚠ 没有可用的视频描述\n")
+
+    # Step 4: 组装 Prompt 并提交给 LLM
+    print("="*60)
+    print("Step 4: LLM 查询 (LLM Query)")
+    print("="*60)
+    
     # ========== 5) 组装 prompt，跑 LLM（默认可跑） ==========
     # 说明：LLM 本身只接收文本。这里我们把“问题 + 选项 + (可选)caption/segments摘要”拼成一个 prompt。
     lines = []
@@ -192,29 +257,40 @@ def run_demo():
         letter = chr(ord("A") + i)
         lines.append(f"{letter}. {opt}")
 
-    # 如果有片段级别的 caption，优先使用（已包含时间信息）
-    if segment_captions:
+    # 添加合并后的 captions
+    if concentrated_captions:
         lines.append("")
-        lines.append("辅助信息（视频片段描述，按时间顺序）：")
-        # 限制显示前10个片段，避免 prompt 过长
-        for seg_cap in segment_captions[:10]:
-            lines.append(f"片段 {seg_cap['segment_idx']} ({seg_cap['start']:.1f}s - {seg_cap['end']:.1f}s): {seg_cap['caption']}")
-        if len(segment_captions) > 10:
-            lines.append(f"... (还有 {len(segment_captions) - 10} 个片段未显示)")
-    elif caption:
-        # 如果没有片段级别的 caption，使用整个视频的 caption
-        lines.append("")
-        lines.append("辅助信息（视频描述/caption）：")
-        lines.append(caption)
-        
-        # 如果有 segments 但没有片段级别的 caption，显示时间戳
-        if segments:
-            lines.append("")
-            lines.append("辅助信息（分割片段时间戳，单位秒，最多显示前10段）：")
-            for s in segments[:10]:
-                lines.append(f"- start={s.get('start')} end={s.get('end')}")
+        lines.append("="*50)
+        lines.append("视频内容描述（按时间顺序）：")
+        lines.append("="*50)
+        # 如果 captions 太长，截取前 N 个字符（保留完整片段）
+        max_length = 4000  # 限制 prompt 长度，避免超出模型限制
+        if len(concentrated_captions) > max_length:
+            # 尝试按片段截取
+            truncated_parts = []
+            current_length = 0
+            for cap_info in all_captions:
+                cap_text = f"[片段 {cap_info['segment_idx']} ({cap_info['start']:.1f}s-{cap_info['end']:.1f}s)] {cap_info['caption']}"
+                if current_length + len(cap_text) > max_length:
+                    break
+                truncated_parts.append(cap_text)
+                current_length += len(cap_text) + 2  # +2 for "\n\n"
+            
+            if truncated_parts:
+                lines.append("\n\n".join(truncated_parts))
+                lines.append(f"\n... (还有 {len(all_captions) - len(truncated_parts)} 个片段未显示)")
+            else:
+                # 如果第一个片段就太长，直接截取
+                lines.append(concentrated_captions[:max_length] + "...")
+        else:
+            lines.append(concentrated_captions)
 
     prompt = "\n".join(lines)
+    
+    print(f"Prompt 长度: {len(prompt)} 字符")
+    if concentrated_captions:
+        print(f"包含 {len(all_captions)} 个片段的描述")
+    print()
 
     # 如果没有 OPENAI_API_KEY（且你又选了 openai 的 pid），就不实际请求 API，避免直接报错
     if llm_op.provider == "openai":
@@ -236,25 +312,55 @@ def run_demo():
             print(prompt)
             return
 
+    # 执行 LLM 查询
+    print("正在提交查询到 LLM...")
     llm_res = llm_op.execute(prompt, temperature=0.2, max_tokens=64)
     text = (llm_res or {}).get("response") or ""
 
+    # Step 5: 解析结果
+    print("="*60)
+    print("Step 5: 解析结果 (Parse Result)")
+    print("="*60)
+    
     # 解析模型输出的选项字母
     m = re.search(r"\b([A-Z])\b", text.strip())
     pred_letter = m.group(1) if m else None
     pred_idx = (ord(pred_letter) - ord("A")) if pred_letter else None
 
-    print("\n=== LLM 输出 ===")
+    print("\n=== LLM 原始输出 ===")
     print(text)
     print("\n=== 解析结果 ===")
-    print(f"pred_letter: {pred_letter} | pred_idx: {pred_idx}")
+    print(f"预测选项: {pred_letter} (索引: {pred_idx})")
 
-    # 与 GT 简单对比（如果数据里带 answer_idx）
+    # 与 GT 对比
     if isinstance(answer_idx, int) and pred_idx is not None:
-        print(f"gt_idx: {answer_idx} | correct: {pred_idx == answer_idx}")
+        is_correct = pred_idx == answer_idx
+        print(f"正确答案: {answer_idx} ({chr(ord('A') + answer_idx)})")
+        print(f"预测正确: {'✓ 是' if is_correct else '✗ 否'}")
     elif answer is not None and pred_idx is not None and pred_idx < len(options):
-        print(f"pred_answer: {options[pred_idx]} | gt_answer: {answer}")
-    print()
+        pred_answer = options[pred_idx]
+        print(f"预测答案: {pred_answer}")
+        print(f"正确答案: {answer}")
+        print(f"预测正确: {'✓ 是' if pred_answer == answer else '✗ 否'}")
+    
+    print("\n" + "="*60)
+    print("Workflow 完成！")
+    print("="*60 + "\n")
+    
+    # 返回结果供后续使用
+    return {
+        "qid": qid,
+        "question": question,
+        "segments": segments,
+        "captions": all_captions,
+        "concentrated_captions": concentrated_captions,
+        "llm_response": text,
+        "pred_letter": pred_letter,
+        "pred_idx": pred_idx,
+        "answer": answer,
+        "answer_idx": answer_idx,
+        "correct": pred_idx == answer_idx if isinstance(answer_idx, int) else None
+    }
 
 
 if __name__ == "__main__":
