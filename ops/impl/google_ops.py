@@ -379,7 +379,11 @@ class GoogleVertexCaptionImpl(VisualCaptioner):
         if Part is None:
             raise ImportError("Vertex AI Part not available. Install with: pip install google-cloud-aiplatform")
         
-        video_part = Part.from_uri(file_uri=segment_uri, mime_type="video/mp4")
+        # Vertex AI SDK 的 Part.from_uri 参数名在不同版本里不一致：
+        # - 有的版本使用 from_uri(uri, mime_type=...)
+        # - 有的版本接受关键字 uri=...
+        # 这里用“位置参数 + mime_type”以获得更好的兼容性，避免 TypeError（如 file_uri 不被支持）。
+        video_part = Part.from_uri(segment_uri, mime_type="video/mp4")
         
         if start_time is not None and end_time is not None:
             prompt_text = f"Describe this video segment in detail. Provide a comprehensive caption."
@@ -567,6 +571,20 @@ class GoogleCloudRunSplitImpl(VideoSplitter):
             }
             
         except requests.exceptions.RequestException as e:
-            raise RuntimeError(f"Cloud Run call failed: {e}")
+            # 尽量把 Cloud Run 返回的错误正文带出来，便于定位（常见：GCS 权限/ffmpeg 失败/输入 URI 不存在）
+            resp = getattr(e, "response", None)
+            if resp is not None:
+                status = getattr(resp, "status_code", "unknown")
+                try:
+                    body_obj = resp.json()
+                    body_text = json.dumps(body_obj, ensure_ascii=False)
+                except Exception:
+                    body_text = (getattr(resp, "text", "") or "").strip()
+                if body_text:
+                    body_text = body_text[:4000]
+                    raise RuntimeError(f"Cloud Run call failed ({status}): {body_text}") from e
+                raise RuntimeError(f"Cloud Run call failed ({status})") from e
+            raise RuntimeError(f"Cloud Run call failed: {e}") from e
         except json.JSONDecodeError as e:
-            raise RuntimeError(f"Invalid response from Cloud Run: {e}")
+            # HTTP 成功但返回体不是 JSON
+            raise RuntimeError(f"Invalid response from Cloud Run (not JSON): {e}") from e

@@ -29,6 +29,17 @@ BUCKETS = {
     "aws_sg": "sky-video-sg"
 }
 
+# --- Serverless 服务 URL 配置 ---
+# VideoSplit（Google Cloud Run）按区域部署的服务 URL
+# 说明：
+# - `GoogleCloudRunSplitImpl` 会对该 URL 直接 POST（服务同时支持 `POST /` 和 `POST /video_split`）
+# - 这里固定使用 `/video_split`，便于一眼看懂调用的 endpoint
+GCP_VIDEOSPLIT_SERVICE_URLS = {
+    "asia-southeast1": "https://video-splitter-service-587417646945.asia-southeast1.run.app/video_split",
+    "europe-west1": "https://video-splitter-service-587417646945.europe-west1.run.app/video_split",
+    "us-west1": "https://video-splitter-service-587417646945.us-west1.run.app/video_split",
+}
+
 # =========================================================
 # Catalog definitions: region + model selections
 # =========================================================
@@ -75,7 +86,6 @@ VIDEO_SPLIT_CATALOG = [
     {"pid": "split_google_us", "cls": GoogleCloudRunSplitImpl, "provider": "google", "region": "us-west1", "bucket_key": "gcp_us"},
     {"pid": "split_google_eu", "cls": GoogleCloudRunSplitImpl, "provider": "google", "region": "europe-west1", "bucket_key": "gcp_eu"},
     {"pid": "split_google_sg", "cls": GoogleCloudRunSplitImpl, "provider": "google", "region": "asia-southeast1", "bucket_key": "gcp_sg"},
-    {"pid": "split_google_tw", "cls": GoogleCloudRunSplitImpl, "provider": "google", "region": "asia-east1", "bucket_key": "gcp_tw"},
     # AWS Lambda
     {"pid": "split_aws_us", "cls": AWSLambdaSplitImpl, "provider": "amazon", "region": "us-west-2", "bucket_key": "aws_us"},
     {"pid": "split_aws_eu", "cls": AWSLambdaSplitImpl, "provider": "amazon", "region": "eu-central-1", "bucket_key": "aws_eu"},
@@ -221,7 +231,12 @@ for item in VIDEO_SEGMENT_CATALOG:
     register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]]))
 
 for item in VIDEO_SPLIT_CATALOG:
-    register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]]))
+    # Google Cloud Run split: 为每个 region 注入已部署的 service_url
+    if item["provider"] == "google" and item["cls"] is GoogleCloudRunSplitImpl:
+        service_url = GCP_VIDEOSPLIT_SERVICE_URLS.get(item["region"])
+        register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]], service_url=service_url))
+    else:
+        register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]]))
 
 # Storage 和 Transmission 操作不再注册，直接使用 ops.utils 中的辅助类
 # 参见上面的注释说明

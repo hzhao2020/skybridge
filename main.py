@@ -63,6 +63,11 @@ def run_demo():
     # 可选: seg_google_us, seg_google_eu, seg_google_tw, seg_aws_us, seg_aws_eu, seg_aws_sg
     segment_pid = "seg_google_tw"
     
+    # 视频物理切割 (Video Split / Cutting)
+    # 可选: split_google_us, split_google_eu, split_google_sg, split_aws_us, split_aws_eu, split_aws_sg
+    # 注意：Google split 需要 Cloud Run 的 service_url；AWS split 默认用 Lambda 函数名 video-split-<region_with_underscores>
+    split_pid = "split_google_sg"
+    
     # 视觉描述 (Visual Captioning)  
     # Google: cap_google_flash_lite_us, cap_google_flash_us, cap_google_flash_lite_eu, ...
     # Amazon: cap_aws_nova_lite_us, cap_aws_nova_pro_us, cap_aws_nova_lite_eu, ...
@@ -76,7 +81,19 @@ def run_demo():
 
     # 是否执行视频相关云服务（需要你本机已配置好对应云的凭证）
     enable_video_segment = True
+    enable_video_split = True
     enable_video_caption = True
+    
+    # 分段数上限（防止 segment 过多导致 split/caption 太慢/太贵）
+    max_segments = 12
+    
+    # Google Cloud Run VideoSplit 服务 URL（split_google_* 推荐填）
+    # 你可以在环境变量中设置（推荐）：
+    # - GCP_VIDEOSPLIT_SERVICE_URL 或 VIDEOSPLIT_SERVICE_URL
+    google_videosplit_service_url = os.getenv("GCP_VIDEOSPLIT_SERVICE_URL") or os.getenv("VIDEOSPLIT_SERVICE_URL")
+    
+    # AWS Lambda VideoSplit 函数名（可选覆盖）
+    aws_videosplit_function_name = os.getenv("AWS_VIDEOSPLIT_FUNCTION_NAME") or os.getenv("AWS_VIDEOSPLIT_LAMBDA_FUNCTION_NAME")
 
     # ========== 2) 取 EgoSchema 第 1 条样本（train[0]） ==========
     sample = build_dataset("EgoSchema", "train")[0]
@@ -106,6 +123,7 @@ def run_demo():
 
     # ========== 3) 获取操作实例（按 pid 选择 provider/region/model） ==========
     segment_op = get_operation(segment_pid) if enable_video_segment else None
+    split_op = get_operation(split_pid) if enable_video_split else None
     caption_op = get_operation(caption_pid) if enable_video_caption else None
     llm_op = get_operation(llm_pid)
     
@@ -114,6 +132,16 @@ def run_demo():
         print(f"视频分割: {segment_pid} -> provider={segment_op.provider}, region={segment_op.region}")
     else:
         print("视频分割: (disabled)")
+    
+    if split_op is not None:
+        print(f"视频切割: {split_pid} -> provider={split_op.provider}, region={split_op.region}")
+        if split_op.provider == "google":
+            default_url = getattr(split_op, "service_url", None)
+            print(f"  Cloud Run service_url: {google_videosplit_service_url or default_url or '(missing)'}")
+        elif split_op.provider == "amazon":
+            print(f"  Lambda function_name: {aws_videosplit_function_name or '(default)'}")
+    else:
+        print("视频切割: (disabled)")
 
     if caption_op is not None:
         print(f"视觉描述: {caption_pid} -> provider={caption_op.provider}, region={caption_op.region}, model={caption_op.model_name}")
@@ -124,14 +152,15 @@ def run_demo():
     print(f"视频上传目录: {upload_target_path}")
     print()
     
-    # ========== 4) Workflow: Segment → Caption → LLM ==========
+    # ========== 4) Workflow: Segment → Split → Caption → LLM ==========
     segments = None
+    segment_video_uris = None  # split 后每个片段对应的视频 URI（云端）
     all_captions = []  # 存储所有片段的 caption，用于后续合并
 
-    if (enable_video_segment or enable_video_caption) and (not video_path or not os.path.exists(video_path)):
+    if (enable_video_segment or enable_video_split or enable_video_caption) and (not video_path or not os.path.exists(video_path)):
         raise FileNotFoundError(
             f"找不到视频文件：{video_path}\n"
-            f"请确认 datasets/EgoSchema/videos_sampled 下存在对应视频，或先关闭 enable_video_segment/enable_video_caption"
+            f"请确认 datasets/EgoSchema/videos_sampled 下存在对应视频，或先关闭 enable_video_segment/enable_video_split/enable_video_caption"
         )
 
     # Step 1: 视频分割 (Video Segmentation)
@@ -141,6 +170,13 @@ def run_demo():
         print("="*60)
         seg_res = segment_op.execute(video_path, target_path=upload_target_path)
         segments = seg_res.get("segments")
+        # 防御：segments 可能为 None
+        segments = segments or []
+        
+        # 过滤掉非法片段（end<=start），并做上限截断
+        segments = [s for s in segments if float(s.get("end", 0) or 0) > float(s.get("start", 0) or 0)]
+        if max_segments and len(segments) > max_segments:
+            segments = segments[:max_segments]
         print(f"✓ 视频分割完成，共 {len(segments) if segments else 0} 个片段\n")
         
         if segments:
@@ -155,83 +191,78 @@ def run_demo():
         print("Step 1: 视频分割 (跳过)")
         print("="*60 + "\n")
 
-    # Step 2: 对每个视频片段进行 Caption (Video Captioning)
-    if enable_video_caption and caption_op is not None:
+    # Step 2: 视频物理切割 (Video Split)
+    if enable_video_split and split_op is not None and segments and len(segments) > 0:
         print("="*60)
-        print("Step 2: 视频片段描述 (Video Captioning)")
+        print("Step 2: 视频切割 (Video Split)")
         print("="*60)
         
-        if segments and len(segments) > 0:
-            # 对每个 segment 进行 caption
-            print(f"开始对 {len(segments)} 个片段进行描述...\n")
-            for idx, seg in enumerate(segments):
-                start_time = seg.get('start', 0)
-                end_time = seg.get('end', 0)
-                print(f"  [{idx+1}/{len(segments)}] 处理片段: {start_time:.2f}s - {end_time:.2f}s")
-                
-                try:
-                    cap_res = caption_op.execute(
-                        video_path, 
-                        target_path=upload_target_path,
-                        start_time=start_time,
-                        end_time=end_time
-                    )
-                    seg_caption = cap_res.get("caption", "")
-                    all_captions.append({
-                        "segment_idx": idx + 1,
-                        "start": start_time,
-                        "end": end_time,
-                        "caption": seg_caption
-                    })
-                    print(f"    ✓ 描述: {seg_caption[:100]}...\n")
-                except Exception as e:
-                    print(f"    ✗ 警告: 片段 {idx+1} 描述失败: {e}\n")
-                    all_captions.append({
-                        "segment_idx": idx + 1,
-                        "start": start_time,
-                        "end": end_time,
-                        "caption": f"[描述失败: {str(e)}]"
-                    })
-            
-            print(f"✓ 完成所有片段描述，共 {len(all_captions)} 个片段\n")
-        else:
-            # 如果没有 segments，对整个视频进行 caption
-            print("未找到片段，对整个视频进行描述...\n")
-            try:
-                cap_res = caption_op.execute(video_path, target_path=upload_target_path)
-                full_caption = cap_res.get("caption", "")
-                all_captions.append({
-                    "segment_idx": 0,
-                    "start": 0,
-                    "end": 0,
-                    "caption": full_caption
-                })
-                print(f"✓ 视频描述完成: {full_caption[:100]}...\n")
-            except Exception as e:
-                print(f"✗ 视频描述失败: {e}\n")
+        split_kwargs = {"target_path": upload_target_path}
+        if split_op.provider == "google":
+            service_url = google_videosplit_service_url or getattr(split_op, "service_url", None)
+            if not service_url:
+                raise ValueError(
+                    "你开启了视频切割并选择了 Google split，但未提供 Cloud Run service_url。\n"
+                    "请设置环境变量 GCP_VIDEOSPLIT_SERVICE_URL（或 VIDEOSPLIT_SERVICE_URL），"
+                    "或者在 ops/registry.py 中为 split_google_* 预置 service_url。"
+                )
+            split_kwargs["service_url"] = service_url
+        elif split_op.provider == "amazon":
+            if aws_videosplit_function_name:
+                split_kwargs["function_name"] = aws_videosplit_function_name
+        
+        split_res = split_op.execute(video_path, segments=segments, **split_kwargs)
+        segment_video_uris = split_res.get("output_uris") or []
+        
+        print(f"✓ 视频切割完成，共输出 {len(segment_video_uris)} 个片段文件\n")
+        if segment_video_uris:
+            print("分段视频 URI（前5个）：")
+            for u in segment_video_uris[:5]:
+                print(f"  - {u}")
+            if len(segment_video_uris) > 5:
+                print(f"  ... (还有 {len(segment_video_uris) - 5} 个片段)")
+            print()
     else:
         print("="*60)
-        print("Step 2: 视频片段描述 (跳过)")
+        print("Step 2: 视频切割 (跳过)")
         print("="*60 + "\n")
 
-    # Step 3: 合并所有 Captions (Concentrate Captions)
+    # Step 3: 视频描述 (Video Captioning)
+    if enable_video_caption and caption_op is not None:
+        print("="*60)
+        print("Step 3: 视频描述 (Video Captioning)")
+        print("="*60)
+
+        # 目前只需要对“完整视频”生成一次 caption（不再依赖 start/end time）
+        try:
+            cap_res = caption_op.execute(video_path, target_path=upload_target_path)
+            full_caption = cap_res.get("caption", "")
+            all_captions.append({
+                "segment_idx": 0,
+                "caption": full_caption
+            })
+            print(f"✓ 视频描述完成: {full_caption[:100]}...\n")
+        except Exception as e:
+            print(f"✗ 视频描述失败: {e}\n")
+    else:
+        print("="*60)
+        print("Step 3: 视频片段描述 (跳过)")
+        print("="*60 + "\n")
+
+    # Step 4: 合并所有 Captions (Concentrate Captions)
     print("="*60)
-    print("Step 3: 合并视频描述 (Concentrate Captions)")
+    print("Step 4: 合并视频描述 (Concentrate Captions)")
     print("="*60)
     
     if all_captions:
         # 将所有 captions 合并成一个字符串
         caption_parts = []
         for cap_info in all_captions:
-            if cap_info['segment_idx'] > 0:
-                # 片段级别的 caption
-                caption_parts.append(
-                    f"[片段 {cap_info['segment_idx']} ({cap_info['start']:.1f}s-{cap_info['end']:.1f}s)] "
-                    f"{cap_info['caption']}"
-                )
+            seg_idx = int(cap_info.get("segment_idx", 0) or 0)
+            if seg_idx > 0:
+                caption_parts.append(f"[片段 {seg_idx}] {cap_info.get('caption', '')}")
             else:
-                # 整个视频的 caption
-                caption_parts.append(f"[完整视频] {cap_info['caption']}")
+                caption_parts.append(f"[完整视频] {cap_info.get('caption', '')}")
         
         concentrated_captions = "\n\n".join(caption_parts)
         print(f"✓ 已合并 {len(all_captions)} 个片段的描述")
@@ -240,9 +271,9 @@ def run_demo():
         concentrated_captions = ""
         print("⚠ 没有可用的视频描述\n")
 
-    # Step 4: 组装 Prompt 并提交给 LLM
+    # Step 5: 组装 Prompt 并提交给 LLM
     print("="*60)
-    print("Step 4: LLM 查询 (LLM Query)")
+    print("Step 5: LLM 查询 (LLM Query)")
     print("="*60)
     
     # ========== 5) 组装 prompt，跑 LLM（默认可跑） ==========
@@ -261,7 +292,7 @@ def run_demo():
     if concentrated_captions:
         lines.append("")
         lines.append("="*50)
-        lines.append("视频内容描述（按时间顺序）：")
+        lines.append("视频内容描述：")
         lines.append("="*50)
         # 如果 captions 太长，截取前 N 个字符（保留完整片段）
         max_length = 4000  # 限制 prompt 长度，避免超出模型限制
@@ -270,7 +301,11 @@ def run_demo():
             truncated_parts = []
             current_length = 0
             for cap_info in all_captions:
-                cap_text = f"[片段 {cap_info['segment_idx']} ({cap_info['start']:.1f}s-{cap_info['end']:.1f}s)] {cap_info['caption']}"
+                seg_idx = int(cap_info.get("segment_idx", 0) or 0)
+                if seg_idx > 0:
+                    cap_text = f"[片段 {seg_idx}] {cap_info.get('caption', '')}"
+                else:
+                    cap_text = f"[完整视频] {cap_info.get('caption', '')}"
                 if current_length + len(cap_text) > max_length:
                     break
                 truncated_parts.append(cap_text)
@@ -308,6 +343,7 @@ def run_demo():
         if not os.getenv("OPENAI_API_KEY"):
             print("检测到你选择了 OpenAI，但环境变量 OPENAI_API_KEY 未设置。")
             print("我先把 prompt 打印出来（你设置好 key 后再运行即可）。\n")
+            print("如需使用第三方兼容平台，请同时设置：OPENAI_BASE_URL（例如 https://api.openai-proxy.org/v1）")
             print("=== Prompt ===")
             print(prompt)
             return
@@ -319,7 +355,7 @@ def run_demo():
 
     # Step 5: 解析结果
     print("="*60)
-    print("Step 5: 解析结果 (Parse Result)")
+    print("Step 6: 解析结果 (Parse Result)")
     print("="*60)
     
     # 解析模型输出的选项字母
@@ -352,6 +388,7 @@ def run_demo():
         "qid": qid,
         "question": question,
         "segments": segments,
+        "segment_video_uris": segment_video_uris,
         "captions": all_captions,
         "concentrated_captions": concentrated_captions,
         "llm_response": text,
@@ -368,4 +405,6 @@ if __name__ == "__main__":
     list_available_ops()
 
     # 运行一个示例调用（按需修改 pid 和输入）
-    run_demo()
+    res = run_demo()
+
+    print(res)
