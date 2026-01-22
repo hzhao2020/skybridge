@@ -7,7 +7,7 @@ import json
 import requests
 from typing import Dict, Any, Optional, List
 from urllib.parse import urlparse
-from ops.base import VideoSegmenter, VisualCaptioner, LLMQuery, VideoSplitter
+from ops.base import VideoSegmenter, VisualCaptioner, LLMQuery, VideoSplitter, VisualEncoder
 
 try:
     from google.cloud import videointelligence
@@ -22,11 +22,22 @@ try:
         except ImportError:
             GenerativeModel = None
             Part = None
+    try:
+        from vertexai.vision_models import MultiModalEmbeddingModel, Video
+    except ImportError:
+        # 尝试旧版本的导入方式
+        try:
+            from vertexai.preview.vision_models import MultiModalEmbeddingModel, Video
+        except ImportError:
+            MultiModalEmbeddingModel = None
+            Video = None
 except ImportError:
     print("Warning: Google Cloud libraries not installed. Install with: pip install google-cloud-videointelligence google-cloud-aiplatform")
     ClientOptions = None
     GenerativeModel = None
     Part = None
+    MultiModalEmbeddingModel = None
+    Video = None
 
 
 class GoogleVideoSegmentImpl(VideoSegmenter):
@@ -588,3 +599,199 @@ class GoogleCloudRunSplitImpl(VideoSplitter):
         except json.JSONDecodeError as e:
             # HTTP 成功但返回体不是 JSON
             raise RuntimeError(f"Invalid response from Cloud Run (not JSON): {e}") from e
+
+
+class GoogleVertexEmbeddingImpl(VisualEncoder):
+    """
+    使用 Google Vertex AI 的 multimodalembedding@001 模型进行视觉编码
+    """
+    def __init__(self, provider: str, region: str, storage_bucket: str, model_name: str = "multimodalembedding@001"):
+        super().__init__(provider, region, storage_bucket, model_name)
+        self._embedding_model = None
+    
+    def _init_embedding_model(self):
+        """初始化 Vertex AI Embedding 模型"""
+        if self._embedding_model is None:
+            if MultiModalEmbeddingModel is None:
+                raise ImportError("Vertex AI MultiModalEmbeddingModel not available. Install with: pip install google-cloud-aiplatform")
+            # Vertex AI 支持的区域映射（仅支持3个区域）
+            # us-west1 (Oregon), europe-west1 (Belgium), asia-southeast1 (Singapore)
+            region_locations = {
+                'us-west1': 'us-west1',
+                'europe-west1': 'europe-west1',
+                'asia-southeast1': 'asia-southeast1'
+            }
+            if self.region not in region_locations:
+                raise ValueError(
+                    f"Unsupported region '{self.region}' for Vertex AI. "
+                    f"Supported regions: {list(region_locations.keys())}"
+                )
+            location = region_locations[self.region]
+            aiplatform.init(location=location)
+            self._embedding_model = MultiModalEmbeddingModel.from_pretrained(self.model_name)
+        return self._embedding_model
+    
+    def _parse_uri(self, uri: str):
+        """解析 URI，返回 bucket 和 blob/key"""
+        parsed = urlparse(uri)
+        bucket = parsed.netloc
+        blob_path = parsed.path.lstrip('/')
+        return bucket, blob_path
+    
+    def _download_video_to_local(self, video_uri: str) -> str:
+        """下载视频到本地临时文件"""
+        if video_uri.startswith('gs://'):
+            # GCS: 下载到本地
+            bucket, blob_path = self._parse_uri(video_uri)
+            temp_video = tempfile.NamedTemporaryFile(suffix='.mp4', delete=False)
+            temp_video_path = temp_video.name
+            temp_video.close()
+            
+            from google.cloud import storage
+            storage_client = storage.Client()
+            bucket_obj = storage_client.bucket(bucket)
+            blob = bucket_obj.blob(blob_path)
+            blob.download_to_filename(temp_video_path)
+            return temp_video_path
+        elif video_uri.startswith('s3://'):
+            # S3: 下载到本地
+            import boto3
+            parsed = urlparse(video_uri)
+            bucket = parsed.netloc
+            key = parsed.path.lstrip('/')
+            
+            temp_video = tempfile.NamedTemporaryFile(suffix='.mp4', delete=False)
+            temp_video_path = temp_video.name
+            temp_video.close()
+            
+            s3_client = boto3.client('s3')
+            s3_client.download_file(bucket, key, temp_video_path)
+            return temp_video_path
+        else:
+            # 本地路径
+            if not os.path.exists(video_uri):
+                raise FileNotFoundError(f"Video file not found: {video_uri}")
+            return video_uri
+    
+    def execute(self, video_uri: str, **kwargs) -> Dict[str, Any]:
+        """
+        对视频进行编码，生成向量
+        
+        Args:
+            video_uri: 视频 URI（本地路径或云存储 URI）
+            target_path: 可选，上传目标路径
+            save_embedding: 可选，是否保存 embedding 到云存储（默认 False）
+        """
+        print(f"--- [Vertex AI Embedding] Region: {self.region} | Model: {self.model_name} ---")
+        
+        # 1. 确保数据在 Google Bucket（如果需要）
+        target_path = kwargs.get('target_path')
+        if target_path or not (video_uri.startswith('gs://') or os.path.exists(video_uri)):
+            target_uri = self.transmitter.smart_move(video_uri, 'google', self.storage_bucket, target_path)
+            print(f"    Data Ready: {target_uri}")
+        else:
+            target_uri = video_uri
+            print(f"    Using video: {target_uri}")
+        
+        # 2. 初始化 Embedding 模型
+        model = self._init_embedding_model()
+        
+        # 3. 准备视频对象
+        # Vertex AI 的 Video 类需要本地文件路径或 GCS URI
+        temp_video_path = None
+        try:
+            if Video is None:
+                raise ImportError("Vertex AI Video not available. Install with: pip install google-cloud-aiplatform")
+            
+            if target_uri.startswith('gs://'):
+                # 直接使用 GCS URI
+                video_obj = Video.load_from_uri(target_uri)
+            else:
+                # 如果是本地路径或 S3，需要先下载到本地
+                if target_uri.startswith('s3://') or not os.path.exists(target_uri):
+                    temp_video_path = self._download_video_to_local(target_uri)
+                    video_obj = Video.load_from_file(temp_video_path)
+                else:
+                    video_obj = Video.load_from_file(target_uri)
+            
+            print(f"    Generating embedding for video...")
+            
+            # 4. 调用 API 生成 embedding
+            embeddings = model.get_embeddings(video=video_obj)
+            
+            # 5. 提取 embedding 向量
+            # multimodalembedding@001 返回 video_embeddings 是一个列表（每个帧一个 embedding）
+            # 我们取第一个或平均所有帧的 embedding
+            if embeddings.video_embeddings:
+                if len(embeddings.video_embeddings) == 1:
+                    embedding_vector = embeddings.video_embeddings[0]
+                else:
+                    # 如果有多个帧的 embedding，取平均（使用纯 Python 实现，避免 numpy 依赖）
+                    num_frames = len(embeddings.video_embeddings)
+                    num_dims = len(embeddings.video_embeddings[0])
+                    embedding_vector = [
+                        sum(frame_emb[i] for frame_emb in embeddings.video_embeddings) / num_frames
+                        for i in range(num_dims)
+                    ]
+                embedding_dim = len(embedding_vector)
+                print(f"    Embedding generated: dimension={embedding_dim}")
+            else:
+                raise RuntimeError("No video embeddings returned from model")
+            
+            # 6. 可选：保存 embedding 到云存储
+            save_embedding = kwargs.get('save_embedding', False)
+            embedding_uri = None
+            if save_embedding:
+                embedding_data = {
+                    "embedding": embedding_vector,
+                    "dimension": embedding_dim,
+                    "source_video": target_uri,
+                    "model": self.model_name,
+                    "region": self.region
+                }
+                embedding_filename = f"{os.path.basename(target_uri)}.embedding.json"
+                if target_path:
+                    embedding_target_path = f"{target_path}/embeddings"
+                else:
+                    embedding_target_path = "embeddings"
+                
+                # 保存到临时文件然后上传
+                temp_embedding_file = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+                json.dump(embedding_data, temp_embedding_file, indent=2)
+                temp_embedding_file.close()
+                
+                try:
+                    embedding_uri = self.transmitter.upload_local_to_cloud(
+                        temp_embedding_file.name,
+                        'google',
+                        self.storage_bucket,
+                        embedding_target_path
+                    )
+                    print(f"    Embedding saved to: {embedding_uri}")
+                finally:
+                    if os.path.exists(temp_embedding_file.name):
+                        os.remove(temp_embedding_file.name)
+            
+            result = {
+                "provider": "google_vertex",
+                "model": self.model_name,
+                "region": self.region,
+                "embedding": embedding_vector,
+                "embedding_dimension": embedding_dim,
+                "source_video": target_uri
+            }
+            
+            if embedding_uri:
+                result["embedding_uri"] = embedding_uri
+            
+            return result
+            
+        except Exception as e:
+            raise RuntimeError(f"Failed to generate embedding: {e}") from e
+        finally:
+            # 清理临时文件
+            if temp_video_path and os.path.exists(temp_video_path):
+                try:
+                    os.remove(temp_video_path)
+                except Exception:
+                    pass  # 忽略清理错误

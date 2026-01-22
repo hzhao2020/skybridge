@@ -75,3 +75,22 @@ class VideoSplitter(Operation):
             包含分割结果的字典，通常包含 output_uris（输出文件URI列表）
         """
         pass
+
+
+class VisualEncoder(Operation):
+    """
+    视觉编码操作：将视频编码成向量进行存储
+    """
+    @abstractmethod
+    def execute(self, video_uri: str, **kwargs) -> Dict[str, Any]:
+        """
+        执行视觉编码
+        
+        Args:
+            video_uri: 视频 URI（本地路径或云存储 URI）
+            **kwargs: 其他参数，如 target_path, save_embedding 等
+            
+        Returns:
+            包含编码结果的字典，通常包含 embedding（向量）和 metadata
+        """
+        pass

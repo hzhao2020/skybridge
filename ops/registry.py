@@ -1,7 +1,7 @@
 # ops/registry.py
 from ops.base import Operation
-from ops.impl.google_ops import GoogleVideoSegmentImpl, GoogleVertexCaptionImpl, GoogleVertexLLMImpl, GoogleCloudRunSplitImpl
-from ops.impl.amazon_ops import AmazonRekognitionSegmentImpl, AmazonBedrockCaptionImpl, AmazonBedrockLLMImpl, AWSLambdaSplitImpl
+from ops.impl.google_ops import GoogleVideoSegmentImpl, GoogleVertexCaptionImpl, GoogleVertexLLMImpl, GoogleCloudRunSplitImpl, GoogleVertexEmbeddingImpl
+from ops.impl.amazon_ops import AmazonRekognitionSegmentImpl, AmazonBedrockCaptionImpl, AmazonBedrockLLMImpl, AWSLambdaSplitImpl, AmazonBedrockEmbeddingImpl
 from ops.impl.openai_ops import OpenAILLMImpl
 # Storage 和 Transmission 操作直接使用 ops.utils 中的辅助类，不需要注册为 Operation
 
@@ -224,6 +224,50 @@ LLM_CATALOG.extend([
     {"pid": "llm_openai_gpt4o",      "cls": OpenAILLMImpl, "provider": "openai", "region": "global", "bucket_key": None, "model": "gpt-4o"},
 ])
 
+# 4) Visual encoding (embedding)
+VISUAL_ENCODING_CATALOG = []
+
+# Google Vertex AI (multimodalembedding@001) - 支持3个区域
+# us-west1 (Oregon), europe-west1 (Belgium), asia-southeast1 (Singapore)
+for reg in GCP_REGIONS:  # GCP_REGIONS 已包含正确的3个区域
+    if reg["region"] == "us-west1":
+        pid = "embed_google_us"
+    elif reg["region"] == "europe-west1":
+        pid = "embed_google_eu"
+    elif reg["region"] == "asia-southeast1":
+        pid = "embed_google_sg"
+    else:
+        pid = f"embed_google_{reg['region'].replace('-', '_')}"
+    VISUAL_ENCODING_CATALOG.append({
+        "pid": pid,
+        "cls": GoogleVertexEmbeddingImpl,
+        "provider": "google",
+        "region": reg["region"],
+        "bucket_key": reg["bucket_key"],
+        "model": "multimodalembedding@001"
+    })
+
+# Amazon Bedrock (Titan Multimodal Embeddings G1) - 支持3个区域
+# us-west-2 (Oregon), eu-central-1 (Frankfurt), ap-southeast-1 (Singapore)
+for reg in AWS_REGIONS:
+    if reg["region"] == "us-west-2":
+        pid_suffix = "us"
+    elif reg["region"] == "eu-central-1":
+        pid_suffix = "eu"
+    elif reg["region"] == "ap-southeast-1":
+        pid_suffix = "sg"
+    else:
+        pid_suffix = reg["region"].replace("-", "_")
+    pid = f"embed_aws_{pid_suffix}"
+    VISUAL_ENCODING_CATALOG.append({
+        "pid": pid,
+        "cls": AmazonBedrockEmbeddingImpl,
+        "provider": "amazon",
+        "region": reg["region"],
+        "bucket_key": reg["bucket_key"],
+        "model": "amazon.titan-embed-image-v1"
+    })
+
 # =========================================================
 # Register all combinations from catalogs
 # =========================================================
@@ -251,3 +295,6 @@ for item in LLM_CATALOG:
         register(item["pid"], item["cls"](item["model"]))
     else:
         register(item["pid"], item["cls"](item["provider"], item["region"], bucket, item["model"]))
+
+for item in VISUAL_ENCODING_CATALOG:
+    register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]], item["model"]))
