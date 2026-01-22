@@ -7,7 +7,7 @@ import json
 import requests
 from typing import Dict, Any, Optional, List
 from urllib.parse import urlparse
-from ops.base import VideoSegmenter, VisualCaptioner, LLMQuery, VideoSplitter, VisualEncoder
+from ops.base import VideoSegmenter, VisualCaptioner, LLMQuery, VideoSplitter, VisualEncoder, TextEncoder, ObjectDetector
 
 try:
     from google.cloud import videointelligence
@@ -31,6 +31,15 @@ try:
         except ImportError:
             MultiModalEmbeddingModel = None
             Video = None
+    try:
+        from vertexai.language_models import TextEmbeddingModel, TextEmbeddingInput
+    except ImportError:
+        # 尝试旧版本的导入方式
+        try:
+            from vertexai.preview.language_models import TextEmbeddingModel, TextEmbeddingInput
+        except ImportError:
+            TextEmbeddingModel = None
+            TextEmbeddingInput = None
 except ImportError:
     print("Warning: Google Cloud libraries not installed. Install with: pip install google-cloud-videointelligence google-cloud-aiplatform")
     ClientOptions = None
@@ -38,6 +47,8 @@ except ImportError:
     Part = None
     MultiModalEmbeddingModel = None
     Video = None
+    TextEmbeddingModel = None
+    TextEmbeddingInput = None
 
 
 class GoogleVideoSegmentImpl(VideoSegmenter):
@@ -795,3 +806,290 @@ class GoogleVertexEmbeddingImpl(VisualEncoder):
                     os.remove(temp_video_path)
                 except Exception:
                     pass  # 忽略清理错误
+
+
+class GoogleVertexTextEmbeddingImpl(TextEncoder):
+    """
+    使用 Google Vertex AI 的文本 embedding 模型进行文本编码
+    
+    支持的模型：
+    - gemini-embedding-001: 3072 维向量
+    - text-embedding-005: 更新的文本 embedding 模型
+    """
+    def __init__(self, provider: str, region: str, storage_bucket: str, model_name: str):
+        super().__init__(provider, region, storage_bucket, model_name)
+        self._embedding_model = None
+    
+    def _init_embedding_model(self):
+        """初始化 Vertex AI Text Embedding 模型"""
+        if self._embedding_model is None:
+            if TextEmbeddingModel is None:
+                raise ImportError("Vertex AI TextEmbeddingModel not available. Install with: pip install google-cloud-aiplatform")
+            # Vertex AI 支持的区域映射（仅支持3个区域）
+            # us-west1 (Oregon), europe-west1 (Belgium), asia-southeast1 (Singapore)
+            region_locations = {
+                'us-west1': 'us-west1',
+                'europe-west1': 'europe-west1',
+                'asia-southeast1': 'asia-southeast1'
+            }
+            if self.region not in region_locations:
+                raise ValueError(
+                    f"Unsupported region '{self.region}' for Vertex AI. "
+                    f"Supported regions: {list(region_locations.keys())}"
+                )
+            location = region_locations[self.region]
+            aiplatform.init(location=location)
+            self._embedding_model = TextEmbeddingModel.from_pretrained(self.model_name)
+        return self._embedding_model
+    
+    def execute(self, text: str, **kwargs) -> Dict[str, Any]:
+        """
+        对文本进行编码，生成向量
+        
+        Args:
+            text: 要编码的文本
+            save_embedding: 可选，是否保存 embedding 到云存储（默认 False）
+            task_type: 可选，任务类型（如 "RETRIEVAL_DOCUMENT", "RETRIEVAL_QUERY" 等）
+            output_dimensionality: 可选，输出维度（仅 gemini-embedding-001 支持，默认 3072）
+        """
+        print(f"--- [Vertex AI Text Embedding] Region: {self.region} | Model: {self.model_name} ---")
+        
+        # 1. 初始化 Embedding 模型
+        model = self._init_embedding_model()
+        
+        # 2. 准备参数
+        task_type = kwargs.get('task_type', 'RETRIEVAL_DOCUMENT')
+        output_dimensionality = kwargs.get('output_dimensionality')
+        
+        # 3. 构建输入
+        if TextEmbeddingInput is None:
+            raise ImportError("Vertex AI TextEmbeddingInput not available. Install with: pip install google-cloud-aiplatform")
+        
+        # 对于 gemini-embedding-001，需要使用 TextEmbeddingInput
+        # 对于 text-embedding-005，可能直接使用文本
+        try:
+            if self.model_name == "gemini-embedding-001":
+                text_input = TextEmbeddingInput(text, task_type)
+                # 调用 API
+                print(f"    Generating embedding for text (length: {len(text)} chars)...")
+                if output_dimensionality:
+                    embeddings = model.get_embeddings([text_input], output_dimensionality=output_dimensionality)
+                else:
+                    embeddings = model.get_embeddings([text_input])
+            else:
+                # text-embedding-005 或其他模型
+                print(f"    Generating embedding for text (length: {len(text)} chars)...")
+                embeddings = model.get_embeddings([text])
+            
+            # 4. 提取 embedding 向量
+            if embeddings and len(embeddings) > 0:
+                # 获取 embedding 值
+                if hasattr(embeddings[0], 'values'):
+                    embedding_vector = embeddings[0].values
+                elif isinstance(embeddings[0], list):
+                    embedding_vector = embeddings[0]
+                else:
+                    embedding_vector = list(embeddings[0])
+                embedding_dim = len(embedding_vector)
+                print(f"    Embedding generated: dimension={embedding_dim}")
+            else:
+                raise RuntimeError("No embedding returned from model")
+            
+            # 5. 可选：保存 embedding 到云存储
+            save_embedding = kwargs.get('save_embedding', False)
+            embedding_uri = None
+            if save_embedding:
+                embedding_data = {
+                    "embedding": embedding_vector,
+                    "dimension": embedding_dim,
+                    "source_text": text[:100] + "..." if len(text) > 100 else text,  # 只保存前100个字符
+                    "text_length": len(text),
+                    "model": self.model_name,
+                    "region": self.region,
+                    "task_type": task_type
+                }
+                if output_dimensionality:
+                    embedding_data["output_dimensionality"] = output_dimensionality
+                
+                # 保存到临时文件然后上传
+                temp_embedding_file = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+                json.dump(embedding_data, temp_embedding_file, indent=2)
+                temp_embedding_file.close()
+                
+                try:
+                    embedding_uri = self.transmitter.upload_local_to_cloud(
+                        temp_embedding_file.name,
+                        'google',
+                        self.storage_bucket,
+                        "embeddings/text"
+                    )
+                    print(f"    Embedding saved to: {embedding_uri}")
+                finally:
+                    if os.path.exists(temp_embedding_file.name):
+                        os.remove(temp_embedding_file.name)
+            
+            result = {
+                "provider": "google_vertex",
+                "model": self.model_name,
+                "region": self.region,
+                "embedding": embedding_vector,
+                "embedding_dimension": embedding_dim,
+                "text_length": len(text)
+            }
+            
+            if embedding_uri:
+                result["embedding_uri"] = embedding_uri
+            
+            return result
+            
+        except Exception as e:
+            raise RuntimeError(f"Failed to generate text embedding: {e}") from e
+
+
+class GoogleVideoIntelligenceObjectDetectionImpl(ObjectDetector):
+    """
+    使用 Google Video Intelligence API 进行物体检测和跟踪
+    """
+    def __init__(self, provider: str, region: str, storage_bucket: str):
+        super().__init__(provider, region, storage_bucket)
+        self._video_client = None
+    
+    @property
+    def video_client(self):
+        """懒加载 Google Video Intelligence 客户端"""
+        if self._video_client is None:
+            self._video_client = videointelligence.VideoIntelligenceServiceClient()
+        return self._video_client
+    
+    def _get_location_id(self):
+        """将 region 转换为 Video Intelligence API 支持的 location_id"""
+        # Google Video Intelligence API 支持的区域映射（仅支持3个区域）
+        # us-west1 (Oregon), europe-west1 (Belgium), asia-east1 (Taiwan)
+        region_to_location = {
+            'us-west1': 'us-west1',
+            'europe-west1': 'europe-west1',
+            'asia-east1': 'asia-east1',
+        }
+        return region_to_location.get(self.region)
+    
+    def _parse_uri(self, uri: str):
+        """解析 URI，返回 bucket 和 blob/key"""
+        parsed = urlparse(uri)
+        bucket = parsed.netloc
+        blob_path = parsed.path.lstrip('/')
+        return bucket, blob_path
+    
+    def execute(self, video_uri: str, **kwargs) -> Dict[str, Any]:
+        """
+        在视频中检测和跟踪物体
+        
+        Args:
+            video_uri: 视频 URI（本地路径或云存储 URI）
+            target_path: 可选，上传目标路径
+            save_results: 可选，是否保存结果到云存储（默认 True）
+        """
+        print(f"--- [Google Video Intelligence Object Detection] Region: {self.region} ---")
+        
+        # 1. 确保数据在 Google Bucket
+        target_path = kwargs.get('target_path')
+        target_uri = self.transmitter.smart_move(video_uri, 'google', self.storage_bucket, target_path)
+        print(f"    Data Ready: {target_uri}")
+        
+        # 2. 解析 URI
+        bucket, blob_path = self._parse_uri(target_uri)
+        
+        # 3. 准备结果存储路径
+        filename = os.path.basename(blob_path)
+        result_path = f"results/object_detection/{filename}.json"
+        result_uri = f"gs://{self.storage_bucket}/{result_path}"
+        
+        print(f"    Processing video: {target_uri}")
+        print(f"    Results will be saved to: {result_uri}")
+        
+        # 4. 调用 Video Intelligence API - Object Tracking
+        features = [videointelligence.Feature.OBJECT_TRACKING]
+        
+        # 构建请求，包含 location_id 以指定处理区域
+        request_dict = {
+            "features": features,
+            "input_uri": target_uri,
+            "output_uri": result_uri
+        }
+        
+        # 如果区域支持，添加 location_id
+        location_id = self._get_location_id()
+        if location_id:
+            request_dict["location_id"] = location_id
+            print(f"    Using location_id: {location_id}")
+        else:
+            raise ValueError(
+                f"Unsupported region '{self.region}' for Google Video Intelligence. "
+                f"Supported regions: us-west1, europe-west1, asia-east1"
+            )
+        
+        operation = self.video_client.annotate_video(request=request_dict)
+        
+        # 5. 等待结果（阻塞等待，实际生产环境可异步）
+        print("    Waiting for object detection to complete...")
+        result = operation.result(timeout=600)
+        
+        # 6. 解析结果，提取检测到的物体
+        detected_objects = []
+        if result.annotation_results:
+            for annotation_result in result.annotation_results:
+                if annotation_result.object_annotations:
+                    for obj_annotation in annotation_result.object_annotations:
+                        # 提取物体信息
+                        entity = obj_annotation.entity
+                        object_info = {
+                            "entity_id": entity.entity_id if entity.entity_id else None,
+                            "description": entity.description if entity.description else None,
+                            "language_code": entity.language_code if entity.language_code else None,
+                            "confidence": obj_annotation.confidence if hasattr(obj_annotation, 'confidence') else None,
+                            "segments": []
+                        }
+                        
+                        # 提取时间片段和边界框
+                        for segment in obj_annotation.segments:
+                            segment_info = {
+                                "start_time": segment.start_time_offset.total_seconds() if segment.start_time_offset else 0.0,
+                                "end_time": segment.end_time_offset.total_seconds() if segment.end_time_offset else 0.0,
+                            }
+                            
+                            # 提取边界框信息
+                            if hasattr(segment, 'frames') and segment.frames:
+                                frames = []
+                                for frame in segment.frames:
+                                    frame_info = {
+                                        "time_offset": frame.time_offset.total_seconds() if frame.time_offset else 0.0,
+                                    }
+                                    if hasattr(frame, 'normalized_bounding_box') and frame.normalized_bounding_box:
+                                        bbox = frame.normalized_bounding_box
+                                        frame_info["bounding_box"] = {
+                                            "left": bbox.left if hasattr(bbox, 'left') else None,
+                                            "top": bbox.top if hasattr(bbox, 'top') else None,
+                                            "right": bbox.right if hasattr(bbox, 'right') else None,
+                                            "bottom": bbox.bottom if hasattr(bbox, 'bottom') else None,
+                                        }
+                                    frames.append(frame_info)
+                                segment_info["frames"] = frames
+                            
+                            object_info["segments"].append(segment_info)
+                        
+                        detected_objects.append(object_info)
+        
+        print(f"    Found {len(detected_objects)} unique objects")
+        
+        # 7. 可选：保存结果到云存储
+        save_results = kwargs.get('save_results', True)
+        if not save_results:
+            result_uri = None
+        
+        return {
+            "provider": "google",
+            "region": self.region,
+            "detected_objects": detected_objects,
+            "object_count": len(detected_objects),
+            "source_used": target_uri,
+            "result_location": result_uri if save_results else None
+        }

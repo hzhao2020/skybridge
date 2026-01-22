@@ -1,7 +1,7 @@
 # ops/registry.py
 from ops.base import Operation
-from ops.impl.google_ops import GoogleVideoSegmentImpl, GoogleVertexCaptionImpl, GoogleVertexLLMImpl, GoogleCloudRunSplitImpl, GoogleVertexEmbeddingImpl
-from ops.impl.amazon_ops import AmazonRekognitionSegmentImpl, AmazonBedrockCaptionImpl, AmazonBedrockLLMImpl, AWSLambdaSplitImpl, AmazonBedrockEmbeddingImpl
+from ops.impl.google_ops import GoogleVideoSegmentImpl, GoogleVertexCaptionImpl, GoogleVertexLLMImpl, GoogleCloudRunSplitImpl, GoogleVertexEmbeddingImpl, GoogleVertexTextEmbeddingImpl, GoogleVideoIntelligenceObjectDetectionImpl
+from ops.impl.amazon_ops import AmazonRekognitionSegmentImpl, AmazonBedrockCaptionImpl, AmazonBedrockLLMImpl, AWSLambdaSplitImpl, AmazonBedrockEmbeddingImpl, AmazonBedrockTextEmbeddingImpl, AmazonRekognitionObjectDetectionImpl
 from ops.impl.openai_ops import OpenAILLMImpl
 # Storage 和 Transmission 操作直接使用 ops.utils 中的辅助类，不需要注册为 Operation
 
@@ -268,6 +268,104 @@ for reg in AWS_REGIONS:
         "model": "amazon.titan-embed-image-v1"
     })
 
+# 5) Text encoding (embedding)
+TEXT_EMBEDDING_CATALOG = []
+
+# Google Vertex AI - 2个模型 × 3个区域
+# gemini-embedding-001: us-west1, europe-west1, asia-southeast1
+# text-embedding-005: us-west1, europe-west1, asia-southeast1
+_gcp_text_embedding_models = {
+    "gemini-embedding-001": "gemini",
+    "text-embedding-005": "text005",
+}
+for model, slug in _gcp_text_embedding_models.items():
+    for reg in GCP_REGIONS:  # GCP_REGIONS 已包含正确的3个区域
+        if reg["region"] == "us-west1":
+            pid = f"text_embed_google_{slug}_us"
+        elif reg["region"] == "europe-west1":
+            pid = f"text_embed_google_{slug}_eu"
+        elif reg["region"] == "asia-southeast1":
+            pid = f"text_embed_google_{slug}_sg"
+        else:
+            pid = f"text_embed_google_{slug}_{reg['region'].replace('-', '_')}"
+        TEXT_EMBEDDING_CATALOG.append({
+            "pid": pid,
+            "cls": GoogleVertexTextEmbeddingImpl,
+            "provider": "google",
+            "region": reg["region"],
+            "bucket_key": reg["bucket_key"],
+            "model": model
+        })
+
+# Amazon Bedrock - 2个模型 × 3个区域
+# Titan Text Embeddings V2: us-west-2, eu-central-1, ap-southeast-1
+# Titan Embeddings G1 - Text: us-west-2, eu-central-1, ap-southeast-1
+_aws_text_embedding_models = {
+    "amazon.titan-embed-text-v2:0": "v2",
+    "amazon.titan-embed-text-v1": "v1",
+}
+for model, slug in _aws_text_embedding_models.items():
+    for reg in AWS_REGIONS:
+        if reg["region"] == "us-west-2":
+            pid_suffix = "us"
+        elif reg["region"] == "eu-central-1":
+            pid_suffix = "eu"
+        elif reg["region"] == "ap-southeast-1":
+            pid_suffix = "sg"
+        else:
+            pid_suffix = reg["region"].replace("-", "_")
+        pid = f"text_embed_aws_{slug}_{pid_suffix}"
+        TEXT_EMBEDDING_CATALOG.append({
+            "pid": pid,
+            "cls": AmazonBedrockTextEmbeddingImpl,
+            "provider": "amazon",
+            "region": reg["region"],
+            "bucket_key": reg["bucket_key"],
+            "model": model
+        })
+
+# 6) Object detection
+OBJECT_DETECTION_CATALOG = []
+
+# Google Video Intelligence - 3个区域
+# us-west1 (Oregon), europe-west1 (Belgium), asia-east1 (Taiwan)
+for reg in GCP_VIDEO_INTELLIGENCE_REGIONS:
+    if reg["region"] == "us-west1":
+        pid = "obj_detect_google_us"
+    elif reg["region"] == "europe-west1":
+        pid = "obj_detect_google_eu"
+    elif reg["region"] == "asia-east1":
+        pid = "obj_detect_google_tw"
+    else:
+        pid = f"obj_detect_google_{reg['region'].replace('-', '_')}"
+    OBJECT_DETECTION_CATALOG.append({
+        "pid": pid,
+        "cls": GoogleVideoIntelligenceObjectDetectionImpl,
+        "provider": "google",
+        "region": reg["region"],
+        "bucket_key": reg["bucket_key"]
+    })
+
+# Amazon Rekognition Video - 3个区域
+# us-west-2 (Oregon), eu-central-1 (Frankfurt), ap-southeast-1 (Singapore)
+for reg in AWS_REGIONS:
+    if reg["region"] == "us-west-2":
+        pid_suffix = "us"
+    elif reg["region"] == "eu-central-1":
+        pid_suffix = "eu"
+    elif reg["region"] == "ap-southeast-1":
+        pid_suffix = "sg"
+    else:
+        pid_suffix = reg["region"].replace("-", "_")
+    pid = f"obj_detect_aws_{pid_suffix}"
+    OBJECT_DETECTION_CATALOG.append({
+        "pid": pid,
+        "cls": AmazonRekognitionObjectDetectionImpl,
+        "provider": "amazon",
+        "region": reg["region"],
+        "bucket_key": reg["bucket_key"]
+    })
+
 # =========================================================
 # Register all combinations from catalogs
 # =========================================================
@@ -298,3 +396,9 @@ for item in LLM_CATALOG:
 
 for item in VISUAL_ENCODING_CATALOG:
     register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]], item["model"]))
+
+for item in TEXT_EMBEDDING_CATALOG:
+    register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]], item["model"]))
+
+for item in OBJECT_DETECTION_CATALOG:
+    register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]]))

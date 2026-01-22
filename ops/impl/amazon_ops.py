@@ -7,7 +7,7 @@ import tempfile
 import subprocess
 from typing import Dict, Any, List, Optional
 from urllib.parse import urlparse
-from ops.base import VideoSegmenter, VisualCaptioner, LLMQuery, VideoSplitter, VisualEncoder
+from ops.base import VideoSegmenter, VisualCaptioner, LLMQuery, VideoSplitter, VisualEncoder, TextEncoder, ObjectDetector
 
 try:
     import boto3
@@ -701,3 +701,289 @@ class AmazonBedrockEmbeddingImpl(VisualEncoder):
                     os.remove(temp_image_path)
                 except Exception:
                     pass  # 忽略清理错误
+
+
+class AmazonBedrockTextEmbeddingImpl(TextEncoder):
+    """
+    使用 AWS Bedrock 的 Titan Text Embeddings 模型进行文本编码
+    
+    支持的模型：
+    - Titan Text Embeddings V2: amazon.titan-embed-text-v2:0
+    - Titan Embeddings G1 - Text: amazon.titan-embed-text-v1
+    """
+    def __init__(self, provider: str, region: str, storage_bucket: str, model_name: str):
+        super().__init__(provider, region, storage_bucket, model_name)
+        self._bedrock_client = None
+    
+    @property
+    def bedrock_client(self):
+        """懒加载 AWS Bedrock 客户端"""
+        if self._bedrock_client is None:
+            self._bedrock_client = boto3.client('bedrock-runtime', region_name=self.region)
+        return self._bedrock_client
+    
+    def execute(self, text: str, **kwargs) -> Dict[str, Any]:
+        """
+        对文本进行编码，生成向量
+        
+        Args:
+            text: 要编码的文本
+            save_embedding: 可选，是否保存 embedding 到云存储（默认 False）
+            dimensions: 可选，embedding 维度（仅 V2 支持：256, 512, 1024，默认 1024）
+            normalize: 可选，是否归一化向量（仅 V2 支持，默认 False）
+        """
+        print(f"--- [AWS Bedrock Text Embedding] Region: {self.region} | Model: {self.model_name} ---")
+        
+        # 1. 构建请求体
+        request_body = {
+            "inputText": text
+        }
+        
+        # 2. 对于 V2 模型，支持额外的配置
+        if "v2" in self.model_name.lower():
+            dimensions = kwargs.get('dimensions', 1024)
+            if dimensions not in [256, 512, 1024]:
+                raise ValueError(f"dimensions must be one of [256, 512, 1024], got {dimensions}")
+            request_body["dimensions"] = dimensions
+            
+            normalize = kwargs.get('normalize', False)
+            if normalize:
+                request_body["normalize"] = True
+        
+        # 3. 调用 Bedrock API
+        print(f"    Generating embedding for text (length: {len(text)} chars)...")
+        try:
+            response = self.bedrock_client.invoke_model(
+                modelId=self.model_name,
+                body=json.dumps(request_body),
+                accept="application/json",
+                contentType="application/json"
+            )
+            
+            response_body = json.loads(response['body'].read())
+            embedding_vector = response_body.get('embedding', [])
+            input_text_token_count = response_body.get('inputTextTokenCount', 0)
+            message = response_body.get('message', '')
+            
+            if not embedding_vector:
+                raise RuntimeError(f"No embedding returned from model. Message: {message}")
+            
+            embedding_dim = len(embedding_vector)
+            print(f"    Embedding generated: dimension={embedding_dim}")
+            
+            # 4. 可选：保存 embedding 到云存储
+            save_embedding = kwargs.get('save_embedding', False)
+            embedding_uri = None
+            if save_embedding:
+                embedding_data = {
+                    "embedding": embedding_vector,
+                    "dimension": embedding_dim,
+                    "source_text": text[:100] + "..." if len(text) > 100 else text,  # 只保存前100个字符
+                    "text_length": len(text),
+                    "model": self.model_name,
+                    "region": self.region,
+                    "input_text_token_count": input_text_token_count
+                }
+                if "v2" in self.model_name.lower():
+                    embedding_data["dimensions"] = dimensions
+                    embedding_data["normalize"] = normalize
+                
+                # 保存到临时文件然后上传
+                temp_embedding_file = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+                json.dump(embedding_data, temp_embedding_file, indent=2)
+                temp_embedding_file.close()
+                
+                try:
+                    embedding_uri = self.transmitter.upload_local_to_cloud(
+                        temp_embedding_file.name,
+                        'amazon',
+                        self.storage_bucket,
+                        "embeddings/text"
+                    )
+                    print(f"    Embedding saved to: {embedding_uri}")
+                finally:
+                    if os.path.exists(temp_embedding_file.name):
+                        os.remove(temp_embedding_file.name)
+            
+            result = {
+                "provider": "amazon_bedrock",
+                "model": self.model_name,
+                "region": self.region,
+                "embedding": embedding_vector,
+                "embedding_dimension": embedding_dim,
+                "text_length": len(text),
+                "input_text_token_count": input_text_token_count
+            }
+            
+            if embedding_uri:
+                result["embedding_uri"] = embedding_uri
+            
+            return result
+            
+        except ClientError as e:
+            error_code = e.response['Error']['Code']
+            error_message = e.response['Error']['Message']
+            raise RuntimeError(f"AWS Bedrock API error ({error_code}): {error_message}")
+        except Exception as e:
+            raise RuntimeError(f"Failed to generate text embedding: {e}") from e
+
+
+class AmazonRekognitionObjectDetectionImpl(ObjectDetector):
+    """
+    使用 AWS Rekognition Video 进行物体检测
+    """
+    def __init__(self, provider: str, region: str, storage_bucket: str):
+        super().__init__(provider, region, storage_bucket)
+        self._rekognition_client = None
+        self._s3_client = None
+    
+    @property
+    def rekognition_client(self):
+        """懒加载 AWS Rekognition 客户端"""
+        if self._rekognition_client is None:
+            self._rekognition_client = boto3.client('rekognition', region_name=self.region)
+        return self._rekognition_client
+    
+    @property
+    def s3_client(self):
+        """懒加载 AWS S3 客户端"""
+        if self._s3_client is None:
+            self._s3_client = boto3.client('s3', region_name=self.region)
+        return self._s3_client
+    
+    def _parse_uri(self, uri: str):
+        """解析 S3 URI，返回 bucket 和 key"""
+        parsed = urlparse(uri)
+        bucket = parsed.netloc
+        key = parsed.path.lstrip('/')
+        return bucket, key
+    
+    def _poll_label_detection(self, job_id: str) -> Dict[str, Any]:
+        """轮询 Rekognition 标签检测任务直到完成"""
+        max_wait_time = 600  # 最大等待时间（秒）
+        start_time = time.time()
+        
+        while True:
+            response = self.rekognition_client.get_label_detection(JobId=job_id)
+            status = response['JobStatus']
+            
+            if status == 'SUCCEEDED':
+                return response
+            elif status == 'FAILED':
+                error_message = response.get('StatusMessage', 'Unknown error')
+                raise RuntimeError(f"AWS Rekognition job failed: {error_message}")
+            
+            elapsed = time.time() - start_time
+            if elapsed > max_wait_time:
+                raise TimeoutError(f"Job {job_id} timed out after {max_wait_time} seconds")
+            
+            print(f"    Job {job_id} status: {status}, waiting...")
+            time.sleep(5)
+    
+    def execute(self, video_uri: str, **kwargs) -> Dict[str, Any]:
+        """
+        在视频中检测物体
+        
+        Args:
+            video_uri: 视频 URI（本地路径或云存储 URI）
+            target_path: 可选，上传目标路径
+            save_results: 可选，是否保存结果到云存储（默认 True）
+            min_confidence: 可选，最小置信度阈值（默认 50）
+        """
+        print(f"--- [AWS Rekognition Object Detection] Region: {self.region} ---")
+        
+        # 1. 确保数据在 AWS S3
+        target_path = kwargs.get('target_path')
+        target_uri = self.transmitter.smart_move(video_uri, 'amazon', self.storage_bucket, target_path)
+        print(f"    Data Ready: {target_uri}")
+        
+        # 2. 解析 S3 URI
+        bucket, key = self._parse_uri(target_uri)
+        
+        print(f"    Processing video: s3://{bucket}/{key}")
+        
+        # 3. 启动 Rekognition 标签检测任务
+        min_confidence = kwargs.get('min_confidence', 50)
+        response = self.rekognition_client.start_label_detection(
+            Video={'S3Object': {'Bucket': bucket, 'Name': key}},
+            MinConfidence=min_confidence,
+            Features=['GENERAL_LABELS']  # 检测一般物体标签
+        )
+        job_id = response['JobId']
+        print(f"    Job started: {job_id}")
+        print(f"    Min confidence: {min_confidence}%")
+        
+        # 4. 轮询等待结果
+        print("    Waiting for object detection to complete...")
+        result = self._poll_label_detection(job_id)
+        
+        # 5. 解析结果，提取检测到的物体
+        detected_objects = []
+        if 'Labels' in result:
+            # 按物体类型分组
+            objects_by_name = {}
+            for label in result['Labels']:
+                label_name = label['Label']['Name']
+                confidence = label['Label']['Confidence']
+                instances = label.get('Instances', [])
+                
+                if label_name not in objects_by_name:
+                    objects_by_name[label_name] = {
+                        "name": label_name,
+                        "confidence": confidence,
+                        "instances": []
+                    }
+                
+                # 提取每个实例的时间片段和边界框
+                for instance in instances:
+                    instance_info = {
+                        "confidence": instance.get('Confidence', 0),
+                        "bounding_box": instance.get('BoundingBox', {}),
+                        "time_range": {}
+                    }
+                    
+                    # 提取时间范围
+                    if 'Timestamp' in instance:
+                        timestamp_ms = instance['Timestamp']
+                        instance_info["time_range"] = {
+                            "timestamp_ms": timestamp_ms,
+                            "timestamp_seconds": timestamp_ms / 1000.0
+                        }
+                    
+                    objects_by_name[label_name]["instances"].append(instance_info)
+            
+            # 转换为列表格式
+            for obj_name, obj_data in objects_by_name.items():
+                detected_objects.append({
+                    "name": obj_data["name"],
+                    "overall_confidence": obj_data["confidence"],
+                    "instance_count": len(obj_data["instances"]),
+                    "instances": obj_data["instances"]
+                })
+        
+        print(f"    Found {len(detected_objects)} unique object types")
+        total_instances = sum(obj["instance_count"] for obj in detected_objects)
+        print(f"    Total instances detected: {total_instances}")
+        
+        # 6. 可选：保存结果到 S3
+        save_results = kwargs.get('save_results', True)
+        result_uri = None
+        if save_results:
+            result_key = f"results/object_detection/{os.path.basename(key)}.json"
+            self.s3_client.put_object(
+                Bucket=self.storage_bucket,
+                Key=result_key,
+                Body=json.dumps(result, default=str)
+            )
+            result_uri = f"s3://{self.storage_bucket}/{result_key}"
+            print(f"    Results saved to: {result_uri}")
+        
+        return {
+            "provider": "amazon",
+            "region": self.region,
+            "detected_objects": detected_objects,
+            "object_type_count": len(detected_objects),
+            "total_instance_count": total_instances,
+            "source_used": target_uri,
+            "result_location": result_uri
+        }

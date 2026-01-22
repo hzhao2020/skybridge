@@ -94,3 +94,41 @@ class VisualEncoder(Operation):
             包含编码结果的字典，通常包含 embedding（向量）和 metadata
         """
         pass
+
+
+class TextEncoder(Operation):
+    """
+    文本编码操作：将文本编码成向量进行存储
+    """
+    @abstractmethod
+    def execute(self, text: str, **kwargs) -> Dict[str, Any]:
+        """
+        执行文本编码
+        
+        Args:
+            text: 要编码的文本
+            **kwargs: 其他参数，如 save_embedding, dimensions 等
+            
+        Returns:
+            包含编码结果的字典，通常包含 embedding（向量）和 metadata
+        """
+        pass
+
+
+class ObjectDetector(Operation):
+    """
+    物体检测操作：在视频中检测和跟踪物体
+    """
+    @abstractmethod
+    def execute(self, video_uri: str, **kwargs) -> Dict[str, Any]:
+        """
+        执行物体检测
+        
+        Args:
+            video_uri: 视频 URI（本地路径或云存储 URI）
+            **kwargs: 其他参数，如 target_path, save_results 等
+            
+        Returns:
+            包含检测结果的字典，通常包含 detected_objects（检测到的物体列表）和 metadata
+        """
+        pass
