@@ -67,7 +67,7 @@ def run_demo():
     
     # 视频物理切割 (Video Split / Cutting)
     # 可选: split_google_us, split_google_eu, split_google_sg, split_aws_us, split_aws_eu, split_aws_sg
-    # 注意：Google split 需要 Cloud Run 的 service_url；AWS split 默认用 Lambda 函数名 video-split-<region_with_underscores>
+    # 注意：Google split 的 service_url 可由 registry 根据 gcloud 项目号自动推导，或通过 GCP_VIDEOSPLIT_SERVICE_URL 覆盖；AWS split 默认用 Lambda 函数名 video-splitter
     # split_pid = "split_google_sg"
     split_pid = "split_aws_sg"
     
@@ -91,8 +91,8 @@ def run_demo():
     # 分段数上限（防止 segment 过多导致 split/caption 太慢/太贵）
     max_segments = 12
     
-    # Google Cloud Run VideoSplit 服务 URL（split_google_* 推荐填）
-    # 你可以在环境变量中设置（推荐）：
+    # Google Cloud Function VideoSplit 服务 URL（split_google_* 可选覆盖）
+    # 未设置时使用 registry 推导的按 region 的 URL；单 URL 覆盖可用：
     # - GCP_VIDEOSPLIT_SERVICE_URL 或 VIDEOSPLIT_SERVICE_URL
     google_videosplit_service_url = os.getenv("GCP_VIDEOSPLIT_SERVICE_URL") or os.getenv("VIDEOSPLIT_SERVICE_URL")
     
@@ -141,7 +141,7 @@ def run_demo():
         print(f"视频切割: {split_pid} -> provider={split_op.provider}, region={split_op.region}")
         if split_op.provider == "google":
             default_url = getattr(split_op, "service_url", None)
-            print(f"  Cloud Run service_url: {google_videosplit_service_url or default_url or '(missing)'}")
+            print(f"  Cloud Function service_url: {google_videosplit_service_url or default_url or '(missing)'}")
         elif split_op.provider == "amazon":
             print(f"  Lambda function_name: {aws_videosplit_function_name or '(default)'}")
     else:
@@ -206,9 +206,9 @@ def run_demo():
             service_url = google_videosplit_service_url or getattr(split_op, "service_url", None)
             if not service_url:
                 raise ValueError(
-                    "你开启了视频切割并选择了 Google split，但未提供 Cloud Run service_url。\n"
-                    "请设置环境变量 GCP_VIDEOSPLIT_SERVICE_URL（或 VIDEOSPLIT_SERVICE_URL），"
-                    "或者在 ops/registry.py 中为 split_google_* 预置 service_url。"
+                    "你开启了视频切割并选择了 Google split，但未提供 Cloud Function service_url。\n"
+                    "请设置环境变量 GCP_VIDEOSPLIT_SERVICE_URL（或 VIDEOSPLIT_SERVICE_URL），或确保 gcloud 已配置当前项目（以自动推导 URL）；"
+                    "也可设置 GCP_PROJECT_NUMBER 或 GCP_VIDEOSPLIT_SERVICE_URLS（JSON）。"
                 )
             split_kwargs["service_url"] = service_url
         elif split_op.provider == "amazon":
@@ -480,7 +480,7 @@ def run_workflow_demo():
         "qid": qid,
         "upload_target_path": "videos/egoschema/",
         "max_segments": 12,
-        # 可选：Google Cloud Run service URL
+        # 可选：Google Cloud Function VideoSplit 服务 URL
         # "google_videosplit_service_url": os.getenv("GCP_VIDEOSPLIT_SERVICE_URL"),
         # 可选：AWS Lambda function name
         # "aws_videosplit_function_name": os.getenv("AWS_VIDEOSPLIT_FUNCTION_NAME"),

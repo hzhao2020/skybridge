@@ -232,7 +232,7 @@ VideoQAWorkflow的输入数据应包含以下字段：
     "qid": Optional[str],          # 可选：问题ID
     "upload_target_path": Optional[str],  # 可选：上传路径，默认"videos/egoschema/"
     "max_segments": Optional[int],  # 可选：最大片段数，默认12
-    "google_videosplit_service_url": Optional[str],  # 可选：Google Cloud Run服务URL
+    "google_videosplit_service_url": Optional[str],  # 可选：Google Cloud Function VideoSplit 服务 URL
     "aws_videosplit_function_name": Optional[str],   # 可选：AWS Lambda函数名
 }
 ```

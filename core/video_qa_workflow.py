@@ -31,7 +31,7 @@ class VideoQAWorkflow(Workflow):
         "qid": Optional[str],  # 问题ID（可选）
         "upload_target_path": Optional[str],  # 上传路径（可选，默认"videos/egoschema/"）
         "max_segments": Optional[int],  # 最大片段数（可选，默认12）
-        "google_videosplit_service_url": Optional[str],  # Google Cloud Run服务URL（可选）
+        "google_videosplit_service_url": Optional[str],  # Google Cloud Function VideoSplit 服务 URL（可选）
         "aws_videosplit_function_name": Optional[str],  # AWS Lambda函数名（可选）
     }
     """
@@ -185,7 +185,7 @@ class VideoQAWorkflow(Workflow):
         # 准备参数
         split_kwargs = {"target_path": upload_target_path}
         
-        # Google Cloud Run需要service_url
+        # Google Cloud Function：优先用配置/环境变量，否则用 registry 推导的 service_url
         if split_op.provider == "google":
             service_url = (
                 workflow.context.get("google_videosplit_service_url") or
@@ -195,9 +195,9 @@ class VideoQAWorkflow(Workflow):
             )
             if not service_url:
                 raise ValueError(
-                    "你开启了视频切割并选择了 Google split，但未提供 Cloud Run service_url。\n"
-                    "请设置环境变量 GCP_VIDEOSPLIT_SERVICE_URL（或 VIDEOSPLIT_SERVICE_URL），"
-                    "或者在配置中提供 google_videosplit_service_url。"
+                    "你开启了视频切割并选择了 Google split，但未提供 Cloud Function service_url。\n"
+                    "请设置环境变量 GCP_VIDEOSPLIT_SERVICE_URL（或 VIDEOSPLIT_SERVICE_URL）、配置 google_videosplit_service_url，"
+                    "或确保 gcloud 已配置当前项目以自动推导。"
                 )
             split_kwargs["service_url"] = service_url
         

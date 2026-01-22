@@ -504,18 +504,17 @@ class GoogleVertexLLMImpl(LLMQuery):
         }
 
 
-class GoogleCloudRunSplitImpl(VideoSplitter):
+class GoogleCloudFunctionSplitImpl(VideoSplitter):
     """
-    使用 Google Cloud Run（HTTP 服务）进行视频分割
+    使用 Google Cloud Function（HTTP 触发器）进行视频分割。
     
-    需要先部署一个 Cloud Run 服务，该服务接收视频 URI 和片段列表，
-    使用 ffmpeg 在云端切割视频，并将结果上传到 GCS。
+    对应 deploy.sh 部署的 video-splitter 服务（gcloud run deploy）。
+    接收视频 URI 和片段列表，使用 ffmpeg 在云端切割视频，并将结果上传到 GCS。
+    service_url 可由 registry 根据项目与 region 推导，或通过构造/execute 显式传入。
     """
     
     def __init__(self, provider: str, region: str, storage_bucket: str, service_url: Optional[str] = None):
         super().__init__(provider, region, storage_bucket)
-        # Cloud Run 的 URL 没有稳定的可推导规则（与项目/服务名/区域/是否自定义域名有关），
-        # 因此这里不自动拼接默认 URL，而是由调用方显式传入。
         self.service_url = service_url
     
     def _parse_uri(self, uri: str):
@@ -535,9 +534,9 @@ class GoogleCloudRunSplitImpl(VideoSplitter):
             **kwargs: 
                 - target_path: 输出路径
                 - output_format: 输出格式（默认 mp4）
-                - service_url: 可选的 Cloud Run 服务 URL（覆盖默认）
+                - service_url: 可选的 Cloud Function 服务 URL（覆盖默认）
         """
-        print(f"--- [Google Cloud Run Video Split] Region: {self.region} ---")
+        print(f"--- [Google Cloud Function Video Split] Region: {self.region} ---")
         
         # 1. 确保视频在 Google Bucket
         target_path = kwargs.get('target_path')
@@ -560,14 +559,14 @@ class GoogleCloudRunSplitImpl(VideoSplitter):
             "output_format": output_format
         }
         
-        # 4. 调用 Cloud Run 服务
+        # 4. 调用 Cloud Function 服务（HTTP）
         service_url = kwargs.get('service_url', self.service_url)
         if not service_url:
             raise ValueError(
-                "Missing Cloud Run service_url. "
-                "请在构造 GoogleCloudRunSplitImpl(service_url=...) 或 execute(..., service_url=...) 时提供。"
+                "Missing Cloud Function service_url. "
+                "请在构造 GoogleCloudFunctionSplitImpl(service_url=...) 或 execute(..., service_url=...) 时提供。"
             )
-        print(f"    Calling Cloud Run: {service_url}")
+        print(f"    Calling Cloud Function: {service_url}")
         print(f"    Processing {len(segments)} segments...")
         
         try:
@@ -584,7 +583,7 @@ class GoogleCloudRunSplitImpl(VideoSplitter):
             print(f"    Successfully split video into {len(output_uris)} segments")
             
             return {
-                "provider": "google_cloud_run",
+                "provider": "google_cloud_function",
                 "region": self.region,
                 "input_video": target_uri,
                 "segments": segments,
@@ -593,7 +592,7 @@ class GoogleCloudRunSplitImpl(VideoSplitter):
             }
             
         except requests.exceptions.RequestException as e:
-            # 尽量把 Cloud Run 返回的错误正文带出来，便于定位（常见：GCS 权限/ffmpeg 失败/输入 URI 不存在）
+            # 尽量把 Cloud Function 返回的错误正文带出来，便于定位（常见：GCS 权限/ffmpeg 失败/输入 URI 不存在）
             resp = getattr(e, "response", None)
             if resp is not None:
                 status = getattr(resp, "status_code", "unknown")
@@ -604,12 +603,12 @@ class GoogleCloudRunSplitImpl(VideoSplitter):
                     body_text = (getattr(resp, "text", "") or "").strip()
                 if body_text:
                     body_text = body_text[:4000]
-                    raise RuntimeError(f"Cloud Run call failed ({status}): {body_text}") from e
-                raise RuntimeError(f"Cloud Run call failed ({status})") from e
-            raise RuntimeError(f"Cloud Run call failed: {e}") from e
+                    raise RuntimeError(f"Cloud Function call failed ({status}): {body_text}") from e
+                raise RuntimeError(f"Cloud Function call failed ({status})") from e
+            raise RuntimeError(f"Cloud Function call failed: {e}") from e
         except json.JSONDecodeError as e:
             # HTTP 成功但返回体不是 JSON
-            raise RuntimeError(f"Invalid response from Cloud Run (not JSON): {e}") from e
+            raise RuntimeError(f"Invalid response from Cloud Function (not JSON): {e}") from e
 
 
 class GoogleVertexEmbeddingImpl(VisualEncoder):

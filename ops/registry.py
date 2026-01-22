@@ -1,6 +1,11 @@
 # ops/registry.py
+import json
+import os
+import subprocess
+from typing import Dict, Optional
+
 from ops.base import Operation
-from ops.impl.google_ops import GoogleVideoSegmentImpl, GoogleVertexCaptionImpl, GoogleVertexLLMImpl, GoogleCloudRunSplitImpl, GoogleVertexEmbeddingImpl, GoogleVertexTextEmbeddingImpl, GoogleVideoIntelligenceObjectDetectionImpl
+from ops.impl.google_ops import GoogleVideoSegmentImpl, GoogleVertexCaptionImpl, GoogleVertexLLMImpl, GoogleCloudFunctionSplitImpl, GoogleVertexEmbeddingImpl, GoogleVertexTextEmbeddingImpl, GoogleVideoIntelligenceObjectDetectionImpl
 from ops.impl.amazon_ops import AmazonRekognitionSegmentImpl, AmazonBedrockCaptionImpl, AmazonBedrockLLMImpl, AWSLambdaSplitImpl, AmazonBedrockEmbeddingImpl, AmazonBedrockTextEmbeddingImpl, AmazonRekognitionObjectDetectionImpl
 from ops.impl.openai_ops import OpenAILLMImpl
 # Storage 和 Transmission 操作直接使用 ops.utils 中的辅助类，不需要注册为 Operation
@@ -30,15 +35,55 @@ BUCKETS = {
 }
 
 # --- Serverless 服务 URL 配置 ---
-# VideoSplit（Google Cloud Run）按区域部署的服务 URL
-# 说明：
-# - `GoogleCloudRunSplitImpl` 会对该 URL 直接 POST（服务同时支持 `POST /` 和 `POST /video_split`）
-# - 这里固定使用 `/video_split`，便于一眼看懂调用的 endpoint
-GCP_VIDEOSPLIT_SERVICE_URLS = {
-    "asia-southeast1": "https://video-splitter-service-587417646945.asia-southeast1.run.app/video_split",
-    "europe-west1": "https://video-splitter-service-587417646945.europe-west1.run.app/video_split",
-    "us-west1": "https://video-splitter-service-587417646945.us-west1.run.app/video_split",
-}
+# VideoSplit（Google Cloud Function / Cloud Run video-splitter）按区域部署的服务 URL
+# - 与 deploy.sh 部署的 video-splitter 对应，格式：https://video-splitter-{PROJECT_NUMBER}.{REGION}.run.app/video_split
+# - 优先使用环境变量 GCP_VIDEOSPLIT_SERVICE_URLS（JSON 对象）；否则根据 GCP 项目号自动推导
+
+def _get_gcp_project_number() -> Optional[str]:
+    pn = os.getenv("GCP_PROJECT_NUMBER")
+    if pn:
+        return pn.strip()
+    try:
+        project_id = subprocess.check_output(
+            ["gcloud", "config", "get-value", "project"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+            timeout=10,
+        ).strip()
+        if not project_id or project_id == "(unset)":
+            return None
+        out = subprocess.check_output(
+            ["gcloud", "projects", "describe", project_id, "--format=value(projectNumber)"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+            timeout=10,
+        ).strip()
+        return out or None
+    except Exception:
+        return None
+
+
+def _build_gcp_videosplit_urls() -> Dict[str, str]:
+    raw = os.getenv("GCP_VIDEOSPLIT_SERVICE_URLS")
+    if raw:
+        try:
+            obj = json.loads(raw)
+            if isinstance(obj, dict):
+                return {k: str(v) for k, v in obj.items()}
+        except json.JSONDecodeError:
+            pass
+    pn = _get_gcp_project_number()
+    if not pn:
+        return {}
+    base = f"https://video-splitter-{pn}.{{region}}.run.app/video_split"
+    return {
+        "us-west1": base.format(region="us-west1"),
+        "europe-west1": base.format(region="europe-west1"),
+        "asia-southeast1": base.format(region="asia-southeast1"),
+    }
+
+
+GCP_VIDEOSPLIT_SERVICE_URLS = _build_gcp_videosplit_urls()
 
 # =========================================================
 # Catalog definitions: region + model selections
@@ -79,13 +124,13 @@ VIDEO_SEGMENT_CATALOG = [
 ]
 
 # 1.5) Video splitting (physical cutting)
-# Google Cloud Run: 支持多个区域
+# Google Cloud Function (video-splitter): 支持 us-west1, europe-west1, asia-southeast1
 # AWS Lambda: 支持多个区域
 VIDEO_SPLIT_CATALOG = [
-    # Google Cloud Run (支持多个区域；service_url 由调用方在运行时传入)
-    {"pid": "split_google_us", "cls": GoogleCloudRunSplitImpl, "provider": "google", "region": "us-west1", "bucket_key": "gcp_us"},
-    {"pid": "split_google_eu", "cls": GoogleCloudRunSplitImpl, "provider": "google", "region": "europe-west1", "bucket_key": "gcp_eu"},
-    {"pid": "split_google_sg", "cls": GoogleCloudRunSplitImpl, "provider": "google", "region": "asia-southeast1", "bucket_key": "gcp_sg"},
+    # Google Cloud Function (service_url 由 GCP_VIDEOSPLIT_SERVICE_URLS 或 gcloud 项目号推导)
+    {"pid": "split_google_us", "cls": GoogleCloudFunctionSplitImpl, "provider": "google", "region": "us-west1", "bucket_key": "gcp_us"},
+    {"pid": "split_google_eu", "cls": GoogleCloudFunctionSplitImpl, "provider": "google", "region": "europe-west1", "bucket_key": "gcp_eu"},
+    {"pid": "split_google_sg", "cls": GoogleCloudFunctionSplitImpl, "provider": "google", "region": "asia-southeast1", "bucket_key": "gcp_sg"},
     # AWS Lambda
     {"pid": "split_aws_us", "cls": AWSLambdaSplitImpl, "provider": "amazon", "region": "us-west-2", "bucket_key": "aws_us"},
     {"pid": "split_aws_eu", "cls": AWSLambdaSplitImpl, "provider": "amazon", "region": "eu-central-1", "bucket_key": "aws_eu"},
@@ -373,8 +418,8 @@ for item in VIDEO_SEGMENT_CATALOG:
     register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]]))
 
 for item in VIDEO_SPLIT_CATALOG:
-    # Google Cloud Run split: 为每个 region 注入已部署的 service_url
-    if item["provider"] == "google" and item["cls"] is GoogleCloudRunSplitImpl:
+    # Google Cloud Function split: 为每个 region 注入 service_url（由 GCP_VIDEOSPLIT_SERVICE_URLS 或项目号推导）
+    if item["provider"] == "google" and item["cls"] is GoogleCloudFunctionSplitImpl:
         service_url = GCP_VIDEOSPLIT_SERVICE_URLS.get(item["region"])
         register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]], service_url=service_url))
     else:

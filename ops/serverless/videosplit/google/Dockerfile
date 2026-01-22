@@ -13,6 +13,6 @@ COPY main.py .
 ENV PORT=8080
 EXPOSE 8080
 
-# Cloud Run: 使用 gunicorn 提供 HTTP 服务
-CMD ["sh", "-c", "gunicorn -b :${PORT} main:app --workers 1 --threads 8 --timeout 0"]
+# Cloud Function: 使用 functions-framework 运行
+CMD exec functions-framework --target=video_split --port=${PORT} --host=0.0.0.0
 

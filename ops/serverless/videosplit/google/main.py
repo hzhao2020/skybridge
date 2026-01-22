@@ -3,26 +3,23 @@ import subprocess
 import tempfile
 from urllib.parse import urlparse
 
-from flask import Flask, jsonify, request
+from flask import Request, jsonify
 try:
     from google.cloud import storage  # type: ignore
 except Exception:  # pragma: no cover
     storage = None
 
 
-app = Flask(__name__)
-
-
 def _split_video_gcs_to_gcs(*, video_uri: str, segments: list, output_bucket: str, output_path: str, output_format: str):
     """
-    Cloud Run 版本：输入/输出均为 GCS（gs://）。
+    Cloud Function 版本：输入/输出均为 GCS（gs://）。
 
     请求体与输出结构保持与本地调用侧一致：
     - 入参：video_uri, segments, output_bucket, output_path, output_format
     - 出参：{"status": "success", "output_uris": [...], "segment_count": N}
     """
     if not str(video_uri).startswith("gs://"):
-        raise ValueError("Cloud Run (google) 版本仅支持 gs:// 输入。")
+        raise ValueError("Cloud Function (google) 版本仅支持 gs:// 输入。")
     if storage is None:
         raise RuntimeError("缺少依赖：google-cloud-storage（请在部署镜像中安装 requirements.txt）。")
 
@@ -95,18 +92,31 @@ def _split_video_gcs_to_gcs(*, video_uri: str, segments: list, output_bucket: st
             os.remove(temp_video_path)
 
 
-@app.get("/healthz")
-def healthz():
-    return "ok", 200
-
-
-@app.post("/")
-@app.post("/video_split")
-def video_split_http():
+def video_split(request: Request):
     """
-    Cloud Run HTTP 入口：
+    Google Cloud Function HTTP 入口函数。
+
+    支持：
     - POST / 或 POST /video_split
+    - GET /healthz (健康检查)
+
+    请求体（JSON）：
+    {
+        "video_uri": "gs://bucket/path/to/video.mp4",
+        "segments": [{"start": 0.0, "end": 10.0}],
+        "output_bucket": "bucket",
+        "output_path": "split_segments",
+        "output_format": "mp4"
+    }
     """
+    # 处理健康检查
+    if request.method == "GET" and request.path.endswith("/healthz"):
+        return "ok", 200
+
+    # 处理视频切割请求
+    if request.method != "POST":
+        return jsonify({"error": "Method not allowed"}), 405
+
     data = request.get_json(silent=True) or {}
 
     video_uri = data.get("video_uri")
@@ -131,10 +141,4 @@ def video_split_http():
         return jsonify({"error": "ffmpeg failed", "detail": (e.stderr or b"").decode("utf-8", errors="ignore")}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-
-if __name__ == "__main__":
-    # 仅用于本地调试；Cloud Run 生产环境建议用 gunicorn
-    port = int(os.environ.get("PORT", "8080"))
-    app.run(host="0.0.0.0", port=port)
 
