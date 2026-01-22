@@ -9,6 +9,7 @@ from utils.dataset import (
     ActivityNetQADataset,
 )
 from ops.registry import get_operation, REGISTRY
+from core.video_qa_workflow import VideoQAWorkflow
 
 # 配置代理（如果环境变量未设置，则使用默认值）
 if "https_proxy" not in os.environ:
@@ -403,11 +404,121 @@ def run_demo():
     }
 
 
+def run_workflow_demo():
+    """
+    使用抽象的Workflow框架运行demo
+    
+    这个函数展示了如何使用VideoQAWorkflow来执行workflow。
+    你可以通过配置来指定每个步骤使用的operation（通过pid）。
+    """
+    # ========== 1) 创建workflow实例 ==========
+    workflow = VideoQAWorkflow()
+    
+    # ========== 2) 配置workflow（指定每个步骤使用的operation） ==========
+    # 你可以通过修改这个配置来使用不同的provider/region/model组合
+    config = {
+        "segment": {
+            "operation_pid": "seg_aws_sg",  # 可以改为 seg_google_us, seg_aws_eu 等
+            "enabled": True,
+        },
+        "split": {
+            "operation_pid": "split_aws_sg",  # 可以改为 split_google_us, split_aws_eu 等
+            "enabled": True,
+        },
+        "caption": {
+            "operation_pid": "cap_aws_nova_lite_sg",  # 可以改为 cap_google_flash_us 等
+            "enabled": True,
+        },
+        "llm_query": {
+            "operation_pid": "llm_openai_gpt4o_mini",  # 可以改为 llm_google_pro_us, llm_aws_sonnet_eu 等
+            "enabled": True,
+        },
+    }
+    workflow.configure(config)
+    
+    # 打印workflow信息
+    print("\n" + "="*60)
+    print("Workflow 配置信息")
+    print("="*60)
+    info = workflow.get_step_info()
+    for step_name, step_info in info["steps"].items():
+        if step_info["enabled"]:
+            print(f"{step_name}: {step_info['operation_pid']} - {step_info['description']}")
+        else:
+            print(f"{step_name}: (disabled)")
+    print("="*60 + "\n")
+    
+    # ========== 3) 准备输入数据 ==========
+    # 从数据集获取样本
+    sample = build_dataset("EgoSchema", "train")[0]
+    qid = sample.get("qid") or "egoschema_train_0"
+    question = sample.get("question") or ""
+    options = sample.get("options") or []
+    answer = sample.get("answer")
+    answer_idx = sample.get("answer_idx")
+    video_path = sample.get("video_path")
+    
+    print("=== EgoSchema 样本 ===")
+    print(f"qid: {qid}")
+    print(f"video_path: {video_path}")
+    print(f"question: {question}")
+    if options:
+        for i, opt in enumerate(options):
+            letter = chr(ord("A") + i)
+            print(f"  {letter}. {opt}")
+    if answer is not None or answer_idx is not None:
+        print(f"gt(answer): {answer} | gt(answer_idx): {answer_idx}")
+    print()
+    
+    # 准备workflow输入
+    input_data = {
+        "video_path": video_path,
+        "question": question,
+        "options": options,
+        "answer": answer,
+        "answer_idx": answer_idx,
+        "qid": qid,
+        "upload_target_path": "videos/egoschema/",
+        "max_segments": 12,
+        # 可选：Google Cloud Run service URL
+        # "google_videosplit_service_url": os.getenv("GCP_VIDEOSPLIT_SERVICE_URL"),
+        # 可选：AWS Lambda function name
+        # "aws_videosplit_function_name": os.getenv("AWS_VIDEOSPLIT_FUNCTION_NAME"),
+    }
+    
+    # ========== 4) 执行workflow ==========
+    result = workflow.execute(input_data)
+    
+    # ========== 5) 处理结果 ==========
+    print("\n" + "="*60)
+    print("Workflow 执行完成！")
+    print("="*60 + "\n")
+    
+    # 返回结果（与run_demo()格式兼容）
+    return {
+        "qid": result["context"].get("qid"),
+        "question": result["context"].get("question"),
+        "segments": result["context"].get("segments"),
+        "segment_video_uris": result["context"].get("segment_video_uris"),
+        "captions": result["context"].get("captions"),
+        "concentrated_captions": result["context"].get("concentrated_captions"),
+        "llm_response": result["context"].get("llm_response"),
+        "pred_letter": result["context"].get("pred_letter"),
+        "pred_idx": result["context"].get("pred_idx"),
+        "answer": result["context"].get("answer"),
+        "answer_idx": result["context"].get("answer_idx"),
+        "correct": result["context"].get("correct"),
+    }
+
+
 if __name__ == "__main__":
     # 打印可用的 (provider, region, model) 组合
     list_available_ops()
 
     # 运行一个示例调用（按需修改 pid 和输入）
-    res = run_demo()
+    # run_demo()  # 原始实现
+    
+    # 使用新的Workflow框架（推荐）
+    # run_workflow_demo()
 
-    print(res)
+    # print(res)
