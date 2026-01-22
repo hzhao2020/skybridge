@@ -1,3 +1,4 @@
+import io
 import os
 import json
 import time
@@ -57,26 +58,29 @@ class GoogleVideoBackend(SegmenterBackend):
         self.gcs_client = storage.Client()
 
     def _transfer_s3_to_gcs(self, s3_uri: str) -> str:
-        """将 S3 文件搬运到本项目的 GCS Bucket"""
-        print(f"[Transfer] Detecting S3 URI {s3_uri}, moving to GCS...")
+        """S3 -> GCS 流式直传（不落盘），写入本项目的 GCS Bucket video_cache/"""
+        print(f"[Transfer] S3 -> GCS 流式直传: {s3_uri} -> gs://{self.storage_bucket}/video_cache/...")
 
         filename = self._get_filename_from_uri(s3_uri)
         parsed = urlparse(s3_uri)
         s3_bucket, s3_key = parsed.netloc, parsed.path.lstrip('/')
-
-        # 1. 下载 (流式或临时文件)
-        local_tmp = f"/tmp/{filename}"
         s3 = boto3.client('s3')
-        s3.download_file(s3_bucket, s3_key, local_tmp)
+        resp = s3.get_object(Bucket=s3_bucket, Key=s3_key)
+        body, size = resp["Body"], resp.get("ContentLength")
 
-        # 2. 上传到 GCS
+        class _S3StreamAdapter(io.RawIOBase):
+            def __init__(self, b):
+                self._b = b
+            def read(self, amt=-1):
+                return self._b.read(amt) if amt != -1 else self._b.read()
+            def readable(self):
+                return True
+            def seekable(self):
+                return False
+
         bucket = self.gcs_client.bucket(self.storage_bucket)
         blob = bucket.blob(f"video_cache/{filename}")
-        blob.upload_from_filename(local_tmp)
-
-        # 清理
-        os.remove(local_tmp)
-
+        blob.upload_from_file(_S3StreamAdapter(body), rewind=False, size=size)
         new_uri = f"gs://{self.storage_bucket}/video_cache/{filename}"
         print(f"[Transfer] Done. New URI: {new_uri}")
         return new_uri
@@ -136,28 +140,18 @@ class AmazonVideoBackend(SegmenterBackend):
         self.gcs_client = storage.Client()  # 需要 GCS 客户端来下载
 
     def _transfer_gcs_to_s3(self, gcs_uri: str) -> str:
-        """将 GCS 文件搬运到本项目的 S3 Bucket"""
-        print(f"[Transfer] Detecting GCS URI {gcs_uri}, moving to S3...")
+        """GCS -> S3 流式直传（不落盘），写入本项目的 S3 Bucket video_cache/"""
+        print(f"[Transfer] GCS -> S3 流式直传: {gcs_uri} -> s3://{self.storage_bucket}/video_cache/...")
 
         filename = self._get_filename_from_uri(gcs_uri)
         parsed = urlparse(gcs_uri)
         gcs_bucket_name, gcs_blob_name = parsed.netloc, parsed.path.lstrip('/')
-
-        # 1. 从 GCS 下载
-        local_tmp = f"/tmp/{filename}"
         bucket = self.gcs_client.bucket(gcs_bucket_name)
         blob = bucket.blob(gcs_blob_name)
-        blob.download_to_filename(local_tmp)
-
-        # 2. 上传到 S3
         s3_key = f"video_cache/{filename}"
-        self.s3.upload_file(local_tmp, self.storage_bucket, s3_key)
-
-        # 清理
-        os.remove(local_tmp)
-
-        new_uri = f"s3://{self.storage_bucket}/{s3_key}"  # 注意 AWS 格式通常需要拆解，但这里返回 URI 供打印
-        print(f"[Transfer] Done. New URI: {new_uri}")
+        with blob.open("rb") as stream:
+            self.s3.upload_fileobj(stream, self.storage_bucket, s3_key)
+        print(f"[Transfer] Done. New URI: s3://{self.storage_bucket}/{s3_key}")
         return s3_key  # 返回 Key 给 boto3 使用
 
     def process_segmentation(self, video_uri: str) -> Dict[str, Any]:

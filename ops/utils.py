@@ -2,11 +2,12 @@
 Operation 辅助工具类
 
 提供数据传输和存储的辅助功能，供 Operation 内部使用。
+跨云传输（S3 ↔ GCS）采用流式直传，不经本地落盘，降低延迟。
 """
 
+import io
 import os
 import logging
-import time
 from urllib.parse import urlparse
 from typing import Optional, List
 
@@ -17,6 +18,7 @@ logger = logging.getLogger("DataTransmission")
 class DataTransmission:
     """
     数据传输中心：负责本地上传以及跨云搬运。
+    跨云传输（S3 ↔ GCS）使用流式直传，不经本地落盘，降低延迟。
     采用 Lazy Loading 机制，只有在真正需要时才初始化云客户端。
     """
 
@@ -116,7 +118,7 @@ class DataTransmission:
             raise ValueError(f"Unknown provider: {provider}")
 
     def transfer_s3_to_gcs(self, s3_uri: str, target_gcs_bucket: str, target_path: Optional[str] = None) -> str:
-        """AWS S3 -> Google GCS (需经过本地中转)
+        """AWS S3 -> Google GCS 流式直传（不落盘，降低延迟）
         
         Args:
             s3_uri: S3 源文件 URI
@@ -125,34 +127,39 @@ class DataTransmission:
         """
         scheme, s3_bucket, s3_key = self._parse_uri(s3_uri)
         filename = os.path.basename(s3_key)
-        local_tmp = f"tmp_{int(time.time())}_{filename}"
 
-        try:
-            logger.info(f"[Bridge] Downloading from S3: {s3_uri}")
-            self.s3_client.download_file(s3_bucket, s3_key, local_tmp)
+        if target_path:
+            target_path = target_path.strip('/')
+            gcs_key = f"{target_path}/{filename}" if target_path else filename
+        else:
+            gcs_key = f"transfer_cache/{filename}"
 
-            # 构建目标路径
-            if target_path:
-                target_path = target_path.strip('/')
-                if target_path:
-                    gcs_key = f"{target_path}/{filename}"
-                else:
-                    gcs_key = filename
-            else:
-                gcs_key = f"transfer_cache/{filename}"
+        logger.info(f"[Bridge] S3 -> GCS 流式直传: {s3_uri} -> gs://{target_gcs_bucket}/{gcs_key}")
+        resp = self.s3_client.get_object(Bucket=s3_bucket, Key=s3_key)
+        body = resp["Body"]
+        size = resp.get("ContentLength")
 
-            logger.info(f"[Bridge] Uploading to GCS: {target_gcs_bucket}/{gcs_key}")
-            bucket = self.gcs_client.bucket(target_gcs_bucket)
-            blob = bucket.blob(gcs_key)
-            blob.upload_from_filename(local_tmp)
+        class _S3StreamAdapter(io.RawIOBase):
+            def __init__(self, s3_body):
+                self._body = s3_body
 
-            return f"gs://{target_gcs_bucket}/{gcs_key}"
-        finally:
-            if os.path.exists(local_tmp):
-                os.remove(local_tmp)
+            def read(self, amt=-1):
+                return self._body.read(amt) if amt != -1 else self._body.read()
+
+            def readable(self):
+                return True
+
+            def seekable(self):
+                return False
+
+        adapter = _S3StreamAdapter(body)
+        bucket = self.gcs_client.bucket(target_gcs_bucket)
+        blob = bucket.blob(gcs_key)
+        blob.upload_from_file(adapter, rewind=False, size=size)
+        return f"gs://{target_gcs_bucket}/{gcs_key}"
 
     def transfer_gcs_to_s3(self, gcs_uri: str, target_s3_bucket: str, target_path: Optional[str] = None) -> str:
-        """Google GCS -> AWS S3 (需经过本地中转)
+        """Google GCS -> AWS S3 流式直传（不落盘，降低延迟）
         
         Args:
             gcs_uri: GCS 源文件 URI
@@ -161,37 +168,25 @@ class DataTransmission:
         """
         scheme, gcs_bucket, gcs_blob = self._parse_uri(gcs_uri)
         filename = os.path.basename(gcs_blob)
-        local_tmp = f"tmp_{int(time.time())}_{filename}"
 
-        try:
-            logger.info(f"[Bridge] Downloading from GCS: {gcs_uri}")
-            bucket = self.gcs_client.bucket(gcs_bucket)
-            blob = bucket.blob(gcs_blob)
-            blob.download_to_filename(local_tmp)
+        if target_path:
+            target_path = target_path.strip('/')
+            s3_key = f"{target_path}/{filename}" if target_path else filename
+        else:
+            s3_key = f"transfer_cache/{filename}"
 
-            # 构建目标路径
-            if target_path:
-                target_path = target_path.strip('/')
-                if target_path:
-                    s3_key = f"{target_path}/{filename}"
-                else:
-                    s3_key = filename
-            else:
-                s3_key = f"transfer_cache/{filename}"
-
-            logger.info(f"[Bridge] Uploading to S3: {target_s3_bucket}/{s3_key}")
-            self.s3_client.upload_file(local_tmp, target_s3_bucket, s3_key)
-
-            return f"s3://{target_s3_bucket}/{s3_key}"
-        finally:
-            if os.path.exists(local_tmp):
-                os.remove(local_tmp)
+        logger.info(f"[Bridge] GCS -> S3 流式直传: {gcs_uri} -> s3://{target_s3_bucket}/{s3_key}")
+        bucket = self.gcs_client.bucket(gcs_bucket)
+        blob = bucket.blob(gcs_blob)
+        with blob.open("rb") as stream:
+            self.s3_client.upload_fileobj(stream, target_s3_bucket, s3_key)
+        return f"s3://{target_s3_bucket}/{s3_key}"
 
     def smart_move(self, source_uri: str, target_provider: str, target_bucket: str, target_path: Optional[str] = None) -> str:
         """
         [智能路由入口]
         根据 source_uri 的类型（本地路径/S3/GCS）和目标 Provider，
-        自动决定是直接上传、跨云搬运、还是保持原样。
+        自动决定是直接上传、跨云流式直传、还是保持原样。跨云传输不落盘，降低延迟。
         
         Args:
             source_uri: 源文件 URI（本地路径、s3:// 或 gs://）
