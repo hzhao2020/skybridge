@@ -38,8 +38,24 @@ class DataTransmission:
                     self._s3_client = boto3.client('s3')  # 读取默认配置
                 logger.info("AWS S3 Client initialized.")
             except Exception as e:
+                # botocore 在某些 AWS 凭证模式（如 SSO/Identity Center 的 login provider）下
+                # 需要额外依赖 `botocore[crt]`，否则会抛出 MissingDependencyException。
+                try:
+                    from botocore.exceptions import MissingDependencyException
+                except Exception:
+                    MissingDependencyException = None  # type: ignore
+
+                if MissingDependencyException is not None and isinstance(e, MissingDependencyException):
+                    msg = (
+                        "初始化 AWS S3 客户端失败：缺少依赖 `botocore[crt]`。\n"
+                        "你的 AWS 凭证配置触发了 login credential provider（常见于 AWS SSO/Identity Center）。\n"
+                        "请执行：pip install \"botocore[crt]\"  或  pip install -r requirements.txt\n"
+                    )
+                    logger.error(msg.strip())
+                    raise RuntimeError(msg) from e
+
                 logger.error(f"Failed to init AWS S3: {e}")
-                raise e
+                raise
         return self._s3_client
 
     @property

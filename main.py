@@ -61,17 +61,20 @@ def run_demo():
     
     # 视频分割 (Video Segmentation)
     # 可选: seg_google_us, seg_google_eu, seg_google_tw, seg_aws_us, seg_aws_eu, seg_aws_sg
-    segment_pid = "seg_google_tw"
+    # segment_pid = "seg_google_tw"
+    segment_pid = "seg_aws_sg"
     
     # 视频物理切割 (Video Split / Cutting)
     # 可选: split_google_us, split_google_eu, split_google_sg, split_aws_us, split_aws_eu, split_aws_sg
     # 注意：Google split 需要 Cloud Run 的 service_url；AWS split 默认用 Lambda 函数名 video-split-<region_with_underscores>
-    split_pid = "split_google_sg"
+    # split_pid = "split_google_sg"
+    split_pid = "split_aws_sg"
     
     # 视觉描述 (Visual Captioning)  
     # Google: cap_google_flash_lite_us, cap_google_flash_us, cap_google_flash_lite_eu, ...
     # Amazon: cap_aws_nova_lite_us, cap_aws_nova_pro_us, cap_aws_nova_lite_eu, ...
-    caption_pid = "cap_google_flash_sg"
+    # caption_pid = "cap_google_flash_sg"
+    caption_pid = "cap_aws_nova_lite_sg"
     
     # LLM 查询
     # Google: llm_google_flash_us, llm_google_pro_us, llm_google_flash_eu, ...

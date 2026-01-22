@@ -310,21 +310,22 @@ class AWSLambdaSplitImpl(VideoSplitter):
     
     需要先部署一个 Lambda 函数，该函数接收视频 URI 和片段列表，
     使用 ffmpeg 在云端切割视频，并将结果上传到 S3。
+    
+    默认函数名：video-splitter（与 deploy.sh 中部署的函数名一致）
     """
     
     def __init__(self, provider: str, region: str, storage_bucket: str, function_name: Optional[str] = None):
         super().__init__(provider, region, storage_bucket)
         self._lambda_client = None
         
-        # 如果提供了 function_name，直接使用；否则根据 region 构建默认名称
+        # 如果提供了 function_name，直接使用；否则使用默认名称
         if function_name:
             self.function_name = function_name
         else:
-            # 默认函数名称格式：video-split-{region}
-            region_suffix = region.replace('-', '_')
-            self.function_name = f"video-split-{region_suffix}"
+            # 默认函数名称：video-splitter（与 deploy.sh 中部署的函数名一致）
+            self.function_name = "video-splitter"
         
-        print(f"    Lambda Function Name: {self.function_name}")
+        print(f"    Lambda Function Name: {self.function_name} (Region: {self.region})")
     
     @property
     def lambda_client(self):
@@ -380,6 +381,7 @@ class AWSLambdaSplitImpl(VideoSplitter):
         function_name = kwargs.get('function_name', self.function_name)
         print(f"    Invoking Lambda function: {function_name}")
         print(f"    Processing {len(segments)} segments...")
+        print(f"    Payload: video_uri={target_uri}, segments={len(segments)}, output_bucket={self.storage_bucket}")
         
         try:
             response = self.lambda_client.invoke(
@@ -389,14 +391,38 @@ class AWSLambdaSplitImpl(VideoSplitter):
             )
             
             # 解析响应
-            response_payload = json.loads(response['Payload'].read())
+            response_payload_str = response['Payload'].read()
+            if isinstance(response_payload_str, bytes):
+                response_payload_str = response_payload_str.decode('utf-8')
             
+            response_payload = json.loads(response_payload_str)
+            
+            # 检查 Lambda 函数是否出错
             if response.get('FunctionError'):
                 error_message = response_payload.get('errorMessage', 'Unknown error')
-                raise RuntimeError(f"Lambda function error: {error_message}")
+                error_type = response_payload.get('errorType', 'UnknownError')
+                raise RuntimeError(f"Lambda function error ({error_type}): {error_message}")
             
+            # 检查响应状态
+            if response_payload.get('status') != 'success':
+                error_msg = response_payload.get('error', 'Unknown error')
+                raise RuntimeError(f"Lambda function returned non-success status: {error_msg}")
+            
+            # 获取输出 URI 列表
             output_uris = response_payload.get("output_uris", [])
-            print(f"    Successfully split video into {len(output_uris)} segments")
+            segment_count = response_payload.get("segment_count", len(output_uris))
+            
+            if not output_uris:
+                print(f"    Warning: Lambda function returned no output URIs")
+            else:
+                print(f"    Successfully split video into {len(output_uris)} segments")
+                if len(output_uris) <= 5:
+                    for i, uri in enumerate(output_uris, 1):
+                        print(f"      Segment {i}: {uri}")
+                else:
+                    for i, uri in enumerate(output_uris[:3], 1):
+                        print(f"      Segment {i}: {uri}")
+                    print(f"      ... (还有 {len(output_uris) - 3} 个片段)")
             
             return {
                 "provider": "aws_lambda",
@@ -404,9 +430,16 @@ class AWSLambdaSplitImpl(VideoSplitter):
                 "input_video": target_uri,
                 "segments": segments,
                 "output_uris": output_uris,
-                "output_count": len(output_uris)
+                "output_count": len(output_uris),
+                "segment_count": segment_count
             }
             
+        except ClientError as e:
+            error_code = e.response.get('Error', {}).get('Code', 'Unknown')
+            error_message = e.response.get('Error', {}).get('Message', str(e))
+            raise RuntimeError(f"AWS Lambda API error ({error_code}): {error_message}")
+        except json.JSONDecodeError as e:
+            raise RuntimeError(f"Failed to parse Lambda response: {e}")
         except Exception as e:
             if isinstance(e, RuntimeError):
                 raise e
