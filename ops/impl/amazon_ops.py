@@ -70,7 +70,7 @@ class AmazonRekognitionSegmentImpl(VideoSegmenter):
 
         # 1. 确保数据在 AWS S3
         target_path = kwargs.get('target_path')
-        target_uri = self.transmitter.smart_move(video_uri, 'amazon', self.storage_bucket, target_path)
+        target_uri = self.transmitter.smart_move(video_uri, 'amazon', self.storage_bucket, target_path, target_region=self.region)
         print(f"    Data Ready: {target_uri}")
 
         # 2. 解析 S3 URI
@@ -169,7 +169,7 @@ class AmazonBedrockCaptionImpl(VisualCaptioner):
 
         # 1. 确保数据在 AWS S3
         target_path = kwargs.get('target_path')
-        target_uri = self.transmitter.smart_move(video_uri, 'amazon', self.storage_bucket, target_path)
+        target_uri = self.transmitter.smart_move(video_uri, 'amazon', self.storage_bucket, target_path, target_region=self.region)
         print(f"    Data Ready: {target_uri}")
 
         # 2. 解析 S3 URI
@@ -361,7 +361,7 @@ class AWSLambdaSplitImpl(VideoSplitter):
         
         # 1. 确保视频在 AWS S3
         target_path = kwargs.get('target_path')
-        target_uri = self.transmitter.smart_move(video_uri, 'amazon', self.storage_bucket, target_path)
+        target_uri = self.transmitter.smart_move(video_uri, 'amazon', self.storage_bucket, target_path, target_region=self.region)
         print(f"    Video Ready: {target_uri}")
         
         # 2. 准备输出路径
@@ -588,7 +588,7 @@ class AmazonBedrockEmbeddingImpl(VisualEncoder):
         # 1. 确保数据在 AWS S3（如果需要）
         target_path = kwargs.get('target_path')
         if target_path or not (video_uri.startswith('s3://') or os.path.exists(video_uri)):
-            target_uri = self.transmitter.smart_move(video_uri, 'amazon', self.storage_bucket, target_path)
+            target_uri = self.transmitter.smart_move(video_uri, 'amazon', self.storage_bucket, target_path, target_region=self.region)
             print(f"    Data Ready: {target_uri}")
         else:
             target_uri = video_uri
@@ -894,7 +894,7 @@ class AmazonRekognitionObjectDetectionImpl(ObjectDetector):
         
         # 1. 确保数据在 AWS S3
         target_path = kwargs.get('target_path')
-        target_uri = self.transmitter.smart_move(video_uri, 'amazon', self.storage_bucket, target_path)
+        target_uri = self.transmitter.smart_move(video_uri, 'amazon', self.storage_bucket, target_path, target_region=self.region)
         print(f"    Data Ready: {target_uri}")
         
         # 2. 解析 S3 URI

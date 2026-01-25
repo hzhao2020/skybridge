@@ -89,7 +89,7 @@ class GoogleVideoSegmentImpl(VideoSegmenter):
 
         # 1. 确保数据在 Google Bucket
         target_path = kwargs.get('target_path')
-        target_uri = self.transmitter.smart_move(video_uri, 'google', self.storage_bucket, target_path)
+        target_uri = self.transmitter.smart_move(video_uri, 'google', self.storage_bucket, target_path, target_region=self.region)
         print(f"    Data Ready: {target_uri}")
 
         # 2. 解析 URI
@@ -357,7 +357,7 @@ class GoogleVertexCaptionImpl(VisualCaptioner):
 
         # 1. 确保数据在 Google Bucket
         target_path = kwargs.get('target_path')
-        target_uri = self.transmitter.smart_move(video_uri, 'google', self.storage_bucket, target_path)
+        target_uri = self.transmitter.smart_move(video_uri, 'google', self.storage_bucket, target_path, target_region=self.region)
         print(f"    Data Ready: {target_uri}")
 
         # 2. 如果指定了时间范围，先提取视频片段
@@ -540,7 +540,7 @@ class GoogleCloudFunctionSplitImpl(VideoSplitter):
         
         # 1. 确保视频在 Google Bucket
         target_path = kwargs.get('target_path')
-        target_uri = self.transmitter.smart_move(video_uri, 'google', self.storage_bucket, target_path)
+        target_uri = self.transmitter.smart_move(video_uri, 'google', self.storage_bucket, target_path, target_region=self.region)
         print(f"    Video Ready: {target_uri}")
         
         # 2. 准备输出路径
@@ -697,7 +697,7 @@ class GoogleVertexEmbeddingImpl(VisualEncoder):
         # 1. 确保数据在 Google Bucket（如果需要）
         target_path = kwargs.get('target_path')
         if target_path or not (video_uri.startswith('gs://') or os.path.exists(video_uri)):
-            target_uri = self.transmitter.smart_move(video_uri, 'google', self.storage_bucket, target_path)
+            target_uri = self.transmitter.smart_move(video_uri, 'google', self.storage_bucket, target_path, target_region=self.region)
             print(f"    Data Ready: {target_uri}")
         else:
             target_uri = video_uri
@@ -991,7 +991,7 @@ class GoogleVideoIntelligenceObjectDetectionImpl(ObjectDetector):
         
         # 1. 确保数据在 Google Bucket
         target_path = kwargs.get('target_path')
-        target_uri = self.transmitter.smart_move(video_uri, 'google', self.storage_bucket, target_path)
+        target_uri = self.transmitter.smart_move(video_uri, 'google', self.storage_bucket, target_path, target_region=self.region)
         print(f"    Data Ready: {target_uri}")
         
         # 2. 解析 URI

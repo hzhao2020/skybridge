@@ -25,7 +25,7 @@ class Operation(ABC):
         
         # 可选的存储辅助类（懒加载，不自动初始化）
         # 子类可以按需创建：self._storage_helper = DataStorageHelper(...)
-        self._storage_helper = None
+        # self._storage_helper = None
 
     @abstractmethod
     def execute(self, input_data: Any, **kwargs) -> Dict[str, Any]:
