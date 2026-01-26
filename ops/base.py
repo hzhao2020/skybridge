@@ -1,6 +1,8 @@
 # ops/base.py
+import os
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
+from urllib.parse import urlparse
 from ops.utils import DataTransmission
 
 
@@ -26,6 +28,55 @@ class Operation(ABC):
         # 可选的存储辅助类（懒加载，不自动初始化）
         # 子类可以按需创建：self._storage_helper = DataStorageHelper(...)
         # self._storage_helper = None
+
+    def _build_result_path(self, video_uri: str, operation_name: str, filename: str, target_path: Optional[str] = None) -> str:
+        """
+        构建操作结果的存储路径
+        
+        路径格式：results/[operation_name]/[video_name]/[filename]
+        
+        Args:
+            video_uri: 视频 URI（可以是本地路径或云存储 URI）
+            operation_name: 操作名称（如 "segment", "object_detection"）
+            filename: 结果文件名（如 "result.json"）
+            target_path: 可选的原始目标路径（用于提取 dataset 信息，如果视频路径中没有）
+            
+        Returns:
+            结果路径（相对路径，不含 bucket）
+        """
+        # 从视频 URI 中提取视频名称
+        if video_uri.startswith('s3://') or video_uri.startswith('gs://'):
+            # 云存储 URI
+            parsed = urlparse(video_uri)
+            video_path = parsed.path.lstrip('/')
+        else:
+            # 本地路径
+            video_path = video_uri
+        
+        # 获取视频文件名（不含扩展名）
+        video_filename = os.path.basename(video_path)
+        video_name = os.path.splitext(video_filename)[0]  # 移除扩展名
+        
+        # 如果 video_name 为空，尝试从 target_path 中提取
+        if not video_name and target_path:
+            # target_path 格式可能是 "videos/[dataset]/[video_name.mp4]"
+            parts = target_path.strip('/').split('/')
+            if len(parts) >= 2 and parts[0] == 'videos':
+                # 从 target_path 中提取 dataset 和 video_name
+                dataset = parts[1] if len(parts) > 1 else None
+                if len(parts) > 2:
+                    # 有具体的视频文件名
+                    video_filename_from_path = parts[-1]
+                    video_name = os.path.splitext(video_filename_from_path)[0]
+        
+        # 如果仍然没有 video_name，使用默认值
+        if not video_name:
+            video_name = "unknown_video"
+        
+        # 构建结果路径：results/[operation_name]/[video_name]/[filename]
+        result_path = f"results/{operation_name}/{video_name}/{filename}"
+        
+        return result_path
 
     @abstractmethod
     def execute(self, input_data: Any, **kwargs) -> Dict[str, Any]:

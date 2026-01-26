@@ -5,7 +5,7 @@ VideoQAWorkflow: 视频问答workflow的具体实现
 Workflow步骤：
 1. segment: 视频分割（检测场景切换）
 2. split: 视频物理切割
-3. caption: 视频描述生成
+3. caption: 在 segment、split 之后，对每个分段视频分别 caption，再合并
 4. concentrate_captions: 合并所有描述
 5. llm_query: LLM查询
 6. parse_result: 解析结果
@@ -13,8 +13,33 @@ Workflow步骤：
 import os
 import re
 from typing import Dict, Any, Optional
+from urllib.parse import urlparse
 from core.workflow import Workflow, WorkflowStep
 from ops.registry import get_operation
+
+
+def _get_video_name(video_path: str) -> str:
+    """从视频路径中提取视频名称（不含扩展名）"""
+    if not video_path:
+        return "unknown_video"
+    
+    # 处理云存储URI
+    if video_path.startswith('s3://') or video_path.startswith('gs://'):
+        parsed = urlparse(video_path)
+        video_filename = os.path.basename(parsed.path)
+    else:
+        # 本地路径
+        video_filename = os.path.basename(video_path)
+    
+    # 移除扩展名
+    video_name = os.path.splitext(video_filename)[0]
+    return video_name if video_name else "unknown_video"
+
+
+def _build_operation_target_path(operation_name: str, video_path: str) -> str:
+    """构建operation的输出路径：results/{operation_name}/{video_name}/"""
+    video_name = _get_video_name(video_path)
+    return f"results/{operation_name}/{video_name}/"
 
 
 class VideoQAWorkflow(Workflow):
@@ -29,10 +54,7 @@ class VideoQAWorkflow(Workflow):
         "answer": Optional[str],  # 正确答案（可选）
         "answer_idx": Optional[int],  # 正确答案索引（可选）
         "qid": Optional[str],  # 问题ID（可选）
-        "upload_target_path": Optional[str],  # 上传路径（可选，默认"videos/egoschema/"）
         "max_segments": Optional[int],  # 最大片段数（可选，默认12）
-        "google_videosplit_service_url": Optional[str],  # Google Cloud Function VideoSplit 服务 URL（可选）
-        "aws_videosplit_function_name": Optional[str],  # AWS Lambda函数名（可选）
     }
     """
     
@@ -54,8 +76,8 @@ class VideoQAWorkflow(Workflow):
             description="视频分割 (Video Segmentation)",
             dependencies=[],
             execute_func=self._execute_segment,
-            input_keys=["video_path", "upload_target_path", "max_segments"],
-            output_keys=["segments"],
+            input_keys=["video_path", "max_segments"],
+            output_keys=["segments", "video_uri"],
         )
         
         # Step 2: 视频物理切割
@@ -64,17 +86,17 @@ class VideoQAWorkflow(Workflow):
             description="视频切割 (Video Split)",
             dependencies=["segment"],
             execute_func=self._execute_split,
-            input_keys=["video_path", "segments", "upload_target_path"],
+            input_keys=["video_uri", "video_path", "segments"],
             output_keys=["segment_video_uris"],
         )
         
-        # Step 3: 视频描述
+        # Step 3: 视频描述（在 segment、split 之后，对每个分段视频分别 caption，再合并）
         self.add_step(
             name="caption",
             description="视频描述 (Video Captioning)",
-            dependencies=[],
+            dependencies=["segment", "split"],
             execute_func=self._execute_caption,
-            input_keys=["video_path", "upload_target_path"],
+            input_keys=["segment_video_uris", "video_path"],
             output_keys=["captions"],
         )
         
@@ -134,7 +156,6 @@ class VideoQAWorkflow(Workflow):
         from ops.registry import get_operation
         
         video_path = workflow.context.get("video_path")
-        upload_target_path = workflow.context.get("upload_target_path", "videos/egoschema/")
         max_segments = workflow.context.get("max_segments", 12)
         
         # 检查视频文件是否存在
@@ -144,12 +165,18 @@ class VideoQAWorkflow(Workflow):
                 f"请确认视频文件存在，或禁用segment步骤"
             )
         
+        # 构建输出路径：results/segment/{video_name}/
+        target_path = _build_operation_target_path("segment", video_path)
+        
         # 获取operation
         segment_op = get_operation(step.operation_pid)
         
         # 执行分割
-        seg_res = segment_op.execute(video_path, target_path=upload_target_path)
+        seg_res = segment_op.execute(video_path, target_path=target_path)
         segments = seg_res.get("segments") or []
+        
+        # 获取云存储URI（segment operation已将视频上传到云存储）
+        video_uri = seg_res.get("source_used") or seg_res.get("input_video") or video_path
         
         # 过滤非法片段并截断
         segments = [s for s in segments if float(s.get("end", 0) or 0) > float(s.get("start", 0) or 0)]
@@ -163,56 +190,39 @@ class VideoQAWorkflow(Workflow):
                 print(f"  片段 {idx+1}: {seg.get('start', 0):.2f}s - {seg.get('end', 0):.2f}s")
             if len(segments) > 5:
                 print(f"  ... (还有 {len(segments) - 5} 个片段)")
+        print(f"  视频已上传到云存储: {video_uri}")
         
-        return {"segments": segments}
+        return {"segments": segments, "video_uri": video_uri}
     
     def _execute_split(self, workflow: Workflow, step: WorkflowStep) -> Dict[str, Any]:
         """执行视频切割步骤"""
         from ops.registry import get_operation
         
+        # 优先使用segment步骤返回的云存储URI，如果没有则使用原始路径
+        video_uri = workflow.context.get("video_uri") or workflow.context.get("video_path")
         video_path = workflow.context.get("video_path")
         segments = workflow.context.get("segments")
-        upload_target_path = workflow.context.get("upload_target_path", "videos/egoschema/")
         
         # 如果没有segments，跳过
         if not segments or len(segments) == 0:
             print("⚠ 没有segments，跳过视频切割")
             return {"segment_video_uris": []}
         
+        # 构建输出路径：results/split/{video_name}/
+        target_path = _build_operation_target_path("split", video_path)
+        
         # 获取operation
         split_op = get_operation(step.operation_pid)
         
         # 准备参数
-        split_kwargs = {"target_path": upload_target_path}
+        split_kwargs = {"target_path": target_path}
         
-        # Google Cloud Function：优先用配置/环境变量，否则用 registry 推导的 service_url
-        if split_op.provider == "google":
-            service_url = (
-                workflow.context.get("google_videosplit_service_url") or
-                os.getenv("GCP_VIDEOSPLIT_SERVICE_URL") or
-                os.getenv("VIDEOSPLIT_SERVICE_URL") or
-                getattr(split_op, "service_url", None)
-            )
-            if not service_url:
-                raise ValueError(
-                    "你开启了视频切割并选择了 Google split，但未提供 Cloud Function service_url。\n"
-                    "请设置环境变量 GCP_VIDEOSPLIT_SERVICE_URL（或 VIDEOSPLIT_SERVICE_URL）、配置 google_videosplit_service_url，"
-                    "或确保 gcloud 已配置当前项目以自动推导。"
-                )
-            split_kwargs["service_url"] = service_url
+        # Google Cloud Function：registry已根据region设置service_url，直接使用即可
+        # AWS Lambda：registry已设置默认函数名"video-splitter"，直接使用即可
+        # 如需覆盖，请在registry层面配置（Google通过GCP_VIDEOSPLIT_SERVICE_URLS，AWS通过修改registry注册代码）
         
-        # AWS Lambda可以指定函数名
-        elif split_op.provider == "amazon":
-            function_name = (
-                workflow.context.get("aws_videosplit_function_name") or
-                os.getenv("AWS_VIDEOSPLIT_FUNCTION_NAME") or
-                os.getenv("AWS_VIDEOSPLIT_LAMBDA_FUNCTION_NAME")
-            )
-            if function_name:
-                split_kwargs["function_name"] = function_name
-        
-        # 执行切割
-        split_res = split_op.execute(video_path, segments=segments, **split_kwargs)
+        # 执行切割（使用云存储URI，避免重复上传）
+        split_res = split_op.execute(video_uri, segments=segments, **split_kwargs)
         segment_video_uris = split_res.get("output_uris") or []
         
         print(f"✓ 视频切割完成，共输出 {len(segment_video_uris)} 个片段文件")
@@ -226,37 +236,36 @@ class VideoQAWorkflow(Workflow):
         return {"segment_video_uris": segment_video_uris}
     
     def _execute_caption(self, workflow: Workflow, step: WorkflowStep) -> Dict[str, Any]:
-        """执行视频描述步骤"""
+        """执行视频描述步骤：在 segment、split 之后，对每个分段视频分别 caption，再合并。"""
         from ops.registry import get_operation
         
+        segment_video_uris = workflow.context.get("segment_video_uris") or []
         video_path = workflow.context.get("video_path")
-        upload_target_path = workflow.context.get("upload_target_path", "videos/egoschema/")
         
-        # 检查视频文件是否存在
-        if not video_path or not os.path.exists(video_path):
-            raise FileNotFoundError(
-                f"找不到视频文件：{video_path}\n"
-                f"请确认视频文件存在，或禁用caption步骤"
-            )
-        
-        # 获取operation
-        caption_op = get_operation(step.operation_pid)
-        
-        # 执行描述生成
-        try:
-            cap_res = caption_op.execute(video_path, target_path=upload_target_path)
-            full_caption = cap_res.get("caption", "")
-            
-            all_captions = [{
-                "segment_idx": 0,
-                "caption": full_caption
-            }]
-            
-            print(f"✓ 视频描述完成: {full_caption[:100]}...")
-            return {"captions": all_captions}
-        except Exception as e:
-            print(f"✗ 视频描述失败: {e}")
+        if not segment_video_uris:
+            print("⚠ 没有分段视频（segment_video_uris 为空），跳过 caption")
             return {"captions": []}
+        
+        # 构建输出路径：results/caption/{video_name}/
+        target_path = _build_operation_target_path("caption", video_path)
+        
+        caption_op = get_operation(step.operation_pid)
+        all_captions = []
+        
+        for i, video_uri in enumerate(segment_video_uris):
+            seg_idx = i + 1  # 1-based，与 concentrate_captions 中 [片段 N] 一致
+            try:
+                cap_res = caption_op.execute(video_uri, target_path=target_path)
+                cap_text = (cap_res or {}).get("caption", "") or ""
+                all_captions.append({"segment_idx": seg_idx, "caption": cap_text})
+                preview = cap_text[:80] + "..." if len(cap_text) > 80 else cap_text
+                print(f"✓ 片段 {seg_idx}/{len(segment_video_uris)} 描述完成: {preview}")
+            except Exception as e:
+                print(f"✗ 片段 {seg_idx}/{len(segment_video_uris)} 描述失败: {e}")
+                all_captions.append({"segment_idx": seg_idx, "caption": ""})
+        
+        print(f"✓ 视频描述完成，共 {len(all_captions)} 个片段")
+        return {"captions": all_captions}
     
     def _execute_concentrate_captions(self, workflow: Workflow, step: WorkflowStep) -> Dict[str, Any]:
         """执行合并描述步骤"""
@@ -266,17 +275,20 @@ class VideoQAWorkflow(Workflow):
             print("⚠ 没有可用的视频描述")
             return {"concentrated_captions": ""}
         
-        # 合并所有captions
+        # 合并所有captions，但只包含有实际内容的caption
         caption_parts = []
         for cap_info in all_captions:
-            seg_idx = int(cap_info.get("segment_idx", 0) or 0)
-            if seg_idx > 0:
-                caption_parts.append(f"[片段 {seg_idx}] {cap_info.get('caption', '')}")
-            else:
-                caption_parts.append(f"[完整视频] {cap_info.get('caption', '')}")
+            caption_text = cap_info.get('caption', '').strip()
+            # 只有当caption有实际内容时才添加
+            if caption_text:
+                seg_idx = int(cap_info.get("segment_idx", 0) or 0)
+                if seg_idx > 0:
+                    caption_parts.append(f"[片段 {seg_idx}] {caption_text}")
+                else:
+                    caption_parts.append(f"[完整视频] {caption_text}")
         
-        concentrated_captions = "\n\n".join(caption_parts)
-        print(f"✓ 已合并 {len(all_captions)} 个片段的描述")
+        concentrated_captions = "\n\n".join(caption_parts) if caption_parts else ""
+        print(f"✓ 已合并 {len(caption_parts)} 个有内容的片段描述（共 {len(all_captions)} 个片段）")
         print(f"  总长度: {len(concentrated_captions)} 字符")
         
         return {"concentrated_captions": concentrated_captions}
@@ -340,6 +352,15 @@ class VideoQAWorkflow(Workflow):
         print(f"Prompt 长度: {len(prompt)} 字符")
         if concentrated_captions:
             print(f"包含 {len(all_captions)} 个片段的描述")
+        else:
+            print("⚠ 警告：没有视频描述内容，LLM将仅基于问题和选项回答")
+        
+        # 调试输出：显示实际发送给LLM的prompt（前500字符）
+        print(f"\n=== 发送给LLM的Prompt（前500字符）===")
+        print(prompt[:500])
+        if len(prompt) > 500:
+            print("...")
+        print("=" * 50)
         
         # 检查OpenAI配置
         if llm_op.provider == "openai":

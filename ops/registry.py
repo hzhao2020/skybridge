@@ -35,9 +35,21 @@ BUCKETS = {
 }
 
 # --- Serverless 服务 URL 配置 ---
-# VideoSplit（Google Cloud Function / Cloud Run video-splitter）按区域部署的服务 URL
-# - 与 deploy.sh 部署的 video-splitter 对应，格式：https://video-splitter-{PROJECT_NUMBER}.{REGION}.run.app/video_split
-# - 优先使用环境变量 GCP_VIDEOSPLIT_SERVICE_URLS（JSON 对象）；否则根据 GCP 项目号自动推导
+# VideoSplit（Google Cloud Function Gen2）按区域部署的服务 URL
+# - 与 deploy.sh 部署的 video-splitter Cloud Function 对应
+# - 优先级：
+#   1. 硬编码的 URL（见下面的 GCP_VIDEOSPLIT_SERVICE_URLS_DEFAULT）
+#   2. 环境变量 GCP_VIDEOSPLIT_SERVICE_URLS（JSON 对象，格式：{"us-west1": "https://...", "europe-west1": "https://...", "asia-southeast1": "https://..."}）
+#   3. 通过 gcloud functions describe 命令自动获取
+#   4. 根据 GCP 项目号自动推导（旧格式，用于 Cloud Run）
+
+# 硬编码的 Cloud Function URL（从 gcloud functions list 获取）
+# 如果 URL 发生变化，请更新此处
+GCP_VIDEOSPLIT_SERVICE_URLS_DEFAULT = {
+    "us-west1": "https://video-splitter-nqis2t7p2a-uw.a.run.app",
+    "europe-west1": "https://video-splitter-nqis2t7p2a-ew.a.run.app",
+    "asia-southeast1": "https://video-splitter-nqis2t7p2a-as.a.run.app",
+}
 
 def _get_gcp_project_number() -> Optional[str]:
     pn = os.getenv("GCP_PROJECT_NUMBER")
@@ -63,7 +75,28 @@ def _get_gcp_project_number() -> Optional[str]:
         return None
 
 
+def _get_cloud_function_url(region: str, function_name: str = "video-splitter") -> Optional[str]:
+    """通过 gcloud 命令获取 Cloud Function 的 URL"""
+    try:
+        url = subprocess.check_output(
+            ["gcloud", "functions", "describe", function_name,
+             "--gen2", "--region", region,
+             "--format", "value(serviceConfig.uri)"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+            timeout=10,
+        ).strip()
+        return url if url else None
+    except Exception:
+        return None
+
+
 def _build_gcp_videosplit_urls() -> Dict[str, str]:
+    # 1. 优先使用硬编码的 URL
+    if GCP_VIDEOSPLIT_SERVICE_URLS_DEFAULT:
+        return GCP_VIDEOSPLIT_SERVICE_URLS_DEFAULT.copy()
+    
+    # 2. 其次使用环境变量
     raw = os.getenv("GCP_VIDEOSPLIT_SERVICE_URLS")
     if raw:
         try:
@@ -72,15 +105,29 @@ def _build_gcp_videosplit_urls() -> Dict[str, str]:
                 return {k: str(v) for k, v in obj.items()}
         except json.JSONDecodeError:
             pass
+    
+    # 3. 尝试通过 gcloud 命令获取 Cloud Function URL
+    urls = {}
+    regions = ["us-west1", "europe-west1", "asia-southeast1"]
+    for region in regions:
+        url = _get_cloud_function_url(region)
+        if url:
+            urls[region] = url
+    
+    # 如果成功获取了所有 URL，返回它们
+    if len(urls) == len(regions):
+        return urls
+    
+    # 4. 降级：根据项目号推导（旧格式，用于 Cloud Run）
     pn = _get_gcp_project_number()
     if not pn:
-        return {}
+        return urls  # 返回已获取的部分 URL，或空字典
     base = f"https://video-splitter-{pn}.{{region}}.run.app/video_split"
-    return {
-        "us-west1": base.format(region="us-west1"),
-        "europe-west1": base.format(region="europe-west1"),
-        "asia-southeast1": base.format(region="asia-southeast1"),
-    }
+    # 只填充未获取到的区域
+    for region in regions:
+        if region not in urls:
+            urls[region] = base.format(region=region)
+    return urls
 
 
 GCP_VIDEOSPLIT_SERVICE_URLS = _build_gcp_videosplit_urls()
@@ -160,13 +207,14 @@ VIDEO_SPLIT_CATALOG = [
 # 2) Visual captioning
 VISUAL_CAPTION_CATALOG = []
 
-# Google Vertex AI (Gemini 2.5) - 模型 x 区域 笛卡尔积
+# Google Vertex AI (Gemini 1.5) - 模型 x 区域 笛卡尔积
 # Vertex AI 仅支持 us-west1, europe-west1, asia-southeast1
-_gcp_cap_models = {
-    "gemini-2.5-flash-lite": "flash_lite",
-    "gemini-2.5-flash": "flash",
-}
-for model, slug in _gcp_cap_models.items():
+# 注意：flash_lite 和 flash 都使用相同的模型 gemini-2.5-flash
+_gcp_cap_models = [
+    ("gemini-2.5-flash", "flash_lite"),  # 更新为推荐的稳定版本
+    ("gemini-2.5-flash", "flash"),  # 更新为推荐的稳定版本
+]
+for model, slug in _gcp_cap_models:
     for reg in GCP_REGIONS:  # GCP_REGIONS 已包含正确的3个区域
         pid = f"cap_google_{slug}_{reg['region'].split('-')[0]}" if 'west1' in reg['region'] or 'east1' in reg['region'] else f"cap_google_{slug}_{reg['region'].split('-')[1]}"
         # 更直观的 pid：使用区域简称
@@ -213,11 +261,11 @@ for model, slug in _aws_cap_models.items():
 # 3) LLM querying
 LLM_CATALOG = []
 
-# Google Vertex AI (Gemini 2.5) - 模型 x 区域
+# Google Vertex AI (Gemini 1.5) - 模型 x 区域
 # Vertex AI 仅支持 us-west1, europe-west1, asia-southeast1
 _gcp_llm_models = {
-    "gemini-2.5-flash": "flash",
-    "gemini-2.5-pro": "pro",
+    "gemini-2.5-flash": "flash",  # 更新为推荐的稳定版本
+    "gemini-2.5-pro": "pro",  # 更新为推荐的稳定版本
 }
 for model, slug in _gcp_llm_models.items():
     for reg in GCP_REGIONS:  # GCP_REGIONS 已包含正确的3个区域

@@ -1,5 +1,6 @@
 # ops/impl/google_ops.py
 import os
+import re
 import time
 import subprocess
 import tempfile
@@ -96,8 +97,7 @@ class GoogleVideoSegmentImpl(VideoSegmenter):
         bucket, blob_path = self._parse_uri(target_uri)
         
         # 3. 准备结果存储路径
-        filename = os.path.basename(blob_path)
-        result_path = f"results/{filename}.json"
+        result_path = self._build_result_path(target_uri, "segment", "result.json", target_path)
         result_uri = f"gs://{self.storage_bucket}/{result_path}"
         
         print(f"    Processing video: {target_uri}")
@@ -340,112 +340,156 @@ class GoogleVertexCaptionImpl(VisualCaptioner):
     def execute(self, video_uri: str, **kwargs) -> Dict[str, Any]:
         """
         对视频或视频片段生成描述
-        
-        Args:
-            video_uri: 视频 URI（本地路径或云存储 URI）
-            start_time: 可选，片段开始时间（秒）
-            end_time: 可选，片段结束时间（秒）
-            target_path: 可选，上传目标路径
         """
+        import re
+
         start_time = kwargs.get('start_time')
         end_time = kwargs.get('end_time')
-        
-        if start_time is not None and end_time is not None:
-            print(f"--- [Vertex AI Caption] Region: {self.region} | Model: {self.model_name} | Segment: {start_time:.2f}s-{end_time:.2f}s ---")
-        else:
-            print(f"--- [Vertex AI Caption] Region: {self.region} | Model: {self.model_name} ---")
-
-        # 1. 确保数据在 Google Bucket
         target_path = kwargs.get('target_path')
-        target_uri = self.transmitter.smart_move(video_uri, 'google', self.storage_bucket, target_path, target_region=self.region)
-        print(f"    Data Ready: {target_uri}")
 
-        # 2. 如果指定了时间范围，先提取视频片段
+        # 1. 准备基础数据
+        target_uri = self.transmitter.smart_move(video_uri, 'google', self.storage_bucket, target_path, target_region=self.region)
         segment_uri = target_uri
         temp_segment_path = None
         
+        # 2. 如果指定了时间范围，提取视频片段
         if start_time is not None and end_time is not None:
-            print(f"    Extracting video segment: {start_time:.2f}s - {end_time:.2f}s")
-            # 创建临时文件用于存储提取的片段
-            temp_segment = tempfile.NamedTemporaryFile(suffix='.mp4', delete=False)
-            temp_segment_path = temp_segment.name
-            temp_segment.close()
-            
             try:
-                # 提取片段（如果视频在云存储，需要先下载）
-                self._extract_video_segment(video_uri, start_time, end_time, temp_segment_path)
-                print(f"    Segment extracted to: {temp_segment_path}")
+                temp_segment = tempfile.NamedTemporaryFile(suffix='.mp4', delete=False)
+                temp_segment_path = temp_segment.name
+                temp_segment.close()
                 
-                # 将提取的片段上传到云存储
+                self._extract_video_segment(video_uri, start_time, end_time, temp_segment_path)
+                
+                # 路径拼接逻辑：避免引入意外的双斜杠
                 segment_filename = f"segment_{int(start_time)}_{int(end_time)}_{os.path.basename(target_uri)}"
-                if target_path:
-                    segment_target_path = f"{target_path}/segments"
-                else:
-                    segment_target_path = "segments"
+                sub_dir = f"{target_path.strip('/')}/segments" if target_path else "segments"
                 
                 segment_uri = self.transmitter.upload_local_to_cloud(
                     temp_segment_path,
                     'google',
                     self.storage_bucket,
-                    segment_target_path
+                    sub_dir
                 )
-                print(f"    Segment uploaded to: {segment_uri}")
             except Exception as e:
-                print(f"    Warning: Failed to extract segment, processing full video: {e}")
+                print(f"Warning: Segment extraction failed, using full video. Error: {e}")
                 segment_uri = target_uri
+
+        # 3. 核心修正：URI 规范化逻辑
+        # Vertex AI API 要求 GCS URI 格式正确，不接受路径中的双斜杠
+        # 但GCS可能将双斜杠作为对象名的一部分存储
+        # 策略：先检查原始URI是否存在，如果存在但包含双斜杠，需要特殊处理
+        if segment_uri.startswith("gs://"):
+            from google.cloud import storage
+            try:
+                # 先检查原始URI文件是否存在
+                original_bucket, original_blob_path = self._parse_uri(segment_uri)
+                storage_client = storage.Client()
+                bucket = storage_client.bucket(original_bucket)
+                original_blob = bucket.blob(original_blob_path)
+                
+                if original_blob.exists():
+                    # 文件存在，检查路径中是否有双斜杠
+                    if '//' in original_blob_path:
+                        # 如果原始路径包含双斜杠，Vertex AI不接受，需要复制到规范化路径
+                        # 规范化路径：将双斜杠替换为单斜杠
+                        normalized_blob_path = re.sub(r'/+', '/', original_blob_path)
+                        normalized_blob = bucket.blob(normalized_blob_path)
+                        
+                        if not normalized_blob.exists():
+                            # 复制文件到规范化路径
+                            print(f"Copying file from {original_blob_path} to {normalized_blob_path} for Vertex AI compatibility...")
+                            bucket.copy_blob(original_blob, bucket, normalized_blob_path)
+                            print(f"✓ File copied to normalized path")
+                        
+                        normalized_uri = f"gs://{original_bucket}/{normalized_blob_path}"
+                    else:
+                        # 路径已经规范化，直接使用
+                        normalized_uri = segment_uri
+                else:
+                    # 文件不存在，尝试规范化路径
+                    normalized_path = re.sub(r'/+', '/', original_blob_path.lstrip('/'))
+                    normalized_uri = f"gs://{original_bucket}/{normalized_path}"
+                    print(f"Warning: Original file not found, using normalized URI: {normalized_uri}")
+            except Exception as e:
+                # 如果检查失败，尝试规范化URI
+                path_without_protocol = segment_uri[5:]
+                while path_without_protocol.startswith('/'):
+                    path_without_protocol = path_without_protocol[1:]
+                normalized_path = re.sub(r'/+', '/', path_without_protocol)
+                normalized_uri = f"gs://{normalized_path}"
+                print(f"Warning: Could not verify file existence: {e}. Using normalized URI: {normalized_uri}")
+        else:
+            normalized_uri = segment_uri
         
-        # 3. 初始化 Vertex AI
+        print(f"Using URI for Vertex AI: {normalized_uri}")
+        
+        # 5. 初始化模型与构建 Part
         model = self._init_vertex_ai()
         
-        # 4. 构建视频 Part
-        if Part is None:
-            raise ImportError("Vertex AI Part not available. Install with: pip install google-cloud-aiplatform")
+        # 验证 URI 格式
+        print(f"Normalized URI: {normalized_uri}")
         
-        # Vertex AI SDK 的 Part.from_uri 参数名在不同版本里不一致：
-        # - 有的版本使用 from_uri(uri, mime_type=...)
-        # - 有的版本接受关键字 uri=...
-        # 这里用“位置参数 + mime_type”以获得更好的兼容性，避免 TypeError（如 file_uri 不被支持）。
-        video_part = Part.from_uri(segment_uri, mime_type="video/mp4")
-        
-        if start_time is not None and end_time is not None:
-            prompt_text = f"Describe this video segment in detail. Provide a comprehensive caption."
-        else:
-            prompt_text = "Describe this video in detail. Provide a comprehensive caption."
-        
-        # 5. 调用 Gemini API 生成视频描述
-        print(f"    Generating caption with {self.model_name}...")
-        response = model.generate_content(
-            [video_part, prompt_text],
-            generation_config={
-                "temperature": 0.4,
-                "top_p": 0.95,
-                "top_k": 40,
-                "max_output_tokens": 1024,
-            }
-        )
-        
-        caption = response.text if response.text else "Unable to generate caption."
-        print(f"    Caption generated: {caption[:100]}...")
-        
-        # 6. 清理临时文件
-        if temp_segment_path and os.path.exists(temp_segment_path):
+        # 尝试最通用的位置参数调用，减少 400 错误的参数匹配风险
+        try:
+            # 优先使用 uri 关键字，这是目前 Vertex AI 比较标准的写法
+            video_part = Part.from_uri(uri=normalized_uri, mime_type="video/mp4")
+            print(f"✓ Created Part from URI successfully")
+        except Exception as e:
+            # 备选：直接传参
             try:
-                os.remove(temp_segment_path)
-            except Exception:
-                pass  # 忽略清理错误
+                video_part = Part.from_uri(normalized_uri, "video/mp4")
+                print(f"✓ Created Part from URI (fallback method)")
+            except Exception as e2:
+                # 如果两种方式都失败，提供更详细的错误信息
+                raise ValueError(
+                    f"Failed to create Part from URI. "
+                    f"URI: {normalized_uri}, "
+                    f"Error 1: {str(e)}, "
+                    f"Error 2: {str(e2)}"
+                ) from e2
+
+        prompt_text = "Describe this video in detail. Provide a comprehensive caption."
         
-        result = {
+        # 6. 调用 API 并增加安全拦截处理
+        print(f"Generating caption for: {normalized_uri}...")
+        try:
+            # 尝试不同的调用方式，某些版本可能需要不同的参数格式
+            try:
+                response = model.generate_content(
+                    [video_part, prompt_text],
+                    generation_config={
+                        "temperature": 0.4,
+                        "top_p": 0.95,
+                        "max_output_tokens": 1024,
+                    }
+                )
+            except Exception as e1:
+                # 备选：尝试不使用generation_config
+                print(f"First attempt failed: {e1}, trying alternative format...")
+                response = model.generate_content([video_part, prompt_text])
+            
+            # 检查响应是否被安全过滤器拦截 (避免 response.text 抛出 AttributeError)
+            if response.candidates and response.candidates[0].finish_reason == 3: # SAFETY
+                caption = "Content blocked by safety filters."
+            else:
+                caption = response.text if response.text else "No caption generated."
+                
+        except Exception as e:
+            raise RuntimeError(f"Vertex AI API Error: {str(e)}\nVerified URI: {normalized_uri}") from e
+        
+        # 6. 清理
+        if temp_segment_path and os.path.exists(temp_segment_path):
+            os.remove(temp_segment_path)
+        
+        return {
             "provider": "google_vertex",
             "model": self.model_name,
             "caption": caption,
-            "source_used": segment_uri if (start_time is not None and end_time is not None) else target_uri
+            "source_used": normalized_uri,
+            "start_time": start_time,
+            "end_time": end_time
         }
-        
-        if start_time is not None and end_time is not None:
-            result["start_time"] = start_time
-            result["end_time"] = end_time
-        
-        return result
 
 
 class GoogleVertexLLMImpl(LLMQuery):
@@ -506,11 +550,12 @@ class GoogleVertexLLMImpl(LLMQuery):
 
 class GoogleCloudFunctionSplitImpl(VideoSplitter):
     """
-    使用 Google Cloud Function（HTTP 触发器）进行视频分割。
+    使用 Google Cloud Function Gen2（HTTP 触发器）进行视频分割。
     
-    对应 deploy.sh 部署的 video-splitter 服务（gcloud run deploy）。
+    对应 deploy.sh 部署的 video-splitter Cloud Function（gcloud functions deploy --gen2）。
     接收视频 URI 和片段列表，使用 ffmpeg 在云端切割视频，并将结果上传到 GCS。
-    service_url 可由 registry 根据项目与 region 推导，或通过构造/execute 显式传入。
+    service_url 可由 registry 根据项目与 region 自动获取（通过 gcloud 命令），
+    或通过环境变量 GCP_VIDEOSPLIT_SERVICE_URLS 设置，或通过构造/execute 显式传入。
     """
     
     def __init__(self, provider: str, region: str, storage_bucket: str, service_url: Optional[str] = None):
@@ -759,11 +804,10 @@ class GoogleVertexEmbeddingImpl(VisualEncoder):
                     "model": self.model_name,
                     "region": self.region
                 }
-                embedding_filename = f"{os.path.basename(target_uri)}.embedding.json"
-                if target_path:
-                    embedding_target_path = f"{target_path}/embeddings"
-                else:
-                    embedding_target_path = "embeddings"
+                # 使用新的路径格式：results/visual_embedding/[video_name]/embedding.json
+                embedding_target_path = self._build_result_path(target_uri, "visual_embedding", "embedding.json", target_path)
+                # 提取目录部分（去掉文件名）
+                embedding_dir = os.path.dirname(embedding_target_path)
                 
                 # 保存到临时文件然后上传
                 temp_embedding_file = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
@@ -775,7 +819,7 @@ class GoogleVertexEmbeddingImpl(VisualEncoder):
                         temp_embedding_file.name,
                         'google',
                         self.storage_bucket,
-                        embedding_target_path
+                        embedding_dir
                     )
                     print(f"    Embedding saved to: {embedding_uri}")
                 finally:
@@ -998,8 +1042,7 @@ class GoogleVideoIntelligenceObjectDetectionImpl(ObjectDetector):
         bucket, blob_path = self._parse_uri(target_uri)
         
         # 3. 准备结果存储路径
-        filename = os.path.basename(blob_path)
-        result_path = f"results/object_detection/{filename}.json"
+        result_path = self._build_result_path(target_uri, "object_detection", "result.json", target_path)
         result_uri = f"gs://{self.storage_bucket}/{result_path}"
         
         print(f"    Processing video: {target_uri}")

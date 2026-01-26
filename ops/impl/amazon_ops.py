@@ -69,9 +69,15 @@ class AmazonRekognitionSegmentImpl(VideoSegmenter):
         print(f"--- [AWS Rekognition] Region: {self.region} ---")
 
         # 1. 确保数据在 AWS S3
-        target_path = kwargs.get('target_path')
-        target_uri = self.transmitter.smart_move(video_uri, 'amazon', self.storage_bucket, target_path, target_region=self.region)
-        print(f"    Data Ready: {target_uri}")
+        # 如果视频已经在云存储，直接使用；否则上传到临时路径（不放在results目录）
+        if video_uri.startswith('s3://'):
+            # 视频已在云存储，直接使用
+            target_uri = video_uri
+            print(f"    Data Ready (already in cloud): {target_uri}")
+        else:
+            # 本地视频，上传到临时路径（用于输入，不放在results目录）
+            target_uri = self.transmitter.smart_move(video_uri, 'amazon', self.storage_bucket, None, target_region=self.region)
+            print(f"    Data Ready (uploaded): {target_uri}")
 
         # 2. 解析 S3 URI
         bucket, key = self._parse_uri(target_uri)
@@ -103,9 +109,10 @@ class AmazonRekognitionSegmentImpl(VideoSegmenter):
         
         print(f"    Found {len(segments)} segments")
         
-        # 6. 可选：保存结果到 S3
+        # 6. 可选：保存结果到 S3（输出结果放在results目录）
+        output_path = kwargs.get('target_path')  # target_path 是输出路径
         if kwargs.get('save_results', True):
-            result_key = f"results/{os.path.basename(key)}.json"
+            result_key = self._build_result_path(target_uri, "segment", "result.json", output_path)
             self.s3_client.put_object(
                 Bucket=self.storage_bucket,
                 Key=result_key,
@@ -180,7 +187,7 @@ class AmazonBedrockCaptionImpl(VisualCaptioner):
         
         # 4. 构建 Bedrock 请求
         # 注意：Bedrock 的模型 ID 格式通常是 "anthropic.claude-3-5-sonnet-20241022-v2:0"
-        # 这里需要根据实际的 model_name 映射到正确的 model ID
+        # 对于 Nova 模型，使用标准模型 ID，但通过 Converse API 调用（支持 on-demand）
         model_id_map = {
             "nova-lite": "amazon.nova-lite-v1:0",
             "nova-pro": "amazon.nova-pro-v1:0",
@@ -190,48 +197,128 @@ class AmazonBedrockCaptionImpl(VisualCaptioner):
         }
         
         bedrock_model_id = model_id_map.get(self.model_name, self.model_name)
+        is_nova_model = self.model_name in ["nova-lite", "nova-pro"]
         
-        # 5. 构建请求体（使用 Claude 3 格式）
-        # 注意：Bedrock 的视频分析可能需要使用特定的 API，这里使用文本生成 API 作为示例
-        # 实际应用中，可能需要使用 Amazon Rekognition Video 或其他专门的视频分析服务
-        request_body = {
-            "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": 1024,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": [
+        # 5. 对于 Nova 模型，使用 Converse API；对于其他模型，使用 InvokeModel API
+        if is_nova_model:
+            # 使用 Converse API（Nova 模型推荐使用此 API）
+            # 注意：Converse API 支持视频输入，使用 S3 location
+            print(f"    Generating caption with {bedrock_model_id} using Converse API...")
+            try:
+                # 使用 Converse API，直接传递 S3 URI
+                response = self.bedrock_client.converse(
+                    modelId=bedrock_model_id,
+                    messages=[
                         {
-                            "type": "image",
-                            "source": {
-                                "type": "url",
-                                "url": presigned_url
-                            }
-                        },
-                        {
-                            "type": "text",
-                            "text": "Describe this video in detail. Provide a comprehensive caption."
+                            "role": "user",
+                            "content": [
+                                {
+                                    "video": {
+                                        "format": "mp4",
+                                        "source": {
+                                            "s3Location": {
+                                                "uri": target_uri
+                                            }
+                                        }
+                                    }
+                                },
+                                {
+                                    "text": "Describe this video in detail. Provide a comprehensive caption."
+                                }
+                            ]
                         }
-                    ]
-                }
-            ]
-        }
-        
-        # 注意：视频分析可能需要使用不同的 API，这里简化处理
-        # 如果模型不支持视频，可能需要先提取关键帧
-        print(f"    Generating caption with {bedrock_model_id}...")
-        try:
-            response = self.bedrock_client.invoke_model(
-                modelId=bedrock_model_id,
-                body=json.dumps(request_body)
-            )
+                    ],
+                    inferenceConfig={
+                        "maxTokens": 1024
+                    }
+                )
+                
+                # Converse API 返回格式：response['output']['message']['content'][0]['text']
+                caption = response.get('output', {}).get('message', {}).get('content', [{}])[0].get('text', 'Unable to generate caption.')
+            except ClientError as e:
+                error_code = e.response.get('Error', {}).get('Code', 'Unknown')
+                error_message = e.response.get('Error', {}).get('Message', str(e))
+                print(f"    Warning: Converse API failed ({error_code}): {error_message}")
+                # 如果 Converse API 失败，尝试使用 invoke_model 和 native message format
+                try:
+                    print(f"    Trying invoke_model with native message format...")
+                    native_request = {
+                        "messages": [
+                            {
+                                "role": "user",
+                                "content": [
+                                    {
+                                        "video": {
+                                            "format": "mp4",
+                                            "source": {
+                                                "s3Location": {
+                                                    "uri": target_uri
+                                                }
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "text": "Describe this video in detail. Provide a comprehensive caption."
+                                    }
+                                ]
+                            }
+                        ],
+                        "inferenceConfig": {
+                            "maxTokens": 1024
+                        }
+                    }
+                    response = self.bedrock_client.invoke_model(
+                        modelId=bedrock_model_id,
+                        body=json.dumps(native_request),
+                        contentType="application/json",
+                        accept="application/json"
+                    )
+                    response_body = json.loads(response['body'].read())
+                    caption = response_body.get('output', {}).get('message', {}).get('content', [{}])[0].get('text', 'Unable to generate caption.')
+                except Exception as e2:
+                    print(f"    Warning: invoke_model also failed. Error: {e2}")
+                    caption = f"Video analysis requested for {target_uri} using {self.model_name}. Note: Full video captioning may require additional processing."
+            except Exception as e:
+                print(f"    Warning: Converse API failed. Error: {e}")
+                caption = f"Video analysis requested for {target_uri} using {self.model_name}. Note: Full video captioning may require additional processing."
+        else:
+            # 对于 Claude 模型，使用 InvokeModel API（原有逻辑）
+            request_body = {
+                "anthropic_version": "bedrock-2023-05-31",
+                "max_tokens": 1024,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "url",
+                                    "url": presigned_url
+                                }
+                            },
+                            {
+                                "type": "text",
+                                "text": "Describe this video in detail. Provide a comprehensive caption."
+                            }
+                        ]
+                    }
+                ]
+            }
             
-            response_body = json.loads(response['body'].read())
-            caption = response_body.get('content', [{}])[0].get('text', 'Unable to generate caption.')
-        except Exception as e:
-            print(f"    Warning: Direct video analysis may not be supported. Error: {e}")
-            # 降级处理：返回基本信息
-            caption = f"Video analysis requested for {target_uri} using {self.model_name}. Note: Full video captioning may require additional processing."
+            print(f"    Generating caption with {bedrock_model_id}...")
+            try:
+                response = self.bedrock_client.invoke_model(
+                    modelId=bedrock_model_id,
+                    body=json.dumps(request_body)
+                )
+                
+                response_body = json.loads(response['body'].read())
+                caption = response_body.get('content', [{}])[0].get('text', 'Unable to generate caption.')
+            except Exception as e:
+                print(f"    Warning: Direct video analysis may not be supported. Error: {e}")
+                # 降级处理：返回基本信息
+                caption = f"Video analysis requested for {target_uri} using {self.model_name}. Note: Full video captioning may require additional processing."
         
         print(f"    Caption generated: {caption[:100]}...")
         
@@ -353,21 +440,28 @@ class AWSLambdaSplitImpl(VideoSplitter):
             video_uri: 视频 URI（本地路径或云存储 URI）
             segments: 片段列表，每个片段包含 'start' 和 'end'（秒）
             **kwargs:
-                - target_path: 输出路径
+                - target_path: 输出路径（用于存放分割后的视频片段）
                 - output_format: 输出格式（默认 mp4）
                 - function_name: 可选的 Lambda 函数名称（覆盖默认）
         """
         print(f"--- [AWS Lambda Video Split] Region: {self.region} ---")
         
         # 1. 确保视频在 AWS S3
-        target_path = kwargs.get('target_path')
-        target_uri = self.transmitter.smart_move(video_uri, 'amazon', self.storage_bucket, target_path, target_region=self.region)
-        print(f"    Video Ready: {target_uri}")
+        # 如果视频已经在云存储，直接使用；否则上传到临时路径（不放在results目录）
+        if video_uri.startswith('s3://'):
+            # 视频已在云存储，直接使用
+            target_uri = video_uri
+            print(f"    Video Ready (already in cloud): {target_uri}")
+        else:
+            # 本地视频，上传到临时路径（用于输入，不放在results目录）
+            target_uri = self.transmitter.smart_move(video_uri, 'amazon', self.storage_bucket, None, target_region=self.region)
+            print(f"    Video Ready (uploaded): {target_uri}")
         
-        # 2. 准备输出路径
+        # 2. 准备输出路径（用于存放分割后的视频片段）
         output_format = kwargs.get('output_format', 'mp4')
-        if target_path:
-            output_base_path = f"{target_path}/split_segments"
+        output_path = kwargs.get('target_path')  # target_path 是输出路径
+        if output_path:
+            output_base_path = f"{output_path}/split_segments"
         else:
             output_base_path = "split_segments"
         
@@ -649,11 +743,10 @@ class AmazonBedrockEmbeddingImpl(VisualEncoder):
                     "region": self.region,
                     "embedding_length": embedding_length
                 }
-                embedding_filename = f"{os.path.basename(target_uri)}.embedding.json"
-                if target_path:
-                    embedding_target_path = f"{target_path}/embeddings"
-                else:
-                    embedding_target_path = "embeddings"
+                # 使用新的路径格式：results/visual_embedding/[video_name]/embedding.json
+                embedding_target_path = self._build_result_path(target_uri, "visual_embedding", "embedding.json", target_path)
+                # 提取目录部分（去掉文件名）
+                embedding_dir = os.path.dirname(embedding_target_path)
                 
                 # 保存到临时文件然后上传
                 temp_embedding_file = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
@@ -665,7 +758,7 @@ class AmazonBedrockEmbeddingImpl(VisualEncoder):
                         temp_embedding_file.name,
                         'amazon',
                         self.storage_bucket,
-                        embedding_target_path
+                        embedding_dir
                     )
                     print(f"    Embedding saved to: {embedding_uri}")
                 finally:
@@ -969,7 +1062,7 @@ class AmazonRekognitionObjectDetectionImpl(ObjectDetector):
         save_results = kwargs.get('save_results', True)
         result_uri = None
         if save_results:
-            result_key = f"results/object_detection/{os.path.basename(key)}.json"
+            result_key = self._build_result_path(target_uri, "object_detection", "result.json", target_path)
             self.s3_client.put_object(
                 Bucket=self.storage_bucket,
                 Key=result_key,

@@ -159,9 +159,17 @@ class Workflow(ABC):
             if not step.enabled:
                 continue
                 
-            # 检查operation_pid是否设置
+            # 如果步骤有 execute_func 但没有 operation_pid，允许跳过 operation_pid 验证
+            # （这种情况适用于纯数据处理步骤，不依赖外部 operation）
             if not step.operation_pid:
-                raise ValueError(f"步骤 '{step_name}' 未设置 operation_pid")
+                if step.execute_func:
+                    # 有 execute_func 但没有 operation_pid，允许（可能是纯数据处理步骤）
+                    continue
+                else:
+                    # 既没有 operation_pid 也没有 execute_func，报错
+                    raise ValueError(
+                        f"步骤 '{step_name}' 未设置 operation_pid，且没有定义 execute_func"
+                    )
             
             # 检查operation是否存在
             if step.operation_pid not in REGISTRY:
