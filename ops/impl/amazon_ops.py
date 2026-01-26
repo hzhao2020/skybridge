@@ -68,16 +68,11 @@ class AmazonRekognitionSegmentImpl(VideoSegmenter):
     def execute(self, video_uri: str, **kwargs) -> Dict[str, Any]:
         print(f"--- [AWS Rekognition] Region: {self.region} ---")
 
-        # 1. 确保数据在 AWS S3
-        # 如果视频已经在云存储，直接使用；否则上传到临时路径（不放在results目录）
-        if video_uri.startswith('s3://'):
-            # 视频已在云存储，直接使用
-            target_uri = video_uri
-            print(f"    Data Ready (already in cloud): {target_uri}")
-        else:
-            # 本地视频，上传到临时路径（用于输入，不放在results目录）
-            target_uri = self.transmitter.smart_move(video_uri, 'amazon', self.storage_bucket, None, target_region=self.region)
-            print(f"    Data Ready (uploaded): {target_uri}")
+        # 1. 确保数据在 AWS S3 的正确bucket中
+        # 无论视频是否已在云存储，都需要确保在正确的bucket中
+        target_path = kwargs.get('target_path')
+        target_uri = self.transmitter.smart_move(video_uri, 'amazon', self.storage_bucket, target_path, target_region=self.region)
+        print(f"    Data Ready: {target_uri}")
 
         # 2. 解析 S3 URI
         bucket, key = self._parse_uri(target_uri)
@@ -446,22 +441,19 @@ class AWSLambdaSplitImpl(VideoSplitter):
         """
         print(f"--- [AWS Lambda Video Split] Region: {self.region} ---")
         
-        # 1. 确保视频在 AWS S3
-        # 如果视频已经在云存储，直接使用；否则上传到临时路径（不放在results目录）
-        if video_uri.startswith('s3://'):
-            # 视频已在云存储，直接使用
-            target_uri = video_uri
-            print(f"    Video Ready (already in cloud): {target_uri}")
-        else:
-            # 本地视频，上传到临时路径（用于输入，不放在results目录）
-            target_uri = self.transmitter.smart_move(video_uri, 'amazon', self.storage_bucket, None, target_region=self.region)
-            print(f"    Video Ready (uploaded): {target_uri}")
+        # 1. 确保视频在 AWS S3 的正确bucket中
+        # 无论视频是否已在云存储，都需要确保在正确的bucket中
+        target_path = kwargs.get('target_path')
+        target_uri = self.transmitter.smart_move(video_uri, 'amazon', self.storage_bucket, target_path, target_region=self.region)
+        print(f"    Video Ready: {target_uri}")
         
-        # 2. 准备输出路径（用于存放分割后的视频片段）
+        # 2. 准备输出路径（用于存放分割后的视频片段，规范化路径避免双斜杠）
         output_format = kwargs.get('output_format', 'mp4')
         output_path = kwargs.get('target_path')  # target_path 是输出路径
         if output_path:
-            output_base_path = f"{output_path}/split_segments"
+            # 移除末尾斜杠，避免拼接时产生双斜杠
+            normalized_output_path = output_path.rstrip('/')
+            output_base_path = f"{normalized_output_path}/split_segments"
         else:
             output_base_path = "split_segments"
         
@@ -679,14 +671,11 @@ class AmazonBedrockEmbeddingImpl(VisualEncoder):
         """
         print(f"--- [AWS Bedrock Embedding] Region: {self.region} | Model: {self.model_name} ---")
         
-        # 1. 确保数据在 AWS S3（如果需要）
+        # 1. 确保数据在 AWS S3 的正确bucket中
+        # 无论视频是否已在云存储，都需要确保在正确的bucket中
         target_path = kwargs.get('target_path')
-        if target_path or not (video_uri.startswith('s3://') or os.path.exists(video_uri)):
-            target_uri = self.transmitter.smart_move(video_uri, 'amazon', self.storage_bucket, target_path, target_region=self.region)
-            print(f"    Data Ready: {target_uri}")
-        else:
-            target_uri = video_uri
-            print(f"    Using video: {target_uri}")
+        target_uri = self.transmitter.smart_move(video_uri, 'amazon', self.storage_bucket, target_path, target_region=self.region)
+        print(f"    Data Ready: {target_uri}")
         
         # 2. 从视频中提取关键帧
         frame_time = kwargs.get('frame_time', 0.0)

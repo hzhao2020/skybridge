@@ -588,10 +588,12 @@ class GoogleCloudFunctionSplitImpl(VideoSplitter):
         target_uri = self.transmitter.smart_move(video_uri, 'google', self.storage_bucket, target_path, target_region=self.region)
         print(f"    Video Ready: {target_uri}")
         
-        # 2. 准备输出路径
+        # 2. 准备输出路径（规范化路径，避免双斜杠）
         output_format = kwargs.get('output_format', 'mp4')
         if target_path:
-            output_base_path = f"{target_path}/split_segments"
+            # 移除末尾斜杠，避免拼接时产生双斜杠
+            normalized_target_path = target_path.rstrip('/')
+            output_base_path = f"{normalized_target_path}/split_segments"
         else:
             output_base_path = "split_segments"
         
@@ -739,14 +741,11 @@ class GoogleVertexEmbeddingImpl(VisualEncoder):
         """
         print(f"--- [Vertex AI Embedding] Region: {self.region} | Model: {self.model_name} ---")
         
-        # 1. 确保数据在 Google Bucket（如果需要）
+        # 1. 确保数据在 Google Bucket 的正确bucket中
+        # 无论视频是否已在云存储，都需要确保在正确的bucket中
         target_path = kwargs.get('target_path')
-        if target_path or not (video_uri.startswith('gs://') or os.path.exists(video_uri)):
-            target_uri = self.transmitter.smart_move(video_uri, 'google', self.storage_bucket, target_path, target_region=self.region)
-            print(f"    Data Ready: {target_uri}")
-        else:
-            target_uri = video_uri
-            print(f"    Using video: {target_uri}")
+        target_uri = self.transmitter.smart_move(video_uri, 'google', self.storage_bucket, target_path, target_region=self.region)
+        print(f"    Data Ready: {target_uri}")
         
         # 2. 初始化 Embedding 模型
         model = self._init_embedding_model()

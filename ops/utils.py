@@ -83,7 +83,7 @@ class DataTransmission:
         Args:
             s3_uri: S3 源文件 URI
             target_s3_bucket: 目标 S3 存储桶名称
-            target_path: 目标路径（目录），如果为 None 则使用 transfer_cache/
+            target_path: 目标路径（目录），如果为 None 则使用源文件的完整路径（保持相同路径结构）
         """
         scheme, s3_bucket, s3_key = self._parse_uri(s3_uri)
         filename = os.path.basename(s3_key)
@@ -92,7 +92,8 @@ class DataTransmission:
             target_path = target_path.strip('/')
             target_key = f"{target_path}/{filename}" if target_path else filename
         else:
-            target_key = f"transfer_cache/{filename}"
+            # 如果没有指定target_path，使用源文件的完整路径（保持相同路径结构，只是bucket不同）
+            target_key = s3_key
         
         logger.info(f"[Bridge] S3 -> S3 跨 region 传输: {s3_uri} -> s3://{target_s3_bucket}/{target_key}")
         
@@ -107,7 +108,7 @@ class DataTransmission:
         Args:
             gcs_uri: GCS 源文件 URI
             target_gcs_bucket: 目标 GCS 存储桶名称
-            target_path: 目标路径（目录），如果为 None 则使用 transfer_cache/
+            target_path: 目标路径（目录），如果为 None 则使用源文件的完整路径（保持相同路径结构）
         """
         scheme, gcs_bucket, gcs_blob = self._parse_uri(gcs_uri)
         filename = os.path.basename(gcs_blob)
@@ -116,7 +117,8 @@ class DataTransmission:
             target_path = target_path.strip('/')
             target_blob = f"{target_path}/{filename}" if target_path else filename
         else:
-            target_blob = f"transfer_cache/{filename}"
+            # 如果没有指定target_path，使用源文件的完整路径（保持相同路径结构，只是bucket不同）
+            target_blob = gcs_blob
         
         logger.info(f"[Bridge] GCS -> GCS 跨 region 传输: {gcs_uri} -> gs://{target_gcs_bucket}/{target_blob}")
         
@@ -174,7 +176,7 @@ class DataTransmission:
         Args:
             s3_uri: S3 源文件 URI
             target_gcs_bucket: 目标 GCS 存储桶名称
-            target_path: 目标路径（目录），如果为 None 则使用 transfer_cache/
+            target_path: 目标路径（目录），如果为 None 则使用源文件的完整路径（保持相同路径结构）
         """
         scheme, s3_bucket, s3_key = self._parse_uri(s3_uri)
         filename = os.path.basename(s3_key)
@@ -183,7 +185,8 @@ class DataTransmission:
             target_path = target_path.strip('/')
             gcs_key = f"{target_path}/{filename}" if target_path else filename
         else:
-            gcs_key = f"transfer_cache/{filename}"
+            # 如果没有指定target_path，使用源文件的完整路径（保持相同路径结构，只是bucket不同）
+            gcs_key = s3_key
 
         logger.info(f"[Bridge] S3 -> GCS 流式直传: {s3_uri} -> gs://{target_gcs_bucket}/{gcs_key}")
         resp = self.s3_client.get_object(Bucket=s3_bucket, Key=s3_key)
@@ -215,7 +218,7 @@ class DataTransmission:
         Args:
             gcs_uri: GCS 源文件 URI
             target_s3_bucket: 目标 S3 存储桶名称
-            target_path: 目标路径（目录），如果为 None 则使用 transfer_cache/
+            target_path: 目标路径（目录），如果为 None 则使用源文件的完整路径（保持相同路径结构）
         """
         scheme, gcs_bucket, gcs_blob = self._parse_uri(gcs_uri)
         filename = os.path.basename(gcs_blob)
@@ -224,7 +227,8 @@ class DataTransmission:
             target_path = target_path.strip('/')
             s3_key = f"{target_path}/{filename}" if target_path else filename
         else:
-            s3_key = f"transfer_cache/{filename}"
+            # 如果没有指定target_path，使用源文件的完整路径（保持相同路径结构，只是bucket不同）
+            s3_key = gcs_blob
 
         logger.info(f"[Bridge] GCS -> S3 流式直传: {gcs_uri} -> s3://{target_s3_bucket}/{s3_key}")
         bucket = self.gcs_client.bucket(gcs_bucket)
@@ -244,7 +248,9 @@ class DataTransmission:
             source_uri: 源文件 URI（本地路径、s3:// 或 gs://）
             target_provider: 目标云服务提供商 ('google' 或 'amazon')
             target_bucket: 目标存储桶名称
-            target_path: 目标路径（目录），如果为 None 则上传到根目录或使用默认路径
+            target_path: 目标路径（目录），如果为 None：
+                - 对于本地文件上传：上传到根目录
+                - 对于跨bucket传输：使用源文件的完整路径（保持相同路径结构，只是bucket不同）
             target_region: 目标 region（可选），如果提供则检查是否需要跨 region 传输
         """
         # 1. 本地文件 -> 上传

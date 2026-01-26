@@ -67,8 +67,10 @@ def _split_video_s3_to_s3(*, video_uri: str, segments: list, output_bucket: str,
                 ]
                 subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
+                # 规范化路径，移除末尾斜杠避免双斜杠
+                normalized_output_path = output_path.rstrip('/')
                 output_key = (
-                    f"{output_path}/{name_without_ext}_segment_{idx+1}_{int(start_time)}_{int(end_time)}.{output_format}"
+                    f"{normalized_output_path}/{name_without_ext}_segment_{idx+1}_{int(start_time)}_{int(end_time)}.{output_format}"
                 )
                 s3_client.upload_file(temp_output_path, output_bucket, output_key)
                 output_uris.append(f"s3://{output_bucket}/{output_key}")

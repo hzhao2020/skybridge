@@ -75,8 +75,10 @@ def _split_video_gcs_to_gcs(*, video_uri: str, segments: list, output_bucket: st
                 ]
                 subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
+                # 规范化路径，移除末尾斜杠避免双斜杠
+                normalized_output_path = output_path.rstrip('/')
                 output_blob_name = (
-                    f"{output_path}/{name_without_ext}_segment_{idx+1}_{int(start_time)}_{int(end_time)}.{output_format}"
+                    f"{normalized_output_path}/{name_without_ext}_segment_{idx+1}_{int(start_time)}_{int(end_time)}.{output_format}"
                 )
                 output_blob = output_bucket_obj.blob(output_blob_name)
                 output_blob.upload_from_filename(temp_output_path)
