@@ -97,7 +97,7 @@ class GoogleVideoSegmentImpl(VideoSegmenter):
         bucket, blob_path = self._parse_uri(target_uri)
         
         # 3. 准备结果存储路径
-        result_path = self._build_result_path(target_uri, "segment", "result.json", target_path)
+        result_path = self._build_result_path(target_uri, "segment", "segment.json", target_path)
         result_uri = f"gs://{self.storage_bucket}/{result_path}"
         
         print(f"    Processing video: {target_uri}")
@@ -451,22 +451,32 @@ class GoogleVertexCaptionImpl(VisualCaptioner):
 
         prompt_text = "Describe this video in detail. Provide a comprehensive caption."
         
+        # 打印完整的prompt
+        print("\n" + "=" * 80)
+        print("=== [Google Vertex AI Caption] Full Prompt ===")
+        print("=" * 80)
+        print(f"Video URI: {normalized_uri}")
+        print(f"Prompt: {prompt_text}")
+        print("=" * 80 + "\n")
+        
         # 6. 调用 API 并增加安全拦截处理
         print(f"Generating caption for: {normalized_uri}...")
         try:
             # 尝试不同的调用方式，某些版本可能需要不同的参数格式
+            # 强制设置temperature为0以确保确定性输出
             try:
                 response = model.generate_content(
                     [video_part, prompt_text],
                     generation_config={
-                        "temperature": 0.4,
+                        "temperature": 0,
                         "top_p": 0.95,
                         "max_output_tokens": 1024,
                     }
                 )
             except Exception as e1:
-                # 备选：尝试不使用generation_config
+                # 备选：尝试不使用generation_config（但会使用默认temperature，可能不是0）
                 print(f"First attempt failed: {e1}, trying alternative format...")
+                print("Warning: Using fallback method without explicit temperature=0")
                 response = model.generate_content([video_part, prompt_text])
             
             # 检查响应是否被安全过滤器拦截 (避免 response.text 抛出 AttributeError)
@@ -474,6 +484,13 @@ class GoogleVertexCaptionImpl(VisualCaptioner):
                 caption = "Content blocked by safety filters."
             else:
                 caption = response.text if response.text else "No caption generated."
+            
+            # 打印完整的响应
+            print("\n" + "=" * 80)
+            print("=== [Google Vertex AI Caption] Full Response ===")
+            print("=" * 80)
+            print(caption)
+            print("=" * 80 + "\n")
                 
         except Exception as e:
             raise RuntimeError(f"Vertex AI API Error: {str(e)}\nVerified URI: {normalized_uri}") from e
@@ -523,23 +540,36 @@ class GoogleVertexLLMImpl(LLMQuery):
         # LLM 文本查询通常不需要搬运文件，直接调用
         print(f"--- [Vertex AI LLM] Region: {self.region} | Model: {self.model_name} ---")
         
+        # 打印完整的prompt
+        print("\n" + "=" * 80)
+        print("=== [Google Vertex AI LLM] Full Prompt ===")
+        print("=" * 80)
+        print(prompt)
+        print("=" * 80 + "\n")
+        
         # 初始化 Vertex AI
         model = self._init_vertex_ai()
         
-        # 调用 Gemini API
-        print(f"    Sending prompt to {self.model_name}...")
+        # 调用 Gemini API，强制设置temperature为0以确保确定性输出
+        print(f"    Sending prompt to {self.model_name} (temperature=0)...")
         response = model.generate_content(
             prompt,
             generation_config={
-                "temperature": 0.7,
+                "temperature": 0,
                 "top_p": 0.95,
                 "top_k": 40,
-                "max_output_tokens": 2048,
+                "max_output_tokens": kwargs.get('max_output_tokens', 2048),
             }
         )
         
         answer = response.text if response.text else "Unable to generate response."
-        print(f"    Response received: {answer[:100]}...")
+        
+        # 打印完整的响应
+        print("\n" + "=" * 80)
+        print("=== [Google Vertex AI LLM] Full Response ===")
+        print("=" * 80)
+        print(answer)
+        print("=" * 80 + "\n")
         
         return {
             "provider": "google_vertex",

@@ -194,13 +194,24 @@ class AmazonBedrockCaptionImpl(VisualCaptioner):
         bedrock_model_id = model_id_map.get(self.model_name, self.model_name)
         is_nova_model = self.model_name in ["nova-lite", "nova-pro"]
         
+        prompt_text = "Describe this video in detail. Provide a comprehensive caption."
+        
+        # 打印完整的prompt
+        print("\n" + "=" * 80)
+        print("=== [AWS Bedrock Caption] Full Prompt ===")
+        print("=" * 80)
+        print(f"Video URI: {target_uri}")
+        print(f"Prompt: {prompt_text}")
+        print("=" * 80 + "\n")
+        
         # 5. 对于 Nova 模型，使用 Converse API；对于其他模型，使用 InvokeModel API
         if is_nova_model:
             # 使用 Converse API（Nova 模型推荐使用此 API）
             # 注意：Converse API 支持视频输入，使用 S3 location
-            print(f"    Generating caption with {bedrock_model_id} using Converse API...")
+            print(f"    Generating caption with {bedrock_model_id} using Converse API (temperature=0)...")
             try:
                 # 使用 Converse API，直接传递 S3 URI
+                # 强制设置temperature=0以确保确定性输出
                 response = self.bedrock_client.converse(
                     modelId=bedrock_model_id,
                     messages=[
@@ -218,18 +229,26 @@ class AmazonBedrockCaptionImpl(VisualCaptioner):
                                     }
                                 },
                                 {
-                                    "text": "Describe this video in detail. Provide a comprehensive caption."
+                                    "text": prompt_text
                                 }
                             ]
                         }
                     ],
                     inferenceConfig={
-                        "maxTokens": 1024
+                        "maxTokens": 1024,
+                        "temperature": 0
                     }
                 )
                 
                 # Converse API 返回格式：response['output']['message']['content'][0]['text']
                 caption = response.get('output', {}).get('message', {}).get('content', [{}])[0].get('text', 'Unable to generate caption.')
+                
+                # 打印完整的响应
+                print("\n" + "=" * 80)
+                print("=== [AWS Bedrock Caption] Full Response ===")
+                print("=" * 80)
+                print(caption)
+                print("=" * 80 + "\n")
             except ClientError as e:
                 error_code = e.response.get('Error', {}).get('Code', 'Unknown')
                 error_message = e.response.get('Error', {}).get('Message', str(e))
@@ -253,13 +272,14 @@ class AmazonBedrockCaptionImpl(VisualCaptioner):
                                         }
                                     },
                                     {
-                                        "text": "Describe this video in detail. Provide a comprehensive caption."
+                                        "text": prompt_text
                                     }
                                 ]
                             }
                         ],
                         "inferenceConfig": {
-                            "maxTokens": 1024
+                            "maxTokens": 1024,
+                            "temperature": 0
                         }
                     }
                     response = self.bedrock_client.invoke_model(
@@ -270,6 +290,13 @@ class AmazonBedrockCaptionImpl(VisualCaptioner):
                     )
                     response_body = json.loads(response['body'].read())
                     caption = response_body.get('output', {}).get('message', {}).get('content', [{}])[0].get('text', 'Unable to generate caption.')
+                    
+                    # 打印完整的响应
+                    print("\n" + "=" * 80)
+                    print("=== [AWS Bedrock Caption] Full Response ===")
+                    print("=" * 80)
+                    print(caption)
+                    print("=" * 80 + "\n")
                 except Exception as e2:
                     print(f"    Warning: invoke_model also failed. Error: {e2}")
                     caption = f"Video analysis requested for {target_uri} using {self.model_name}. Note: Full video captioning may require additional processing."
@@ -278,9 +305,11 @@ class AmazonBedrockCaptionImpl(VisualCaptioner):
                 caption = f"Video analysis requested for {target_uri} using {self.model_name}. Note: Full video captioning may require additional processing."
         else:
             # 对于 Claude 模型，使用 InvokeModel API（原有逻辑）
+            # 强制设置temperature=0以确保确定性输出
             request_body = {
                 "anthropic_version": "bedrock-2023-05-31",
                 "max_tokens": 1024,
+                "temperature": 0,
                 "messages": [
                     {
                         "role": "user",
@@ -294,14 +323,14 @@ class AmazonBedrockCaptionImpl(VisualCaptioner):
                             },
                             {
                                 "type": "text",
-                                "text": "Describe this video in detail. Provide a comprehensive caption."
+                                "text": prompt_text
                             }
                         ]
                     }
                 ]
             }
             
-            print(f"    Generating caption with {bedrock_model_id}...")
+            print(f"    Generating caption with {bedrock_model_id} (temperature=0)...")
             try:
                 response = self.bedrock_client.invoke_model(
                     modelId=bedrock_model_id,
@@ -310,12 +339,17 @@ class AmazonBedrockCaptionImpl(VisualCaptioner):
                 
                 response_body = json.loads(response['body'].read())
                 caption = response_body.get('content', [{}])[0].get('text', 'Unable to generate caption.')
+                
+                # 打印完整的响应
+                print("\n" + "=" * 80)
+                print("=== [AWS Bedrock Caption] Full Response ===")
+                print("=" * 80)
+                print(caption)
+                print("=" * 80 + "\n")
             except Exception as e:
                 print(f"    Warning: Direct video analysis may not be supported. Error: {e}")
                 # 降级处理：返回基本信息
                 caption = f"Video analysis requested for {target_uri} using {self.model_name}. Note: Full video captioning may require additional processing."
-        
-        print(f"    Caption generated: {caption[:100]}...")
         
         return {
             "provider": "amazon_bedrock",
@@ -351,11 +385,21 @@ class AmazonBedrockLLMImpl(LLMQuery):
         
         bedrock_model_id = model_id_map.get(self.model_name, self.model_name)
         
+        # 强制设置temperature为0以确保确定性输出
+        temperature = 0
+        
+        # 打印完整的prompt
+        print("\n" + "=" * 80)
+        print("=== [AWS Bedrock LLM] Full Prompt ===")
+        print("=" * 80)
+        print(prompt)
+        print("=" * 80 + "\n")
+        
         # 构建请求体（Claude 3 格式）
         request_body = {
             "anthropic_version": "bedrock-2023-05-31",
             "max_tokens": kwargs.get('max_tokens', 2048),
-            "temperature": kwargs.get('temperature', 0.7),
+            "temperature": temperature,
             "messages": [
                 {
                     "role": "user",
@@ -364,7 +408,7 @@ class AmazonBedrockLLMImpl(LLMQuery):
             ]
         }
         
-        print(f"    Sending prompt to {bedrock_model_id}...")
+        print(f"    Sending prompt to {bedrock_model_id} (temperature={temperature})...")
         try:
             response = self.bedrock_client.invoke_model(
                 modelId=bedrock_model_id,
@@ -374,7 +418,12 @@ class AmazonBedrockLLMImpl(LLMQuery):
             response_body = json.loads(response['body'].read())
             answer = response_body.get('content', [{}])[0].get('text', 'Unable to generate response.')
             
-            print(f"    Response received: {answer[:100]}...")
+            # 打印完整的响应
+            print("\n" + "=" * 80)
+            print("=== [AWS Bedrock LLM] Full Response ===")
+            print("=" * 80)
+            print(answer)
+            print("=" * 80 + "\n")
             
             return {
                 "provider": "amazon_bedrock",

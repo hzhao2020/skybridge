@@ -38,20 +38,36 @@ class OpenAILLMImpl(LLMQuery):
     def execute(self, prompt: str, **kwargs) -> Dict[str, Any]:
         print(f"--- [OpenAI] Model: {self.model_name} ---")
         
+        # 强制设置temperature为0以确保确定性输出
+        temperature = 0
+        
+        # 打印完整的prompt
+        print("\n" + "=" * 80)
+        print("=== [OpenAI] Full Prompt ===")
+        print("=" * 80)
+        print(prompt)
+        print("=" * 80 + "\n")
+        
         # 调用 OpenAI API
-        print(f"    Sending prompt to {self.model_name}...")
+        print(f"    Sending prompt to {self.model_name} (temperature={temperature})...")
         try:
             response = self.openai_client.chat.completions.create(
                 model=self.model_name,
                 messages=[
                     {"role": "user", "content": prompt}
                 ],
-                temperature=kwargs.get('temperature', 0),
+                temperature=temperature,
                 max_tokens=kwargs.get('max_tokens', 2048)
             )
             
             answer = response.choices[0].message.content
-            print(f"    Response received: {answer[:100]}...")
+            
+            # 打印完整的响应
+            print("\n" + "=" * 80)
+            print("=== [OpenAI] Full Response ===")
+            print("=" * 80)
+            print(answer)
+            print("=" * 80 + "\n")
             
             return {
                 "provider": "openai",

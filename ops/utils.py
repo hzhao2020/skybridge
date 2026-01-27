@@ -74,8 +74,20 @@ class DataTransmission:
         return self._gcs_client
 
     def _parse_uri(self, uri: str):
+        """解析 URI，返回 (scheme, bucket, key)
+        
+        Raises:
+            ValueError: 如果 URI 格式无效
+        """
         parsed = urlparse(uri)
-        return parsed.scheme, parsed.netloc, parsed.path.lstrip('/')
+        scheme = parsed.scheme
+        bucket = parsed.netloc
+        key = parsed.path.lstrip('/')
+        
+        if not scheme or not bucket:
+            raise ValueError(f"Invalid URI format: {uri}. Expected format: s3://bucket/key or gs://bucket/key")
+        
+        return scheme, bucket, key
     
     def transfer_s3_to_s3(self, s3_uri: str, target_s3_bucket: str, target_path: Optional[str] = None) -> str:
         """S3 -> S3 跨 region 传输（流式直传，不落盘）
@@ -86,6 +98,11 @@ class DataTransmission:
             target_path: 目标路径（目录），如果为 None 则使用源文件的完整路径（保持相同路径结构）
         """
         scheme, s3_bucket, s3_key = self._parse_uri(s3_uri)
+        
+        # 验证 scheme
+        if scheme != 's3':
+            raise ValueError(f"Expected s3:// URI, got {scheme}:// in {s3_uri}")
+        
         filename = os.path.basename(s3_key)
         
         if target_path:
@@ -97,10 +114,14 @@ class DataTransmission:
         
         logger.info(f"[Bridge] S3 -> S3 跨 region 传输: {s3_uri} -> s3://{target_s3_bucket}/{target_key}")
         
-        # 使用 copy_object 进行跨 region 复制（更高效）
-        copy_source = {'Bucket': s3_bucket, 'Key': s3_key}
-        self.s3_client.copy_object(CopySource=copy_source, Bucket=target_s3_bucket, Key=target_key)
-        return f"s3://{target_s3_bucket}/{target_key}"
+        try:
+            # 使用 copy_object 进行跨 region 复制（更高效）
+            copy_source = {'Bucket': s3_bucket, 'Key': s3_key}
+            self.s3_client.copy_object(CopySource=copy_source, Bucket=target_s3_bucket, Key=target_key)
+            return f"s3://{target_s3_bucket}/{target_key}"
+        except Exception as e:
+            logger.error(f"Failed to transfer S3 to S3: {s3_uri} -> s3://{target_s3_bucket}/{target_key}: {e}")
+            raise
     
     def transfer_gcs_to_gcs(self, gcs_uri: str, target_gcs_bucket: str, target_path: Optional[str] = None) -> str:
         """GCS -> GCS 跨 region 传输（流式直传，不落盘）
@@ -111,6 +132,11 @@ class DataTransmission:
             target_path: 目标路径（目录），如果为 None 则使用源文件的完整路径（保持相同路径结构）
         """
         scheme, gcs_bucket, gcs_blob = self._parse_uri(gcs_uri)
+        
+        # 验证 scheme
+        if scheme != 'gs':
+            raise ValueError(f"Expected gs:// URI, got {scheme}:// in {gcs_uri}")
+        
         filename = os.path.basename(gcs_blob)
         
         if target_path:
@@ -122,13 +148,17 @@ class DataTransmission:
         
         logger.info(f"[Bridge] GCS -> GCS 跨 region 传输: {gcs_uri} -> gs://{target_gcs_bucket}/{target_blob}")
         
-        # 使用 copy_blob 进行跨 region 复制（更高效）
-        source_bucket = self.gcs_client.bucket(gcs_bucket)
-        source_blob = source_bucket.blob(gcs_blob)
-        target_bucket = self.gcs_client.bucket(target_gcs_bucket)
-        target_blob_obj = target_bucket.blob(target_blob)
-        target_blob_obj.rewrite(source_blob)
-        return f"gs://{target_gcs_bucket}/{target_blob}"
+        try:
+            # 使用 copy_blob 进行跨 region 复制（更高效）
+            source_bucket = self.gcs_client.bucket(gcs_bucket)
+            source_blob = source_bucket.blob(gcs_blob)
+            target_bucket = self.gcs_client.bucket(target_gcs_bucket)
+            target_blob_obj = target_bucket.blob(target_blob)
+            target_blob_obj.rewrite(source_blob)
+            return f"gs://{target_gcs_bucket}/{target_blob}"
+        except Exception as e:
+            logger.error(f"Failed to transfer GCS to GCS: {gcs_uri} -> gs://{target_gcs_bucket}/{target_blob}: {e}")
+            raise
 
     def upload_local_to_cloud(self, local_path: str, provider: str, target_bucket: str, target_path: Optional[str] = None) -> str:
         """将本地文件上传到指定云存储桶
@@ -157,18 +187,22 @@ class DataTransmission:
         
         logger.info(f"Uploading local file {filename} to {provider} bucket {target_bucket}/{cloud_key}...")
 
-        if provider == 'google':
-            bucket = self.gcs_client.bucket(target_bucket)
-            blob = bucket.blob(cloud_key)
-            blob.upload_from_filename(local_path)
-            return f"gs://{target_bucket}/{cloud_key}"
+        try:
+            if provider == 'google':
+                bucket = self.gcs_client.bucket(target_bucket)
+                blob = bucket.blob(cloud_key)
+                blob.upload_from_filename(local_path)
+                return f"gs://{target_bucket}/{cloud_key}"
 
-        elif provider == 'amazon':
-            self.s3_client.upload_file(local_path, target_bucket, cloud_key)
-            return f"s3://{target_bucket}/{cloud_key}"
+            elif provider == 'amazon':
+                self.s3_client.upload_file(local_path, target_bucket, cloud_key)
+                return f"s3://{target_bucket}/{cloud_key}"
 
-        else:
-            raise ValueError(f"Unknown provider: {provider}")
+            else:
+                raise ValueError(f"Unknown provider: {provider}. Expected 'google' or 'amazon'")
+        except Exception as e:
+            logger.error(f"Failed to upload local file {local_path} to {provider} bucket {target_bucket}/{cloud_key}: {e}")
+            raise
 
     def transfer_s3_to_gcs(self, s3_uri: str, target_gcs_bucket: str, target_path: Optional[str] = None) -> str:
         """AWS S3 -> Google GCS 流式直传（不落盘，降低延迟）
@@ -188,29 +222,33 @@ class DataTransmission:
             # 如果没有指定target_path，使用源文件的完整路径（保持相同路径结构，只是bucket不同）
             gcs_key = s3_key
 
+        # 验证 scheme
+        if scheme != 's3':
+            raise ValueError(f"Expected s3:// URI, got {scheme}:// in {s3_uri}")
+        
         logger.info(f"[Bridge] S3 -> GCS 流式直传: {s3_uri} -> gs://{target_gcs_bucket}/{gcs_key}")
-        resp = self.s3_client.get_object(Bucket=s3_bucket, Key=s3_key)
-        body = resp["Body"]
-        size = resp.get("ContentLength")
+        
+        try:
+            resp = self.s3_client.get_object(Bucket=s3_bucket, Key=s3_key)
+            body = resp["Body"]
 
-        class _S3StreamAdapter(io.RawIOBase):
-            def __init__(self, s3_body):
-                self._body = s3_body
-
-            def read(self, amt=-1):
-                return self._body.read(amt) if amt != -1 else self._body.read()
-
-            def readable(self):
-                return True
-
-            def seekable(self):
-                return False
-
-        adapter = _S3StreamAdapter(body)
-        bucket = self.gcs_client.bucket(target_gcs_bucket)
-        blob = bucket.blob(gcs_key)
-        blob.upload_from_file(adapter, rewind=False, size=size)
-        return f"gs://{target_gcs_bucket}/{gcs_key}"
+            bucket = self.gcs_client.bucket(target_gcs_bucket)
+            blob = bucket.blob(gcs_key)
+            
+            # 使用 blob.open("wb") 进行流式写入，避免 upload_from_file 对不可寻址流的限制
+            # 这与 transfer_gcs_to_s3 中的 blob.open("rb") 方法对应
+            with blob.open("wb") as gcs_stream:
+                # 分块读取 S3 数据并写入 GCS，避免一次性加载到内存
+                chunk_size = 8192  # 8KB chunks
+                while True:
+                    chunk = body.read(chunk_size)
+                    if not chunk:
+                        break
+                    gcs_stream.write(chunk)
+            return f"gs://{target_gcs_bucket}/{gcs_key}"
+        except Exception as e:
+            logger.error(f"Failed to transfer S3 to GCS: {s3_uri} -> gs://{target_gcs_bucket}/{gcs_key}: {e}")
+            raise
 
     def transfer_gcs_to_s3(self, gcs_uri: str, target_s3_bucket: str, target_path: Optional[str] = None) -> str:
         """Google GCS -> AWS S3 流式直传（不落盘，降低延迟）
@@ -230,12 +268,21 @@ class DataTransmission:
             # 如果没有指定target_path，使用源文件的完整路径（保持相同路径结构，只是bucket不同）
             s3_key = gcs_blob
 
+        # 验证 scheme
+        if scheme != 'gs':
+            raise ValueError(f"Expected gs:// URI, got {scheme}:// in {gcs_uri}")
+        
         logger.info(f"[Bridge] GCS -> S3 流式直传: {gcs_uri} -> s3://{target_s3_bucket}/{s3_key}")
-        bucket = self.gcs_client.bucket(gcs_bucket)
-        blob = bucket.blob(gcs_blob)
-        with blob.open("rb") as stream:
-            self.s3_client.upload_fileobj(stream, target_s3_bucket, s3_key)
-        return f"s3://{target_s3_bucket}/{s3_key}"
+        
+        try:
+            bucket = self.gcs_client.bucket(gcs_bucket)
+            blob = bucket.blob(gcs_blob)
+            with blob.open("rb") as stream:
+                self.s3_client.upload_fileobj(stream, target_s3_bucket, s3_key)
+            return f"s3://{target_s3_bucket}/{s3_key}"
+        except Exception as e:
+            logger.error(f"Failed to transfer GCS to S3: {gcs_uri} -> s3://{target_s3_bucket}/{s3_key}: {e}")
+            raise
 
     def smart_move(self, source_uri: str, target_provider: str, target_bucket: str, target_path: Optional[str] = None, target_region: Optional[str] = None) -> str:
         """
@@ -277,8 +324,13 @@ class DataTransmission:
         elif target_provider == 'amazon' and scheme == 'gs':
             # GCS -> S3 跨云传输
             return self.transfer_gcs_to_s3(source_uri, target_bucket, target_path)
-
-        return source_uri
+        else:
+            # 未匹配的情况：可能是无效的 provider 或 scheme 组合
+            logger.warning(
+                f"smart_move: No transfer method matched for source_uri={source_uri} "
+                f"(scheme={scheme}), target_provider={target_provider}. Returning source_uri unchanged."
+            )
+            return source_uri
 
 
 # class DataStorageHelper:

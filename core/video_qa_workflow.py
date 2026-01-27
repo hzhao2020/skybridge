@@ -355,12 +355,12 @@ class VideoQAWorkflow(Workflow):
         else:
             print("⚠ 警告：没有视频描述内容，LLM将仅基于问题和选项回答")
         
-        # 调试输出：显示实际发送给LLM的prompt（前500字符）
-        print(f"\n=== 发送给LLM的Prompt（前500字符）===")
-        print(prompt[:500])
-        if len(prompt) > 500:
-            print("...")
-        print("=" * 50)
+        # 打印完整的prompt
+        print("\n" + "=" * 80)
+        print("=== [VideoQA Workflow] Full Prompt to LLM ===")
+        print("=" * 80)
+        print(prompt)
+        print("=" * 80 + "\n")
         
         # 检查OpenAI配置
         if llm_op.provider == "openai":
@@ -369,22 +369,25 @@ class VideoQAWorkflow(Workflow):
             except Exception:
                 print("检测到你选择了 OpenAI，但 Python 包 `openai` 未安装。")
                 print("请先安装：pip install openai\n")
-                print("=== Prompt ===")
-                print(prompt)
                 return {"llm_response": "", "prompt": prompt}
             
             if not os.getenv("OPENAI_API_KEY"):
                 print("检测到你选择了 OpenAI，但环境变量 OPENAI_API_KEY 未设置。")
                 print("我先把 prompt 打印出来（你设置好 key 后再运行即可）。\n")
                 print("如需使用第三方兼容平台，请同时设置：OPENAI_BASE_URL（例如 https://api.openai-proxy.org/v1）")
-                print("=== Prompt ===")
-                print(prompt)
                 return {"llm_response": "", "prompt": prompt}
         
-        # 执行LLM查询
-        print("正在提交查询到 LLM...")
-        llm_res = llm_op.execute(prompt, temperature=0.2, max_tokens=64)
+        # 执行LLM查询，强制设置temperature=0以确保确定性输出
+        print("正在提交查询到 LLM (temperature=0)...")
+        llm_res = llm_op.execute(prompt, temperature=0, max_tokens=64)
         text = (llm_res or {}).get("response") or ""
+        
+        # 打印完整的LLM响应（如果LLM实现没有打印的话，这里再打印一次）
+        print("\n" + "=" * 80)
+        print("=== [VideoQA Workflow] Full LLM Response ===")
+        print("=" * 80)
+        print(text)
+        print("=" * 80 + "\n")
         
         return {"llm_response": text, "prompt": prompt}
     
