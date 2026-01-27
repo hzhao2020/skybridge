@@ -8,6 +8,7 @@ Operation 辅助工具类
 import io
 import os
 import logging
+import time
 from urllib.parse import urlparse
 from typing import Optional, List
 
@@ -112,15 +113,38 @@ class DataTransmission:
             # 如果没有指定target_path，使用源文件的完整路径（保持相同路径结构，只是bucket不同）
             target_key = s3_key
         
-        logger.info(f"[Bridge] S3 -> S3 跨 region 传输: {s3_uri} -> s3://{target_s3_bucket}/{target_key}")
+        target_uri = f"s3://{target_s3_bucket}/{target_key}"
+        logger.info(f"[Bridge] S3 -> S3 跨 region 传输: {s3_uri} -> {target_uri}")
         
+        # 打印传输信息
+        print(f"\n[数据传输] S3 -> S3 跨 region 传输")
+        print(f"  原视频位置: {s3_uri}")
+        print(f"  目标位置: {target_uri}")
+        print(f"  传输中...")
+        
+        # 记录传输时间
+        start_time = time.time()
         try:
             # 使用 copy_object 进行跨 region 复制（更高效）
             copy_source = {'Bucket': s3_bucket, 'Key': s3_key}
             self.s3_client.copy_object(CopySource=copy_source, Bucket=target_s3_bucket, Key=target_key)
-            return f"s3://{target_s3_bucket}/{target_key}"
+            end_time = time.time()
+            print(f"  ✓ 传输完成 (耗时: {end_time - start_time:.2f} 秒)\n")
+            
+            # 记录传输时间（记录传输发生的operation）
+            try:
+                from utils.timing import TimingRecorder
+                recorder = TimingRecorder()
+                recorder.record_transmission(
+                    s3_uri, target_uri, "transfer_s3_to_s3", start_time, end_time,
+                    operation=recorder._current_operation
+                )
+            except Exception:
+                pass  # 如果记录失败，不影响主流程
+            
+            return target_uri
         except Exception as e:
-            logger.error(f"Failed to transfer S3 to S3: {s3_uri} -> s3://{target_s3_bucket}/{target_key}: {e}")
+            logger.error(f"Failed to transfer S3 to S3: {s3_uri} -> {target_uri}: {e}")
             raise
     
     def transfer_gcs_to_gcs(self, gcs_uri: str, target_gcs_bucket: str, target_path: Optional[str] = None) -> str:
@@ -146,8 +170,17 @@ class DataTransmission:
             # 如果没有指定target_path，使用源文件的完整路径（保持相同路径结构，只是bucket不同）
             target_blob = gcs_blob
         
-        logger.info(f"[Bridge] GCS -> GCS 跨 region 传输: {gcs_uri} -> gs://{target_gcs_bucket}/{target_blob}")
+        target_uri = f"gs://{target_gcs_bucket}/{target_blob}"
+        logger.info(f"[Bridge] GCS -> GCS 跨 region 传输: {gcs_uri} -> {target_uri}")
         
+        # 打印传输信息
+        print(f"\n[数据传输] GCS -> GCS 跨 region 传输")
+        print(f"  原视频位置: {gcs_uri}")
+        print(f"  目标位置: {target_uri}")
+        print(f"  传输中...")
+        
+        # 记录传输时间
+        start_time = time.time()
         try:
             # 使用 copy_blob 进行跨 region 复制（更高效）
             source_bucket = self.gcs_client.bucket(gcs_bucket)
@@ -155,9 +188,23 @@ class DataTransmission:
             target_bucket = self.gcs_client.bucket(target_gcs_bucket)
             target_blob_obj = target_bucket.blob(target_blob)
             target_blob_obj.rewrite(source_blob)
-            return f"gs://{target_gcs_bucket}/{target_blob}"
+            end_time = time.time()
+            print(f"  ✓ 传输完成 (耗时: {end_time - start_time:.2f} 秒)\n")
+            
+            # 记录传输时间（记录传输发生的operation）
+            try:
+                from utils.timing import TimingRecorder
+                recorder = TimingRecorder()
+                recorder.record_transmission(
+                    gcs_uri, target_uri, "transfer_gcs_to_gcs", start_time, end_time,
+                    operation=recorder._current_operation
+                )
+            except Exception:
+                pass  # 如果记录失败，不影响主流程
+            
+            return target_uri
         except Exception as e:
-            logger.error(f"Failed to transfer GCS to GCS: {gcs_uri} -> gs://{target_gcs_bucket}/{target_blob}: {e}")
+            logger.error(f"Failed to transfer GCS to GCS: {gcs_uri} -> {target_uri}: {e}")
             raise
 
     def upload_local_to_cloud(self, local_path: str, provider: str, target_bucket: str, target_path: Optional[str] = None) -> str:
@@ -187,19 +234,47 @@ class DataTransmission:
         
         logger.info(f"Uploading local file {filename} to {provider} bucket {target_bucket}/{cloud_key}...")
 
+        # 构建目标URI用于打印
+        if provider == 'google':
+            target_uri = f"gs://{target_bucket}/{cloud_key}"
+        elif provider == 'amazon':
+            target_uri = f"s3://{target_bucket}/{cloud_key}"
+        else:
+            raise ValueError(f"Unknown provider: {provider}. Expected 'google' or 'amazon'")
+        
+        # 打印传输信息
+        print(f"\n[数据传输] 本地文件上传到 {provider.upper()}")
+        print(f"  原视频位置: {local_path}")
+        print(f"  目标位置: {target_uri}")
+        print(f"  传输中...")
+
+        # 记录传输时间
+        start_time = time.time()
         try:
             if provider == 'google':
                 bucket = self.gcs_client.bucket(target_bucket)
                 blob = bucket.blob(cloud_key)
                 blob.upload_from_filename(local_path)
-                return f"gs://{target_bucket}/{cloud_key}"
-
             elif provider == 'amazon':
                 self.s3_client.upload_file(local_path, target_bucket, cloud_key)
-                return f"s3://{target_bucket}/{cloud_key}"
-
             else:
                 raise ValueError(f"Unknown provider: {provider}. Expected 'google' or 'amazon'")
+            
+            end_time = time.time()
+            print(f"  ✓ 传输完成 (耗时: {end_time - start_time:.2f} 秒)\n")
+            
+            # 记录传输时间（记录传输发生的operation）
+            try:
+                from utils.timing import TimingRecorder
+                recorder = TimingRecorder()
+                recorder.record_transmission(
+                    local_path, target_uri, f"upload_local_to_{provider}", start_time, end_time,
+                    operation=recorder._current_operation
+                )
+            except Exception:
+                pass  # 如果记录失败，不影响主流程
+            
+            return target_uri
         except Exception as e:
             logger.error(f"Failed to upload local file {local_path} to {provider} bucket {target_bucket}/{cloud_key}: {e}")
             raise
@@ -226,8 +301,17 @@ class DataTransmission:
         if scheme != 's3':
             raise ValueError(f"Expected s3:// URI, got {scheme}:// in {s3_uri}")
         
-        logger.info(f"[Bridge] S3 -> GCS 流式直传: {s3_uri} -> gs://{target_gcs_bucket}/{gcs_key}")
+        target_uri = f"gs://{target_gcs_bucket}/{gcs_key}"
+        logger.info(f"[Bridge] S3 -> GCS 流式直传: {s3_uri} -> {target_uri}")
         
+        # 打印传输信息
+        print(f"\n[数据传输] S3 -> GCS 跨云传输")
+        print(f"  原视频位置: {s3_uri}")
+        print(f"  目标位置: {target_uri}")
+        print(f"  传输中...")
+        
+        # 记录传输时间
+        start_time = time.time()
         try:
             resp = self.s3_client.get_object(Bucket=s3_bucket, Key=s3_key)
             body = resp["Body"]
@@ -245,9 +329,23 @@ class DataTransmission:
                     if not chunk:
                         break
                     gcs_stream.write(chunk)
-            return f"gs://{target_gcs_bucket}/{gcs_key}"
+            end_time = time.time()
+            print(f"  ✓ 传输完成 (耗时: {end_time - start_time:.2f} 秒)\n")
+            
+            # 记录传输时间（记录传输发生的operation）
+            try:
+                from utils.timing import TimingRecorder
+                recorder = TimingRecorder()
+                recorder.record_transmission(
+                    s3_uri, target_uri, "transfer_s3_to_gcs", start_time, end_time,
+                    operation=recorder._current_operation
+                )
+            except Exception:
+                pass  # 如果记录失败，不影响主流程
+            
+            return target_uri
         except Exception as e:
-            logger.error(f"Failed to transfer S3 to GCS: {s3_uri} -> gs://{target_gcs_bucket}/{gcs_key}: {e}")
+            logger.error(f"Failed to transfer S3 to GCS: {s3_uri} -> {target_uri}: {e}")
             raise
 
     def transfer_gcs_to_s3(self, gcs_uri: str, target_s3_bucket: str, target_path: Optional[str] = None) -> str:
@@ -272,16 +370,39 @@ class DataTransmission:
         if scheme != 'gs':
             raise ValueError(f"Expected gs:// URI, got {scheme}:// in {gcs_uri}")
         
-        logger.info(f"[Bridge] GCS -> S3 流式直传: {gcs_uri} -> s3://{target_s3_bucket}/{s3_key}")
+        target_uri = f"s3://{target_s3_bucket}/{s3_key}"
+        logger.info(f"[Bridge] GCS -> S3 流式直传: {gcs_uri} -> {target_uri}")
         
+        # 打印传输信息
+        print(f"\n[数据传输] GCS -> S3 跨云传输")
+        print(f"  原视频位置: {gcs_uri}")
+        print(f"  目标位置: {target_uri}")
+        print(f"  传输中...")
+        
+        # 记录传输时间
+        start_time = time.time()
         try:
             bucket = self.gcs_client.bucket(gcs_bucket)
             blob = bucket.blob(gcs_blob)
             with blob.open("rb") as stream:
                 self.s3_client.upload_fileobj(stream, target_s3_bucket, s3_key)
-            return f"s3://{target_s3_bucket}/{s3_key}"
+            end_time = time.time()
+            print(f"  ✓ 传输完成 (耗时: {end_time - start_time:.2f} 秒)\n")
+            
+            # 记录传输时间（记录传输发生的operation）
+            try:
+                from utils.timing import TimingRecorder
+                recorder = TimingRecorder()
+                recorder.record_transmission(
+                    gcs_uri, target_uri, "transfer_gcs_to_s3", start_time, end_time,
+                    operation=recorder._current_operation
+                )
+            except Exception:
+                pass  # 如果记录失败，不影响主流程
+            
+            return target_uri
         except Exception as e:
-            logger.error(f"Failed to transfer GCS to S3: {gcs_uri} -> s3://{target_s3_bucket}/{s3_key}: {e}")
+            logger.error(f"Failed to transfer GCS to S3: {gcs_uri} -> {target_uri}: {e}")
             raise
 
     def smart_move(self, source_uri: str, target_provider: str, target_bucket: str, target_path: Optional[str] = None, target_region: Optional[str] = None) -> str:
@@ -308,6 +429,9 @@ class DataTransmission:
 
         # 2. 如果源 bucket 和目标 bucket 相同，直接返回（不需要移动）
         if source_bucket == target_bucket:
+            print(f"\n[数据传输] 跳过传输（源和目标相同）")
+            print(f"  视频位置: {source_uri}")
+            print(f"  无需传输\n")
             return source_uri
 
         # 3. bucket 不同，需要传输

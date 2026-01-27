@@ -29,6 +29,25 @@ class Operation(ABC):
         # 子类可以按需创建：self._storage_helper = DataStorageHelper(...)
         # self._storage_helper = None
 
+    def _record_operation_timing(self, operation_name: str, operation_pid: str, start_time: float, end_time: float):
+        """记录operation执行时间（排除传输时间）
+        
+        这个方法应该在operation的execute方法中调用，在传输完成后、实际处理开始前记录start_time，
+        在实际处理完成后记录end_time。
+        
+        Args:
+            operation_name: operation名称
+            operation_pid: operation的pid
+            start_time: operation实际开始时间（传输后）
+            end_time: operation结束时间
+        """
+        try:
+            from utils.timing import TimingRecorder
+            recorder = TimingRecorder()
+            recorder.record_operation(operation_name, operation_pid, start_time, end_time)
+        except Exception:
+            pass  # 如果记录失败，不影响主流程
+    
     def _build_result_path(self, video_uri: str, operation_name: str, filename: str, target_path: Optional[str] = None) -> str:
         """
         构建操作结果的存储路径

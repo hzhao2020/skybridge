@@ -1,0 +1,104 @@
+{
+  "workflow_name": "VideoQAWorkflow",
+  "start_time": 1769505308.1845853,
+  "end_time": 1769505447.8418946,
+  "total_duration": 139.657,
+  "start_time_formatted": "2026-01-27 17:15:08.184",
+  "end_time_formatted": "2026-01-27 17:17:27.841",
+  "operations": [
+    {
+      "operation_name": "segment",
+      "operation_pid": "seg_aws_eu",
+      "start_time": 1769505308.1846433,
+      "end_time": 1769505367.5913925,
+      "duration": 59.407,
+      "start_time_formatted": "2026-01-27 17:15:08.184",
+      "end_time_formatted": "2026-01-27 17:16:07.591"
+    },
+    {
+      "operation_name": "split",
+      "operation_pid": "split_google_sg",
+      "start_time": 1769505367.591414,
+      "end_time": 1769505379.0278633,
+      "duration": 11.436,
+      "start_time_formatted": "2026-01-27 17:16:07.591",
+      "end_time_formatted": "2026-01-27 17:16:19.027"
+    },
+    {
+      "operation_name": "caption_segment_1",
+      "operation_pid": "cap_google_flash_sg",
+      "start_time": 1769505379.0279007,
+      "end_time": 1769505393.161508,
+      "duration": 14.134,
+      "start_time_formatted": "2026-01-27 17:16:19.027",
+      "end_time_formatted": "2026-01-27 17:16:33.161"
+    },
+    {
+      "operation_name": "caption_segment_2",
+      "operation_pid": "cap_google_flash_sg",
+      "start_time": 1769505393.161535,
+      "end_time": 1769505407.4478455,
+      "duration": 14.286,
+      "start_time_formatted": "2026-01-27 17:16:33.161",
+      "end_time_formatted": "2026-01-27 17:16:47.447"
+    },
+    {
+      "operation_name": "caption_segment_3",
+      "operation_pid": "cap_google_flash_sg",
+      "start_time": 1769505407.447863,
+      "end_time": 1769505422.754665,
+      "duration": 15.307,
+      "start_time_formatted": "2026-01-27 17:16:47.447",
+      "end_time_formatted": "2026-01-27 17:17:02.754"
+    },
+    {
+      "operation_name": "caption_segment_4",
+      "operation_pid": "cap_google_flash_sg",
+      "start_time": 1769505422.754679,
+      "end_time": 1769505437.6024935,
+      "duration": 14.848,
+      "start_time_formatted": "2026-01-27 17:17:02.754",
+      "end_time_formatted": "2026-01-27 17:17:17.602"
+    },
+    {
+      "operation_name": "caption",
+      "operation_pid": "cap_google_flash_sg",
+      "start_time": 1769505379.0278866,
+      "end_time": 1769505437.6025178,
+      "duration": 58.575,
+      "start_time_formatted": "2026-01-27 17:16:19.027",
+      "end_time_formatted": "2026-01-27 17:17:17.602"
+    },
+    {
+      "operation_name": "llm_query",
+      "operation_pid": "llm_google_flash_sg",
+      "start_time": 1769505437.602576,
+      "end_time": 1769505447.8417444,
+      "duration": 10.239,
+      "start_time_formatted": "2026-01-27 17:17:17.602",
+      "end_time_formatted": "2026-01-27 17:17:27.841"
+    }
+  ],
+  "transmissions": [
+    {
+      "source": "datasets/EgoSchema/videos_sampled/0a8109fe-15b9-4f5c-b5f2-993013cb216b.mp4",
+      "destination": "s3://sky-video-eu/results/segment/0a8109fe-15b9-4f5c-b5f2-993013cb216b/0a8109fe-15b9-4f5c-b5f2-993013cb216b.mp4",
+      "transmission_type": "upload_local_to_amazon",
+      "start_time": 1769505308.1846797,
+      "end_time": 1769505320.497567,
+      "duration": 12.313,
+      "start_time_formatted": "2026-01-27 17:15:08.184",
+      "end_time_formatted": "2026-01-27 17:15:20.497"
+    },
+    {
+      "source": "s3://sky-video-eu/results/segment/0a8109fe-15b9-4f5c-b5f2-993013cb216b/0a8109fe-15b9-4f5c-b5f2-993013cb216b.mp4",
+      "destination": "gs://video_sg/results/split/0a8109fe-15b9-4f5c-b5f2-993013cb216b/0a8109fe-15b9-4f5c-b5f2-993013cb216b.mp4",
+      "transmission_type": "transfer_s3_to_gcs",
+      "start_time": 1769505367.591449,
+      "end_time": 1769505373.7045956,
+      "duration": 6.113,
+      "start_time_formatted": "2026-01-27 17:16:07.591",
+      "end_time_formatted": "2026-01-27 17:16:13.704"
+    }
+  ]
+}

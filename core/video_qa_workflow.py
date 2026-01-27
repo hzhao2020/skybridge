@@ -154,6 +154,7 @@ class VideoQAWorkflow(Workflow):
     def _execute_segment(self, workflow: Workflow, step: WorkflowStep) -> Dict[str, Any]:
         """执行视频分割步骤"""
         from ops.registry import get_operation
+        import time
         
         video_path = workflow.context.get("video_path")
         max_segments = workflow.context.get("max_segments", 12)
@@ -171,9 +172,26 @@ class VideoQAWorkflow(Workflow):
         # 获取operation
         segment_op = get_operation(step.operation_pid)
         
-        # 执行分割
+        # 执行分割（传输时间在operation内部，operation会记录实际开始时间）
         seg_res = segment_op.execute(video_path, target_path=target_path)
         segments = seg_res.get("segments") or []
+        
+        # 记录operation时间（如果operation没有记录，这里作为fallback）
+        # 注意：operation应该在execute方法中记录时间（排除传输时间）
+        # 这里只检查是否已记录，如果没有则记录整个步骤时间
+        try:
+            from utils.timing import TimingRecorder
+            recorder = TimingRecorder()
+            timing = recorder.get_timing()
+            if timing:
+                recorded = any(op.operation_name == step.name for op in timing.operations)
+                if not recorded:
+                    # 如果没有记录，说明operation没有在execute中记录时间
+                    # 这种情况下，我们无法区分传输时间和operation时间，所以不记录
+                    # 或者记录整个步骤时间作为fallback
+                    pass  # 暂时不记录，等待operation自己记录
+        except Exception:
+            pass
         
         # 获取云存储URI（segment operation已将视频上传到云存储）
         video_uri = seg_res.get("source_used") or seg_res.get("input_video") or video_path
@@ -238,6 +256,7 @@ class VideoQAWorkflow(Workflow):
     def _execute_caption(self, workflow: Workflow, step: WorkflowStep) -> Dict[str, Any]:
         """执行视频描述步骤：在 segment、split 之后，对每个分段视频分别 caption，再合并。"""
         from ops.registry import get_operation
+        import time
         
         segment_video_uris = workflow.context.get("segment_video_uris") or []
         video_path = workflow.context.get("video_path")
@@ -252,17 +271,43 @@ class VideoQAWorkflow(Workflow):
         caption_op = get_operation(step.operation_pid)
         all_captions = []
         
-        for i, video_uri in enumerate(segment_video_uris):
-            seg_idx = i + 1  # 1-based，与 concentrate_captions 中 [片段 N] 一致
-            try:
-                cap_res = caption_op.execute(video_uri, target_path=target_path)
-                cap_text = (cap_res or {}).get("caption", "") or ""
-                all_captions.append({"segment_idx": seg_idx, "caption": cap_text})
-                preview = cap_text[:80] + "..." if len(cap_text) > 80 else cap_text
-                print(f"✓ 片段 {seg_idx}/{len(segment_video_uris)} 描述完成: {preview}")
-            except Exception as e:
-                print(f"✗ 片段 {seg_idx}/{len(segment_video_uris)} 描述失败: {e}")
-                all_captions.append({"segment_idx": seg_idx, "caption": ""})
+        # 临时移除operation_pid，避免workflow.execute_step重复记录整个步骤的时间
+        # （因为我们会为每个片段单独记录时间）
+        original_operation_pid = step.operation_pid
+        step.operation_pid = None
+        
+        try:
+            for i, video_uri in enumerate(segment_video_uris):
+                seg_idx = i + 1  # 1-based，与 concentrate_captions 中 [片段 N] 一致
+                try:
+                    # 记录每个片段caption的时间
+                    seg_start_time = time.time()
+                    cap_res = caption_op.execute(video_uri, target_path=target_path)
+                    seg_end_time = time.time()
+                    
+                    # 记录每个片段的时间
+                    try:
+                        from utils.timing import TimingRecorder
+                        recorder = TimingRecorder()
+                        recorder.record_operation(
+                            f"caption_segment_{seg_idx}",
+                            original_operation_pid,
+                            seg_start_time,
+                            seg_end_time
+                        )
+                    except Exception:
+                        pass  # 如果记录失败，不影响主流程
+                    
+                    cap_text = (cap_res or {}).get("caption", "") or ""
+                    all_captions.append({"segment_idx": seg_idx, "caption": cap_text})
+                    preview = cap_text[:80] + "..." if len(cap_text) > 80 else cap_text
+                    print(f"✓ 片段 {seg_idx}/{len(segment_video_uris)} 描述完成: {preview}")
+                except Exception as e:
+                    print(f"✗ 片段 {seg_idx}/{len(segment_video_uris)} 描述失败: {e}")
+                    all_captions.append({"segment_idx": seg_idx, "caption": ""})
+        finally:
+            # 恢复operation_pid
+            step.operation_pid = original_operation_pid
         
         print(f"✓ 视频描述完成，共 {len(all_captions)} 个片段")
         return {"captions": all_captions}
@@ -358,14 +403,9 @@ class VideoQAWorkflow(Workflow):
         else:
             print("⚠ 警告：没有视频描述内容，LLM将仅基于问题和选项回答")
         
-        # 打印完整的prompt（确保完整打印，不截取）
-        print("\n" + "=" * 80)
-        print("=== [VideoQA Workflow] Full Prompt to LLM ===")
-        print("=" * 80)
-        print(prompt)
-        print("=" * 80)
+        # 打印prompt摘要（详细内容由operation内部打印）
         print(f"Prompt总长度: {len(prompt)} 字符")
-        print("=" * 80 + "\n")
+        print(f"包含 {len(all_captions)} 个片段的描述")
         
         # 检查OpenAI配置
         if llm_op.provider == "openai":
@@ -374,25 +414,31 @@ class VideoQAWorkflow(Workflow):
             except Exception:
                 print("检测到你选择了 OpenAI，但 Python 包 `openai` 未安装。")
                 print("请先安装：pip install openai\n")
+                # 如果OpenAI未配置，打印prompt以便调试
+                print("\n" + "=" * 80)
+                print("=== [VideoQA Workflow] Full Prompt to LLM ===")
+                print("=" * 80)
+                print(prompt)
+                print("=" * 80 + "\n")
                 return {"llm_response": "", "prompt": prompt}
             
             if not os.getenv("OPENAI_API_KEY"):
                 print("检测到你选择了 OpenAI，但环境变量 OPENAI_API_KEY 未设置。")
                 print("我先把 prompt 打印出来（你设置好 key 后再运行即可）。\n")
                 print("如需使用第三方兼容平台，请同时设置：OPENAI_BASE_URL（例如 https://api.openai-proxy.org/v1）")
+                # 如果OpenAI未配置，打印prompt以便调试
+                print("\n" + "=" * 80)
+                print("=== [VideoQA Workflow] Full Prompt to LLM ===")
+                print("=" * 80)
+                print(prompt)
+                print("=" * 80 + "\n")
                 return {"llm_response": "", "prompt": prompt}
         
         # 执行LLM查询，强制设置temperature=0以确保确定性输出
+        # 注意：prompt和response的详细打印由operation内部处理，这里不再重复打印
         print("正在提交查询到 LLM (temperature=0)...")
         llm_res = llm_op.execute(prompt, temperature=0, max_tokens=64)
         text = (llm_res or {}).get("response") or ""
-        
-        # 打印完整的LLM响应（如果LLM实现没有打印的话，这里再打印一次）
-        print("\n" + "=" * 80)
-        print("=== [VideoQA Workflow] Full LLM Response ===")
-        print("=" * 80)
-        print(text)
-        print("=" * 80 + "\n")
         
         return {"llm_response": text, "prompt": prompt}
     

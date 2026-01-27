@@ -1,0 +1,108 @@
+{
+  "workflow_name": "VideoQAWorkflow",
+  "start_time": 1769507295.0281005,
+  "end_time": 1769507445.186813,
+  "total_duration": 150.159,
+  "start_time_formatted": "2026-01-27 17:48:15.028",
+  "end_time_formatted": "2026-01-27 17:50:45.186",
+  "operations": [
+    {
+      "operation_name": "segment",
+      "operation_pid": "seg_aws_eu",
+      "start_time": 1769507299.8767223,
+      "end_time": 1769507366.945695,
+      "duration": 67.069,
+      "start_time_formatted": "2026-01-27 17:48:19.876",
+      "end_time_formatted": "2026-01-27 17:49:26.945"
+    },
+    {
+      "operation_name": "split",
+      "operation_pid": "split_google_sg",
+      "start_time": 1769507366.9457166,
+      "end_time": 1769507379.2175293,
+      "duration": 12.272,
+      "start_time_formatted": "2026-01-27 17:49:26.945",
+      "end_time_formatted": "2026-01-27 17:49:39.217"
+    },
+    {
+      "operation_name": "caption_segment_1",
+      "operation_pid": "cap_google_flash_sg",
+      "start_time": 1769507379.2175887,
+      "end_time": 1769507391.7408953,
+      "duration": 12.523,
+      "start_time_formatted": "2026-01-27 17:49:39.217",
+      "end_time_formatted": "2026-01-27 17:49:51.740"
+    },
+    {
+      "operation_name": "caption_segment_2",
+      "operation_pid": "cap_google_flash_sg",
+      "start_time": 1769507391.7409096,
+      "end_time": 1769507406.5422807,
+      "duration": 14.801,
+      "start_time_formatted": "2026-01-27 17:49:51.740",
+      "end_time_formatted": "2026-01-27 17:50:06.542"
+    },
+    {
+      "operation_name": "caption_segment_3",
+      "operation_pid": "cap_google_flash_sg",
+      "start_time": 1769507406.5422943,
+      "end_time": 1769507423.7768612,
+      "duration": 17.235,
+      "start_time_formatted": "2026-01-27 17:50:06.542",
+      "end_time_formatted": "2026-01-27 17:50:23.776"
+    },
+    {
+      "operation_name": "caption_segment_4",
+      "operation_pid": "cap_google_flash_sg",
+      "start_time": 1769507423.7768762,
+      "end_time": 1769507434.5287952,
+      "duration": 10.752,
+      "start_time_formatted": "2026-01-27 17:50:23.776",
+      "end_time_formatted": "2026-01-27 17:50:34.528"
+    },
+    {
+      "operation_name": "caption",
+      "operation_pid": "cap_google_flash_sg",
+      "start_time": 1769507379.2175717,
+      "end_time": 1769507434.5288122,
+      "duration": 55.311,
+      "start_time_formatted": "2026-01-27 17:49:39.217",
+      "end_time_formatted": "2026-01-27 17:50:34.528"
+    },
+    {
+      "operation_name": "llm_query",
+      "operation_pid": "llm_google_flash_sg",
+      "start_time": 1769507434.5288453,
+      "end_time": 1769507445.1866941,
+      "duration": 10.658,
+      "start_time_formatted": "2026-01-27 17:50:34.528",
+      "end_time_formatted": "2026-01-27 17:50:45.186"
+    }
+  ],
+  "transmissions": [
+    {
+      "source": "datasets/EgoSchema/videos_sampled/0a8109fe-15b9-4f5c-b5f2-993013cb216b.mp4",
+      "destination": "s3://sky-video-eu/results/segment/0a8109fe-15b9-4f5c-b5f2-993013cb216b/0a8109fe-15b9-4f5c-b5f2-993013cb216b.mp4",
+      "transmission_type": "upload_local_to_amazon",
+      "start_time": 1769507295.028206,
+      "end_time": 1769507299.8766866,
+      "duration": 4.848,
+      "start_time_formatted": "2026-01-27 17:48:15.028",
+      "end_time_formatted": "2026-01-27 17:48:19.876",
+      "before_operation": "segment",
+      "after_operation": "segment"
+    },
+    {
+      "source": "s3://sky-video-eu/results/segment/0a8109fe-15b9-4f5c-b5f2-993013cb216b/0a8109fe-15b9-4f5c-b5f2-993013cb216b.mp4",
+      "destination": "gs://video_sg/results/split/0a8109fe-15b9-4f5c-b5f2-993013cb216b/0a8109fe-15b9-4f5c-b5f2-993013cb216b.mp4",
+      "transmission_type": "transfer_s3_to_gcs",
+      "start_time": 1769507366.945761,
+      "end_time": 1769507374.8239074,
+      "duration": 7.878,
+      "start_time_formatted": "2026-01-27 17:49:26.945",
+      "end_time_formatted": "2026-01-27 17:49:34.823",
+      "before_operation": "split",
+      "after_operation": "split"
+    }
+  ]
+}

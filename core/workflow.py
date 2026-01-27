@@ -12,6 +12,7 @@ from typing import Dict, Any, List, Optional, Callable
 from dataclasses import dataclass, field
 from enum import Enum
 import os
+import time
 
 
 class StepStatus(Enum):
@@ -242,11 +243,61 @@ class Workflow(ABC):
         
         # 执行步骤
         step.status = StepStatus.RUNNING
+        
+        # 设置当前operation（用于传输时间记录）
+        try:
+            from utils.timing import TimingRecorder
+            recorder = TimingRecorder()
+            if step.operation_pid:
+                recorder.set_current_operation(step_name)
+        except Exception:
+            pass
+        
+        # 记录operation执行时间（如果步骤有operation_pid）
+        # 注意：operation时间应该在operation的execute方法中记录，排除传输时间
+        # 这里只作为fallback记录整个步骤时间
+        operation_start_time = None
+        operation_end_time = None
+        step_start_time = time.time()
+        
         try:
             if step.execute_func:
                 result = step.execute_func(self, step)
             else:
                 result = {"status": "no_execute_func", "message": "步骤未定义执行函数"}
+            
+            step_end_time = time.time()
+            
+            # 记录operation执行时间（排除传输时间）
+            if step.operation_pid:
+                try:
+                    from utils.timing import TimingRecorder
+                    recorder = TimingRecorder()
+                    timing = recorder.get_timing()
+                    if timing:
+                        # 检查是否已经记录了该operation
+                        recorded = any(op.operation_name == step_name for op in timing.operations)
+                        if not recorded:
+                            # 尝试从operation实际开始时间记录（排除传输时间）
+                            operation_actual_start_time = getattr(recorder, '_operation_actual_start_times', {}).get(step_name)
+                            if operation_actual_start_time:
+                                # 使用operation实际开始时间（排除传输时间）
+                                recorder.record_operation(
+                                    step_name,
+                                    step.operation_pid,
+                                    operation_actual_start_time,
+                                    step_end_time
+                                )
+                            else:
+                                # 如果没有operation实际开始时间，记录整个步骤时间（包含传输时间，作为fallback）
+                                recorder.record_operation(
+                                    step_name,
+                                    step.operation_pid,
+                                    step_start_time,
+                                    step_end_time
+                                )
+                except Exception:
+                    pass  # 如果记录失败，不影响主流程
             
             step.status = StepStatus.COMPLETED
             step.result = result
@@ -274,6 +325,14 @@ class Workflow(ABC):
         Returns:
             最终结果字典
         """
+        # 开始记录workflow时间
+        try:
+            from utils.timing import TimingRecorder
+            recorder = TimingRecorder()
+            recorder.start_workflow(self.name)
+        except Exception:
+            recorder = None
+        
         # 初始化context
         self.context = input_data.copy()
         self.context.update(kwargs)
@@ -297,6 +356,13 @@ class Workflow(ABC):
                 print(f"\n{'='*60}")
                 print(f"跳过步骤: {step_name} - {step.description}")
                 print(f"{'='*60}")
+        
+        # 结束记录workflow时间
+        if recorder:
+            try:
+                recorder.end_workflow()
+            except Exception:
+                pass
         
         # 返回最终结果
         return {

@@ -47,11 +47,11 @@ def run_workflow_demo():
     # 你可以通过修改这个配置来使用不同的provider/region/model组合
     config = {
         "segment": {
-            "operation_pid": "seg_google_tw",  # 可以改为 seg_google_us, seg_aws_eu 等
+            "operation_pid": "seg_aws_eu",  # 可以改为 seg_google_us, seg_aws_eu 等
             "enabled": True,
         },
         "split": {
-            "operation_pid": "split_aws_eu",  # 可以改为 split_google_us, split_aws_eu 等
+            "operation_pid": "split_google_sg",  # 可以改为 split_google_us, split_aws_eu 等
             "enabled": True,
         },
         "caption": {
@@ -118,7 +118,29 @@ def run_workflow_demo():
     # ========== 4) 执行workflow ==========
     result = workflow.execute(input_data)
     
-    # ========== 5) 处理结果 ==========
+    # ========== 5) 保存时间记录 ==========
+    try:
+        from utils.timing import TimingRecorder
+        import os
+        from datetime import datetime
+        
+        recorder = TimingRecorder()
+        timing = recorder.get_timing()
+        
+        if timing:
+            # 构建时间记录文件路径
+            qid = input_data.get("qid", "unknown")
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timing_dir = "timing_logs"
+            os.makedirs(timing_dir, exist_ok=True)
+            timing_filepath = os.path.join(timing_dir, f"timing_{qid}_{timestamp}.json")
+            
+            # 保存时间记录
+            recorder.save_to_file(timing_filepath)
+    except Exception as e:
+        print(f"警告：保存时间记录失败: {e}")
+    
+    # ========== 6) 处理结果 ==========
     print("\n" + "="*60)
     print("Workflow 执行完成！")
     print("="*60 + "\n")

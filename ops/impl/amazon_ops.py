@@ -66,20 +66,24 @@ class AmazonRekognitionSegmentImpl(VideoSegmenter):
             time.sleep(5)
     
     def execute(self, video_uri: str, **kwargs) -> Dict[str, Any]:
+        import time
         print(f"--- [AWS Rekognition] Region: {self.region} ---")
 
-        # 1. 确保数据在 AWS S3 的正确bucket中
+        # 1. 确保数据在 AWS S3 的正确bucket中（传输时间不包含在operation时间内）
         # 无论视频是否已在云存储，都需要确保在正确的bucket中
         target_path = kwargs.get('target_path')
         target_uri = self.transmitter.smart_move(video_uri, 'amazon', self.storage_bucket, target_path, target_region=self.region)
         print(f"    Data Ready: {target_uri}")
 
-        # 2. 解析 S3 URI
+        # 2. 传输完成，记录operation实际开始时间（排除传输时间）
+        operation_start_time = time.time()
+
+        # 3. 解析 S3 URI
         bucket, key = self._parse_uri(target_uri)
         
         print(f"    Processing video: s3://{bucket}/{key}")
 
-        # 3. 启动 Rekognition 视频分析任务
+        # 4. 启动 Rekognition 视频分析任务
         response = self.rekognition_client.start_segment_detection(
             Video={'S3Object': {'Bucket': bucket, 'Name': key}},
             SegmentTypes=['SHOT']
@@ -87,11 +91,11 @@ class AmazonRekognitionSegmentImpl(VideoSegmenter):
         job_id = response['JobId']
         print(f"    Job started: {job_id}")
 
-        # 4. 轮询等待结果
+        # 5. 轮询等待结果
         print("    Waiting for analysis to complete...")
         result = self._poll_segment_detection(job_id)
         
-        # 5. 解析结果，提取 segments
+        # 6. 解析结果，提取 segments
         segments = []
         if 'Segments' in result:
             for segment in result['Segments']:
@@ -104,7 +108,7 @@ class AmazonRekognitionSegmentImpl(VideoSegmenter):
         
         print(f"    Found {len(segments)} segments")
         
-        # 6. 可选：保存结果到 S3（输出结果放在results目录）
+        # 7. 可选：保存结果到 S3（输出结果放在results目录）
         output_path = kwargs.get('target_path')  # target_path 是输出路径
         if kwargs.get('save_results', True):
             result_key = self._build_result_path(target_uri, "segment", "result.json", output_path)
@@ -117,6 +121,22 @@ class AmazonRekognitionSegmentImpl(VideoSegmenter):
             print(f"    Results saved to: {result_uri}")
         else:
             result_uri = None
+        
+        # 8. 记录operation实际开始时间（传输完成后），供workflow记录operation时间使用
+        operation_end_time = time.time()
+        # 从TimingRecorder获取当前operation信息并存储实际开始时间
+        try:
+            from utils.timing import TimingRecorder
+            recorder = TimingRecorder()
+            current_operation = recorder._current_operation
+            if current_operation:
+                # 将operation实际开始时间存储到TimingRecorder中
+                # workflow可以在执行完成后获取并记录operation时间（排除传输时间）
+                if not hasattr(recorder, '_operation_actual_start_times'):
+                    recorder._operation_actual_start_times = {}
+                recorder._operation_actual_start_times[current_operation] = operation_start_time
+        except Exception:
+            pass  # 如果记录失败，不影响主流程
         
         return {
             "provider": "amazon",
