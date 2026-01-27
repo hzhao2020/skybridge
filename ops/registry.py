@@ -6,7 +6,7 @@ from typing import Dict, Optional
 
 from ops.base import Operation
 from ops.impl.google_ops import GoogleVideoSegmentImpl, GoogleVertexCaptionImpl, GoogleVertexLLMImpl, GoogleCloudFunctionSplitImpl, GoogleVertexEmbeddingImpl, GoogleVertexTextEmbeddingImpl, GoogleVideoIntelligenceObjectDetectionImpl
-from ops.impl.amazon_ops import AmazonRekognitionSegmentImpl, AmazonBedrockCaptionImpl, AmazonBedrockLLMImpl, AWSLambdaSplitImpl, AmazonBedrockEmbeddingImpl, AmazonBedrockTextEmbeddingImpl, AmazonRekognitionObjectDetectionImpl
+from ops.impl.amazon_ops import AmazonRekognitionSegmentImpl, AWSLambdaSplitImpl, AmazonRekognitionObjectDetectionImpl
 from ops.impl.openai_ops import OpenAILLMImpl
 # Storage 和 Transmission 操作直接使用 ops.utils 中的辅助类，不需要注册为 Operation
 
@@ -233,30 +233,6 @@ for model, slug in _gcp_cap_models:
             "model": model
         })
 
-# Amazon Bedrock (Nova) - 模型 x 区域 笛卡尔积
-_aws_cap_models = {
-    "nova-lite": "nova_lite",
-    "nova-pro": "nova_pro",
-}
-for model, slug in _aws_cap_models.items():
-    for reg in AWS_REGIONS:
-        if reg["region"] == "us-west-2":
-            pid_suffix = "us"
-        elif reg["region"] == "eu-central-1":
-            pid_suffix = "eu"
-        elif reg["region"] == "ap-southeast-1":
-            pid_suffix = "sg"
-        else:
-            pid_suffix = reg["region"].replace("-", "_")
-        pid = f"cap_aws_{slug}_{pid_suffix}"
-        VISUAL_CAPTION_CATALOG.append({
-            "pid": pid,
-            "cls": AmazonBedrockCaptionImpl,
-            "provider": "amazon",
-            "region": reg["region"],
-            "bucket_key": reg["bucket_key"],
-            "model": model
-        })
 
 # 3) LLM querying
 LLM_CATALOG = []
@@ -286,30 +262,6 @@ for model, slug in _gcp_llm_models.items():
             "model": model
         })
 
-# Amazon Bedrock (Claude) - 模型 x 区域
-_aws_llm_models = {
-    "claude-3-haiku": "haiku",
-    "claude-3.5-sonnet": "sonnet",
-}
-for model, slug in _aws_llm_models.items():
-    for reg in AWS_REGIONS:
-        if reg["region"] == "us-west-2":
-            pid_suffix = "us"
-        elif reg["region"] == "eu-central-1":
-            pid_suffix = "eu"
-        elif reg["region"] == "ap-southeast-1":
-            pid_suffix = "sg"
-        else:
-            pid_suffix = reg["region"].replace("-", "_")
-        pid = f"llm_aws_{slug}_{pid_suffix}"
-        LLM_CATALOG.append({
-            "pid": pid,
-            "cls": AmazonBedrockLLMImpl,
-            "provider": "amazon",
-            "region": reg["region"],
-            "bucket_key": reg["bucket_key"],
-            "model": model
-        })
 
 # OpenAI (无区域概念)
 LLM_CATALOG.extend([
@@ -340,26 +292,6 @@ for reg in GCP_REGIONS:  # GCP_REGIONS 已包含正确的3个区域
         "model": "multimodalembedding@001"
     })
 
-# Amazon Bedrock (Titan Multimodal Embeddings G1) - 支持3个区域
-# us-west-2 (Oregon), eu-central-1 (Frankfurt), ap-southeast-1 (Singapore)
-for reg in AWS_REGIONS:
-    if reg["region"] == "us-west-2":
-        pid_suffix = "us"
-    elif reg["region"] == "eu-central-1":
-        pid_suffix = "eu"
-    elif reg["region"] == "ap-southeast-1":
-        pid_suffix = "sg"
-    else:
-        pid_suffix = reg["region"].replace("-", "_")
-    pid = f"embed_aws_{pid_suffix}"
-    VISUAL_ENCODING_CATALOG.append({
-        "pid": pid,
-        "cls": AmazonBedrockEmbeddingImpl,
-        "provider": "amazon",
-        "region": reg["region"],
-        "bucket_key": reg["bucket_key"],
-        "model": "amazon.titan-embed-image-v1"
-    })
 
 # 5) Text encoding (embedding)
 TEXT_EMBEDDING_CATALOG = []
@@ -390,32 +322,6 @@ for model, slug in _gcp_text_embedding_models.items():
             "model": model
         })
 
-# Amazon Bedrock - 2个模型 × 3个区域
-# Titan Text Embeddings V2: us-west-2, eu-central-1, ap-southeast-1
-# Titan Embeddings G1 - Text: us-west-2, eu-central-1, ap-southeast-1
-_aws_text_embedding_models = {
-    "amazon.titan-embed-text-v2:0": "v2",
-    "amazon.titan-embed-text-v1": "v1",
-}
-for model, slug in _aws_text_embedding_models.items():
-    for reg in AWS_REGIONS:
-        if reg["region"] == "us-west-2":
-            pid_suffix = "us"
-        elif reg["region"] == "eu-central-1":
-            pid_suffix = "eu"
-        elif reg["region"] == "ap-southeast-1":
-            pid_suffix = "sg"
-        else:
-            pid_suffix = reg["region"].replace("-", "_")
-        pid = f"text_embed_aws_{slug}_{pid_suffix}"
-        TEXT_EMBEDDING_CATALOG.append({
-            "pid": pid,
-            "cls": AmazonBedrockTextEmbeddingImpl,
-            "provider": "amazon",
-            "region": reg["region"],
-            "bucket_key": reg["bucket_key"],
-            "model": model
-        })
 
 # 6) Object detection
 OBJECT_DETECTION_CATALOG = []

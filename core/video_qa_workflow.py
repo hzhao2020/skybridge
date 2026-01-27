@@ -317,49 +317,54 @@ class VideoQAWorkflow(Workflow):
             lines.append(f"{letter}. {opt}")
         
         # 添加合并后的captions
+        # 构建完整的caption内容（不截取，确保完整打印）
+        caption_content_lines = []
         if concentrated_captions:
-            lines.append("")
-            lines.append("="*50)
-            lines.append("视频内容描述：")
-            lines.append("="*50)
+            caption_content_lines.append("")
+            caption_content_lines.append("="*50)
+            caption_content_lines.append("视频内容描述：")
+            caption_content_lines.append("="*50)
             
-            # 如果captions太长，截取
-            max_length = 4000
-            if len(concentrated_captions) > max_length:
-                truncated_parts = []
-                current_length = 0
+            # 使用all_captions构建完整的caption列表，不截取
+            if all_captions:
+                caption_parts = []
                 for cap_info in all_captions:
                     seg_idx = int(cap_info.get("segment_idx", 0) or 0)
+                    caption_text = cap_info.get('caption', '')
                     if seg_idx > 0:
-                        cap_text = f"[片段 {seg_idx}] {cap_info.get('caption', '')}"
+                        cap_text = f"[片段 {seg_idx}] {caption_text}"
                     else:
-                        cap_text = f"[完整视频] {cap_info.get('caption', '')}"
-                    if current_length + len(cap_text) > max_length:
-                        break
-                    truncated_parts.append(cap_text)
-                    current_length += len(cap_text) + 2
-                
-                if truncated_parts:
-                    lines.append("\n\n".join(truncated_parts))
-                    lines.append(f"\n... (还有 {len(all_captions) - len(truncated_parts)} 个片段未显示)")
-                else:
-                    lines.append(concentrated_captions[:max_length] + "...")
+                        cap_text = f"[完整视频] {caption_text}"
+                    caption_parts.append(cap_text)
+                caption_content_lines.append("\n\n".join(caption_parts))
             else:
-                lines.append(concentrated_captions)
+                # 如果没有all_captions，使用concentrated_captions
+                caption_content_lines.append(concentrated_captions)
+        
+        # 将caption内容添加到prompt中
+        lines.extend(caption_content_lines)
         
         prompt = "\n".join(lines)
         
         print(f"Prompt 长度: {len(prompt)} 字符")
         if concentrated_captions:
             print(f"包含 {len(all_captions)} 个片段的描述")
+            # 打印caption的详细信息
+            for i, cap_info in enumerate(all_captions, 1):
+                seg_idx = cap_info.get("segment_idx", 0)
+                caption_text = cap_info.get('caption', '')
+                caption_len = len(caption_text)
+                print(f"  片段 {seg_idx} caption长度: {caption_len} 字符")
         else:
             print("⚠ 警告：没有视频描述内容，LLM将仅基于问题和选项回答")
         
-        # 打印完整的prompt
+        # 打印完整的prompt（确保完整打印，不截取）
         print("\n" + "=" * 80)
         print("=== [VideoQA Workflow] Full Prompt to LLM ===")
         print("=" * 80)
         print(prompt)
+        print("=" * 80)
+        print(f"Prompt总长度: {len(prompt)} 字符")
         print("=" * 80 + "\n")
         
         # 检查OpenAI配置

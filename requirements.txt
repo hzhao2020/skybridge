@@ -1,7 +1,7 @@
 # 核心机器学习框架
 torch>=2.0.0
 
-# AWS 服务（Amazon Bedrock, Rekognition, S3）
+# AWS 服务（Rekognition, S3）
 boto3>=1.28.0
 #
 # 说明：当本机 AWS 配置使用 SSO/Identity Center 等 “login credential provider” 时，

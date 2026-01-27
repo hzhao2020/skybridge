@@ -464,13 +464,14 @@ class GoogleVertexCaptionImpl(VisualCaptioner):
         try:
             # 尝试不同的调用方式，某些版本可能需要不同的参数格式
             # 强制设置temperature为0以确保确定性输出
+            # 增加max_output_tokens到8192以确保完整的视频描述（1024可能不够）
             try:
                 response = model.generate_content(
                     [video_part, prompt_text],
                     generation_config={
                         "temperature": 0,
                         "top_p": 0.95,
-                        "max_output_tokens": 1024,
+                        "max_output_tokens": 8192,  # 增加到8192以支持更长的视频描述
                     }
                 )
             except Exception as e1:
@@ -479,17 +480,30 @@ class GoogleVertexCaptionImpl(VisualCaptioner):
                 print("Warning: Using fallback method without explicit temperature=0")
                 response = model.generate_content([video_part, prompt_text])
             
-            # 检查响应是否被安全过滤器拦截 (避免 response.text 抛出 AttributeError)
-            if response.candidates and response.candidates[0].finish_reason == 3: # SAFETY
-                caption = "Content blocked by safety filters."
+            # 检查响应状态
+            finish_reason = None
+            if response.candidates and len(response.candidates) > 0:
+                finish_reason = response.candidates[0].finish_reason
+                
+                # finish_reason值：1=STOP(正常), 2=MAX_TOKENS(达到token限制), 3=SAFETY(安全拦截)
+                if finish_reason == 3:  # SAFETY
+                    caption = "Content blocked by safety filters."
+                elif finish_reason == 2:  # MAX_TOKENS
+                    caption = response.text if response.text else "No caption generated."
+                    print(f"⚠ Warning: Caption may be truncated due to max_output_tokens limit (finish_reason=MAX_TOKENS)")
+                else:
+                    caption = response.text if response.text else "No caption generated."
             else:
                 caption = response.text if response.text else "No caption generated."
             
-            # 打印完整的响应
+            # 打印完整的响应和finish_reason信息
             print("\n" + "=" * 80)
             print("=== [Google Vertex AI Caption] Full Response ===")
             print("=" * 80)
             print(caption)
+            if finish_reason is not None:
+                finish_reason_names = {1: "STOP", 2: "MAX_TOKENS", 3: "SAFETY"}
+                print(f"\nFinish reason: {finish_reason_names.get(finish_reason, finish_reason)}")
             print("=" * 80 + "\n")
                 
         except Exception as e:
