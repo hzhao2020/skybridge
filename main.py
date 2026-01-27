@@ -9,11 +9,31 @@ from utils.dataset import (
     ActivityNetQADataset,
 )
 from ops.registry import get_operation, REGISTRY
-from core.video_qa_workflow import VideoQAWorkflow
+from core.workflows.lvqa import LVQA
 
-# 配置代理（如果环境变量未设置，则使用默认值）
-if "https_proxy" not in os.environ:
-    os.environ["https_proxy"] = "http://127.0.0.1:7897"
+# 加载配置文件（如果存在）
+try:
+    import config
+    # 配置代理
+    if "https_proxy" not in os.environ and hasattr(config, 'HTTPS_PROXY'):
+        os.environ["https_proxy"] = config.HTTPS_PROXY
+    # 配置OpenAI API Key
+    if "OPENAI_API_KEY" not in os.environ and hasattr(config, 'OPENAI_API_KEY') and config.OPENAI_API_KEY:
+        os.environ["OPENAI_API_KEY"] = config.OPENAI_API_KEY
+    # 配置OpenAI Base URL
+    if "OPENAI_BASE_URL" not in os.environ and hasattr(config, 'OPENAI_BASE_URL') and config.OPENAI_BASE_URL:
+        os.environ["OPENAI_BASE_URL"] = config.OPENAI_BASE_URL
+    # 配置GCP Project Number
+    if "GCP_PROJECT_NUMBER" not in os.environ and hasattr(config, 'GCP_PROJECT_NUMBER') and config.GCP_PROJECT_NUMBER:
+        os.environ["GCP_PROJECT_NUMBER"] = config.GCP_PROJECT_NUMBER
+    # 配置GCP VideoSplit Service URLs
+    if "GCP_VIDEOSPLIT_SERVICE_URLS" not in os.environ and hasattr(config, 'GCP_VIDEOSPLIT_SERVICE_URLS') and config.GCP_VIDEOSPLIT_SERVICE_URLS:
+        import json
+        os.environ["GCP_VIDEOSPLIT_SERVICE_URLS"] = json.dumps(config.GCP_VIDEOSPLIT_SERVICE_URLS)
+except ImportError:
+    # 如果config.py不存在，使用默认值
+    if "https_proxy" not in os.environ:
+        os.environ["https_proxy"] = "http://127.0.0.1:7897"
 
 
 # 尽量在 Windows 控制台下正确输出中文
@@ -37,11 +57,11 @@ def run_workflow_demo():
     """
     使用抽象的Workflow框架运行demo
     
-    这个函数展示了如何使用VideoQAWorkflow来执行workflow。
+    这个函数展示了如何使用 LVQA 来执行 workflow。
     你可以通过配置来指定每个步骤使用的operation（通过pid）。
     """
     # ========== 1) 创建workflow实例 ==========
-    workflow = VideoQAWorkflow()
+    workflow = LVQA()
     
     # ========== 2) 配置workflow（指定每个步骤使用的operation） ==========
     # 你可以通过修改这个配置来使用不同的provider/region/model组合

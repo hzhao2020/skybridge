@@ -80,3 +80,11 @@ outputs/
 *.json.bak
 
 tmp.ipynb
+
+# Configuration file with sensitive information
+config.py
+
+# Timing logs
+timing_logs/
+
+test/
