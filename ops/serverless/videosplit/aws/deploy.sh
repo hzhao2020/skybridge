@@ -3,7 +3,7 @@
 # === 脚本配置 ===
 APP_NAME="video-splitter"
 ROLE_NAME="lambda-video-splitter-role"
-REGIONS=("us-west-2" "eu-central-1" "ap-southeast-1")
+REGIONS=("us-west-2" "ap-southeast-1")
 
 # 获取当前账户 ID
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)

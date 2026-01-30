@@ -69,11 +69,10 @@ class GoogleVideoSegmentImpl(VideoSegmenter):
     
     def _get_location_id(self):
         """将 region 转换为 Video Intelligence API 支持的 location_id"""
-        # Google Video Intelligence API 支持的区域映射（仅支持3个区域）
-        # us-west1 (Oregon), europe-west1 (Belgium), asia-east1 (Taiwan)
+        # Google Video Intelligence API 支持的区域映射（仅支持2个区域）
+        # us-west1 (Oregon), asia-east1 (Taiwan)
         region_to_location = {
             'us-west1': 'us-west1',
-            'europe-west1': 'europe-west1',
             'asia-east1': 'asia-east1',
         }
         return region_to_location.get(self.region)
@@ -121,7 +120,7 @@ class GoogleVideoSegmentImpl(VideoSegmenter):
         else:
             raise ValueError(
                 f"Unsupported region '{self.region}' for Google Video Intelligence. "
-                f"Supported regions: us-west1, europe-west1, asia-east1"
+                f"Supported regions: us-west1, asia-east1"
             )
         
         operation = self.video_client.annotate_video(request=request_dict)
@@ -161,11 +160,10 @@ class GoogleVertexCaptionImpl(VisualCaptioner):
     def _init_vertex_ai(self):
         """初始化 Vertex AI 客户端"""
         if self._vertex_client is None:
-            # Vertex AI 支持的区域映射（仅支持3个区域）
-            # us-west1 (Oregon), europe-west1 (Belgium), asia-southeast1 (Singapore)
+            # Vertex AI 支持的区域映射（仅支持2个区域）
+            # us-west1 (Oregon), asia-southeast1 (Singapore)
             region_locations = {
                 'us-west1': 'us-west1',
-                'europe-west1': 'europe-west1',
                 'asia-southeast1': 'asia-southeast1'
             }
             if self.region not in region_locations:
@@ -533,11 +531,10 @@ class GoogleVertexLLMImpl(LLMQuery):
         if self._vertex_client is None:
             if GenerativeModel is None:
                 raise ImportError("Vertex AI GenerativeModel not available. Install with: pip install google-cloud-aiplatform")
-            # Vertex AI 支持的区域映射（仅支持3个区域）
-            # us-west1 (Oregon), europe-west1 (Belgium), asia-southeast1 (Singapore)
+            # Vertex AI 支持的区域映射（仅支持2个区域）
+            # us-west1 (Oregon), asia-southeast1 (Singapore)
             region_locations = {
                 'us-west1': 'us-west1',
-                'europe-west1': 'europe-west1',
                 'asia-southeast1': 'asia-southeast1'
             }
             if self.region not in region_locations:
@@ -715,11 +712,10 @@ class GoogleVertexEmbeddingImpl(VisualEncoder):
         if self._embedding_model is None:
             if MultiModalEmbeddingModel is None:
                 raise ImportError("Vertex AI MultiModalEmbeddingModel not available. Install with: pip install google-cloud-aiplatform")
-            # Vertex AI 支持的区域映射（仅支持3个区域）
-            # us-west1 (Oregon), europe-west1 (Belgium), asia-southeast1 (Singapore)
+            # Vertex AI 支持的区域映射（仅支持2个区域）
+            # us-west1 (Oregon), asia-southeast1 (Singapore)
             region_locations = {
                 'us-west1': 'us-west1',
-                'europe-west1': 'europe-west1',
                 'asia-southeast1': 'asia-southeast1'
             }
             if self.region not in region_locations:
@@ -911,11 +907,10 @@ class GoogleVertexTextEmbeddingImpl(TextEncoder):
         if self._embedding_model is None:
             if TextEmbeddingModel is None:
                 raise ImportError("Vertex AI TextEmbeddingModel not available. Install with: pip install google-cloud-aiplatform")
-            # Vertex AI 支持的区域映射（仅支持3个区域）
-            # us-west1 (Oregon), europe-west1 (Belgium), asia-southeast1 (Singapore)
+            # Vertex AI 支持的区域映射（仅支持2个区域）
+            # us-west1 (Oregon), asia-southeast1 (Singapore)
             region_locations = {
                 'us-west1': 'us-west1',
-                'europe-west1': 'europe-west1',
                 'asia-southeast1': 'asia-southeast1'
             }
             if self.region not in region_locations:
@@ -1049,11 +1044,10 @@ class GoogleVideoIntelligenceObjectDetectionImpl(ObjectDetector):
     
     def _get_location_id(self):
         """将 region 转换为 Video Intelligence API 支持的 location_id"""
-        # Google Video Intelligence API 支持的区域映射（仅支持3个区域）
-        # us-west1 (Oregon), europe-west1 (Belgium), asia-east1 (Taiwan)
+        # Google Video Intelligence API 支持的区域映射（仅支持2个区域）
+        # us-west1 (Oregon), asia-east1 (Taiwan)
         region_to_location = {
             'us-west1': 'us-west1',
-            'europe-west1': 'europe-west1',
             'asia-east1': 'asia-east1',
         }
         return region_to_location.get(self.region)
@@ -1109,7 +1103,7 @@ class GoogleVideoIntelligenceObjectDetectionImpl(ObjectDetector):
         else:
             raise ValueError(
                 f"Unsupported region '{self.region}' for Google Video Intelligence. "
-                f"Supported regions: us-west1, europe-west1, asia-east1"
+                f"Supported regions: us-west1, asia-east1"
             )
         
         operation = self.video_client.annotate_video(request=request_dict)

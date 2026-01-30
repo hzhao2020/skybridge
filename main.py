@@ -64,22 +64,22 @@ def run_workflow_demo():
     workflow = LVQA()
     
     # ========== 2) 配置workflow（指定每个步骤使用的operation） ==========
-    # 你可以通过修改这个配置来使用不同的provider/region/model组合
     config = {
         "segment": {
-            "operation_pid": "seg_aws_eu",  # 可以改为 seg_google_us, seg_aws_eu 等
+            # "operation_pid": "seg_aws_us",  # seg_google_us, seg_aws_us 等
+            "operation_pid": "seg_google_us",  # seg_google_us, seg_aws_us 等
             "enabled": True,
         },
         "split": {
-            "operation_pid": "split_google_sg",  # 可以改为 split_google_us, split_aws_eu 等
+            "operation_pid": "split_google_sg",  # split_google_us, split_aws_us 等
             "enabled": True,
         },
         "caption": {
-            "operation_pid": "cap_google_flash_sg",  # 可以改为 cap_google_flash_us 等
+            "operation_pid": "cap_google_flash_sg",  # cap_google_flash_us 等
             "enabled": True,
         },
         "llm_query": {
-            "operation_pid": "llm_google_flash_sg",  # 可以改为 llm_google_pro_us, llm_aws_sonnet_eu 等
+            "operation_pid": "llm_google_flash_sg",  # llm_google_pro_us  等
             "enabled": True,
         },
     }

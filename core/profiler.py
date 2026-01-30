@@ -8,6 +8,11 @@ from pathlib import Path
 from typing import Dict, List, Optional
 import statistics
 
+# 将项目根目录添加到 sys.path，以便可以导入 utils 等模块
+project_root = Path(__file__).parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
 try:
     import cv2
     CV2_AVAILABLE = True

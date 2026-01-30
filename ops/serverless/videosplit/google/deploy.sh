@@ -5,7 +5,7 @@ set -e
 
 export PROJECT_ID=$(gcloud config get-value project)
 # 你的目标 Regions
-# REGIONS=("us-west1" "europe-west1" "asia-southeast1")
+# REGIONS=("us-west1" "asia-southeast1")
 REGIONS=("asia-southeast1")
 REPO_NAME="experiment-repo"
 FUNCTION_NAME="video-splitter"
