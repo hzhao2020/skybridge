@@ -4,6 +4,7 @@ from typing import Dict, Any, Optional
 from urllib.parse import urlparse
 
 import requests
+from azure.identity import DefaultAzureCredential
 
 from ops.base import VisualCaptioner
 from ops.utils import DataTransmission
@@ -14,155 +15,199 @@ class AzureVideoIndexerCaptionImpl(VisualCaptioner):
     使用 Azure Video Indexer 生成视频描述（caption）。
 
     设计假设：
-    - 在 `config.py` 中配置（示例）：
-        AZURE_VIDEO_INDEXER_KEYS = {
-            "eastasia": "your-subscription-key-ea",
-            "westus2": "your-subscription-key-wu",
+    - 在 `config.py` 中配置：
+        AZURE_CONFIG = {
+            "subscription_id": "...",
+            "resource_group": "...",
+            "tenant_id": "..."  # 可选
+        }
+        REGION_CONFIGS = {
+            "eastasia": {
+                "vi_account_name": "...",
+                "vi_account_id": "...",
+                "location": "eastasia"
+            },
+            "westus2": {
+                "vi_account_name": "...",
+                "vi_account_id": "...",
+                "location": "westus2"
+            }
         }
     - Video Indexer 账户已在对应 region 创建（eastasia / westus2）。
     - 视频可以是：
         * 任何公网可访问的 HTTPS URL，或
         * 任意云（S3 / GCS / Azure），本类会自动搬运到对应 Azure Storage，
           再转换为 HTTPS Blob URL 交给 Video Indexer。
+    - 使用 DefaultAzureCredential 进行身份验证（支持多种认证方式）。
     """
 
     def __init__(self, provider: str, region: str, storage_bucket: str, model_name: Optional[str] = "azure_video_indexer"):
         # provider="azure", region in {"eastasia", "westus2"}, storage_bucket 为 Azure 容器名
         super().__init__(provider, region, storage_bucket, model_name)
         # DataTransmission 默认已在 Operation 基类里初始化为 self.transmitter
-        self._subscription_key: Optional[str] = None
+        self._credential: Optional[DefaultAzureCredential] = None
         self._account_id: Optional[str] = None
+        self._account_name: Optional[str] = None
+        self._location: Optional[str] = None
+        self._vi_access_token: Optional[str] = None
 
     # ---------- 基础配置获取 ----------
 
-    def _get_subscription_key(self) -> str:
-        """从 config.AZURE_VIDEO_INDEXER_KEYS 中读取当前 region 的 subscription key。"""
-        if self._subscription_key is not None:
-            return self._subscription_key
+    def _get_credential(self) -> DefaultAzureCredential:
+        """获取 Azure 认证凭据。"""
+        if self._credential is None:
+            self._credential = DefaultAzureCredential()
+        return self._credential
+
+    def _get_azure_config(self) -> Dict[str, str]:
+        """从 config.AZURE_CONFIG 中读取 Azure 全局配置。"""
+        try:
+            import config
+        except ImportError as e:
+            raise RuntimeError("config.py 未找到，无法读取 Azure 配置。") from e
+
+        azure_config = getattr(config, "AZURE_CONFIG", None)
+        if not isinstance(azure_config, dict):
+            raise RuntimeError(
+                "请在 config.py 中配置 AZURE_CONFIG = { 'subscription_id': '...', 'resource_group': '...', ... }"
+            )
+
+        subscription_id = azure_config.get("subscription_id")
+        resource_group = azure_config.get("resource_group")
+
+        if not subscription_id or not resource_group:
+            raise RuntimeError(
+                "AZURE_CONFIG 中缺少必需的字段：subscription_id 或 resource_group"
+            )
+
+        return {
+            "subscription_id": subscription_id,
+            "resource_group": resource_group,
+            "tenant_id": azure_config.get("tenant_id"),  # 可选
+        }
+
+    def _get_region_config(self) -> Dict[str, str]:
+        """从 config.REGION_CONFIGS 中读取当前 region 的配置。"""
+        if self._account_id is not None and self._account_name is not None and self._location is not None:
+            return {
+                "account_id": self._account_id,
+                "account_name": self._account_name,
+                "location": self._location,
+            }
 
         try:
             import config
         except ImportError as e:
             raise RuntimeError("config.py 未找到，无法读取 Azure Video Indexer 配置。") from e
 
-        keys = getattr(config, "AZURE_VIDEO_INDEXER_KEYS", None)
-        if not isinstance(keys, dict):
+        region_configs = getattr(config, "REGION_CONFIGS", None)
+        if not isinstance(region_configs, dict):
             raise RuntimeError(
-                "请在 config.py 中配置 AZURE_VIDEO_INDEXER_KEYS = { 'location': { 'subscription_key': '...', 'account_id': '...' }, ... }"
+                "请在 config.py 中配置 REGION_CONFIGS = { 'region': { 'vi_account_name': '...', 'vi_account_id': '...', 'location': '...' }, ... }"
             )
 
-        region_config = keys.get(self.region)
+        region_config = region_configs.get(self.region)
         if not region_config:
             raise RuntimeError(
-                f"未在 AZURE_VIDEO_INDEXER_KEYS 中找到 region='{self.region}' 的配置，"
+                f"未在 REGION_CONFIGS 中找到 region='{self.region}' 的配置，"
                 f"请在 config.py 中添加。"
             )
 
-        # 支持新格式：字典包含 subscription_key 和 account_id
-        if isinstance(region_config, dict):
-            key = region_config.get("subscription_key")
-            if not key:
-                raise RuntimeError(
-                    f"AZURE_VIDEO_INDEXER_KEYS['{self.region}'] 中缺少 'subscription_key' 字段"
-                )
-        # 兼容旧格式：直接是字符串
-        elif isinstance(region_config, str):
-            key = region_config
-        else:
+        account_name = region_config.get("vi_account_name")
+        account_id = region_config.get("vi_account_id")
+        location = region_config.get("location")
+
+        if not account_name or not account_id or not location:
             raise RuntimeError(
-                f"AZURE_VIDEO_INDEXER_KEYS['{self.region}'] 格式不正确，应为字典或字符串"
+                f"REGION_CONFIGS['{self.region}'] 中缺少必需的字段：vi_account_name, vi_account_id 或 location"
             )
 
-        self._subscription_key = key
-        return key
+        self._account_name = account_name
+        self._account_id = account_id
+        self._location = location
+
+        return {
+            "account_id": account_id,
+            "account_name": account_name,
+            "location": location,
+        }
 
     def _get_location(self) -> str:
-        """
-        Video Indexer 的 location 字段。
-        这里直接使用 region（eastasia / westus2），与用户在门户创建资源时的区域一致。
-        """
-        return self.region
+        """获取 Video Indexer 的 location 字段。"""
+        if self._location is None:
+            self._get_region_config()
+        return self._location
 
     def _get_account_id(self) -> str:
+        """获取 Video Indexer 的 account_id。"""
+        if self._account_id is None:
+            self._get_region_config()
+        return self._account_id
+
+    def _get_account_name(self) -> str:
+        """获取 Video Indexer 的 account_name。"""
+        if self._account_name is None:
+            self._get_region_config()
+        return self._account_name
+
+    def _get_access_token(self, force_refresh: bool = False) -> str:
         """
-        从 config.AZURE_VIDEO_INDEXER_KEYS 中读取 account_id，如果配置中没有则通过 API 获取。
+        使用 ARM API 获取 Video Indexer 的 Access Token。
+        
+        Args:
+            force_refresh: 如果为 True，强制刷新 token（忽略缓存）。
+                          默认每次调用都获取新 token，确保 token 始终有效。
         """
-        if self._account_id is not None:
-            return self._account_id
+        if not force_refresh and self._vi_access_token is not None:
+            return self._vi_access_token
 
-        try:
-            import config
-        except ImportError as e:
-            raise RuntimeError("config.py 未找到，无法读取 Azure Video Indexer 配置。") from e
+        # 获取配置
+        azure_config = self._get_azure_config()
+        region_config = self._get_region_config()
 
-        keys = getattr(config, "AZURE_VIDEO_INDEXER_KEYS", None)
-        if isinstance(keys, dict):
-            region_config = keys.get(self.region)
-            # 如果配置是字典格式且包含 account_id，直接使用
-            if isinstance(region_config, dict) and "account_id" in region_config:
-                account_id = region_config.get("account_id")
-                if account_id:
-                    self._account_id = account_id
-                    return account_id
+        subscription_id = azure_config["subscription_id"]
+        resource_group = azure_config["resource_group"]
+        account_name = region_config["account_name"]
 
-        # 如果配置中没有 account_id，则通过 API 获取
-        subscription_key = self._get_subscription_key()
-        location = self._get_location()
+        # 1. 获取 ARM Token
+        credential = self._get_credential()
+        arm_token = credential.get_token("https://management.azure.com/.default").token
 
-        url = f"https://api.videoindexer.ai/auth/{location}/Accounts"
-        headers = {"Ocp-Apim-Subscription-Key": subscription_key}
-        params = {"allowEdit": "true"}
+        # 2. 使用 ARM API 换取 VI Token
+        url = (
+            f"https://management.azure.com/subscriptions/{subscription_id}/"
+            f"resourceGroups/{resource_group}/providers/Microsoft.VideoIndexer/"
+            f"accounts/{account_name}/generateAccessToken?api-version=2024-01-01"
+        )
 
-        resp = requests.get(url, headers=headers, params=params, timeout=30)
+        headers = {
+            "Authorization": f"Bearer {arm_token}",
+            "Content-Type": "application/json"
+        }
+        body = {
+            "permissionType": "Contributor",
+            "scope": "Account"
+        }
+
+        resp = requests.post(url, json=body, headers=headers, timeout=30)
         try:
             resp.raise_for_status()
         except Exception as e:
             raise RuntimeError(
-                f"获取 Azure Video Indexer 账户列表失败（location={location}）。"
+                f"获取 Azure Video Indexer AccessToken 失败（subscription_id={subscription_id}, "
+                f"resource_group={resource_group}, account_name={account_name}）。\n"
                 f"HTTP {resp.status_code}: {resp.text}"
             ) from e
 
         data = resp.json()
-        if not data or not isinstance(data, list):
-            raise RuntimeError(f"Azure Video Indexer 未返回有效账户列表：{data!r}")
-
-        account_id = data[0].get("id")
-        if not account_id:
-            raise RuntimeError(f"Azure Video Indexer 返回的账户信息中缺少 'id' 字段：{data[0]!r}")
-
-        self._account_id = account_id
-        return account_id
-
-    def _get_access_token(self) -> str:
-        """为指定 account 获取一次性访问 token。"""
-        subscription_key = self._get_subscription_key()
-        account_id = self._get_account_id()
-        location = self._get_location()
-
-        url = f"https://api.videoindexer.ai/auth/{location}/Accounts/{account_id}/AccessToken"
-        headers = {"Ocp-Apim-Subscription-Key": subscription_key}
-        params = {"allowEdit": "true"}
-
-        resp = requests.get(url, headers=headers, params=params, timeout=30)
-        try:
-            resp.raise_for_status()
-        except Exception as e:
+        access_token = data.get("accessToken")
+        if not access_token:
             raise RuntimeError(
-                f"获取 Azure Video Indexer AccessToken 失败（location={location}, account={account_id}）。"
-                f"HTTP {resp.status_code}: {resp.text}"
-            ) from e
+                f"ARM API 返回结果中缺少 'accessToken' 字段：{data!r}"
+            )
 
-        # token 可能是纯文本，也可能是 JSON 包装，做一下兼容处理
-        try:
-            data = resp.json()
-            if isinstance(data, str):
-                return data
-            if isinstance(data, dict) and "accessToken" in data:
-                return data["accessToken"]
-        except ValueError:
-            pass
-
-        return resp.text.strip().strip('"')
+        self._vi_access_token = access_token
+        return access_token
 
     # ---------- 视频 URL 处理 ----------
 
@@ -173,9 +218,34 @@ class AzureVideoIndexerCaptionImpl(VisualCaptioner):
     def _azure_blob_https_from_uri(self, azure_uri: str) -> str:
         """
         将 azure://container/blob 或 HTTPS Blob URL 标准化为 HTTPS URL。
+        如果配置了 SAS 令牌，会自动附加到 URL 中以便 Video Indexer 访问。
         """
         if self._is_https_url(azure_uri):
-            # 已经是 HTTPS，直接返回
+            # 已经是 HTTPS，检查是否已有 SAS 令牌
+            if "?" in azure_uri and "sig=" in azure_uri:
+                # 已有 SAS 令牌，直接返回
+                return azure_uri
+            
+            # 如果是 Azure Blob Storage URL 但没有 SAS 令牌，尝试添加
+            if ".blob.core.windows.net" in azure_uri:
+                try:
+                    import config
+                    storage_accounts = getattr(config, "AZURE_STORAGE_ACCOUNTS", {})
+                    
+                    # 从 URL 中提取账户名
+                    parsed = urlparse(azure_uri)
+                    account_name = parsed.netloc.split(".")[0]  # 例如 storeea.blob.core.windows.net -> storeea
+                    
+                    # 查找对应的 SAS 令牌
+                    if account_name in storage_accounts:
+                        sas_token = storage_accounts[account_name].get("sas_token")
+                        if sas_token:
+                            separator = "&" if "?" in azure_uri else "?"
+                            return f"{azure_uri}{separator}{sas_token}"
+                except Exception:
+                    # 如果添加 SAS 令牌失败，继续使用原 URL
+                    pass
+            
             return azure_uri
 
         # 解析 azure://container/blob
@@ -186,7 +256,7 @@ class AzureVideoIndexerCaptionImpl(VisualCaptioner):
         container = parsed.netloc
         blob_path = parsed.path.lstrip("/")
 
-        # 从 config.AZURE_STORAGE_ACCOUNTS 中推断 account_name
+        # 从 config.AZURE_STORAGE_ACCOUNTS 中推断 account_name 和 SAS 令牌
         try:
             import config
         except ImportError as e:
@@ -194,9 +264,12 @@ class AzureVideoIndexerCaptionImpl(VisualCaptioner):
 
         storage_accounts = getattr(config, "AZURE_STORAGE_ACCOUNTS", {})
         account_name = None
+        sas_token = None
+        
         for name, info in storage_accounts.items():
             if info.get("container") == container:
                 account_name = name
+                sas_token = info.get("sas_token")  # 获取 SAS 令牌
                 break
 
         if not account_name:
@@ -205,15 +278,47 @@ class AzureVideoIndexerCaptionImpl(VisualCaptioner):
                 f"请检查 config.py 中的 AZURE_STORAGE_ACCOUNTS 配置。"
             )
 
-        return f"https://{account_name}.blob.core.windows.net/{container}/{blob_path}"
+        # 构建 HTTPS URL
+        https_url = f"https://{account_name}.blob.core.windows.net/{container}/{blob_path}"
+        
+        # 如果有 SAS 令牌，附加到 URL
+        if sas_token:
+            # 如果 URL 中已有查询参数，使用 & 连接，否则使用 ? 连接
+            separator = "&" if "?" in https_url else "?"
+            https_url = f"{https_url}{separator}{sas_token}"
+        
+        return https_url
 
     def _ensure_video_https_url(self, video_uri: str, target_path: Optional[str] = None) -> str:
         """
         确保得到一个 Video Indexer 可访问的 HTTPS URL：
-        - 如果 input 已是 HTTPS，直接返回；
-        - 否则搬运到当前 region 对应的 Azure Blob 容器，并转成 HTTPS。
+        - 如果 input 已是 HTTPS，检查是否需要添加 SAS 令牌（如果是 Azure Blob URL）；
+        - 否则搬运到当前 region 对应的 Azure Blob 容器，并转成 HTTPS（自动添加 SAS 令牌）。
         """
         if self._is_https_url(video_uri):
+            # 如果是 Azure Blob Storage URL，检查是否需要添加 SAS 令牌
+            if ".blob.core.windows.net" in video_uri:
+                # 检查是否已有 SAS 令牌
+                if "?" not in video_uri or "sig=" not in video_uri:
+                    # 没有 SAS 令牌，尝试添加
+                    try:
+                        import config
+                        storage_accounts = getattr(config, "AZURE_STORAGE_ACCOUNTS", {})
+                        
+                        # 从 URL 中提取账户名和容器名
+                        from urllib.parse import urlparse
+                        parsed = urlparse(video_uri)
+                        account_name = parsed.netloc.split(".")[0]  # 例如 storeea.blob.core.windows.net -> storeea
+                        
+                        # 查找对应的 SAS 令牌
+                        if account_name in storage_accounts:
+                            sas_token = storage_accounts[account_name].get("sas_token")
+                            if sas_token:
+                                separator = "&" if "?" in video_uri else "?"
+                                video_uri = f"{video_uri}{separator}{sas_token}"
+                    except Exception:
+                        # 如果添加 SAS 令牌失败，继续使用原 URL
+                        pass
             return video_uri
 
         # 其它云（或本地） -> Azure Blob
@@ -225,10 +330,10 @@ class AzureVideoIndexerCaptionImpl(VisualCaptioner):
 
         storage_accounts = getattr(config, "AZURE_STORAGE_ACCOUNTS", {})
 
-        # 简单约定：eastasia -> videoea, westus2 -> videowu
+        # 简单约定：eastasia -> storeea, westus2 -> storewu2
         region_to_account = {
-            "eastasia": "videoea",
-            "westus2": "videowu",
+            "eastasia": "storeea",
+            "westus2": "storewu2",
         }
         account_name = region_to_account.get(self.region)
         if not account_name or account_name not in storage_accounts:
@@ -237,7 +342,7 @@ class AzureVideoIndexerCaptionImpl(VisualCaptioner):
                 f"请确保存在 key '{account_name}'。"
             )
 
-        container = self.storage_bucket  # registry 中传入的容器名，例如 "video-ea" / "video-wu"
+        container = self.storage_bucket  # registry 中传入的容器名，例如 "store-ea" / "store-wu2"
 
         # 使用 DataTransmission 智能搬运到 Azure
         target_uri = self.transmitter.smart_move(
@@ -290,15 +395,19 @@ class AzureVideoIndexerCaptionImpl(VisualCaptioner):
     def _poll_video_index(self, video_id: str, access_token: str, language: str = "en-US", timeout_sec: int = 900) -> Dict[str, Any]:
         """
         轮询 Video Indexer，直到处理完成或超时，返回 index JSON。
+        注意：每次轮询时都会刷新 token，确保长时间处理时 token 始终有效。
         """
         account_id = self._account_id or self._get_account_id()
         location = self._get_location()
 
         url = f"https://api.videoindexer.ai/{location}/Accounts/{account_id}/Videos/{video_id}/Index"
-        params = {"accessToken": access_token, "language": language}
 
         start = time.time()
         while True:
+            # 每次轮询时刷新 token，确保 token 始终有效
+            current_token = self._get_access_token(force_refresh=True)
+            params = {"accessToken": current_token, "language": language}
+
             resp = requests.get(url, params=params, timeout=60)
             try:
                 resp.raise_for_status()
@@ -310,9 +419,16 @@ class AzureVideoIndexerCaptionImpl(VisualCaptioner):
 
             data = resp.json()
             state = data.get("state")
-            print(f"    [Azure Video Indexer] state={state}")
+            
+            # 显示处理进度
+            if state == "Processing":
+                progress = data.get("videos", [{}])[0].get("processingProgress", "0%")
+                print(f"    [Azure Video Indexer] state={state}, progress={progress}", end="\r")
+            else:
+                print(f"    [Azure Video Indexer] state={state}")
 
             if state == "Processed":
+                print("\n处理完成！")
                 return data
             if state in ("Failed", "Error"):
                 raise RuntimeError(f"Azure Video Indexer 处理失败：state={state}, details={data!r}")

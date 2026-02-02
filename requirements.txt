@@ -13,8 +13,9 @@ google-cloud-storage>=2.10.0
 google-cloud-videointelligence>=2.16.0
 google-cloud-aiplatform>=1.38.0
 
-# Azure Blob Storage 服务
+# Azure 服务（Blob Storage, Identity）
 azure-storage-blob>=12.19.0
+azure-identity>=1.15.0
 
 # OpenAI 服务
 openai>=1.0.0

@@ -44,10 +44,10 @@ BUCKETS = {
     "aws_us": "sky-video-us",
     "aws_sg": "sky-video-sg",
     # Azure (Region containers) - 与 config.AZURE_STORAGE_ACCOUNTS 中的 container 名保持一致
-    # eastasia  -> 账户 videoea, 容器 "video-ea"
-    # westus2   -> 账户 videowu, 容器 "video-wu"
-    "azure_ea": "video-ea",
-    "azure_wu": "video-wu",
+    # eastasia  -> 账户 storeea, 容器 "store-ea"
+    # westus2   -> 账户 storewu2, 容器 "store-wu2"
+    "azure_ea": "store-ea",
+    "azure_wu": "store-wu2",
 }
 
 # --- Serverless 服务 URL 配置 ---

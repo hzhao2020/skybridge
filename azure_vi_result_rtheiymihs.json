@@ -1,0 +1,3055 @@
+{
+  "partition": null,
+  "description": null,
+  "privacyMode": "Private",
+  "state": "Processed",
+  "accountId": "ac6b1061-0206-4ffa-9373-9139b2eb5d68",
+  "id": "rtheiymihs",
+  "name": "xiICsWY0xOk.mp4",
+  "userName": "Heng Zhao",
+  "created": "2026-02-01T08:45:19.7633333+00:00",
+  "isOwned": true,
+  "isEditable": true,
+  "isBase": true,
+  "durationInSeconds": 111,
+  "duration": "0:01:51.920181",
+  "summarizedInsights": {
+    "name": "xiICsWY0xOk.mp4",
+    "id": "rtheiymihs",
+    "privacyMode": "Private",
+    "duration": {
+      "time": "0:01:51.920181",
+      "seconds": 111.9
+    },
+    "thumbnailVideoId": "rtheiymihs",
+    "thumbnailId": "84ea37a2-760a-474e-85ae-1c329445144c",
+    "faces": [],
+    "keywords": [
+      {
+        "isTranscript": false,
+        "id": 1,
+        "name": "lemon",
+        "appearances": [
+          {
+            "startTime": "0:00:00",
+            "endTime": "0:00:07.0333333",
+            "startSeconds": 0,
+            "endSeconds": 7
+          },
+          {
+            "startTime": "0:00:40",
+            "endTime": "0:00:50.0333333",
+            "startSeconds": 40,
+            "endSeconds": 50
+          },
+          {
+            "startTime": "0:01:22",
+            "endTime": "0:01:26.0333333",
+            "startSeconds": 82,
+            "endSeconds": 86
+          },
+          {
+            "startTime": "0:01:36",
+            "endTime": "0:01:48.0333333",
+            "startSeconds": 96,
+            "endSeconds": 108
+          }
+        ]
+      },
+      {
+        "isTranscript": false,
+        "id": 2,
+        "name": "honey",
+        "appearances": [
+          {
+            "startTime": "0:00:00",
+            "endTime": "0:00:20.0333333",
+            "startSeconds": 0,
+            "endSeconds": 20
+          },
+          {
+            "startTime": "0:00:51",
+            "endTime": "0:00:55.0333333",
+            "startSeconds": 51,
+            "endSeconds": 55
+          },
+          {
+            "startTime": "0:01:36",
+            "endTime": "0:01:48.0333333",
+            "startSeconds": 96,
+            "endSeconds": 108
+          }
+        ]
+      },
+      {
+        "isTranscript": false,
+        "id": 3,
+        "name": "half",
+        "appearances": [
+          {
+            "startTime": "0:00:40",
+            "endTime": "0:00:50.0333333",
+            "startSeconds": 40,
+            "endSeconds": 50
+          }
+        ]
+      },
+      {
+        "isTranscript": false,
+        "id": 4,
+        "name": "boil",
+        "appearances": [
+          {
+            "startTime": "0:01:08",
+            "endTime": "0:01:16.0333333",
+            "startSeconds": 68,
+            "endSeconds": 76
+          }
+        ]
+      }
+    ],
+    "sentiments": [
+      {
+        "sentimentKey": "Neutral",
+        "seenDurationRatio": 0.9998,
+        "appearances": [
+          {
+            "startTime": "0:00:00",
+            "endTime": "0:01:51.920181",
+            "startSeconds": 0,
+            "endSeconds": 111.9
+          }
+        ]
+      }
+    ],
+    "emotions": [],
+    "audioEffects": [],
+    "labels": [
+      {
+        "id": 2,
+        "name": "food",
+        "appearances": [
+          {
+            "confidence": 0.9565,
+            "startTime": "0:00:04",
+            "endTime": "0:00:20.0333333",
+            "startSeconds": 4,
+            "endSeconds": 20
+          },
+          {
+            "confidence": 0.9638,
+            "startTime": "0:00:29",
+            "endTime": "0:00:44.0333333",
+            "startSeconds": 29,
+            "endSeconds": 44
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "name": "kitchen appliance",
+        "appearances": [
+          {
+            "confidence": 0.9678,
+            "startTime": "0:01:00",
+            "endTime": "0:01:16.0333333",
+            "startSeconds": 60,
+            "endSeconds": 76
+          }
+        ]
+      },
+      {
+        "id": 1,
+        "name": "text",
+        "appearances": [
+          {
+            "confidence": 0.9548,
+            "startTime": "0:00:00",
+            "endTime": "0:00:03.0333333",
+            "startSeconds": 0,
+            "endSeconds": 3
+          },
+          {
+            "confidence": 0.9991,
+            "startTime": "0:01:36",
+            "endTime": "0:01:48.0333333",
+            "startSeconds": 96,
+            "endSeconds": 108
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "name": "cookware and bakeware",
+        "appearances": [
+          {
+            "confidence": 0.9537,
+            "startTime": "0:01:02",
+            "endTime": "0:01:14.0333333",
+            "startSeconds": 62,
+            "endSeconds": 74
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "name": "font",
+        "appearances": [
+          {
+            "confidence": 0.9729,
+            "startTime": "0:01:36",
+            "endTime": "0:01:48.0333333",
+            "startSeconds": 96,
+            "endSeconds": 108
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "name": "person",
+        "appearances": [
+          {
+            "confidence": 0.9639,
+            "startTime": "0:00:46",
+            "endTime": "0:00:50.0333333",
+            "startSeconds": 46,
+            "endSeconds": 50
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "name": "home appliance",
+        "appearances": [
+          {
+            "confidence": 0.9647,
+            "startTime": "0:01:12",
+            "endTime": "0:01:16.0333333",
+            "startSeconds": 72,
+            "endSeconds": 76
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "name": "juice",
+        "appearances": [
+          {
+            "confidence": 0.9665,
+            "startTime": "0:01:32",
+            "endTime": "0:01:35.0333333",
+            "startSeconds": 92,
+            "endSeconds": 95
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "name": "drink",
+        "appearances": [
+          {
+            "confidence": 0.9553,
+            "startTime": "0:01:32",
+            "endTime": "0:01:35.0333333",
+            "startSeconds": 92,
+            "endSeconds": 95
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "name": "lemon",
+        "appearances": [
+          {
+            "confidence": 0.9512,
+            "startTime": "0:00:10",
+            "endTime": "0:00:10.0333333",
+            "startSeconds": 10,
+            "endSeconds": 10
+          },
+          {
+            "confidence": 0.9763,
+            "startTime": "0:01:29",
+            "endTime": "0:01:31.0333333",
+            "startSeconds": 89,
+            "endSeconds": 91
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "name": "yellow",
+        "appearances": [
+          {
+            "confidence": 0.9508,
+            "startTime": "0:01:49",
+            "endTime": "0:01:51.0333333",
+            "startSeconds": 109,
+            "endSeconds": 111
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "name": "fruit",
+        "appearances": [
+          {
+            "confidence": 0.9565,
+            "startTime": "0:00:49",
+            "endTime": "0:00:49.0333333",
+            "startSeconds": 49,
+            "endSeconds": 49
+          }
+        ]
+      }
+    ],
+    "framePatterns": [],
+    "brands": [],
+    "namedLocations": [],
+    "namedPeople": [],
+    "statistics": {
+      "correspondenceCount": 1,
+      "speakerTalkToListenRatio": {
+        "1": 0.666,
+        "2": 0.333
+      },
+      "speakerLongestMonolog": {
+        "1": 0,
+        "2": 0
+      },
+      "speakerNumberOfFragments": {
+        "1": 2,
+        "2": 1
+      },
+      "speakerWordCount": {
+        "1": 2,
+        "2": 1
+      }
+    },
+    "topics": []
+  },
+  "videos": [
+    {
+      "accountId": "ac6b1061-0206-4ffa-9373-9139b2eb5d68",
+      "id": "rtheiymihs",
+      "state": "Processed",
+      "moderationState": "OK",
+      "reviewState": "None",
+      "privacyMode": "Private",
+      "processingProgress": "100%",
+      "failureMessage": "",
+      "externalId": null,
+      "externalUrl": null,
+      "metadata": null,
+      "insights": {
+        "version": "1.0.0.0",
+        "duration": "0:01:51.920181",
+        "sourceLanguage": "en-US",
+        "sourceLanguages": [
+          "en-US"
+        ],
+        "language": "en-US",
+        "languages": [
+          "en-US"
+        ],
+        "transcript": [
+          {
+            "id": 1,
+            "text": "The.",
+            "confidence": 0.1204,
+            "speakerId": 1,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:00:33.32",
+                "adjustedEnd": "0:00:33.4",
+                "start": "0:00:33.32",
+                "end": "0:00:33.4"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "text": "The.",
+            "confidence": 0.6496,
+            "speakerId": 1,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:01:03.24",
+                "adjustedEnd": "0:01:03.32",
+                "start": "0:01:03.24",
+                "end": "0:01:03.32"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "text": "The.",
+            "confidence": 0.3763,
+            "speakerId": 2,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:01:32.36",
+                "adjustedEnd": "0:01:32.44",
+                "start": "0:01:32.36",
+                "end": "0:01:32.44"
+              }
+            ]
+          }
+        ],
+        "ocr": [
+          {
+            "id": 1,
+            "text": "How to make",
+            "confidence": 0.993,
+            "left": 257,
+            "top": 143,
+            "width": 125,
+            "height": 34,
+            "angle": 0,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:00:00",
+                "adjustedEnd": "0:00:03.0333333",
+                "start": "0:00:00",
+                "end": "0:00:03.0333333"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "text": "HONEY GINGER LEMONADE",
+            "confidence": 0.9897,
+            "left": 167,
+            "top": 175,
+            "width": 304,
+            "height": 41,
+            "angle": 0,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:00:00",
+                "adjustedEnd": "0:00:07.0333333",
+                "start": "0:00:00",
+                "end": "0:00:07.0333333"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "text": "Ingredients for 4 iars of",
+            "confidence": 0.9044,
+            "left": 198,
+            "top": 145,
+            "width": 246,
+            "height": 35,
+            "angle": 0,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:00:04",
+                "adjustedEnd": "0:00:07.0333333",
+                "start": "0:00:04",
+                "end": "0:00:07.0333333"
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "text": "KIRKLAND",
+            "confidence": 0.996,
+            "left": 576,
+            "top": 76,
+            "width": 44,
+            "height": 10,
+            "angle": -47,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:00:08",
+                "adjustedEnd": "0:00:20.0333333",
+                "start": "0:00:08",
+                "end": "0:00:20.0333333"
+              },
+              {
+                "adjustedStart": "0:00:24",
+                "adjustedEnd": "0:00:44.0333333",
+                "start": "0:00:24",
+                "end": "0:00:44.0333333"
+              }
+            ]
+          },
+          {
+            "id": 5,
+            "text": "CLOVER",
+            "confidence": 0.998,
+            "left": 426,
+            "top": 158,
+            "width": 32,
+            "height": 8,
+            "angle": 14,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:00:08",
+                "adjustedEnd": "0:00:20.0333333",
+                "start": "0:00:08",
+                "end": "0:00:20.0333333"
+              },
+              {
+                "adjustedStart": "0:00:24",
+                "adjustedEnd": "0:00:44.0333333",
+                "start": "0:00:24",
+                "end": "0:00:44.0333333"
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "text": "HONEY",
+            "confidence": 0.998,
+            "left": 410,
+            "top": 162,
+            "width": 63,
+            "height": 18,
+            "angle": 14,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:00:08",
+                "adjustedEnd": "0:00:20.0333333",
+                "start": "0:00:08",
+                "end": "0:00:20.0333333"
+              },
+              {
+                "adjustedStart": "0:00:24",
+                "adjustedEnd": "0:00:44.0333333",
+                "start": "0:00:24",
+                "end": "0:00:44.0333333"
+              }
+            ]
+          },
+          {
+            "id": 7,
+            "text": "Thin slice ginger",
+            "confidence": 0.9057,
+            "left": 238,
+            "top": 163,
+            "width": 164,
+            "height": 36,
+            "angle": 1,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:00:13",
+                "adjustedEnd": "0:00:18.0333333",
+                "start": "0:00:13",
+                "end": "0:00:18.0333333"
+              }
+            ]
+          },
+          {
+            "id": 8,
+            "text": "There are 3 ways to peel ginger skin",
+            "confidence": 0.984,
+            "left": 140,
+            "top": 159,
+            "width": 361,
+            "height": 38,
+            "angle": 1,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:00:21",
+                "adjustedEnd": "0:00:23.0333333",
+                "start": "0:00:21",
+                "end": "0:00:23.0333333"
+              }
+            ]
+          },
+          {
+            "id": 9,
+            "text": "a spoon",
+            "confidence": 0.9925,
+            "left": 281,
+            "top": 330,
+            "width": 75,
+            "height": 21,
+            "angle": 1,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:00:24",
+                "adjustedEnd": "0:00:28.0333333",
+                "start": "0:00:24",
+                "end": "0:00:28.0333333"
+              }
+            ]
+          },
+          {
+            "id": 10,
+            "text": "a knife",
+            "confidence": 0.9825,
+            "left": 281,
+            "top": 310,
+            "width": 70,
+            "height": 31,
+            "angle": -2,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:00:29",
+                "adjustedEnd": "0:00:34.0333333",
+                "start": "0:00:29",
+                "end": "0:00:34.0333333"
+              }
+            ]
+          },
+          {
+            "id": 11,
+            "text": "or a peeler",
+            "confidence": 0.9933,
+            "left": 264,
+            "top": 318,
+            "width": 111,
+            "height": 23,
+            "angle": -1,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:00:35",
+                "adjustedEnd": "0:00:39.0333333",
+                "start": "0:00:35",
+                "end": "0:00:39.0333333"
+              }
+            ]
+          },
+          {
+            "id": 12,
+            "text": "cut lemon into half",
+            "confidence": 0.937,
+            "left": 226,
+            "top": 163,
+            "width": 188,
+            "height": 34,
+            "angle": 0,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:00:40",
+                "adjustedEnd": "0:00:44.0333333",
+                "start": "0:00:40",
+                "end": "0:00:44.0333333"
+              }
+            ]
+          },
+          {
+            "id": 13,
+            "text": "Squeeze each half of lemon into each jar",
+            "confidence": 0.9433,
+            "left": 117,
+            "top": 161,
+            "width": 407,
+            "height": 38,
+            "angle": 1,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:00:45",
+                "adjustedEnd": "0:00:50.0333333",
+                "start": "0:00:45",
+                "end": "0:00:50.0333333"
+              }
+            ]
+          },
+          {
+            "id": 14,
+            "text": "Add 2 tbsp. honey into each jar",
+            "confidence": 0.918,
+            "left": 163,
+            "top": 160,
+            "width": 318,
+            "height": 36,
+            "angle": 1,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:00:51",
+                "adjustedEnd": "0:00:55.0333333",
+                "start": "0:00:51",
+                "end": "0:00:55.0333333"
+              }
+            ]
+          },
+          {
+            "id": 15,
+            "text": "set aside",
+            "confidence": 0.9585,
+            "left": 275,
+            "top": 172,
+            "width": 88,
+            "height": 25,
+            "angle": -1,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:00:56",
+                "adjustedEnd": "0:00:58.0333333",
+                "start": "0:00:56",
+                "end": "0:00:58.0333333"
+              }
+            ]
+          },
+          {
+            "id": 16,
+            "text": "Add 6 cups of water into a medium pot",
+            "confidence": 0.9848,
+            "left": 125,
+            "top": 160,
+            "width": 393,
+            "height": 37,
+            "angle": 1,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:00:59",
+                "adjustedEnd": "0:01:00.0333333",
+                "start": "0:00:59",
+                "end": "0:01:00.0333333"
+              },
+              {
+                "adjustedStart": "0:01:02",
+                "adjustedEnd": "0:01:02.0333333",
+                "start": "0:01:02",
+                "end": "0:01:02.0333333"
+              }
+            ]
+          },
+          {
+            "id": 17,
+            "text": "Add ginger slices",
+            "confidence": 0.9577,
+            "left": 236,
+            "top": 157,
+            "width": 166,
+            "height": 49,
+            "angle": 1,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:01:03",
+                "adjustedEnd": "0:01:07.0333333",
+                "start": "0:01:03",
+                "end": "0:01:07.0333333"
+              }
+            ]
+          },
+          {
+            "id": 18,
+            "text": "Cover and bring it to boil",
+            "confidence": 0.9003,
+            "left": 195,
+            "top": 161,
+            "width": 249,
+            "height": 38,
+            "angle": 0,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:01:08",
+                "adjustedEnd": "0:01:11.0333333",
+                "start": "0:01:08",
+                "end": "0:01:11.0333333"
+              }
+            ]
+          },
+          {
+            "id": 19,
+            "text": "Turn off stove once the water boils and let stand for 15",
+            "confidence": 0.977,
+            "left": 16,
+            "top": 138,
+            "width": 550,
+            "height": 41,
+            "angle": 0,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:01:12",
+                "adjustedEnd": "0:01:16.0333333",
+                "start": "0:01:12",
+                "end": "0:01:16.0333333"
+              }
+            ]
+          },
+          {
+            "id": 20,
+            "text": "mins.",
+            "confidence": 0.942,
+            "left": 570,
+            "top": 157,
+            "width": 50,
+            "height": 19,
+            "angle": -3,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:01:12",
+                "adjustedEnd": "0:01:16.0333333",
+                "start": "0:01:12",
+                "end": "0:01:16.0333333"
+              }
+            ]
+          },
+          {
+            "id": 21,
+            "text": "This will extract more ginger flavour",
+            "confidence": 0.9188,
+            "left": 130,
+            "top": 176,
+            "width": 365,
+            "height": 36,
+            "angle": 1,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:01:12",
+                "adjustedEnd": "0:01:16.0333333",
+                "start": "0:01:12",
+                "end": "0:01:16.0333333"
+              }
+            ]
+          },
+          {
+            "id": 22,
+            "text": "Add lemon",
+            "confidence": 0.9235,
+            "left": 237,
+            "top": 162,
+            "width": 110,
+            "height": 32,
+            "angle": -1,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:01:22",
+                "adjustedEnd": "0:01:22.0333333",
+                "start": "0:01:22",
+                "end": "0:01:22.0333333"
+              }
+            ]
+          },
+          {
+            "id": 23,
+            "text": "mon slices",
+            "confidence": 0.9865,
+            "left": 299,
+            "top": 168,
+            "width": 103,
+            "height": 28,
+            "angle": -1,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:01:22",
+                "adjustedEnd": "0:01:22.0333333",
+                "start": "0:01:22",
+                "end": "0:01:22.0333333"
+              }
+            ]
+          },
+          {
+            "id": 24,
+            "text": "Add lemon slices",
+            "confidence": 0.962,
+            "left": 239,
+            "top": 160,
+            "width": 165,
+            "height": 36,
+            "angle": 1,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:01:23",
+                "adjustedEnd": "0:01:25.0333333",
+                "start": "0:01:23",
+                "end": "0:01:25.0333333"
+              }
+            ]
+          },
+          {
+            "id": 25,
+            "text": "lemon slices",
+            "confidence": 0.9745,
+            "left": 281,
+            "top": 170,
+            "width": 121,
+            "height": 26,
+            "angle": 0,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:01:26",
+                "adjustedEnd": "0:01:26.0333333",
+                "start": "0:01:26",
+                "end": "0:01:26.0333333"
+              }
+            ]
+          },
+          {
+            "id": 26,
+            "text": "Stir",
+            "confidence": 0.928,
+            "left": 300,
+            "top": 159,
+            "width": 39,
+            "height": 36,
+            "angle": 0,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:01:27",
+                "adjustedEnd": "0:01:28.0333333",
+                "start": "0:01:27",
+                "end": "0:01:28.0333333"
+              }
+            ]
+          },
+          {
+            "id": 27,
+            "text": "or",
+            "confidence": 0.962,
+            "left": 153,
+            "top": 192,
+            "width": 24,
+            "height": 21,
+            "angle": -5,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:01:32",
+                "adjustedEnd": "0:01:33.0333333",
+                "start": "0:01:32",
+                "end": "0:01:33.0333333"
+              }
+            ]
+          },
+          {
+            "id": 28,
+            "text": "or store in refrigerator for cooling",
+            "confidence": 0.9262,
+            "left": 152,
+            "top": 183,
+            "width": 335,
+            "height": 34,
+            "angle": 0,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:01:32",
+                "adjustedEnd": "0:01:35.0333333",
+                "start": "0:01:32",
+                "end": "0:01:35.0333333"
+              }
+            ]
+          },
+          {
+            "id": 29,
+            "text": "I love HONEY GINGER LEMONADE,",
+            "confidence": 0.958,
+            "left": 129,
+            "top": 120,
+            "width": 378,
+            "height": 41,
+            "angle": 0,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:01:36",
+                "adjustedEnd": "0:01:40.0333333",
+                "start": "0:01:36",
+                "end": "0:01:40.0333333"
+              }
+            ]
+          },
+          {
+            "id": 30,
+            "text": "It's so refreshing, healthy and easy to prepare,",
+            "confidence": 0.9836,
+            "left": 82,
+            "top": 160,
+            "width": 472,
+            "height": 35,
+            "angle": 1,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:01:36",
+                "adjustedEnd": "0:01:40.0333333",
+                "start": "0:01:36",
+                "end": "0:01:40.0333333"
+              }
+            ]
+          },
+          {
+            "id": 31,
+            "text": "I drink it at least twice a week:)",
+            "confidence": 0.9039,
+            "left": 149,
+            "top": 196,
+            "width": 340,
+            "height": 36,
+            "angle": 1,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:01:36",
+                "adjustedEnd": "0:01:40.0333333",
+                "start": "0:01:36",
+                "end": "0:01:40.0333333"
+              }
+            ]
+          },
+          {
+            "id": 32,
+            "text": "Benefit of Honey Ginger Lemonade",
+            "confidence": 0.989,
+            "left": 150,
+            "top": 70,
+            "width": 339,
+            "height": 35,
+            "angle": 0,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:01:41",
+                "adjustedEnd": "0:01:48.0333333",
+                "start": "0:01:41",
+                "end": "0:01:48.0333333"
+              }
+            ]
+          },
+          {
+            "id": 33,
+            "text": "Remedy for Sore Ihroat,",
+            "confidence": 0.908,
+            "left": 192,
+            "top": 106,
+            "width": 240,
+            "height": 37,
+            "angle": 0,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:01:41",
+                "adjustedEnd": "0:01:48.0333333",
+                "start": "0:01:41",
+                "end": "0:01:48.0333333"
+              }
+            ]
+          },
+          {
+            "id": 34,
+            "text": "Immune Boosting Action,",
+            "confidence": 0.9893,
+            "left": 196,
+            "top": 142,
+            "width": 243,
+            "height": 35,
+            "angle": 0,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:01:41",
+                "adjustedEnd": "0:01:48.0333333",
+                "start": "0:01:41",
+                "end": "0:01:48.0333333"
+              }
+            ]
+          },
+          {
+            "id": 35,
+            "text": "Anti-Inflammatory Effects,",
+            "confidence": 0.901,
+            "left": 184,
+            "top": 178,
+            "width": 271,
+            "height": 35,
+            "angle": 0,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:01:41",
+                "adjustedEnd": "0:01:48.0333333",
+                "start": "0:01:41",
+                "end": "0:01:48.0333333"
+              }
+            ]
+          },
+          {
+            "id": 36,
+            "text": "Helps to Ease Digestive Discomfort,",
+            "confidence": 0.9868,
+            "left": 141,
+            "top": 215,
+            "width": 356,
+            "height": 36,
+            "angle": 0,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:01:41",
+                "adjustedEnd": "0:01:48.0333333",
+                "start": "0:01:41",
+                "end": "0:01:48.0333333"
+              }
+            ]
+          },
+          {
+            "id": 37,
+            "text": "Protection Against Colorectal Cancer and Ovarian Cancer",
+            "confidence": 0.9527,
+            "left": 32,
+            "top": 250,
+            "width": 571,
+            "height": 37,
+            "angle": 0,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:01:41",
+                "adjustedEnd": "0:01:48.0333333",
+                "start": "0:01:41",
+                "end": "0:01:48.0333333"
+              }
+            ]
+          },
+          {
+            "id": 38,
+            "text": "Thank you for watching :)",
+            "confidence": 0.9272,
+            "left": 197,
+            "top": 159,
+            "width": 248,
+            "height": 38,
+            "angle": 1,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:01:49",
+                "adjustedEnd": "0:01:51.0333333",
+                "start": "0:01:49",
+                "end": "0:01:51.0333333"
+              }
+            ]
+          }
+        ],
+        "keywords": [
+          {
+            "id": 1,
+            "text": "lemon",
+            "confidence": 0.6595,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:00:00",
+                "adjustedEnd": "0:00:07.0333333",
+                "start": "0:00:00",
+                "end": "0:00:07.0333333"
+              },
+              {
+                "adjustedStart": "0:00:40",
+                "adjustedEnd": "0:00:44.0333333",
+                "start": "0:00:40",
+                "end": "0:00:44.0333333"
+              },
+              {
+                "adjustedStart": "0:00:45",
+                "adjustedEnd": "0:00:50.0333333",
+                "start": "0:00:45",
+                "end": "0:00:50.0333333"
+              },
+              {
+                "adjustedStart": "0:01:22",
+                "adjustedEnd": "0:01:22.0333333",
+                "start": "0:01:22",
+                "end": "0:01:22.0333333"
+              },
+              {
+                "adjustedStart": "0:01:23",
+                "adjustedEnd": "0:01:25.0333333",
+                "start": "0:01:23",
+                "end": "0:01:25.0333333"
+              },
+              {
+                "adjustedStart": "0:01:26",
+                "adjustedEnd": "0:01:26.0333333",
+                "start": "0:01:26",
+                "end": "0:01:26.0333333"
+              },
+              {
+                "adjustedStart": "0:01:36",
+                "adjustedEnd": "0:01:40.0333333",
+                "start": "0:01:36",
+                "end": "0:01:40.0333333"
+              },
+              {
+                "adjustedStart": "0:01:41",
+                "adjustedEnd": "0:01:48.0333333",
+                "start": "0:01:41",
+                "end": "0:01:48.0333333"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "text": "honey",
+            "confidence": 0.6211,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:00:00",
+                "adjustedEnd": "0:00:07.0333333",
+                "start": "0:00:00",
+                "end": "0:00:07.0333333"
+              },
+              {
+                "adjustedStart": "0:00:08",
+                "adjustedEnd": "0:00:20.0333333",
+                "start": "0:00:08",
+                "end": "0:00:20.0333333"
+              },
+              {
+                "adjustedStart": "0:00:51",
+                "adjustedEnd": "0:00:55.0333333",
+                "start": "0:00:51",
+                "end": "0:00:55.0333333"
+              },
+              {
+                "adjustedStart": "0:01:36",
+                "adjustedEnd": "0:01:40.0333333",
+                "start": "0:01:36",
+                "end": "0:01:40.0333333"
+              },
+              {
+                "adjustedStart": "0:01:41",
+                "adjustedEnd": "0:01:48.0333333",
+                "start": "0:01:41",
+                "end": "0:01:48.0333333"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "text": "half",
+            "confidence": 0.6211,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:00:40",
+                "adjustedEnd": "0:00:44.0333333",
+                "start": "0:00:40",
+                "end": "0:00:44.0333333"
+              },
+              {
+                "adjustedStart": "0:00:45",
+                "adjustedEnd": "0:00:50.0333333",
+                "start": "0:00:45",
+                "end": "0:00:50.0333333"
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "text": "boil",
+            "confidence": 0.6211,
+            "language": "en-US",
+            "instances": [
+              {
+                "adjustedStart": "0:01:08",
+                "adjustedEnd": "0:01:11.0333333",
+                "start": "0:01:08",
+                "end": "0:01:11.0333333"
+              },
+              {
+                "adjustedStart": "0:01:12",
+                "adjustedEnd": "0:01:16.0333333",
+                "start": "0:01:12",
+                "end": "0:01:16.0333333"
+              }
+            ]
+          }
+        ],
+        "labels": [
+          {
+            "id": 1,
+            "name": "text",
+            "referenceId": "communication/writing/text",
+            "language": "en-US",
+            "instances": [
+              {
+                "confidence": 0.9548,
+                "adjustedStart": "0:00:00",
+                "adjustedEnd": "0:00:03.0333333",
+                "start": "0:00:00",
+                "end": "0:00:03.0333333"
+              },
+              {
+                "confidence": 0.9991,
+                "adjustedStart": "0:01:36",
+                "adjustedEnd": "0:01:48.0333333",
+                "start": "0:01:36",
+                "end": "0:01:48.0333333"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "name": "food",
+            "referenceId": "food",
+            "language": "en-US",
+            "instances": [
+              {
+                "confidence": 0.9565,
+                "adjustedStart": "0:00:04",
+                "adjustedEnd": "0:00:20.0333333",
+                "start": "0:00:04",
+                "end": "0:00:20.0333333"
+              },
+              {
+                "confidence": 0.9678,
+                "adjustedStart": "0:00:29",
+                "adjustedEnd": "0:00:29.0333333",
+                "start": "0:00:29",
+                "end": "0:00:29.0333333"
+              },
+              {
+                "confidence": 0.9523,
+                "adjustedStart": "0:00:31",
+                "adjustedEnd": "0:00:32.0333333",
+                "start": "0:00:31",
+                "end": "0:00:32.0333333"
+              },
+              {
+                "confidence": 0.97,
+                "adjustedStart": "0:00:34",
+                "adjustedEnd": "0:00:40.0333333",
+                "start": "0:00:34",
+                "end": "0:00:40.0333333"
+              },
+              {
+                "confidence": 0.9638,
+                "adjustedStart": "0:00:43",
+                "adjustedEnd": "0:00:44.0333333",
+                "start": "0:00:43",
+                "end": "0:00:44.0333333"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "name": "lemon",
+            "language": "en-US",
+            "instances": [
+              {
+                "confidence": 0.9512,
+                "adjustedStart": "0:00:10",
+                "adjustedEnd": "0:00:10.0333333",
+                "start": "0:00:10",
+                "end": "0:00:10.0333333"
+              },
+              {
+                "confidence": 0.9763,
+                "adjustedStart": "0:01:29",
+                "adjustedEnd": "0:01:31.0333333",
+                "start": "0:01:29",
+                "end": "0:01:31.0333333"
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "name": "person",
+            "referenceId": "person",
+            "language": "en-US",
+            "instances": [
+              {
+                "confidence": 0.9533,
+                "adjustedStart": "0:00:46",
+                "adjustedEnd": "0:00:47.0333333",
+                "start": "0:00:46",
+                "end": "0:00:47.0333333"
+              },
+              {
+                "confidence": 0.9639,
+                "adjustedStart": "0:00:50",
+                "adjustedEnd": "0:00:50.0333333",
+                "start": "0:00:50",
+                "end": "0:00:50.0333333"
+              }
+            ]
+          },
+          {
+            "id": 5,
+            "name": "fruit",
+            "referenceId": "plant/fruit",
+            "language": "en-US",
+            "instances": [
+              {
+                "confidence": 0.9565,
+                "adjustedStart": "0:00:49",
+                "adjustedEnd": "0:00:49.0333333",
+                "start": "0:00:49",
+                "end": "0:00:49.0333333"
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "name": "kitchen appliance",
+            "referenceId": "consumer goods/appliance/kitchen appliance/kitchen appliance",
+            "language": "en-US",
+            "instances": [
+              {
+                "confidence": 0.9516,
+                "adjustedStart": "0:01:00",
+                "adjustedEnd": "0:01:01.0333333",
+                "start": "0:01:00",
+                "end": "0:01:01.0333333"
+              },
+              {
+                "confidence": 0.9611,
+                "adjustedStart": "0:01:03",
+                "adjustedEnd": "0:01:03.0333333",
+                "start": "0:01:03",
+                "end": "0:01:03.0333333"
+              },
+              {
+                "confidence": 0.9614,
+                "adjustedStart": "0:01:05",
+                "adjustedEnd": "0:01:07.0333333",
+                "start": "0:01:05",
+                "end": "0:01:07.0333333"
+              },
+              {
+                "confidence": 0.9678,
+                "adjustedStart": "0:01:10",
+                "adjustedEnd": "0:01:16.0333333",
+                "start": "0:01:10",
+                "end": "0:01:16.0333333"
+              }
+            ]
+          },
+          {
+            "id": 7,
+            "name": "cookware and bakeware",
+            "language": "en-US",
+            "instances": [
+              {
+                "confidence": 0.9636,
+                "adjustedStart": "0:01:02",
+                "adjustedEnd": "0:01:05.0333333",
+                "start": "0:01:02",
+                "end": "0:01:05.0333333"
+              },
+              {
+                "confidence": 0.9686,
+                "adjustedStart": "0:01:07",
+                "adjustedEnd": "0:01:12.0333333",
+                "start": "0:01:07",
+                "end": "0:01:12.0333333"
+              },
+              {
+                "confidence": 0.9537,
+                "adjustedStart": "0:01:14",
+                "adjustedEnd": "0:01:14.0333333",
+                "start": "0:01:14",
+                "end": "0:01:14.0333333"
+              }
+            ]
+          },
+          {
+            "id": 8,
+            "name": "home appliance",
+            "language": "en-US",
+            "instances": [
+              {
+                "confidence": 0.9647,
+                "adjustedStart": "0:01:12",
+                "adjustedEnd": "0:01:16.0333333",
+                "start": "0:01:12",
+                "end": "0:01:16.0333333"
+              }
+            ]
+          },
+          {
+            "id": 9,
+            "name": "juice",
+            "language": "en-US",
+            "instances": [
+              {
+                "confidence": 0.9665,
+                "adjustedStart": "0:01:32",
+                "adjustedEnd": "0:01:35.0333333",
+                "start": "0:01:32",
+                "end": "0:01:35.0333333"
+              }
+            ]
+          },
+          {
+            "id": 10,
+            "name": "drink",
+            "referenceId": "drink",
+            "language": "en-US",
+            "instances": [
+              {
+                "confidence": 0.9553,
+                "adjustedStart": "0:01:32",
+                "adjustedEnd": "0:01:35.0333333",
+                "start": "0:01:32",
+                "end": "0:01:35.0333333"
+              }
+            ]
+          },
+          {
+            "id": 11,
+            "name": "font",
+            "language": "en-US",
+            "instances": [
+              {
+                "confidence": 0.9729,
+                "adjustedStart": "0:01:36",
+                "adjustedEnd": "0:01:48.0333333",
+                "start": "0:01:36",
+                "end": "0:01:48.0333333"
+              }
+            ]
+          },
+          {
+            "id": 12,
+            "name": "yellow",
+            "referenceId": "color/yellow",
+            "language": "en-US",
+            "instances": [
+              {
+                "confidence": 0.9508,
+                "adjustedStart": "0:01:49",
+                "adjustedEnd": "0:01:51.0333333",
+                "start": "0:01:49",
+                "end": "0:01:51.0333333"
+              }
+            ]
+          }
+        ],
+        "scenes": [
+          {
+            "id": 1,
+            "instances": [
+              {
+                "adjustedStart": "0:00:00",
+                "adjustedEnd": "0:00:07.4666667",
+                "start": "0:00:00",
+                "end": "0:00:07.4666667"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "instances": [
+              {
+                "adjustedStart": "0:00:07.4666667",
+                "adjustedEnd": "0:00:23.4666667",
+                "start": "0:00:07.4666667",
+                "end": "0:00:23.4666667"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "instances": [
+              {
+                "adjustedStart": "0:00:23.4666667",
+                "adjustedEnd": "0:00:58.0333333",
+                "start": "0:00:23.4666667",
+                "end": "0:00:58.0333333"
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "instances": [
+              {
+                "adjustedStart": "0:00:58.0333333",
+                "adjustedEnd": "0:01:16.1333333",
+                "start": "0:00:58.0333333",
+                "end": "0:01:16.1333333"
+              }
+            ]
+          },
+          {
+            "id": 5,
+            "instances": [
+              {
+                "adjustedStart": "0:01:16.1333333",
+                "adjustedEnd": "0:01:35.3333333",
+                "start": "0:01:16.1333333",
+                "end": "0:01:35.3333333"
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "instances": [
+              {
+                "adjustedStart": "0:01:35.3333333",
+                "adjustedEnd": "0:01:51.9",
+                "start": "0:01:35.3333333",
+                "end": "0:01:51.9"
+              }
+            ]
+          }
+        ],
+        "shots": [
+          {
+            "id": 1,
+            "keyFrames": [
+              {
+                "id": 1,
+                "instances": [
+                  {
+                    "thumbnailId": "0feb7572-b4f7-4fc7-8bec-89325af6addf",
+                    "adjustedStart": "0:00:00.1666667",
+                    "adjustedEnd": "0:00:00.2",
+                    "start": "0:00:00.1666667",
+                    "end": "0:00:00.2"
+                  }
+                ]
+              },
+              {
+                "id": 2,
+                "instances": [
+                  {
+                    "thumbnailId": "b5c9906a-fc23-4ef9-afc1-5ccfb4e86b3a",
+                    "adjustedStart": "0:00:00.2333333",
+                    "adjustedEnd": "0:00:00.2666667",
+                    "start": "0:00:00.2333333",
+                    "end": "0:00:00.2666667"
+                  }
+                ]
+              }
+            ],
+            "instances": [
+              {
+                "adjustedStart": "0:00:00",
+                "adjustedEnd": "0:00:03.5",
+                "start": "0:00:00",
+                "end": "0:00:03.5"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "keyFrames": [
+              {
+                "id": 3,
+                "instances": [
+                  {
+                    "thumbnailId": "192d292a-fd73-4c35-b635-f7f748ca272d",
+                    "adjustedStart": "0:00:03.5666667",
+                    "adjustedEnd": "0:00:03.6",
+                    "start": "0:00:03.5666667",
+                    "end": "0:00:03.6"
+                  }
+                ]
+              }
+            ],
+            "instances": [
+              {
+                "adjustedStart": "0:00:03.5",
+                "adjustedEnd": "0:00:07.4666667",
+                "start": "0:00:03.5",
+                "end": "0:00:07.4666667"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "keyFrames": [
+              {
+                "id": 4,
+                "instances": [
+                  {
+                    "thumbnailId": "37ed560a-daad-44fb-a968-0b4712999d72",
+                    "adjustedStart": "0:00:07.7333333",
+                    "adjustedEnd": "0:00:07.7666667",
+                    "start": "0:00:07.7333333",
+                    "end": "0:00:07.7666667"
+                  }
+                ]
+              }
+            ],
+            "instances": [
+              {
+                "adjustedStart": "0:00:07.4666667",
+                "adjustedEnd": "0:00:12.9333333",
+                "start": "0:00:07.4666667",
+                "end": "0:00:12.9333333"
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "keyFrames": [
+              {
+                "id": 5,
+                "instances": [
+                  {
+                    "thumbnailId": "5823b4cf-2a00-4a38-ba27-d32f54f0bfd6",
+                    "adjustedStart": "0:00:13.1666667",
+                    "adjustedEnd": "0:00:13.2",
+                    "start": "0:00:13.1666667",
+                    "end": "0:00:13.2"
+                  }
+                ]
+              },
+              {
+                "id": 6,
+                "instances": [
+                  {
+                    "thumbnailId": "163bdf67-5216-4a63-a0a5-09d205aa6f6b",
+                    "adjustedStart": "0:00:14.4333333",
+                    "adjustedEnd": "0:00:14.4666667",
+                    "start": "0:00:14.4333333",
+                    "end": "0:00:14.4666667"
+                  }
+                ]
+              }
+            ],
+            "instances": [
+              {
+                "adjustedStart": "0:00:12.9333333",
+                "adjustedEnd": "0:00:20.4666667",
+                "start": "0:00:12.9333333",
+                "end": "0:00:20.4666667"
+              }
+            ]
+          },
+          {
+            "id": 5,
+            "keyFrames": [
+              {
+                "id": 7,
+                "instances": [
+                  {
+                    "thumbnailId": "497b07d5-ec23-4324-94b8-8d6532aff114",
+                    "adjustedStart": "0:00:20.5333333",
+                    "adjustedEnd": "0:00:20.5666667",
+                    "start": "0:00:20.5333333",
+                    "end": "0:00:20.5666667"
+                  }
+                ]
+              }
+            ],
+            "instances": [
+              {
+                "adjustedStart": "0:00:20.4666667",
+                "adjustedEnd": "0:00:23.4666667",
+                "start": "0:00:20.4666667",
+                "end": "0:00:23.4666667"
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "keyFrames": [
+              {
+                "id": 8,
+                "instances": [
+                  {
+                    "thumbnailId": "3e08e76e-b231-45cd-b766-7b3f48703170",
+                    "adjustedStart": "0:00:23.7333333",
+                    "adjustedEnd": "0:00:23.7666667",
+                    "start": "0:00:23.7333333",
+                    "end": "0:00:23.7666667"
+                  }
+                ]
+              }
+            ],
+            "instances": [
+              {
+                "adjustedStart": "0:00:23.4666667",
+                "adjustedEnd": "0:00:28.4333333",
+                "start": "0:00:23.4666667",
+                "end": "0:00:28.4333333"
+              }
+            ]
+          },
+          {
+            "id": 7,
+            "keyFrames": [
+              {
+                "id": 9,
+                "instances": [
+                  {
+                    "thumbnailId": "e3949a0f-5d6e-4fd1-9da7-20adb43d7b79",
+                    "adjustedStart": "0:00:28.4666667",
+                    "adjustedEnd": "0:00:28.5",
+                    "start": "0:00:28.4666667",
+                    "end": "0:00:28.5"
+                  }
+                ]
+              },
+              {
+                "id": 10,
+                "instances": [
+                  {
+                    "thumbnailId": "f2495951-0833-4e18-a4df-81ca7ce6bd23",
+                    "adjustedStart": "0:00:34.6333333",
+                    "adjustedEnd": "0:00:34.6666667",
+                    "start": "0:00:34.6333333",
+                    "end": "0:00:34.6666667"
+                  }
+                ]
+              }
+            ],
+            "instances": [
+              {
+                "adjustedStart": "0:00:28.4333333",
+                "adjustedEnd": "0:00:39.8666667",
+                "start": "0:00:28.4333333",
+                "end": "0:00:39.8666667"
+              }
+            ]
+          },
+          {
+            "id": 8,
+            "keyFrames": [
+              {
+                "id": 11,
+                "instances": [
+                  {
+                    "thumbnailId": "735287f5-ecef-4c7f-b19b-71211e113d75",
+                    "adjustedStart": "0:00:39.9",
+                    "adjustedEnd": "0:00:39.9333333",
+                    "start": "0:00:39.9",
+                    "end": "0:00:39.9333333"
+                  }
+                ]
+              },
+              {
+                "id": 12,
+                "instances": [
+                  {
+                    "thumbnailId": "7f0ab910-3049-49aa-9f4f-15ee4ff914d8",
+                    "adjustedStart": "0:00:43.5",
+                    "adjustedEnd": "0:00:43.5333333",
+                    "start": "0:00:43.5",
+                    "end": "0:00:43.5333333"
+                  }
+                ]
+              }
+            ],
+            "instances": [
+              {
+                "adjustedStart": "0:00:39.8666667",
+                "adjustedEnd": "0:00:44.8",
+                "start": "0:00:39.8666667",
+                "end": "0:00:44.8"
+              }
+            ]
+          },
+          {
+            "id": 9,
+            "keyFrames": [
+              {
+                "id": 13,
+                "instances": [
+                  {
+                    "thumbnailId": "e55d2ee6-58f5-4fa0-b00e-5e0f5a52d617",
+                    "adjustedStart": "0:00:45.8",
+                    "adjustedEnd": "0:00:45.8333333",
+                    "start": "0:00:45.8",
+                    "end": "0:00:45.8333333"
+                  }
+                ]
+              },
+              {
+                "id": 14,
+                "instances": [
+                  {
+                    "thumbnailId": "8f2915e9-799b-490e-9644-da1a8db95d2e",
+                    "adjustedStart": "0:00:48.0666667",
+                    "adjustedEnd": "0:00:48.1",
+                    "start": "0:00:48.0666667",
+                    "end": "0:00:48.1"
+                  }
+                ]
+              }
+            ],
+            "instances": [
+              {
+                "adjustedStart": "0:00:44.8",
+                "adjustedEnd": "0:00:50.0666667",
+                "start": "0:00:44.8",
+                "end": "0:00:50.0666667"
+              }
+            ]
+          },
+          {
+            "id": 10,
+            "tags": [
+              "Medium",
+              "RightFace"
+            ],
+            "keyFrames": [
+              {
+                "id": 15,
+                "instances": [
+                  {
+                    "thumbnailId": "2375ddb4-82e9-4adc-b90d-146a6619b34b",
+                    "adjustedStart": "0:00:50.3333333",
+                    "adjustedEnd": "0:00:50.3666667",
+                    "start": "0:00:50.3333333",
+                    "end": "0:00:50.3666667"
+                  }
+                ]
+              }
+            ],
+            "instances": [
+              {
+                "adjustedStart": "0:00:50.0666667",
+                "adjustedEnd": "0:00:55.0666667",
+                "start": "0:00:50.0666667",
+                "end": "0:00:55.0666667"
+              }
+            ]
+          },
+          {
+            "id": 11,
+            "keyFrames": [
+              {
+                "id": 16,
+                "instances": [
+                  {
+                    "thumbnailId": "766226fa-b003-4040-ba07-6a126fe4fffb",
+                    "adjustedStart": "0:00:55.3",
+                    "adjustedEnd": "0:00:55.3333333",
+                    "start": "0:00:55.3",
+                    "end": "0:00:55.3333333"
+                  }
+                ]
+              },
+              {
+                "id": 17,
+                "instances": [
+                  {
+                    "thumbnailId": "a178e96b-71ad-4bfd-bff7-fe7e2c124ed7",
+                    "adjustedStart": "0:00:56.5333333",
+                    "adjustedEnd": "0:00:56.5666667",
+                    "start": "0:00:56.5333333",
+                    "end": "0:00:56.5666667"
+                  }
+                ]
+              }
+            ],
+            "instances": [
+              {
+                "adjustedStart": "0:00:55.0666667",
+                "adjustedEnd": "0:00:58.0333333",
+                "start": "0:00:55.0666667",
+                "end": "0:00:58.0333333"
+              }
+            ]
+          },
+          {
+            "id": 12,
+            "tags": [
+              "Wide",
+              "RightFace"
+            ],
+            "keyFrames": [
+              {
+                "id": 18,
+                "instances": [
+                  {
+                    "thumbnailId": "0a37596e-412e-4c23-8eab-524950c58c22",
+                    "adjustedStart": "0:00:58.1",
+                    "adjustedEnd": "0:00:58.1333333",
+                    "start": "0:00:58.1",
+                    "end": "0:00:58.1333333"
+                  }
+                ]
+              },
+              {
+                "id": 19,
+                "instances": [
+                  {
+                    "thumbnailId": "04c55bad-abbc-4b0a-8e85-82b764e1329c",
+                    "adjustedStart": "0:01:00.6666667",
+                    "adjustedEnd": "0:01:00.7",
+                    "start": "0:01:00.6666667",
+                    "end": "0:01:00.7"
+                  }
+                ]
+              },
+              {
+                "id": 20,
+                "instances": [
+                  {
+                    "thumbnailId": "fc79aaa0-f836-4364-bd70-9c91c2303495",
+                    "adjustedStart": "0:01:01.8333333",
+                    "adjustedEnd": "0:01:01.8666667",
+                    "start": "0:01:01.8333333",
+                    "end": "0:01:01.8666667"
+                  }
+                ]
+              }
+            ],
+            "instances": [
+              {
+                "adjustedStart": "0:00:58.0333333",
+                "adjustedEnd": "0:01:02.6333333",
+                "start": "0:00:58.0333333",
+                "end": "0:01:02.6333333"
+              }
+            ]
+          },
+          {
+            "id": 13,
+            "tags": [
+              "Wide",
+              "CenterFace"
+            ],
+            "keyFrames": [
+              {
+                "id": 21,
+                "instances": [
+                  {
+                    "thumbnailId": "cde7fbf5-2466-40b8-9f38-f2f362a6b712",
+                    "adjustedStart": "0:01:02.6666667",
+                    "adjustedEnd": "0:01:02.7",
+                    "start": "0:01:02.6666667",
+                    "end": "0:01:02.7"
+                  }
+                ]
+              },
+              {
+                "id": 22,
+                "instances": [
+                  {
+                    "thumbnailId": "10e511fa-2d06-4fa2-b6bb-9d2faea958af",
+                    "adjustedStart": "0:01:04.7333333",
+                    "adjustedEnd": "0:01:04.7666667",
+                    "start": "0:01:04.7333333",
+                    "end": "0:01:04.7666667"
+                  }
+                ]
+              }
+            ],
+            "instances": [
+              {
+                "adjustedStart": "0:01:02.6333333",
+                "adjustedEnd": "0:01:07.6",
+                "start": "0:01:02.6333333",
+                "end": "0:01:07.6"
+              }
+            ]
+          },
+          {
+            "id": 14,
+            "keyFrames": [
+              {
+                "id": 23,
+                "instances": [
+                  {
+                    "thumbnailId": "1c61a632-44bb-49fd-a2b4-4271c3366771",
+                    "adjustedStart": "0:01:07.8666667",
+                    "adjustedEnd": "0:01:07.9",
+                    "start": "0:01:07.8666667",
+                    "end": "0:01:07.9"
+                  }
+                ]
+              },
+              {
+                "id": 24,
+                "instances": [
+                  {
+                    "thumbnailId": "1eb3051b-9c82-431f-89e7-71f8ba83a0ae",
+                    "adjustedStart": "0:01:09.6666667",
+                    "adjustedEnd": "0:01:09.7",
+                    "start": "0:01:09.6666667",
+                    "end": "0:01:09.7"
+                  }
+                ]
+              }
+            ],
+            "instances": [
+              {
+                "adjustedStart": "0:01:07.6",
+                "adjustedEnd": "0:01:11.1666667",
+                "start": "0:01:07.6",
+                "end": "0:01:11.1666667"
+              }
+            ]
+          },
+          {
+            "id": 15,
+            "keyFrames": [
+              {
+                "id": 25,
+                "instances": [
+                  {
+                    "thumbnailId": "c17f71fc-89d5-488f-acb8-207e0e78c406",
+                    "adjustedStart": "0:01:11.2333333",
+                    "adjustedEnd": "0:01:11.2666667",
+                    "start": "0:01:11.2333333",
+                    "end": "0:01:11.2666667"
+                  }
+                ]
+              }
+            ],
+            "instances": [
+              {
+                "adjustedStart": "0:01:11.1666667",
+                "adjustedEnd": "0:01:16.1333333",
+                "start": "0:01:11.1666667",
+                "end": "0:01:16.1333333"
+              }
+            ]
+          },
+          {
+            "id": 16,
+            "keyFrames": [
+              {
+                "id": 26,
+                "instances": [
+                  {
+                    "thumbnailId": "1d886421-636c-46ca-abb4-eca9593c18da",
+                    "adjustedStart": "0:01:16.3666667",
+                    "adjustedEnd": "0:01:16.4",
+                    "start": "0:01:16.3666667",
+                    "end": "0:01:16.4"
+                  }
+                ]
+              },
+              {
+                "id": 27,
+                "instances": [
+                  {
+                    "thumbnailId": "6b763be0-6339-4cd2-8fee-a4a7f0ecf10e",
+                    "adjustedStart": "0:01:19.7666667",
+                    "adjustedEnd": "0:01:19.8",
+                    "start": "0:01:19.7666667",
+                    "end": "0:01:19.8"
+                  }
+                ]
+              }
+            ],
+            "instances": [
+              {
+                "adjustedStart": "0:01:16.1333333",
+                "adjustedEnd": "0:01:21.1333333",
+                "start": "0:01:16.1333333",
+                "end": "0:01:21.1333333"
+              }
+            ]
+          },
+          {
+            "id": 17,
+            "tags": [
+              "ExtremeCloseUp",
+              "CenterFace"
+            ],
+            "keyFrames": [
+              {
+                "id": 28,
+                "instances": [
+                  {
+                    "thumbnailId": "5676ac47-f18d-44ed-ad5f-6af773f6f9dd",
+                    "adjustedStart": "0:01:21.1666667",
+                    "adjustedEnd": "0:01:21.2",
+                    "start": "0:01:21.1666667",
+                    "end": "0:01:21.2"
+                  }
+                ]
+              },
+              {
+                "id": 29,
+                "instances": [
+                  {
+                    "thumbnailId": "4f3ec7f0-abd4-4886-863b-16ca22c680aa",
+                    "adjustedStart": "0:01:23.4666667",
+                    "adjustedEnd": "0:01:23.5",
+                    "start": "0:01:23.4666667",
+                    "end": "0:01:23.5"
+                  }
+                ]
+              },
+              {
+                "id": 30,
+                "instances": [
+                  {
+                    "thumbnailId": "fc368db8-6718-4597-8ea7-aaf94dd9171e",
+                    "adjustedStart": "0:01:24.9",
+                    "adjustedEnd": "0:01:24.9333333",
+                    "start": "0:01:24.9",
+                    "end": "0:01:24.9333333"
+                  }
+                ]
+              }
+            ],
+            "instances": [
+              {
+                "adjustedStart": "0:01:21.1333333",
+                "adjustedEnd": "0:01:26.1",
+                "start": "0:01:21.1333333",
+                "end": "0:01:26.1"
+              }
+            ]
+          },
+          {
+            "id": 18,
+            "keyFrames": [
+              {
+                "id": 31,
+                "instances": [
+                  {
+                    "thumbnailId": "0b7fcae9-b684-4245-8936-ac4314cd3313",
+                    "adjustedStart": "0:01:26.1666667",
+                    "adjustedEnd": "0:01:26.2",
+                    "start": "0:01:26.1666667",
+                    "end": "0:01:26.2"
+                  }
+                ]
+              }
+            ],
+            "instances": [
+              {
+                "adjustedStart": "0:01:26.1",
+                "adjustedEnd": "0:01:28.4333333",
+                "start": "0:01:26.1",
+                "end": "0:01:28.4333333"
+              }
+            ]
+          },
+          {
+            "id": 19,
+            "keyFrames": [
+              {
+                "id": 32,
+                "instances": [
+                  {
+                    "thumbnailId": "51cbb320-2ee1-4a75-bc5b-f9f48360710b",
+                    "adjustedStart": "0:01:28.5",
+                    "adjustedEnd": "0:01:28.5333333",
+                    "start": "0:01:28.5",
+                    "end": "0:01:28.5333333"
+                  }
+                ]
+              }
+            ],
+            "instances": [
+              {
+                "adjustedStart": "0:01:28.4333333",
+                "adjustedEnd": "0:01:31.3333333",
+                "start": "0:01:28.4333333",
+                "end": "0:01:31.3333333"
+              }
+            ]
+          },
+          {
+            "id": 20,
+            "keyFrames": [
+              {
+                "id": 33,
+                "instances": [
+                  {
+                    "thumbnailId": "5e69d512-f20a-4422-ab20-4e3e925b0394",
+                    "adjustedStart": "0:01:31.4",
+                    "adjustedEnd": "0:01:31.4333333",
+                    "start": "0:01:31.4",
+                    "end": "0:01:31.4333333"
+                  }
+                ]
+              }
+            ],
+            "instances": [
+              {
+                "adjustedStart": "0:01:31.3333333",
+                "adjustedEnd": "0:01:35.3333333",
+                "start": "0:01:31.3333333",
+                "end": "0:01:35.3333333"
+              }
+            ]
+          },
+          {
+            "id": 21,
+            "keyFrames": [
+              {
+                "id": 34,
+                "instances": [
+                  {
+                    "thumbnailId": "c2bc2741-24c6-49cd-87ba-c6ecf10367f7",
+                    "adjustedStart": "0:01:35.6",
+                    "adjustedEnd": "0:01:35.6333333",
+                    "start": "0:01:35.6",
+                    "end": "0:01:35.6333333"
+                  }
+                ]
+              }
+            ],
+            "instances": [
+              {
+                "adjustedStart": "0:01:35.3333333",
+                "adjustedEnd": "0:01:40.3333333",
+                "start": "0:01:35.3333333",
+                "end": "0:01:40.3333333"
+              }
+            ]
+          },
+          {
+            "id": 22,
+            "keyFrames": [
+              {
+                "id": 35,
+                "instances": [
+                  {
+                    "thumbnailId": "df2ad728-e5cd-416b-b30d-b637f95493bd",
+                    "adjustedStart": "0:01:40.4",
+                    "adjustedEnd": "0:01:40.4333333",
+                    "start": "0:01:40.4",
+                    "end": "0:01:40.4333333"
+                  }
+                ]
+              }
+            ],
+            "instances": [
+              {
+                "adjustedStart": "0:01:40.3333333",
+                "adjustedEnd": "0:01:48.3333333",
+                "start": "0:01:40.3333333",
+                "end": "0:01:48.3333333"
+              }
+            ]
+          },
+          {
+            "id": 23,
+            "keyFrames": [
+              {
+                "id": 36,
+                "instances": [
+                  {
+                    "thumbnailId": "6558ff55-ee15-4ea2-a2e3-2bcfa36429dd",
+                    "adjustedStart": "0:01:48.4",
+                    "adjustedEnd": "0:01:48.4333333",
+                    "start": "0:01:48.4",
+                    "end": "0:01:48.4333333"
+                  }
+                ]
+              }
+            ],
+            "instances": [
+              {
+                "adjustedStart": "0:01:48.3333333",
+                "adjustedEnd": "0:01:51.9",
+                "start": "0:01:48.3333333",
+                "end": "0:01:51.9"
+              }
+            ]
+          }
+        ],
+        "detectedObjects": [
+          {
+            "id": 1,
+            "type": "Bottle",
+            "thumbnailId": "220da9e2-9289-4559-96f6-5361b1f85790",
+            "displayName": "bottle",
+            "wikiDataId": "Q80228",
+            "instances": [
+              {
+                "confidence": 0.571,
+                "adjustedStart": "0:00:03.5",
+                "adjustedEnd": "0:00:07.466667",
+                "start": "0:00:03.5",
+                "end": "0:00:07.466667"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "type": "Cup",
+            "thumbnailId": "5f0fd265-2138-4d9d-8f1b-e5489975646a",
+            "displayName": "cup",
+            "wikiDataId": "Q81727",
+            "instances": [
+              {
+                "confidence": 0.457,
+                "adjustedStart": "0:00:03.5",
+                "adjustedEnd": "0:00:07.466667",
+                "start": "0:00:03.5",
+                "end": "0:00:07.466667"
+              },
+              {
+                "confidence": 0.539,
+                "adjustedStart": "0:01:21.133333",
+                "adjustedEnd": "0:01:26",
+                "start": "0:01:21.133333",
+                "end": "0:01:26"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "type": "Cup",
+            "thumbnailId": "89cc520d-b2d0-4f0c-bc12-a6ec3ff62255",
+            "displayName": "cup",
+            "wikiDataId": "Q81727",
+            "instances": [
+              {
+                "confidence": 0.506,
+                "adjustedStart": "0:00:07.466667",
+                "adjustedEnd": "0:00:12.933333",
+                "start": "0:00:07.466667",
+                "end": "0:00:12.933333"
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "type": "Cup",
+            "thumbnailId": "e4a96dcc-c749-489e-b647-5d1eb6eeb397",
+            "displayName": "cup",
+            "wikiDataId": "Q81727",
+            "instances": [
+              {
+                "confidence": 0.294,
+                "adjustedStart": "0:00:07.466667",
+                "adjustedEnd": "0:00:09.666667",
+                "start": "0:00:07.466667",
+                "end": "0:00:09.666667"
+              },
+              {
+                "confidence": 0.529,
+                "adjustedStart": "0:00:10.966667",
+                "adjustedEnd": "0:00:12.933333",
+                "start": "0:00:10.966667",
+                "end": "0:00:12.933333"
+              },
+              {
+                "confidence": 0.18,
+                "adjustedStart": "0:00:13.266667",
+                "adjustedEnd": "0:00:13.3",
+                "start": "0:00:13.266667",
+                "end": "0:00:13.3"
+              },
+              {
+                "confidence": 0.165,
+                "adjustedStart": "0:00:13.766667",
+                "adjustedEnd": "0:00:13.8",
+                "start": "0:00:13.766667",
+                "end": "0:00:13.8"
+              },
+              {
+                "confidence": 0.211,
+                "adjustedStart": "0:00:23.466667",
+                "adjustedEnd": "0:00:24.333333",
+                "start": "0:00:23.466667",
+                "end": "0:00:24.333333"
+              },
+              {
+                "confidence": 0.166,
+                "adjustedStart": "0:00:25.133333",
+                "adjustedEnd": "0:00:25.5",
+                "start": "0:00:25.133333",
+                "end": "0:00:25.5"
+              },
+              {
+                "confidence": 0.165,
+                "adjustedStart": "0:00:25.966667",
+                "adjustedEnd": "0:00:26.666667",
+                "start": "0:00:25.966667",
+                "end": "0:00:26.666667"
+              },
+              {
+                "confidence": 0.17,
+                "adjustedStart": "0:00:27.466667",
+                "adjustedEnd": "0:00:27.5",
+                "start": "0:00:27.466667",
+                "end": "0:00:27.5"
+              }
+            ]
+          },
+          {
+            "id": 5,
+            "type": "Bowl",
+            "thumbnailId": "42f15f7c-3e65-4f7c-9632-87496adc3288",
+            "displayName": "bowl",
+            "wikiDataId": "Q153988",
+            "instances": [
+              {
+                "confidence": 0.565,
+                "adjustedStart": "0:00:09.133333",
+                "adjustedEnd": "0:00:10.833333",
+                "start": "0:00:09.133333",
+                "end": "0:00:10.833333"
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "type": "Cup",
+            "thumbnailId": "2d7d2f98-6fe7-47f6-93ed-7780ad57bdb6",
+            "displayName": "cup",
+            "wikiDataId": "Q81727",
+            "instances": [
+              {
+                "confidence": 0.358,
+                "adjustedStart": "0:00:12.933333",
+                "adjustedEnd": "0:00:20.466667",
+                "start": "0:00:12.933333",
+                "end": "0:00:20.466667"
+              },
+              {
+                "confidence": 0.205,
+                "adjustedStart": "0:00:23.633333",
+                "adjustedEnd": "0:00:28.333333",
+                "start": "0:00:23.633333",
+                "end": "0:00:28.333333"
+              },
+              {
+                "confidence": 0.158,
+                "adjustedStart": "0:00:32.433333",
+                "adjustedEnd": "0:00:32.633333",
+                "start": "0:00:32.433333",
+                "end": "0:00:32.633333"
+              },
+              {
+                "confidence": 0.201,
+                "adjustedStart": "0:00:34.433333",
+                "adjustedEnd": "0:00:39.966667",
+                "start": "0:00:34.433333",
+                "end": "0:00:39.966667"
+              },
+              {
+                "confidence": 0.194,
+                "adjustedStart": "0:00:40.6",
+                "adjustedEnd": "0:00:42.633333",
+                "start": "0:00:40.6",
+                "end": "0:00:42.633333"
+              },
+              {
+                "confidence": 0.18,
+                "adjustedStart": "0:00:43.433333",
+                "adjustedEnd": "0:00:43.966667",
+                "start": "0:00:43.433333",
+                "end": "0:00:43.966667"
+              }
+            ]
+          },
+          {
+            "id": 7,
+            "type": "Cup",
+            "thumbnailId": "2f42eb82-b7e7-407f-824b-9dd7107465e1",
+            "displayName": "cup",
+            "wikiDataId": "Q81727",
+            "instances": [
+              {
+                "confidence": 0.192,
+                "adjustedStart": "0:00:43.433333",
+                "adjustedEnd": "0:00:44.133333",
+                "start": "0:00:43.433333",
+                "end": "0:00:44.133333"
+              }
+            ]
+          },
+          {
+            "id": 8,
+            "type": "Cup",
+            "thumbnailId": "f30589e5-c2c0-4cfb-bd10-52671e955552",
+            "displayName": "cup",
+            "wikiDataId": "Q81727",
+            "instances": [
+              {
+                "confidence": 0.671,
+                "adjustedStart": "0:00:43.433333",
+                "adjustedEnd": "0:00:43.966667",
+                "start": "0:00:43.433333",
+                "end": "0:00:43.966667"
+              }
+            ]
+          },
+          {
+            "id": 9,
+            "type": "Bowl",
+            "thumbnailId": "913772a9-77fa-40fe-93b0-51f917e94457",
+            "displayName": "bowl",
+            "wikiDataId": "Q153988",
+            "instances": [
+              {
+                "confidence": 0.673,
+                "adjustedStart": "0:00:44.266667",
+                "adjustedEnd": "0:00:44.8",
+                "start": "0:00:44.266667",
+                "end": "0:00:44.8"
+              }
+            ]
+          },
+          {
+            "id": 10,
+            "type": "Cup",
+            "thumbnailId": "2c2f3918-683c-437e-81c9-fa3d09a6bb1e",
+            "displayName": "cup",
+            "wikiDataId": "Q81727",
+            "instances": [
+              {
+                "confidence": 0.617,
+                "adjustedStart": "0:00:44.8",
+                "adjustedEnd": "0:00:45.333333",
+                "start": "0:00:44.8",
+                "end": "0:00:45.333333"
+              }
+            ]
+          },
+          {
+            "id": 11,
+            "type": "Cup",
+            "thumbnailId": "99e6ee85-e615-4017-8178-776524f0090f",
+            "displayName": "cup",
+            "wikiDataId": "Q81727",
+            "instances": [
+              {
+                "confidence": 0.33,
+                "adjustedStart": "0:00:44.8",
+                "adjustedEnd": "0:00:45.666667",
+                "start": "0:00:44.8",
+                "end": "0:00:45.666667"
+              },
+              {
+                "confidence": 0.31,
+                "adjustedStart": "0:00:47.466667",
+                "adjustedEnd": "0:00:48.666667",
+                "start": "0:00:47.466667",
+                "end": "0:00:48.666667"
+              },
+              {
+                "confidence": 0.762,
+                "adjustedStart": "0:00:49.133333",
+                "adjustedEnd": "0:00:50.066667",
+                "start": "0:00:49.133333",
+                "end": "0:00:50.066667"
+              },
+              {
+                "confidence": 0.822,
+                "adjustedStart": "0:00:55.066667",
+                "adjustedEnd": "0:00:58.033333",
+                "start": "0:00:55.066667",
+                "end": "0:00:58.033333"
+              },
+              {
+                "confidence": 0.213,
+                "adjustedStart": "0:01:25.133333",
+                "adjustedEnd": "0:01:26.5",
+                "start": "0:01:25.133333",
+                "end": "0:01:26.5"
+              },
+              {
+                "confidence": 0.229,
+                "adjustedStart": "0:01:28.433333",
+                "adjustedEnd": "0:01:31.333333",
+                "start": "0:01:28.433333",
+                "end": "0:01:31.333333"
+              }
+            ]
+          },
+          {
+            "id": 12,
+            "type": "Cup",
+            "thumbnailId": "52aebb53-3817-4e75-a89c-2ded2e509d80",
+            "displayName": "cup",
+            "wikiDataId": "Q81727",
+            "instances": [
+              {
+                "confidence": 0.305,
+                "adjustedStart": "0:00:44.8",
+                "adjustedEnd": "0:00:45.666667",
+                "start": "0:00:44.8",
+                "end": "0:00:45.666667"
+              },
+              {
+                "confidence": 0.43,
+                "adjustedStart": "0:00:53.4",
+                "adjustedEnd": "0:00:54.933333",
+                "start": "0:00:53.4",
+                "end": "0:00:54.933333"
+              },
+              {
+                "confidence": 0.631,
+                "adjustedStart": "0:00:56.233333",
+                "adjustedEnd": "0:00:58.033333",
+                "start": "0:00:56.233333",
+                "end": "0:00:58.033333"
+              }
+            ]
+          },
+          {
+            "id": 13,
+            "type": "Cup",
+            "thumbnailId": "82697837-c8dc-45c3-97d1-f5d11036be11",
+            "displayName": "cup",
+            "wikiDataId": "Q81727",
+            "instances": [
+              {
+                "confidence": 0.253,
+                "adjustedStart": "0:00:47.133333",
+                "adjustedEnd": "0:00:48",
+                "start": "0:00:47.133333",
+                "end": "0:00:48"
+              },
+              {
+                "confidence": 0.67,
+                "adjustedStart": "0:00:48.633333",
+                "adjustedEnd": "0:00:50.066667",
+                "start": "0:00:48.633333",
+                "end": "0:00:50.066667"
+              }
+            ]
+          },
+          {
+            "id": 14,
+            "type": "Cup",
+            "thumbnailId": "d2d7a8d5-4e69-47a9-a8aa-bc845b37d245",
+            "displayName": "cup",
+            "wikiDataId": "Q81727",
+            "instances": [
+              {
+                "confidence": 0.585,
+                "adjustedStart": "0:00:50.066667",
+                "adjustedEnd": "0:00:54.933333",
+                "start": "0:00:50.066667",
+                "end": "0:00:54.933333"
+              }
+            ]
+          },
+          {
+            "id": 15,
+            "type": "Cup",
+            "thumbnailId": "6e494a81-8866-4e3f-b441-8de8dc230501",
+            "displayName": "cup",
+            "wikiDataId": "Q81727",
+            "instances": [
+              {
+                "confidence": 0.341,
+                "adjustedStart": "0:00:50.066667",
+                "adjustedEnd": "0:00:50.766667",
+                "start": "0:00:50.066667",
+                "end": "0:00:50.766667"
+              },
+              {
+                "confidence": 0.861,
+                "adjustedStart": "0:00:53.4",
+                "adjustedEnd": "0:00:58.033333",
+                "start": "0:00:53.4",
+                "end": "0:00:58.033333"
+              }
+            ]
+          },
+          {
+            "id": 16,
+            "type": "WineGlass",
+            "thumbnailId": "ca92f555-8826-4f1a-8d50-ada0377425fe",
+            "displayName": "wine glass",
+            "wikiDataId": "Q1531435",
+            "instances": [
+              {
+                "confidence": 0.354,
+                "adjustedStart": "0:00:50.066667",
+                "adjustedEnd": "0:00:52.766667",
+                "start": "0:00:50.066667",
+                "end": "0:00:52.766667"
+              }
+            ]
+          },
+          {
+            "id": 17,
+            "type": "Spoon",
+            "thumbnailId": "272963ac-cf91-4273-8da8-54a6e6c02335",
+            "displayName": "spoon",
+            "wikiDataId": "Q81895",
+            "instances": [
+              {
+                "confidence": 0.949,
+                "adjustedStart": "0:00:55.066667",
+                "adjustedEnd": "0:00:58.033333",
+                "start": "0:00:55.066667",
+                "end": "0:00:58.033333"
+              }
+            ]
+          },
+          {
+            "id": 18,
+            "type": "Cup",
+            "thumbnailId": "c2737f64-1686-4e86-9a77-7c2b13e67a46",
+            "displayName": "cup",
+            "wikiDataId": "Q81727",
+            "instances": [
+              {
+                "confidence": 0.697,
+                "adjustedStart": "0:00:56.4",
+                "adjustedEnd": "0:00:58.033333",
+                "start": "0:00:56.4",
+                "end": "0:00:58.033333"
+              }
+            ]
+          },
+          {
+            "id": 19,
+            "type": "Cup",
+            "thumbnailId": "37e35d39-b462-4d9d-98e3-bc3777aefefd",
+            "displayName": "cup",
+            "wikiDataId": "Q81727",
+            "instances": [
+              {
+                "confidence": 0.246,
+                "adjustedStart": "0:01:02.966667",
+                "adjustedEnd": "0:01:04.5",
+                "start": "0:01:02.966667",
+                "end": "0:01:04.5"
+              },
+              {
+                "confidence": 0.224,
+                "adjustedStart": "0:01:05.3",
+                "adjustedEnd": "0:01:07.333333",
+                "start": "0:01:05.3",
+                "end": "0:01:07.333333"
+              },
+              {
+                "confidence": 0.415,
+                "adjustedStart": "0:01:07.6",
+                "adjustedEnd": "0:01:11.166667",
+                "start": "0:01:07.6",
+                "end": "0:01:11.166667"
+              }
+            ]
+          },
+          {
+            "id": 20,
+            "type": "Bowl",
+            "thumbnailId": "bd914568-595d-4d51-8b86-2f63eab4adc2",
+            "displayName": "bowl",
+            "wikiDataId": "Q153988",
+            "instances": [
+              {
+                "confidence": 0.796,
+                "adjustedStart": "0:01:04.633333",
+                "adjustedEnd": "0:01:05.5",
+                "start": "0:01:04.633333",
+                "end": "0:01:05.5"
+              },
+              {
+                "confidence": 0.701,
+                "adjustedStart": "0:01:07.466667",
+                "adjustedEnd": "0:01:07.6",
+                "start": "0:01:07.466667",
+                "end": "0:01:07.6"
+              }
+            ]
+          },
+          {
+            "id": 21,
+            "type": "Cup",
+            "thumbnailId": "5909b182-74c4-479c-ae92-3a27f9cebd67",
+            "displayName": "cup",
+            "wikiDataId": "Q81727",
+            "instances": [
+              {
+                "confidence": 0.168,
+                "adjustedStart": "0:01:16.133333",
+                "adjustedEnd": "0:01:19.166667",
+                "start": "0:01:16.133333",
+                "end": "0:01:19.166667"
+              },
+              {
+                "confidence": 0.173,
+                "adjustedStart": "0:01:20.633333",
+                "adjustedEnd": "0:01:21.133333",
+                "start": "0:01:20.633333",
+                "end": "0:01:21.133333"
+              }
+            ]
+          },
+          {
+            "id": 22,
+            "type": "Cup",
+            "thumbnailId": "d0f0964b-ce9c-4847-91d9-1cda2ee4f6aa",
+            "displayName": "cup",
+            "wikiDataId": "Q81727",
+            "instances": [
+              {
+                "confidence": 0.502,
+                "adjustedStart": "0:01:21.133333",
+                "adjustedEnd": "0:01:28.433333",
+                "start": "0:01:21.133333",
+                "end": "0:01:28.433333"
+              }
+            ]
+          },
+          {
+            "id": 23,
+            "type": "Cup",
+            "thumbnailId": "21f40007-1362-4b85-b156-a6885352d4ef",
+            "displayName": "cup",
+            "wikiDataId": "Q81727",
+            "instances": [
+              {
+                "confidence": 0.21,
+                "adjustedStart": "0:01:23.3",
+                "adjustedEnd": "0:01:23.666667",
+                "start": "0:01:23.3",
+                "end": "0:01:23.666667"
+              },
+              {
+                "confidence": 0.444,
+                "adjustedStart": "0:01:26.133333",
+                "adjustedEnd": "0:01:28.433333",
+                "start": "0:01:26.133333",
+                "end": "0:01:28.433333"
+              }
+            ]
+          }
+        ],
+        "sentiments": [
+          {
+            "id": 1,
+            "averageScore": 0.5,
+            "sentimentType": "Neutral",
+            "instances": [
+              {
+                "adjustedStart": "0:00:00",
+                "adjustedEnd": "0:01:51.920181",
+                "start": "0:00:00",
+                "end": "0:01:51.920181"
+              }
+            ]
+          }
+        ],
+        "blocks": [
+          {
+            "id": 0,
+            "instances": [
+              {
+                "adjustedStart": "0:00:00",
+                "adjustedEnd": "0:00:33.4",
+                "start": "0:00:00",
+                "end": "0:00:33.4"
+              }
+            ]
+          },
+          {
+            "id": 1,
+            "instances": [
+              {
+                "adjustedStart": "0:00:33.4",
+                "adjustedEnd": "0:01:51.920181",
+                "start": "0:00:33.4",
+                "end": "0:01:51.920181"
+              }
+            ]
+          }
+        ],
+        "speakers": [
+          {
+            "id": 1,
+            "name": "Speaker #1",
+            "instances": [
+              {
+                "adjustedStart": "0:00:33.32",
+                "adjustedEnd": "0:00:33.4",
+                "start": "0:00:33.32",
+                "end": "0:00:33.4"
+              },
+              {
+                "adjustedStart": "0:01:03.24",
+                "adjustedEnd": "0:01:03.32",
+                "start": "0:01:03.24",
+                "end": "0:01:03.32"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "name": "Speaker #2",
+            "instances": [
+              {
+                "adjustedStart": "0:01:32.36",
+                "adjustedEnd": "0:01:32.44",
+                "start": "0:01:32.36",
+                "end": "0:01:32.44"
+              }
+            ]
+          }
+        ],
+        "textualContentModeration": {
+          "id": 0,
+          "bannedWordsCount": 0,
+          "bannedWordsRatio": 0,
+          "instances": []
+        },
+        "statistics": {
+          "correspondenceCount": 1,
+          "speakerTalkToListenRatio": {
+            "1": 0.666,
+            "2": 0.333
+          },
+          "speakerLongestMonolog": {
+            "1": 0,
+            "2": 0
+          },
+          "speakerNumberOfFragments": {
+            "1": 2,
+            "2": 1
+          },
+          "speakerWordCount": {
+            "1": 2,
+            "2": 1
+          }
+        }
+      },
+      "thumbnailId": "84ea37a2-760a-474e-85ae-1c329445144c",
+      "width": 640,
+      "height": 360,
+      "detectSourceLanguage": false,
+      "languageAutoDetectMode": "None",
+      "sourceLanguage": "en-US",
+      "sourceLanguages": [
+        "en-US"
+      ],
+      "language": "en-US",
+      "languages": [
+        "en-US"
+      ],
+      "indexingPreset": "Default",
+      "streamingPreset": "Default",
+      "linguisticModelId": "00000000-0000-0000-0000-000000000000",
+      "personModelId": "00000000-0000-0000-0000-000000000000",
+      "logoGroupId": null,
+      "isAdult": false,
+      "excludedAIs": [],
+      "isSearchable": true,
+      "publishedUrl": "https://api.videoindexer.ai/internals/eastasia/Accounts/ac6b1061-0206-4ffa-9373-9139b2eb5d68/Videos/rtheiymihs/streaming-manifest/manifest.m3u8",
+      "publishedProxyUrl": null,
+      "viewToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJWZXJzaW9uIjoiMi4wLjAuMCIsIktleVZlcnNpb24iOiI0NDZkMDAwNTg1NGI0ZDMxOWVlOTAzODc1OTllOGQ5MyIsIkFjY291bnRJZCI6ImFjNmIxMDYxLTAyMDYtNGZmYS05MzczLTkxMzliMmViNWQ2OCIsIkFjY291bnRUeXBlIjoiQ2xhc3NpYyIsIlZpZGVvSWQiOiJydGhlaXltaWhzIiwiUGVybWlzc2lvbiI6IlJlc3RyaWN0ZWRWaWV3ZXIiLCJFeHRlcm5hbFVzZXJJZCI6IkQyNDkyQjIyODRFMTQxNTZBRTE0NUIyQTQyOEZCQjE3IiwiVXNlclR5cGUiOiJNaWNyb3NvZnRDb3JwQWFkIiwiSXNzdWVyTG9jYXRpb24iOiJlYXN0YXNpYSIsIm5iZiI6MTc2OTkzNTYyNiwiZXhwIjoxNzY5OTM5NTI2LCJpc3MiOiJodHRwczovL2FwaS52aWRlb2luZGV4ZXIuYWkvIiwiYXVkIjoiaHR0cHM6Ly9hcGkudmlkZW9pbmRleGVyLmFpLyJ9.A0E_9dCYn3TfdUuhY8Yc-9nuJ5fbhoEECcnyqvn0jQqKJAAXGHTzHAHRzMJAWtYfxXMPJPxzWEqLp36fJ7RN3JU6k1dwBTrLUEDAsYg-jm9BgvFkKKJt_EnDlCF7oX3I1uKxZmp5fUIu8NAZF55_9fJrMiCiMFNfH8Nh5jmEqPHImm9-7TIZZiaXiyjypfjHKAAmOvaqAkylOO5vPwSVn1nWxRr8pCdCjkFADNGviaAODuJcgTHmwkJ1d5BuSOnXHahJCowJKw5p9nHLlGi6nH1tUGDMxBdSNnEGOKGzA7eYlzkcZz_QHPt8qIQwf380RRkwCCvulopdWPL2G6swMQ"
+    }
+  ],
+  "videosRanges": [
+    {
+      "videoId": "rtheiymihs",
+      "range": {
+        "start": "0:00:00",
+        "end": "0:01:51.920181"
+      }
+    }
+  ]
+}
