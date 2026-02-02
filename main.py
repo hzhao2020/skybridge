@@ -8,7 +8,7 @@ from utils.dataset import (
     NExTQADataset,
     ActivityNetQADataset,
 )
-from ops.registry import get_operation, REGISTRY
+from ops.registry import get_operation, REGISTRY,list_supported_operations
 from core.workflows.lvqa import LVQA
 
 # 加载配置文件（如果存在）
@@ -45,12 +45,12 @@ if hasattr(sys.stdout, "reconfigure"):
         pass
 
 
-def list_available_ops():
-    """打印当前可用的 (provider, region, model) 组合及其 pid。"""
-    print("\n=== 可用的操作 pid 列表 ===")
-    for pid in sorted(REGISTRY.keys()):
-        print(f"- {pid}")
-    print("========================\n")
+# def list_available_ops():
+#     """打印当前可用的 (provider, region, model) 组合及其 pid。"""
+#     print("\n=== 可用的操作 pid 列表 ===")
+#     for pid in sorted(REGISTRY.keys()):
+#         print(f"- {pid}")
+#     print("========================\n")
 
 
 def run_workflow_demo():
@@ -184,8 +184,8 @@ def run_workflow_demo():
 
 if __name__ == "__main__":
     # 打印可用的 (provider, region, model) 组合
-    list_available_ops()
-
+    # list_available_ops()
+    print(list_supported_operations())
     # result = run_workflow_demo()
 
     # # 有条理地打印 result 的结果

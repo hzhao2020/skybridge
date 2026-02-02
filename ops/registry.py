@@ -2,7 +2,7 @@
 import json
 import os
 import subprocess
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 from ops.base import Operation
 from ops.impl.google_ops import (
@@ -20,7 +20,7 @@ from ops.impl.amazon_ops import (
     AmazonRekognitionObjectDetectionImpl,
 )
 from ops.impl.openai_ops import OpenAILLMImpl
-from ops.impl.azure_ops import AzureVideoIndexerCaptionImpl
+from ops.impl.azure_ops import AzureVideoIndexerCaptionImpl, AzureVideoIndexerSegmentImpl
 # Storage 和 Transmission 操作直接使用 ops.utils 中的辅助类，不需要注册为 Operation
 
 REGISTRY = {}
@@ -171,6 +171,7 @@ AWS_REGIONS = [
 
 # 1) Video segmentation (shot detection)
 # Google Video Intelligence: 仅支持 us-west1, asia-east1
+# Azure Video Indexer: 支持 eastasia, westus2
 VIDEO_SEGMENT_CATALOG = [
     # Google Video Intelligence (2个区域)
     {"pid": "seg_google_us", "cls": GoogleVideoSegmentImpl, "provider": "google", "region": "us-west1", "bucket_key": "gcp_us"},
@@ -178,6 +179,9 @@ VIDEO_SEGMENT_CATALOG = [
     # Amazon Rekognition Video
     {"pid": "seg_aws_us", "cls": AmazonRekognitionSegmentImpl, "provider": "amazon", "region": "us-west-2", "bucket_key": "aws_us"},
     {"pid": "seg_aws_sg", "cls": AmazonRekognitionSegmentImpl, "provider": "amazon", "region": "ap-southeast-1", "bucket_key": "aws_sg"},
+    # Azure Video Indexer (2个区域)
+    {"pid": "seg_azure_vi_ea", "cls": AzureVideoIndexerSegmentImpl, "provider": "azure", "region": "eastasia", "bucket_key": "azure_ea"},
+    {"pid": "seg_azure_vi_wu", "cls": AzureVideoIndexerSegmentImpl, "provider": "azure", "region": "westus2", "bucket_key": "azure_wu"},
 ]
 
 # 1.5) Video splitting (physical cutting)
@@ -414,3 +418,115 @@ for item in TEXT_EMBEDDING_CATALOG:
 
 for item in OBJECT_DETECTION_CATALOG:
     register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]]))
+
+
+# =========================================================
+# List all supported operations
+# =========================================================
+
+def list_supported_operations() -> str:
+    """
+    列出所有支持的 operation，按类别组织。
+    只返回核心信息：PID、Provider、Region、Model。
+    
+    Returns:
+        格式化的字符串，包含所有支持的 operation 信息
+    """
+    # 定义类别和对应的 catalog
+    categories = {
+        "1. Video Segmentation (视频分割 - 镜头检测)": VIDEO_SEGMENT_CATALOG,
+        "2. Video Splitting (视频切割 - 物理切割)": VIDEO_SPLIT_CATALOG,
+        "3. Visual Captioning (视觉字幕生成)": VISUAL_CAPTION_CATALOG,
+        "4. LLM Querying (大语言模型查询)": LLM_CATALOG,
+        "5. Visual Encoding (视觉嵌入)": VISUAL_ENCODING_CATALOG,
+        "6. Text Embedding (文本嵌入)": TEXT_EMBEDDING_CATALOG,
+        "7. Object Detection (目标检测)": OBJECT_DETECTION_CATALOG,
+    }
+    
+    lines = []
+    lines.append("=" * 80)
+    lines.append("支持的 Operations")
+    lines.append("=" * 80)
+    lines.append("")
+    
+    total_count = 0
+    for category, catalog in categories.items():
+        lines.append(category)
+        lines.append("-" * 80)
+        
+        if not catalog:
+            lines.append("  (无)")
+            lines.append("")
+            continue
+        
+        # 按 provider 分组
+        by_provider = {}
+        for item in catalog:
+            provider = item.get("provider", "unknown")
+            if provider not in by_provider:
+                by_provider[provider] = []
+            by_provider[provider].append(item)
+        
+        for provider, items in sorted(by_provider.items()):
+            lines.append(f"  Provider: {provider.upper()}")
+            for item in items:
+                pid = item.get("pid", "N/A")
+                region = item.get("region", "N/A")
+                model = item.get("model", "-")
+                
+                model_str = f" (Model: {model})" if model != "-" else ""
+                lines.append(f"    - {pid:30s} | Region: {region:20s}{model_str}")
+        
+        lines.append("")
+        total_count += len(catalog)
+    
+    lines.append("=" * 80)
+    lines.append(f"总计: {total_count} 个 operations")
+    lines.append("=" * 80)
+    
+    return "\n".join(lines)
+
+
+def get_operation_info(pid: str, include_class: bool = False) -> Optional[Dict]:
+    """
+    获取指定 operation 的详细信息。
+    
+    Args:
+        pid: operation 的 physical ID
+        include_class: 是否在返回结果中包含类对象（cls），默认 False（返回可序列化的字典）
+    
+    Returns:
+        包含 operation 信息的字典，如果不存在则返回 None
+        默认返回可序列化的字典（不包含 cls 对象），如果 include_class=True 则包含原始 cls 对象
+    """
+    # 搜索所有 catalog
+    all_catalogs = [
+        VIDEO_SEGMENT_CATALOG,
+        VIDEO_SPLIT_CATALOG,
+        VISUAL_CAPTION_CATALOG,
+        LLM_CATALOG,
+        VISUAL_ENCODING_CATALOG,
+        TEXT_EMBEDDING_CATALOG,
+        OBJECT_DETECTION_CATALOG,
+    ]
+    
+    for catalog in all_catalogs:
+        for item in catalog:
+            if item.get("pid") == pid:
+                if include_class:
+                    return item.copy()
+                else:
+                    # 返回可序列化的版本
+                    result = {
+                        "pid": item.get("pid"),
+                        "provider": item.get("provider"),
+                        "region": item.get("region"),
+                        "bucket_key": item.get("bucket_key"),
+                    }
+                    if "model" in item:
+                        result["model"] = item["model"]
+                    if "cls" in item:
+                        result["class"] = item["cls"].__name__
+                    return result
+    
+    return None
