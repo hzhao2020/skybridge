@@ -408,8 +408,44 @@ class DataTransmission:
             logger.error(f"Failed to transfer GCS to S3: {gcs_uri} -> {target_uri}: {e}")
             raise
 
+    def _build_azure_blob_url(self, account_name: str, container: str, blob: str, use_sas: bool = True) -> str:
+        """构建 Azure Blob 的 HTTPS URL
+        
+        Args:
+            account_name: Azure 存储账户名称
+            container: 容器名称
+            blob: Blob 路径
+            use_sas: 是否使用 SAS token（同一账户内复制可能不需要）
+        
+        Returns:
+            Azure Blob 的 HTTPS URL
+        """
+        config = self._get_azure_config()
+        if account_name not in config:
+            raise ValueError(f"Azure account '{account_name}' not found in configuration")
+        
+        # 构建基础 URL
+        url = f"https://{account_name}.blob.core.windows.net/{container}/{blob}"
+        
+        # 如果需要 SAS token 且配置中有，则添加
+        if use_sas:
+            sas_token = config[account_name].get("sas_token")
+            if sas_token:
+                separator = "&" if "?" in url else "?"
+                url = f"{url}{separator}{sas_token}"
+        
+        return url
+    
     def transfer_azure_to_azure(self, azure_uri: str, target_container: str, target_path: Optional[str] = None, source_account_name: Optional[str] = None, target_account_name: Optional[str] = None) -> str:
-        """Azure -> Azure 跨容器/跨账户传输（流式直传，不落盘）
+        """Azure -> Azure 跨容器/跨账户传输（服务器端复制，利用云内网）
+        
+        使用 Azure 的服务器端复制 API，数据在 Azure 服务器之间传输，不经过客户端，
+        自动利用 Azure 内网，性能更优。
+        
+        - 同一账户内复制：使用同步的 upload_blob_from_url（立即完成）
+        - 跨账户复制：使用异步的 start_copy_from_url（需要轮询状态）
+        
+        两种方法都是服务器端复制，数据在 Azure 服务器之间传输，自动利用云内网。
         
         Args:
             azure_uri: Azure 源文件 URI (azure://container/blob 或 https://account.blob.core.windows.net/container/blob)
@@ -442,10 +478,10 @@ class DataTransmission:
             target_blob = source_blob
         
         target_uri = f"azure://{target_container}/{target_blob}"
-        logger.info(f"[Bridge] Azure -> Azure 传输: {azure_uri} -> {target_uri}")
+        logger.info(f"[Bridge] Azure -> Azure 服务器端复制: {azure_uri} -> {target_uri}")
         
         # 打印传输信息
-        print(f"\n[数据传输] Azure -> Azure 传输")
+        print(f"\n[数据传输] Azure -> Azure 服务器端复制（利用云内网）")
         print(f"  原视频位置: {azure_uri}")
         print(f"  目标位置: {target_uri}")
         print(f"  传输中...")
@@ -453,10 +489,7 @@ class DataTransmission:
         # 记录传输时间
         start_time = time.time()
         try:
-            source_client = self.get_azure_client(source_account)
-            source_container_client = source_client.get_container_client(source_container)
-            source_blob_client = source_container_client.get_blob_client(source_blob)
-            
+            # 获取目标客户端
             target_client = self.get_azure_client(target_account)
             target_container_client = target_client.get_container_client(target_container)
             # 确保目标容器存在
@@ -464,18 +497,65 @@ class DataTransmission:
                 target_container_client.create_container()
             target_blob_client = target_container_client.get_blob_client(target_blob)
             
-            # 流式复制 - 使用 chunks() 迭代器进行流式传输
-            download_stream = source_blob_client.download_blob()
-            # 创建一个可读的流对象用于上传
-            import io
-            stream_data = io.BytesIO()
-            for chunk in download_stream.chunks():
-                stream_data.write(chunk)
-            stream_data.seek(0)
-            target_blob_client.upload_blob(stream_data, overwrite=True)
+            # 判断是否为同一账户内复制
+            same_account = (source_account == target_account)
             
-            end_time = time.time()
-            print(f"  ✓ 传输完成 (耗时: {end_time - start_time:.2f} 秒)\n")
+            # 构建源 blob 的 URL
+            if azure_uri.startswith('https://'):
+                # 如果已经是 HTTPS URL，直接使用（可能已包含 SAS token）
+                source_url = azure_uri
+            else:
+                # 构建源 blob URL
+                # 为了确保能够访问私有 blob，即使是同一账户内复制也使用 SAS token
+                # 这样可以避免权限问题，并且 Azure 服务器端复制会自动利用内网
+                source_url = self._build_azure_blob_url(
+                    source_account, 
+                    source_container, 
+                    source_blob,
+                    use_sas=True  # 使用 SAS token 确保能够访问私有 blob
+                )
+            
+            # 根据是否为同一账户选择不同的复制方法
+            if same_account:
+                # 同一账户内复制：使用同步的 upload_blob_from_url（更高效）
+                # 这是服务器端复制，数据在 Azure 服务器之间传输，不经过客户端
+                target_blob_client.upload_blob_from_url(source_url, overwrite=True)
+                end_time = time.time()
+                print(f"  ✓ 传输完成 (耗时: {end_time - start_time:.2f} 秒)\n")
+            else:
+                # 跨账户复制：使用异步的 start_copy_from_url
+                # 需要轮询状态直到完成
+                copy_props = target_blob_client.start_copy_from_url(source_url, requires_sync=False)
+                
+                # 轮询复制状态直到完成
+                max_wait_time = 3600  # 最多等待1小时
+                poll_interval = 2  # 每2秒轮询一次
+                elapsed_time = 0
+                
+                while elapsed_time < max_wait_time:
+                    props = target_blob_client.get_blob_properties()
+                    copy_status = props.copy.status
+                    
+                    if copy_status == "success":
+                        end_time = time.time()
+                        print(f"  ✓ 传输完成 (耗时: {end_time - start_time:.2f} 秒)\n")
+                        break
+                    elif copy_status == "pending":
+                        # 复制进行中，继续等待
+                        time.sleep(poll_interval)
+                        elapsed_time += poll_interval
+                        # 显示进度（每10秒显示一次）
+                        if elapsed_time % 10 == 0:
+                            print(f"  复制中... (已等待 {elapsed_time} 秒)")
+                    else:
+                        # 复制失败
+                        error_msg = f"Copy failed with status: {copy_status}"
+                        if props.copy.status_description:
+                            error_msg += f", description: {props.copy.status_description}"
+                        raise RuntimeError(error_msg)
+                else:
+                    # 超时
+                    raise RuntimeError(f"Copy operation timed out after {max_wait_time} seconds")
             
             # 记录传输时间
             try:

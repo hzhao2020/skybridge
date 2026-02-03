@@ -54,7 +54,6 @@ class LVQA(Workflow):
         "answer": Optional[str],  # 正确答案（可选）
         "answer_idx": Optional[int],  # 正确答案索引（可选）
         "qid": Optional[str],  # 问题ID（可选）
-        "max_segments": Optional[int],  # 最大片段数（可选，默认12）
     }
     """
 
@@ -76,7 +75,7 @@ class LVQA(Workflow):
             description="视频分割 (Video Segmentation)",
             dependencies=[],
             execute_func=self._execute_segment,
-            input_keys=["video_path", "max_segments"],
+            input_keys=["video_path"],
             output_keys=["segments", "video_uri"],
         )
 
@@ -157,7 +156,6 @@ class LVQA(Workflow):
         import time
 
         video_path = workflow.context.get("video_path")
-        max_segments = workflow.context.get("max_segments", 12)
 
         # 检查视频文件是否存在
         if not video_path or not os.path.exists(video_path):
@@ -197,14 +195,12 @@ class LVQA(Workflow):
         # 获取云存储URI（segment operation已将视频上传到云存储）
         video_uri = seg_res.get("source_used") or seg_res.get("input_video") or video_path
 
-        # 过滤非法片段并截断
+        # 过滤非法片段
         segments = [
             s
             for s in segments
             if float(s.get("end", 0) or 0) > float(s.get("start", 0) or 0)
         ]
-        if max_segments and len(segments) > max_segments:
-            segments = segments[:max_segments]
 
         print(f"✓ 视频分割完成，共 {len(segments)} 个片段")
         if segments:

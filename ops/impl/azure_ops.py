@@ -1,4 +1,5 @@
 import os
+import json
 import time
 from typing import Dict, Any, Optional, List
 from urllib.parse import urlparse
@@ -234,7 +235,7 @@ class AzureVideoIndexerCaptionImpl(VisualCaptioner):
                     
                     # 从 URL 中提取账户名
                     parsed = urlparse(azure_uri)
-                    account_name = parsed.netloc.split(".")[0]  # 例如 storeea.blob.core.windows.net -> storeea
+                    account_name = parsed.netloc.split(".")[0]  # 例如 videoea.blob.core.windows.net -> videoea
                     
                     # 查找对应的 SAS 令牌
                     if account_name in storage_accounts:
@@ -308,7 +309,7 @@ class AzureVideoIndexerCaptionImpl(VisualCaptioner):
                         # 从 URL 中提取账户名和容器名
                         from urllib.parse import urlparse
                         parsed = urlparse(video_uri)
-                        account_name = parsed.netloc.split(".")[0]  # 例如 storeea.blob.core.windows.net -> storeea
+                        account_name = parsed.netloc.split(".")[0]  # 例如 videoea.blob.core.windows.net -> videoea
                         
                         # 查找对应的 SAS 令牌
                         if account_name in storage_accounts:
@@ -330,10 +331,10 @@ class AzureVideoIndexerCaptionImpl(VisualCaptioner):
 
         storage_accounts = getattr(config, "AZURE_STORAGE_ACCOUNTS", {})
 
-        # 简单约定：eastasia -> storeea, westus2 -> storewu2
+        # 简单约定：eastasia -> videoea, westus2 -> videowu
         region_to_account = {
-            "eastasia": "storeea",
-            "westus2": "storewu2",
+            "eastasia": "videoea",
+            "westus2": "videowu",
         }
         account_name = region_to_account.get(self.region)
         if not account_name or account_name not in storage_accounts:
@@ -342,7 +343,7 @@ class AzureVideoIndexerCaptionImpl(VisualCaptioner):
                 f"请确保存在 key '{account_name}'。"
             )
 
-        container = self.storage_bucket  # registry 中传入的容器名，例如 "store-ea" / "store-wu2"
+        container = self.storage_bucket  # registry 中传入的容器名，例如 "video-ea" / "video-wu"
 
         # 使用 DataTransmission 智能搬运到 Azure
         target_uri = self.transmitter.smart_move(
@@ -354,6 +355,227 @@ class AzureVideoIndexerCaptionImpl(VisualCaptioner):
         )
 
         return self._azure_blob_https_from_uri(target_uri)
+
+    # ---------- Insights 缓存处理 ----------
+
+    def _get_insights_cache_path(self, video_uri: str, target_path: Optional[str] = None) -> str:
+        """
+        构建 insights 缓存的存储路径。
+        
+        Args:
+            video_uri: 视频 URI
+            target_path: 可选的原始目标路径
+            
+        Returns:
+            insights JSON 的缓存路径（相对路径，格式：results/azure_vi_insights/{video_name}/insights.json）
+        """
+        return self._build_result_path(video_uri, "azure_vi_insights", "insights.json", target_path)
+
+    def _save_insights_to_cache(self, insights_json: Dict[str, Any], video_uri: str, target_path: Optional[str] = None) -> Optional[str]:
+        """
+        保存 insights JSON 到缓存（本地或云存储）。
+        
+        Args:
+            insights_json: Video Indexer 返回的完整 insights JSON
+            video_uri: 视频 URI
+            target_path: 可选的原始目标路径
+            
+        Returns:
+            保存的缓存路径 URI（如果成功），否则返回 None
+        """
+        cache_path = self._get_insights_cache_path(video_uri, target_path)
+        
+        try:
+            # 确定存储位置（本地或云存储）
+            if video_uri.startswith("s3://"):
+                # S3: 保存到 S3
+                import boto3
+                parsed = urlparse(video_uri)
+                bucket = parsed.netloc
+                key = cache_path
+                
+                s3_client = boto3.client('s3')
+                s3_client.put_object(
+                    Bucket=bucket,
+                    Key=key,
+                    Body=json.dumps(insights_json, indent=2, ensure_ascii=False),
+                    ContentType='application/json'
+                )
+                cache_uri = f"s3://{bucket}/{key}"
+                print(f"    Insights cached to: {cache_uri}")
+                return cache_uri
+            elif video_uri.startswith("gs://"):
+                # GCS: 保存到 GCS
+                from google.cloud import storage
+                parsed = urlparse(video_uri)
+                bucket = parsed.netloc
+                blob_path = cache_path
+                
+                storage_client = storage.Client()
+                bucket_obj = storage_client.bucket(bucket)
+                blob = bucket_obj.blob(blob_path)
+                blob.upload_from_string(
+                    json.dumps(insights_json, indent=2, ensure_ascii=False),
+                    content_type='application/json'
+                )
+                cache_uri = f"gs://{bucket}/{blob_path}"
+                print(f"    Insights cached to: {cache_uri}")
+                return cache_uri
+            elif video_uri.startswith("azure://"):
+                # Azure: 保存到 Azure Blob Storage
+                parsed = urlparse(video_uri)
+                container = parsed.netloc
+                blob_path = cache_path
+                
+                # 获取 Azure 客户端
+                try:
+                    import config
+                    storage_accounts = getattr(config, "AZURE_STORAGE_ACCOUNTS", {})
+                    account_name = None
+                    for name, info in storage_accounts.items():
+                        if info.get("container") == container:
+                            account_name = name
+                            break
+                    
+                    if account_name:
+                        azure_client = self.transmitter.get_azure_client(account_name)
+                        blob_client = azure_client.get_blob_client(container=container, blob=blob_path)
+                        blob_client.upload_blob(
+                            json.dumps(insights_json, indent=2, ensure_ascii=False),
+                            overwrite=True,
+                            content_settings={"content_type": "application/json"}
+                        )
+                        cache_uri = f"azure://{container}/{blob_path}"
+                        print(f"    Insights cached to: {cache_uri}")
+                        return cache_uri
+                except Exception as e:
+                    print(f"    Warning: Failed to save insights to Azure cache: {e}")
+            else:
+                # 本地路径: 保存到本地文件系统
+                local_cache_path = cache_path
+                os.makedirs(os.path.dirname(local_cache_path), exist_ok=True)
+                with open(local_cache_path, 'w', encoding='utf-8') as f:
+                    json.dump(insights_json, f, indent=2, ensure_ascii=False)
+                print(f"    Insights cached to: {local_cache_path}")
+                return local_cache_path
+        except Exception as e:
+            print(f"    Warning: Failed to save insights cache: {e}")
+        
+        return None
+
+    def _load_insights_from_cache(self, video_uri: str, target_path: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """
+        从缓存加载 insights JSON。
+        
+        Args:
+            video_uri: 视频 URI
+            target_path: 可选的原始目标路径
+            
+        Returns:
+            insights JSON（如果存在），否则返回 None
+        """
+        cache_path = self._get_insights_cache_path(video_uri, target_path)
+        
+        try:
+            # 确定存储位置（本地或云存储）
+            if video_uri.startswith("s3://"):
+                # S3: 从 S3 加载
+                import boto3
+                parsed = urlparse(video_uri)
+                bucket = parsed.netloc
+                key = cache_path
+                
+                s3_client = boto3.client('s3')
+                try:
+                    response = s3_client.get_object(Bucket=bucket, Key=key)
+                    insights_json = json.loads(response['Body'].read().decode('utf-8'))
+                    print(f"    Loaded insights from cache: s3://{bucket}/{key}")
+                    return insights_json
+                except s3_client.exceptions.NoSuchKey:
+                    return None
+            elif video_uri.startswith("gs://"):
+                # GCS: 从 GCS 加载
+                from google.cloud import storage
+                parsed = urlparse(video_uri)
+                bucket = parsed.netloc
+                blob_path = cache_path
+                
+                storage_client = storage.Client()
+                bucket_obj = storage_client.bucket(bucket)
+                blob = bucket_obj.blob(blob_path)
+                
+                if blob.exists():
+                    insights_json = json.loads(blob.download_as_text())
+                    print(f"    Loaded insights from cache: gs://{bucket}/{blob_path}")
+                    return insights_json
+                return None
+            elif video_uri.startswith("azure://"):
+                # Azure: 从 Azure Blob Storage 加载
+                parsed = urlparse(video_uri)
+                container = parsed.netloc
+                blob_path = cache_path
+                
+                try:
+                    import config
+                    storage_accounts = getattr(config, "AZURE_STORAGE_ACCOUNTS", {})
+                    account_name = None
+                    for name, info in storage_accounts.items():
+                        if info.get("container") == container:
+                            account_name = name
+                            break
+                    
+                    if account_name:
+                        azure_client = self.transmitter.get_azure_client(account_name)
+                        blob_client = azure_client.get_blob_client(container=container, blob=blob_path)
+                        if blob_client.exists():
+                            insights_json = json.loads(blob_client.download_blob().readall().decode('utf-8'))
+                            print(f"    Loaded insights from cache: azure://{container}/{blob_path}")
+                            return insights_json
+                except Exception:
+                    pass
+                return None
+            else:
+                # 本地路径: 从本地文件系统加载
+                local_cache_path = cache_path
+                if os.path.exists(local_cache_path):
+                    with open(local_cache_path, 'r', encoding='utf-8') as f:
+                        insights_json = json.load(f)
+                    print(f"    Loaded insights from cache: {local_cache_path}")
+                    return insights_json
+                return None
+        except Exception as e:
+            print(f"    Warning: Failed to load insights cache: {e}")
+            return None
+
+    def _process_video_with_indexer(self, video_https_url: str, language: str = "en-US", **kwargs) -> Dict[str, Any]:
+        """
+        统一的视频处理逻辑：上传到 Video Indexer 并轮询直到处理完成。
+        
+        Args:
+            video_https_url: Video Indexer 可访问的 HTTPS URL
+            language: 视频语言（默认 'en-US'）
+            **kwargs: 其他参数（name, description 等）
+            
+        Returns:
+            Video Indexer 返回的完整 index JSON
+        """
+        # 获取访问 token
+        access_token = self._get_access_token()
+
+        # 上传/索引视频
+        video_id = self._upload_to_video_indexer(
+            video_https_url,
+            access_token,
+            language=language,
+            name=kwargs.get("name"),
+            description=kwargs.get("description"),
+        )
+        print(f"    Video accepted by Azure Video Indexer, video_id={video_id}")
+
+        # 轮询直到处理完成
+        index_json = self._poll_video_index(video_id, access_token, language=language)
+        
+        return index_json
 
     # ---------- 与 Video Indexer 交互 ----------
 
@@ -480,35 +702,53 @@ class AzureVideoIndexerCaptionImpl(VisualCaptioner):
                 - target_path: 可选，将视频复制到 Azure 时使用的相对路径前缀。
                 - language: 可选，字幕语言（默认 'en-US'）。
                 - return_raw_index: 可选，是否在结果中附带完整 index JSON。
+                - use_cache: 可选，是否使用缓存（默认 True）。
         """
         print(f"--- [Azure Video Indexer Caption] Region: {self.region} ---")
 
         target_path = kwargs.get("target_path")
         language = kwargs.get("language", "en-US")
         return_raw = bool(kwargs.get("return_raw_index", False))
+        use_cache = kwargs.get("use_cache", True)
 
-        # 1. 确保有 HTTPS URL 供 Video Indexer 访问
-        video_https_url = self._ensure_video_https_url(video_uri, target_path=target_path)
-        print(f"    Video URL for Azure Video Indexer: {video_https_url}")
+        # 1. 检查缓存
+        index_json = None
+        video_https_url = video_uri
+        if use_cache:
+            index_json = self._load_insights_from_cache(video_uri, target_path=target_path)
+            if index_json:
+                print(f"    Using cached insights for caption extraction")
+                # 从缓存的 index_json 中提取 video_https_url（如果存在）
+                videos = index_json.get("videos", [])
+                if videos:
+                    video_https_url = videos[0].get("sourceUrl") or video_uri
+        
+        # 2. 如果没有缓存，则处理视频
+        if index_json is None:
+            # 确保有 HTTPS URL 供 Video Indexer 访问
+            video_https_url = self._ensure_video_https_url(video_uri, target_path=target_path)
+            print(f"    Video URL for Azure Video Indexer: {video_https_url}")
 
-        # 2. 获取访问 token
-        access_token = self._get_access_token()
+            # 处理视频（上传并轮询）
+            index_json = self._process_video_with_indexer(
+                video_https_url,
+                language=language,
+                name=kwargs.get("name"),
+                description=kwargs.get("description"),
+            )
 
-        # 3. 上传/索引视频
-        video_id = self._upload_to_video_indexer(
-            video_https_url,
-            access_token,
-            language=language,
-            name=kwargs.get("name"),
-            description=kwargs.get("description"),
-        )
-        print(f"    Video accepted by Azure Video Indexer, video_id={video_id}")
+            # 保存到缓存
+            if use_cache:
+                self._save_insights_to_cache(index_json, video_uri, target_path=target_path)
 
-        # 4. 轮询直到处理完成
-        index_json = self._poll_video_index(video_id, access_token, language=language)
-
-        # 5. 提取 caption
+        # 3. 提取 caption
         caption = self._extract_caption_from_index(index_json)
+
+        # 从 index_json 中提取 video_id（如果存在）
+        video_id = None
+        videos = index_json.get("videos", [])
+        if videos:
+            video_id = videos[0].get("id")
 
         result: Dict[str, Any] = {
             "provider": "azure_video_indexer",
@@ -749,7 +989,7 @@ class AzureVideoIndexerSegmentImpl(VideoSegmenter):
                     
                     # 从 URL 中提取账户名
                     parsed = urlparse(azure_uri)
-                    account_name = parsed.netloc.split(".")[0]  # 例如 storeea.blob.core.windows.net -> storeea
+                    account_name = parsed.netloc.split(".")[0]  # 例如 videoea.blob.core.windows.net -> videoea
                     
                     # 查找对应的 SAS 令牌
                     if account_name in storage_accounts:
@@ -821,7 +1061,7 @@ class AzureVideoIndexerSegmentImpl(VideoSegmenter):
                         
                         # 从 URL 中提取账户名和容器名
                         parsed = urlparse(video_uri)
-                        account_name = parsed.netloc.split(".")[0]  # 例如 storeea.blob.core.windows.net -> storeea
+                        account_name = parsed.netloc.split(".")[0]  # 例如 videoea.blob.core.windows.net -> videoea
                         
                         # 查找对应的 SAS 令牌
                         if account_name in storage_accounts:
@@ -843,10 +1083,10 @@ class AzureVideoIndexerSegmentImpl(VideoSegmenter):
 
         storage_accounts = getattr(config, "AZURE_STORAGE_ACCOUNTS", {})
 
-        # 简单约定：eastasia -> storeea, westus2 -> storewu2
+        # 简单约定：eastasia -> videoea, westus2 -> videowu
         region_to_account = {
-            "eastasia": "storeea",
-            "westus2": "storewu2",
+            "eastasia": "videoea",
+            "westus2": "videowu",
         }
         account_name = region_to_account.get(self.region)
         if not account_name or account_name not in storage_accounts:
@@ -855,7 +1095,7 @@ class AzureVideoIndexerSegmentImpl(VideoSegmenter):
                 f"请确保存在 key '{account_name}'。"
             )
 
-        container = self.storage_bucket  # registry 中传入的容器名，例如 "store-ea" / "store-wu2"
+        container = self.storage_bucket  # registry 中传入的容器名，例如 "video-ea" / "video-wu"
 
         # 使用 DataTransmission 智能搬运到 Azure
         target_uri = self.transmitter.smart_move(
@@ -867,6 +1107,163 @@ class AzureVideoIndexerSegmentImpl(VideoSegmenter):
         )
 
         return self._azure_blob_https_from_uri(target_uri)
+
+    # ---------- Insights 缓存处理（复用 AzureVideoIndexerCaptionImpl 的逻辑）----------
+
+    def _get_insights_cache_path(self, video_uri: str, target_path: Optional[str] = None) -> str:
+        """构建 insights 缓存的存储路径（复用基类方法）"""
+        return self._build_result_path(video_uri, "azure_vi_insights", "insights.json", target_path)
+
+    def _save_insights_to_cache(self, insights_json: Dict[str, Any], video_uri: str, target_path: Optional[str] = None) -> Optional[str]:
+        """保存 insights JSON 到缓存（复用 AzureVideoIndexerCaptionImpl 的逻辑）"""
+        # 由于两个类结构相同，可以直接复用相同的方法实现
+        cache_path = self._get_insights_cache_path(video_uri, target_path)
+        
+        try:
+            if video_uri.startswith("s3://"):
+                import boto3
+                parsed = urlparse(video_uri)
+                bucket = parsed.netloc
+                key = cache_path
+                s3_client = boto3.client('s3')
+                s3_client.put_object(
+                    Bucket=bucket,
+                    Key=key,
+                    Body=json.dumps(insights_json, indent=2, ensure_ascii=False),
+                    ContentType='application/json'
+                )
+                cache_uri = f"s3://{bucket}/{key}"
+                print(f"    Insights cached to: {cache_uri}")
+                return cache_uri
+            elif video_uri.startswith("gs://"):
+                from google.cloud import storage
+                parsed = urlparse(video_uri)
+                bucket = parsed.netloc
+                blob_path = cache_path
+                storage_client = storage.Client()
+                bucket_obj = storage_client.bucket(bucket)
+                blob = bucket_obj.blob(blob_path)
+                blob.upload_from_string(
+                    json.dumps(insights_json, indent=2, ensure_ascii=False),
+                    content_type='application/json'
+                )
+                cache_uri = f"gs://{bucket}/{blob_path}"
+                print(f"    Insights cached to: {cache_uri}")
+                return cache_uri
+            elif video_uri.startswith("azure://"):
+                parsed = urlparse(video_uri)
+                container = parsed.netloc
+                blob_path = cache_path
+                try:
+                    import config
+                    storage_accounts = getattr(config, "AZURE_STORAGE_ACCOUNTS", {})
+                    account_name = None
+                    for name, info in storage_accounts.items():
+                        if info.get("container") == container:
+                            account_name = name
+                            break
+                    if account_name:
+                        azure_client = self.transmitter.get_azure_client(account_name)
+                        blob_client = azure_client.get_blob_client(container=container, blob=blob_path)
+                        blob_client.upload_blob(
+                            json.dumps(insights_json, indent=2, ensure_ascii=False),
+                            overwrite=True,
+                            content_settings={"content_type": "application/json"}
+                        )
+                        cache_uri = f"azure://{container}/{blob_path}"
+                        print(f"    Insights cached to: {cache_uri}")
+                        return cache_uri
+                except Exception as e:
+                    print(f"    Warning: Failed to save insights to Azure cache: {e}")
+            else:
+                local_cache_path = cache_path
+                os.makedirs(os.path.dirname(local_cache_path), exist_ok=True)
+                with open(local_cache_path, 'w', encoding='utf-8') as f:
+                    json.dump(insights_json, f, indent=2, ensure_ascii=False)
+                print(f"    Insights cached to: {local_cache_path}")
+                return local_cache_path
+        except Exception as e:
+            print(f"    Warning: Failed to save insights cache: {e}")
+        return None
+
+    def _load_insights_from_cache(self, video_uri: str, target_path: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """从缓存加载 insights JSON（复用 AzureVideoIndexerCaptionImpl 的逻辑）"""
+        cache_path = self._get_insights_cache_path(video_uri, target_path)
+        
+        try:
+            if video_uri.startswith("s3://"):
+                import boto3
+                parsed = urlparse(video_uri)
+                bucket = parsed.netloc
+                key = cache_path
+                s3_client = boto3.client('s3')
+                try:
+                    response = s3_client.get_object(Bucket=bucket, Key=key)
+                    insights_json = json.loads(response['Body'].read().decode('utf-8'))
+                    print(f"    Loaded insights from cache: s3://{bucket}/{key}")
+                    return insights_json
+                except s3_client.exceptions.NoSuchKey:
+                    return None
+            elif video_uri.startswith("gs://"):
+                from google.cloud import storage
+                parsed = urlparse(video_uri)
+                bucket = parsed.netloc
+                blob_path = cache_path
+                storage_client = storage.Client()
+                bucket_obj = storage_client.bucket(bucket)
+                blob = bucket_obj.blob(blob_path)
+                if blob.exists():
+                    insights_json = json.loads(blob.download_as_text())
+                    print(f"    Loaded insights from cache: gs://{bucket}/{blob_path}")
+                    return insights_json
+                return None
+            elif video_uri.startswith("azure://"):
+                parsed = urlparse(video_uri)
+                container = parsed.netloc
+                blob_path = cache_path
+                try:
+                    import config
+                    storage_accounts = getattr(config, "AZURE_STORAGE_ACCOUNTS", {})
+                    account_name = None
+                    for name, info in storage_accounts.items():
+                        if info.get("container") == container:
+                            account_name = name
+                            break
+                    if account_name:
+                        azure_client = self.transmitter.get_azure_client(account_name)
+                        blob_client = azure_client.get_blob_client(container=container, blob=blob_path)
+                        if blob_client.exists():
+                            insights_json = json.loads(blob_client.download_blob().readall().decode('utf-8'))
+                            print(f"    Loaded insights from cache: azure://{container}/{blob_path}")
+                            return insights_json
+                except Exception:
+                    pass
+                return None
+            else:
+                local_cache_path = cache_path
+                if os.path.exists(local_cache_path):
+                    with open(local_cache_path, 'r', encoding='utf-8') as f:
+                        insights_json = json.load(f)
+                    print(f"    Loaded insights from cache: {local_cache_path}")
+                    return insights_json
+                return None
+        except Exception as e:
+            print(f"    Warning: Failed to load insights cache: {e}")
+            return None
+
+    def _process_video_with_indexer(self, video_https_url: str, language: str = "en-US", **kwargs) -> Dict[str, Any]:
+        """统一的视频处理逻辑：上传到 Video Indexer 并轮询直到处理完成"""
+        access_token = self._get_access_token()
+        video_id = self._upload_to_video_indexer(
+            video_https_url,
+            access_token,
+            language=language,
+            name=kwargs.get("name"),
+            description=kwargs.get("description"),
+        )
+        print(f"    Video accepted by Azure Video Indexer, video_id={video_id}")
+        index_json = self._poll_video_index(video_id, access_token, language=language)
+        return index_json
 
     # ---------- 与 Video Indexer 交互 ----------
 
@@ -1016,35 +1413,88 @@ class AzureVideoIndexerSegmentImpl(VideoSegmenter):
             **kwargs:
                 - target_path: 可选，将视频复制到 Azure 时使用的相对路径前缀。
                 - language: 可选，视频语言（默认 'en-US'）。
+                - use_cache: 可选，是否使用缓存（默认 True）。
         """
         print(f"--- [Azure Video Indexer Segment] Region: {self.region} ---")
 
         target_path = kwargs.get("target_path")
         language = kwargs.get("language", "en-US")
+        use_cache = kwargs.get("use_cache", True)
 
-        # 1. 确保有 HTTPS URL 供 Video Indexer 访问
-        video_https_url = self._ensure_video_https_url(video_uri, target_path=target_path)
-        print(f"    Video URL for Azure Video Indexer: {video_https_url}")
+        # 1. 检查缓存
+        index_json = None
+        video_https_url = video_uri
+        if use_cache:
+            index_json = self._load_insights_from_cache(video_uri, target_path=target_path)
+            if index_json:
+                print(f"    Using cached insights for segment extraction")
+                # 从缓存的 index_json 中提取 video_https_url（如果存在）
+                videos = index_json.get("videos", [])
+                if videos:
+                    video_https_url = videos[0].get("sourceUrl") or video_uri
+        
+        # 2. 如果没有缓存，则处理视频
+        if index_json is None:
+            # 判断 video_uri 类型，并进行 smart move 到对应的 bucket
+            print(f"    Input video URI: {video_uri}")
+            
+            # 确定目标 Azure Storage 账户和容器
+            try:
+                import config
+            except ImportError as e:
+                raise RuntimeError("config.py 未找到，无法确定 Azure Storage 账户。") from e
 
-        # 2. 获取访问 token
-        access_token = self._get_access_token()
+            storage_accounts = getattr(config, "AZURE_STORAGE_ACCOUNTS", {})
+            
+            # 简单约定：eastasia -> videoea, westus2 -> videowu
+            region_to_account = {
+                "eastasia": "videoea",
+                "westus2": "videowu",
+            }
+            account_name = region_to_account.get(self.region)
+            if not account_name or account_name not in storage_accounts:
+                raise RuntimeError(
+                    f"未在 AZURE_STORAGE_ACCOUNTS 中找到 region='{self.region}' 对应的账户，"
+                    f"请确保存在 key '{account_name}'。"
+                )
 
-        # 3. 上传/索引视频
-        video_id = self._upload_to_video_indexer(
-            video_https_url,
-            access_token,
-            language=language,
-            name=kwargs.get("name"),
-            description=kwargs.get("description"),
-        )
-        print(f"    Video accepted by Azure Video Indexer, video_id={video_id}")
+            container = self.storage_bucket  # registry 中传入的容器名，例如 "video-ea" / "video-wu"
 
-        # 4. 轮询直到处理完成
-        index_json = self._poll_video_index(video_id, access_token, language=language)
+            # 进行 smart move：将视频移动到对应的 Azure bucket
+            target_uri = self.transmitter.smart_move(
+                video_uri,
+                target_provider="azure",
+                target_bucket=container,
+                target_path=target_path,
+                azure_account_name=account_name,
+            )
+            print(f"    Video moved to Azure bucket: {target_uri}")
 
-        # 5. 提取 segments
+            # 将移动后的 URI 转换为 HTTPS URL（供 Video Indexer 访问）
+            video_https_url = self._azure_blob_https_from_uri(target_uri)
+            print(f"    Video URL for Azure Video Indexer: {video_https_url}")
+
+            # 处理视频（上传并轮询）
+            index_json = self._process_video_with_indexer(
+                video_https_url,
+                language=language,
+                name=kwargs.get("name"),
+                description=kwargs.get("description"),
+            )
+
+            # 保存到缓存
+            if use_cache:
+                self._save_insights_to_cache(index_json, video_uri, target_path=target_path)
+
+        # 3. 提取 segments
         segments = self._extract_segments_from_index(index_json)
         print(f"    Found {len(segments)} segments")
+
+        # 从 index_json 中提取 video_id（如果存在）
+        video_id = None
+        videos = index_json.get("videos", [])
+        if videos:
+            video_id = videos[0].get("id")
 
         result: Dict[str, Any] = {
             "provider": "azure_video_indexer",

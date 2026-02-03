@@ -67,7 +67,7 @@ def run_workflow_demo():
     config = {
         "segment": {
             # "operation_pid": "seg_aws_us",  # seg_google_us, seg_aws_us 等
-            "operation_pid": "seg_google_us",  # seg_google_us, seg_aws_us 等
+            "operation_pid": "seg_azure_vi_ea",  # seg_google_us, seg_aws_us 等
             "enabled": True,
         },
         "split": {
@@ -128,7 +128,6 @@ def run_workflow_demo():
         "answer_idx": answer_idx,
         "qid": qid,
         "upload_target_path": "videos/egoschema/",
-        "max_segments": 12,
         # 可选：Google Cloud Function VideoSplit 服务 URL
         # "google_videosplit_service_url": os.getenv("GCP_VIDEOSPLIT_SERVICE_URL"),
         # 可选：AWS Lambda function name
@@ -188,7 +187,7 @@ if __name__ == "__main__":
     print(list_supported_operations())
     # result = run_workflow_demo()
 
-    # # 有条理地打印 result 的结果
+    # 有条理地打印 result 的结果
     # if result:
     #     print("\n===== Workflow 执行结果 =====")
     #     for key in [
