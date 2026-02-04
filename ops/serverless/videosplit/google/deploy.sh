@@ -5,17 +5,34 @@ set -e
 
 export PROJECT_ID=$(gcloud config get-value project)
 # 你的目标 Regions
-# REGIONS=("us-west1" "asia-southeast1")
-REGIONS=("asia-southeast1")
+REGIONS=("us-west1" "asia-southeast1")
 REPO_NAME="experiment-repo"
 FUNCTION_NAME="video-splitter"
 ENTRY_POINT="video_split" 
 MEMORY="2Gi"
-TIMEOUT="600s"
+TIMEOUT="300s"
 MAX_INSTANCES="10"
 
 echo "当前项目 ID: $PROJECT_ID"
 
+# ---------------------------------------------------------
+# 第一步：删除已有的 Cloud Functions
+# ---------------------------------------------------------
+echo "=== 删除已有的 Cloud Functions ==="
+for REGION in "${REGIONS[@]}"
+do
+  echo "检查区域 $REGION 的函数..."
+  if gcloud functions describe $FUNCTION_NAME --region $REGION --gen2 --project=$PROJECT_ID > /dev/null 2>&1; then
+    echo "删除函数: $FUNCTION_NAME (区域: $REGION)"
+    gcloud functions delete $FUNCTION_NAME --region $REGION --gen2 --project=$PROJECT_ID --quiet || true
+  else
+    echo "函数 $FUNCTION_NAME 在区域 $REGION 不存在，跳过删除"
+  fi
+done
+
+# ---------------------------------------------------------
+# 第二步：部署 Cloud Functions
+# ---------------------------------------------------------
 for REGION in "${REGIONS[@]}"
 do
   echo "========================================================"

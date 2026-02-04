@@ -24,7 +24,22 @@ fi
 ROLE_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:role/${ROLE_NAME}"
 
 # ---------------------------------------------------------
-# 第二步：本地构建 Docker 镜像 (关键修改)
+# 第二步：删除已有的 Lambda 函数
+# ---------------------------------------------------------
+echo "=== 删除已有的 Lambda 函数 ==="
+for REGION in "${REGIONS[@]}"
+do
+  echo "检查区域 $REGION 的函数..."
+  if aws lambda get-function --function-name $APP_NAME --region $REGION > /dev/null 2>&1; then
+    echo "删除函数: $APP_NAME (区域: $REGION)"
+    aws lambda delete-function --function-name $APP_NAME --region $REGION || true
+  else
+    echo "函数 $APP_NAME 在区域 $REGION 不存在，跳过删除"
+  fi
+done
+
+# ---------------------------------------------------------
+# 第三步：本地构建 Docker 镜像 (关键修改)
 # ---------------------------------------------------------
 echo "=== 本地构建 Docker 镜像 ==="
 
@@ -37,7 +52,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # ---------------------------------------------------------
-# 第三步：循环部署到三个 Region
+# 第四步：循环部署到各个 Region
 # ---------------------------------------------------------
 for REGION in "${REGIONS[@]}"
 do
@@ -71,7 +86,7 @@ do
           --code ImageUri=$ECR_URI \
           --role $ROLE_ARN \
           --memory-size 2048 \
-          --timeout 900 \
+          --timeout 300 \
           --architectures x86_64 \
           --region $REGION > /dev/null
   fi

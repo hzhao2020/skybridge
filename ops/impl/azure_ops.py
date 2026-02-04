@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 import requests
 from azure.identity import DefaultAzureCredential
 
-from ops.base import VisualCaptioner, VideoSegmenter
+from ops.base import VisualCaptioner, VideoSegmenter, VideoSplitter
 from ops.utils import DataTransmission
 
 
@@ -1505,4 +1505,121 @@ class AzureVideoIndexerSegmentImpl(VideoSegmenter):
         }
 
         return result
+
+
+class AzureFunctionSplitImpl(VideoSplitter):
+    """
+    使用 Azure Functions（HTTP 触发器）进行视频分割。
+    
+    对应 deploy.sh 部署的 video-splitter Azure Function。
+    接收视频 URI 和片段列表，使用 ffmpeg 在云端切割视频，并将结果上传到 Azure Blob Storage。
+    function_url 可由 registry 根据 region 自动获取，或通过构造/execute 显式传入。
+    """
+    
+    def __init__(self, provider: str, region: str, storage_bucket: str, function_url: Optional[str] = None):
+        super().__init__(provider, region, storage_bucket)
+        self.function_url = function_url
+    
+    def _parse_uri(self, uri: str):
+        """解析 URI，返回 container 和 blob_path"""
+        parsed = urlparse(uri)
+        if uri.startswith("azure://"):
+            container = parsed.netloc
+            blob_path = parsed.path.lstrip('/')
+        elif ".blob.core.windows.net" in uri:
+            # HTTPS URL 格式: https://account.blob.core.windows.net/container/blob
+            parts = parsed.path.lstrip('/').split('/', 1)
+            container = parts[0] if len(parts) > 0 else ""
+            blob_path = parts[1] if len(parts) > 1 else ""
+        else:
+            raise ValueError(f"Unsupported Azure URI format: {uri}")
+        return container, blob_path
+    
+    def execute(self, video_uri: str, segments: List[Dict[str, float]], **kwargs) -> Dict[str, Any]:
+        """
+        执行视频分割
+        
+        Args:
+            video_uri: 视频 URI（本地路径或云存储 URI）
+            segments: 片段列表，每个片段包含 'start' 和 'end'（秒）
+            **kwargs: 
+                - target_path: 输出路径
+                - output_format: 输出格式（默认 mp4）
+                - function_url: 可选的 Azure Function URL（覆盖默认）
+        """
+        print(f"--- [Azure Function Video Split] Region: {self.region} ---")
+        
+        # 1. 确保视频在 Azure Blob Storage
+        target_path = kwargs.get('target_path')
+        target_uri = self.transmitter.smart_move(video_uri, 'azure', self.storage_bucket, target_path, target_region=self.region)
+        print(f"    Video Ready: {target_uri}")
+        
+        # 2. 准备输出路径（规范化路径，避免双斜杠）
+        output_format = kwargs.get('output_format', 'mp4')
+        if target_path:
+            # 移除末尾斜杠，避免拼接时产生双斜杠
+            normalized_target_path = target_path.rstrip('/')
+            output_base_path = f"{normalized_target_path}/split_segments"
+        else:
+            output_base_path = "split_segments"
+        
+        # 3. 构建请求体
+        request_body = {
+            "video_uri": target_uri,
+            "segments": segments,
+            "output_bucket": self.storage_bucket,
+            "output_path": output_base_path,
+            "output_format": output_format
+        }
+        
+        # 4. 调用 Azure Function 服务（HTTP）
+        function_url = kwargs.get('function_url', self.function_url)
+        if not function_url:
+            raise ValueError(
+                "Missing Azure Function URL. "
+                "请在构造 AzureFunctionSplitImpl(function_url=...) 或 execute(..., function_url=...) 时提供。"
+            )
+        print(f"    Calling Azure Function: {function_url}")
+        print(f"    Processing {len(segments)} segments...")
+        
+        try:
+            response = requests.post(
+                function_url,
+                json=request_body,
+                headers={"Content-Type": "application/json"},
+                timeout=900  # 15分钟超时（与AWS Lambda和GCP一致）
+            )
+            response.raise_for_status()
+            result = response.json()
+            
+            output_uris = result.get("output_uris", [])
+            print(f"    Successfully split video into {len(output_uris)} segments")
+            
+            return {
+                "provider": "azure_function",
+                "region": self.region,
+                "input_video": target_uri,
+                "segments": segments,
+                "output_uris": output_uris,
+                "output_count": len(output_uris)
+            }
+            
+        except requests.exceptions.RequestException as e:
+            # 尽量把 Azure Function 返回的错误正文带出来，便于定位
+            resp = getattr(e, "response", None)
+            if resp is not None:
+                status = getattr(resp, "status_code", "unknown")
+                try:
+                    body_obj = resp.json()
+                    body_text = json.dumps(body_obj, ensure_ascii=False)
+                except Exception:
+                    body_text = (getattr(resp, "text", "") or "").strip()
+                if body_text:
+                    body_text = body_text[:4000]
+                    raise RuntimeError(f"Azure Function call failed ({status}): {body_text}") from e
+                raise RuntimeError(f"Azure Function call failed ({status})") from e
+            raise RuntimeError(f"Azure Function call failed: {e}") from e
+        except json.JSONDecodeError as e:
+            # HTTP 成功但返回体不是 JSON
+            raise RuntimeError(f"Invalid response from Azure Function (not JSON): {e}") from e
 

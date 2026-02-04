@@ -20,7 +20,7 @@ from ops.impl.amazon_ops import (
     AmazonRekognitionObjectDetectionImpl,
 )
 from ops.impl.openai_ops import OpenAILLMImpl
-from ops.impl.azure_ops import AzureVideoIndexerCaptionImpl, AzureVideoIndexerSegmentImpl
+from ops.impl.azure_ops import AzureVideoIndexerCaptionImpl, AzureVideoIndexerSegmentImpl, AzureFunctionSplitImpl
 # Storage 和 Transmission 操作直接使用 ops.utils 中的辅助类，不需要注册为 Operation
 
 REGISTRY = {}
@@ -147,6 +147,60 @@ def _build_gcp_videosplit_urls() -> Dict[str, str]:
 
 GCP_VIDEOSPLIT_SERVICE_URLS = _build_gcp_videosplit_urls()
 
+# Azure Function URLs（video-splitter）
+# 硬编码的 Azure Function URL（从部署脚本获取）
+AZURE_VIDEOSPLIT_FUNCTION_URLS_DEFAULT = {
+    "eastasia": "https://video-splitter-eastasia.azurewebsites.net/api/video_split",
+    "westus2": "https://video-splitter-westus2.azurewebsites.net/api/video_split",
+}
+
+def _build_azure_videosplit_urls() -> Dict[str, str]:
+    """构建 Azure Function URLs"""
+    # 1. 优先使用硬编码的 URL
+    if AZURE_VIDEOSPLIT_FUNCTION_URLS_DEFAULT:
+        return AZURE_VIDEOSPLIT_FUNCTION_URLS_DEFAULT.copy()
+    
+    # 2. 其次使用环境变量
+    raw = os.getenv("AZURE_VIDEOSPLIT_FUNCTION_URLS")
+    if raw:
+        try:
+            obj = json.loads(raw)
+            if isinstance(obj, dict):
+                return {k: str(v) for k, v in obj.items()}
+        except json.JSONDecodeError:
+            pass
+    
+    # 3. 尝试通过 Azure CLI 获取 Function App URL
+    urls = {}
+    regions = ["eastasia", "westus2"]
+    for region in regions:
+        try:
+            function_name = f"video-splitter-{region}"
+            url = subprocess.check_output(
+                ["az", "functionapp", "show",
+                 "--name", function_name,
+                 "--resource-group", "vqa",
+                 "--query", "defaultHostName",
+                 "-o", "tsv"],
+                text=True,
+                stderr=subprocess.DEVNULL,
+                timeout=10,
+            ).strip()
+            if url:
+                urls[region] = f"https://{url}/api/video_split"
+        except Exception:
+            pass
+    
+    # 如果成功获取了所有 URL，返回它们
+    if len(urls) == len(regions):
+        return urls
+    
+    # 降级：使用默认值
+    return AZURE_VIDEOSPLIT_FUNCTION_URLS_DEFAULT.copy()
+
+
+AZURE_VIDEOSPLIT_FUNCTION_URLS = _build_azure_videosplit_urls()
+
 # =========================================================
 # Catalog definitions: region + model selections
 # =========================================================
@@ -187,6 +241,7 @@ VIDEO_SEGMENT_CATALOG = [
 # 1.5) Video splitting (physical cutting)
 # Google Cloud Function (video-splitter): 支持 us-west1, asia-southeast1
 # AWS Lambda: 支持多个区域
+# Azure Function (video-splitter): 支持 eastasia, westus2
 VIDEO_SPLIT_CATALOG = [
     # Google Cloud Function (service_url 由 GCP_VIDEOSPLIT_SERVICE_URLS 或 gcloud 项目号推导)
     {"pid": "split_google_us", "cls": GoogleCloudFunctionSplitImpl, "provider": "google", "region": "us-west1", "bucket_key": "gcp_us"},
@@ -194,6 +249,9 @@ VIDEO_SPLIT_CATALOG = [
     # AWS Lambda
     {"pid": "split_aws_us", "cls": AWSLambdaSplitImpl, "provider": "amazon", "region": "us-west-2", "bucket_key": "aws_us"},
     {"pid": "split_aws_sg", "cls": AWSLambdaSplitImpl, "provider": "amazon", "region": "ap-southeast-1", "bucket_key": "aws_sg"},
+    # Azure Function (function_url 由 AZURE_VIDEOSPLIT_FUNCTION_URLS 或 Azure CLI 获取)
+    {"pid": "split_azure_ea", "cls": AzureFunctionSplitImpl, "provider": "azure", "region": "eastasia", "bucket_key": "azure_ea"},
+    {"pid": "split_azure_wu", "cls": AzureFunctionSplitImpl, "provider": "azure", "region": "westus2", "bucket_key": "azure_wu"},
 ]
 
 # 1.6) Data Storage 和 Transmission
@@ -393,6 +451,10 @@ for item in VIDEO_SPLIT_CATALOG:
     if item["provider"] == "google" and item["cls"] is GoogleCloudFunctionSplitImpl:
         service_url = GCP_VIDEOSPLIT_SERVICE_URLS.get(item["region"])
         register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]], service_url=service_url))
+    # Azure Function split: 为每个 region 注入 function_url（由 AZURE_VIDEOSPLIT_FUNCTION_URLS 或 Azure CLI 获取）
+    elif item["provider"] == "azure" and item["cls"] is AzureFunctionSplitImpl:
+        function_url = AZURE_VIDEOSPLIT_FUNCTION_URLS.get(item["region"])
+        register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]], function_url=function_url))
     else:
         register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]]))
 

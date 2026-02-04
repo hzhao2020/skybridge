@@ -662,7 +662,7 @@ class GoogleCloudFunctionSplitImpl(VideoSplitter):
                 service_url,
                 json=request_body,
                 headers={"Content-Type": "application/json"},
-                timeout=600  # 10分钟超时
+                timeout=900  # 15分钟超时（与AWS Lambda一致）
             )
             response.raise_for_status()
             result = response.json()

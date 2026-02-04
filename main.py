@@ -71,7 +71,7 @@ def run_workflow_demo():
             "enabled": True,
         },
         "split": {
-            "operation_pid": "split_google_sg",  # split_google_us, split_aws_us 等
+            "operation_pid": "split_aws_sg",  # split_google_us, split_aws_us 等
             "enabled": True,
         },
         "caption": {
