@@ -66,12 +66,11 @@ def run_workflow_demo():
     # ========== 2) 配置workflow（指定每个步骤使用的operation） ==========
     config = {
         "segment": {
-            # "operation_pid": "seg_aws_us",  # seg_google_us, seg_aws_us 等
-            "operation_pid": "seg_azure_vi_ea",  # seg_google_us, seg_aws_us 等
+            "operation_pid": "seg_azure_vi_ea",  # seg_google_us, seg_aws_us, seg_azure_vi_ea, seg_azure_vi_wu 等
             "enabled": True,
         },
         "split": {
-            "operation_pid": "split_aws_sg",  # split_google_us, split_aws_us 等
+            "operation_pid": "split_google_us",  # split_google_us, split_google_sg, split_aws_us, split_aws_sg 等
             "enabled": True,
         },
         "caption": {
@@ -187,7 +186,7 @@ if __name__ == "__main__":
     print(list_supported_operations())
     # result = run_workflow_demo()
 
-    # 有条理地打印 result 的结果
+    # # 有条理地打印 result 的结果
     # if result:
     #     print("\n===== Workflow 执行结果 =====")
     #     for key in [

@@ -1,0 +1,46 @@
+service: videosplit
+
+custom:
+  regionBuckets:
+    ap-southeast-1: sky-video-sg
+    us-west-2: sky-video-us
+
+provider:
+  name: aws
+  region: ${opt:region, 'ap-southeast-1'}
+  
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - s3:GetObject
+            - s3:PutObject
+            - s3:ListBucket
+          Resource:
+            - arn:aws:s3:::sky-video-sg
+            - arn:aws:s3:::sky-video-sg/*
+            - arn:aws:s3:::sky-video-us
+            - arn:aws:s3:::sky-video-us/*
+
+  ecr:
+    images:
+      video-app:
+        path: ./
+        platform: linux/amd64
+
+functions:
+  splitVideo:
+    image:
+      name: video-app
+      command:
+        - main.lambda_handler
+    timeout: 300
+    memorySize: 1024
+    environment:
+      DEFAULT_OUTPUT_BUCKET: ${self:custom.regionBuckets.${self:provider.region}}
+    # --- 新增 HTTP 调用配置 ---
+    events:
+      - httpApi:
+          path: /split
+          method: post

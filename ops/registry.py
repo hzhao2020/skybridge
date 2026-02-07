@@ -4,6 +4,11 @@ import os
 import subprocess
 from typing import Dict, Optional, List
 
+try:
+    import config
+except ImportError:
+    config = None
+
 from ops.base import Operation
 from ops.impl.google_ops import (
     GoogleVideoSegmentImpl,
@@ -20,7 +25,7 @@ from ops.impl.amazon_ops import (
     AmazonRekognitionObjectDetectionImpl,
 )
 from ops.impl.openai_ops import OpenAILLMImpl
-from ops.impl.azure_ops import AzureVideoIndexerCaptionImpl, AzureVideoIndexerSegmentImpl, AzureFunctionSplitImpl
+from ops.impl.azure_ops import AzureVideoIndexerSegmentImpl
 # Storage 和 Transmission 操作直接使用 ops.utils 中的辅助类，不需要注册为 Operation
 
 REGISTRY = {}
@@ -147,60 +152,6 @@ def _build_gcp_videosplit_urls() -> Dict[str, str]:
 
 GCP_VIDEOSPLIT_SERVICE_URLS = _build_gcp_videosplit_urls()
 
-# Azure Function URLs（video-splitter）
-# 硬编码的 Azure Function URL（从部署脚本获取）
-AZURE_VIDEOSPLIT_FUNCTION_URLS_DEFAULT = {
-    "eastasia": "https://video-splitter-eastasia.azurewebsites.net/api/video_split",
-    "westus2": "https://video-splitter-westus2.azurewebsites.net/api/video_split",
-}
-
-def _build_azure_videosplit_urls() -> Dict[str, str]:
-    """构建 Azure Function URLs"""
-    # 1. 优先使用硬编码的 URL
-    if AZURE_VIDEOSPLIT_FUNCTION_URLS_DEFAULT:
-        return AZURE_VIDEOSPLIT_FUNCTION_URLS_DEFAULT.copy()
-    
-    # 2. 其次使用环境变量
-    raw = os.getenv("AZURE_VIDEOSPLIT_FUNCTION_URLS")
-    if raw:
-        try:
-            obj = json.loads(raw)
-            if isinstance(obj, dict):
-                return {k: str(v) for k, v in obj.items()}
-        except json.JSONDecodeError:
-            pass
-    
-    # 3. 尝试通过 Azure CLI 获取 Function App URL
-    urls = {}
-    regions = ["eastasia", "westus2"]
-    for region in regions:
-        try:
-            function_name = f"video-splitter-{region}"
-            url = subprocess.check_output(
-                ["az", "functionapp", "show",
-                 "--name", function_name,
-                 "--resource-group", "vqa",
-                 "--query", "defaultHostName",
-                 "-o", "tsv"],
-                text=True,
-                stderr=subprocess.DEVNULL,
-                timeout=10,
-            ).strip()
-            if url:
-                urls[region] = f"https://{url}/api/video_split"
-        except Exception:
-            pass
-    
-    # 如果成功获取了所有 URL，返回它们
-    if len(urls) == len(regions):
-        return urls
-    
-    # 降级：使用默认值
-    return AZURE_VIDEOSPLIT_FUNCTION_URLS_DEFAULT.copy()
-
-
-AZURE_VIDEOSPLIT_FUNCTION_URLS = _build_azure_videosplit_urls()
-
 # =========================================================
 # Catalog definitions: region + model selections
 # =========================================================
@@ -249,9 +200,6 @@ VIDEO_SPLIT_CATALOG = [
     # AWS Lambda
     {"pid": "split_aws_us", "cls": AWSLambdaSplitImpl, "provider": "amazon", "region": "us-west-2", "bucket_key": "aws_us"},
     {"pid": "split_aws_sg", "cls": AWSLambdaSplitImpl, "provider": "amazon", "region": "ap-southeast-1", "bucket_key": "aws_sg"},
-    # Azure Function (function_url 由 AZURE_VIDEOSPLIT_FUNCTION_URLS 或 Azure CLI 获取)
-    {"pid": "split_azure_ea", "cls": AzureFunctionSplitImpl, "provider": "azure", "region": "eastasia", "bucket_key": "azure_ea"},
-    {"pid": "split_azure_wu", "cls": AzureFunctionSplitImpl, "provider": "azure", "region": "westus2", "bucket_key": "azure_wu"},
 ]
 
 # 1.6) Data Storage 和 Transmission
@@ -300,24 +248,6 @@ for model, slug in _gcp_cap_models:
             "bucket_key": reg["bucket_key"],
             "model": model
         })
-
-# Azure Video Indexer - 两个区域 eastasia / westus2
-AZURE_CAPTION_REGIONS = [
-    {"region": "eastasia", "bucket_key": "azure_ea", "pid_suffix": "ea"},
-    {"region": "westus2", "bucket_key": "azure_wu", "pid_suffix": "wu"},
-]
-
-for reg in AZURE_CAPTION_REGIONS:
-    pid = f"cap_azure_vi_{reg['pid_suffix']}"
-    VISUAL_CAPTION_CATALOG.append({
-        "pid": pid,
-        "cls": AzureVideoIndexerCaptionImpl,
-        "provider": "azure",
-        "region": reg["region"],
-        "bucket_key": reg["bucket_key"],
-        "model": "azure_video_indexer",
-    })
-
 
 # 3) LLM querying
 LLM_CATALOG = []
@@ -447,14 +377,24 @@ for item in VIDEO_SEGMENT_CATALOG:
     register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]]))
 
 for item in VIDEO_SPLIT_CATALOG:
-    # Google Cloud Function split: 为每个 region 注入 service_url（由 GCP_VIDEOSPLIT_SERVICE_URLS 或项目号推导）
+    # 优先从 config.VIDEO_SPLIT_URLS 获取 URL
+    service_url = None
+    if config and hasattr(config, 'VIDEO_SPLIT_URLS'):
+        # 支持 provider 键名映射：amazon -> aws
+        provider_key = item["provider"]
+        if provider_key == "amazon":
+            provider_key = "aws"  # config 中使用 "aws" 作为键
+        provider_urls = config.VIDEO_SPLIT_URLS.get(provider_key, {})
+        service_url = provider_urls.get(item["region"])
+    
+    # Google Cloud Function split: 优先使用 config.VIDEO_SPLIT_URLS，否则使用 GCP_VIDEOSPLIT_SERVICE_URLS 或项目号推导
     if item["provider"] == "google" and item["cls"] is GoogleCloudFunctionSplitImpl:
-        service_url = GCP_VIDEOSPLIT_SERVICE_URLS.get(item["region"])
+        if not service_url:
+            service_url = GCP_VIDEOSPLIT_SERVICE_URLS.get(item["region"])
         register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]], service_url=service_url))
-    # Azure Function split: 为每个 region 注入 function_url（由 AZURE_VIDEOSPLIT_FUNCTION_URLS 或 Azure CLI 获取）
-    elif item["provider"] == "azure" and item["cls"] is AzureFunctionSplitImpl:
-        function_url = AZURE_VIDEOSPLIT_FUNCTION_URLS.get(item["region"])
-        register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]], function_url=function_url))
+    # AWS Lambda split: 使用 config.VIDEO_SPLIT_URLS 中的 service_url（API Gateway URL）
+    elif item["provider"] == "amazon" and item["cls"] is AWSLambdaSplitImpl:
+        register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]], service_url=service_url))
     else:
         register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]]))
 

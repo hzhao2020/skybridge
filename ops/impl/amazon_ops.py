@@ -7,6 +7,7 @@ import tempfile
 import subprocess
 from typing import Dict, Any, List, Optional
 from urllib.parse import urlparse
+import requests
 from ops.base import VideoSegmenter, VisualCaptioner, LLMQuery, VideoSplitter, VisualEncoder, TextEncoder, ObjectDetector
 
 try:
@@ -149,26 +150,30 @@ class AmazonRekognitionSegmentImpl(VideoSegmenter):
 
 class AWSLambdaSplitImpl(VideoSplitter):
     """
-    使用 AWS Lambda 进行视频分割
+    使用 AWS Lambda（通过 API Gateway URL）进行视频分割
     
-    需要先部署一个 Lambda 函数，该函数接收视频 URI 和片段列表，
+    需要先部署一个 Lambda 函数并通过 API Gateway 暴露 HTTP 端点，该函数接收视频 URI 和片段列表，
     使用 ffmpeg 在云端切割视频，并将结果上传到 S3。
     
-    默认函数名：video-splitter（与 deploy.sh 中部署的函数名一致）
+    优先使用 service_url（API Gateway URL）进行 HTTP 调用，如果没有提供则回退到 Lambda invoke。
     """
     
-    def __init__(self, provider: str, region: str, storage_bucket: str, function_name: Optional[str] = None):
+    def __init__(self, provider: str, region: str, storage_bucket: str, service_url: Optional[str] = None, function_name: Optional[str] = None):
         super().__init__(provider, region, storage_bucket)
         self._lambda_client = None
+        self.service_url = service_url
         
-        # 如果提供了 function_name，直接使用；否则使用默认名称
+        # 如果提供了 function_name，直接使用；否则使用默认名称（用于回退到 Lambda invoke）
         if function_name:
             self.function_name = function_name
         else:
             # 默认函数名称：video-splitter（与 deploy.sh 中部署的函数名一致）
             self.function_name = "video-splitter"
         
-        print(f"    Lambda Function Name: {self.function_name} (Region: {self.region})")
+        if self.service_url:
+            print(f"    AWS API Gateway URL: {self.service_url} (Region: {self.region})")
+        else:
+            print(f"    Lambda Function Name: {self.function_name} (Region: {self.region})")
     
     @property
     def lambda_client(self):
@@ -195,7 +200,8 @@ class AWSLambdaSplitImpl(VideoSplitter):
             **kwargs:
                 - target_path: 输出路径（用于存放分割后的视频片段）
                 - output_format: 输出格式（默认 mp4）
-                - function_name: 可选的 Lambda 函数名称（覆盖默认）
+                - service_url: 可选的 API Gateway URL（覆盖默认）
+                - function_name: 可选的 Lambda 函数名称（仅在回退到 Lambda invoke 时使用）
         """
         print(f"--- [AWS Lambda Video Split] Region: {self.region} ---")
         
@@ -215,8 +221,8 @@ class AWSLambdaSplitImpl(VideoSplitter):
         else:
             output_base_path = "split_segments"
         
-        # 3. 构建 Lambda 请求负载
-        payload = {
+        # 3. 构建请求负载
+        request_body = {
             "video_uri": target_uri,
             "segments": segments,
             "output_bucket": self.storage_bucket,
@@ -224,73 +230,131 @@ class AWSLambdaSplitImpl(VideoSplitter):
             "output_format": output_format
         }
         
-        # 4. 调用 Lambda 函数
-        function_name = kwargs.get('function_name', self.function_name)
-        print(f"    Invoking Lambda function: {function_name}")
-        print(f"    Processing {len(segments)} segments...")
-        print(f"    Payload: video_uri={target_uri}, segments={len(segments)}, output_bucket={self.storage_bucket}")
+        # 4. 优先使用 API Gateway URL 调用，否则回退到 Lambda invoke
+        service_url = kwargs.get('service_url', self.service_url)
         
-        try:
-            response = self.lambda_client.invoke(
-                FunctionName=function_name,
-                InvocationType='RequestResponse',  # 同步调用
-                Payload=json.dumps(payload)
-            )
+        if service_url:
+            # 使用 HTTP 调用 API Gateway
+            print(f"    Calling API Gateway: {service_url}")
+            print(f"    Processing {len(segments)} segments...")
             
-            # 解析响应
-            response_payload_str = response['Payload'].read()
-            if isinstance(response_payload_str, bytes):
-                response_payload_str = response_payload_str.decode('utf-8')
-            
-            response_payload = json.loads(response_payload_str)
-            
-            # 检查 Lambda 函数是否出错
-            if response.get('FunctionError'):
-                error_message = response_payload.get('errorMessage', 'Unknown error')
-                error_type = response_payload.get('errorType', 'UnknownError')
-                raise RuntimeError(f"Lambda function error ({error_type}): {error_message}")
-            
-            # 检查响应状态
-            if response_payload.get('status') != 'success':
-                error_msg = response_payload.get('error', 'Unknown error')
-                raise RuntimeError(f"Lambda function returned non-success status: {error_msg}")
-            
-            # 获取输出 URI 列表
-            output_uris = response_payload.get("output_uris", [])
-            segment_count = response_payload.get("segment_count", len(output_uris))
-            
-            if not output_uris:
-                print(f"    Warning: Lambda function returned no output URIs")
-            else:
+            try:
+                response = requests.post(
+                    service_url,
+                    json=request_body,
+                    headers={"Content-Type": "application/json"},
+                    timeout=900  # 15分钟超时（与Google和Azure一致）
+                )
+                response.raise_for_status()
+                result = response.json()
+                
+                # API Gateway 返回的格式可能是 {"statusCode": 200, "body": "..."} 或直接是结果
+                if isinstance(result, dict) and "statusCode" in result:
+                    # 解析 body 字段
+                    body_str = result.get("body", "{}")
+                    if isinstance(body_str, str):
+                        result = json.loads(body_str)
+                    else:
+                        result = body_str
+                
+                output_uris = result.get("output_uris", [])
                 print(f"    Successfully split video into {len(output_uris)} segments")
-                if len(output_uris) <= 5:
-                    for i, uri in enumerate(output_uris, 1):
-                        print(f"      Segment {i}: {uri}")
+                
+                return {
+                    "provider": "aws_api_gateway",
+                    "region": self.region,
+                    "input_video": target_uri,
+                    "segments": segments,
+                    "output_uris": output_uris,
+                    "output_count": len(output_uris)
+                }
+                
+            except requests.exceptions.RequestException as e:
+                # 尽量把 API Gateway 返回的错误正文带出来，便于定位
+                resp = getattr(e, "response", None)
+                if resp is not None:
+                    status = getattr(resp, "status_code", "unknown")
+                    try:
+                        body_obj = resp.json()
+                        body_text = json.dumps(body_obj, ensure_ascii=False)
+                    except Exception:
+                        body_text = (getattr(resp, "text", "") or "").strip()
+                    if body_text:
+                        body_text = body_text[:4000]
+                        raise RuntimeError(f"API Gateway call failed ({status}): {body_text}") from e
+                    raise RuntimeError(f"API Gateway call failed ({status})") from e
+                raise RuntimeError(f"API Gateway call failed: {e}") from e
+            except json.JSONDecodeError as e:
+                # HTTP 成功但返回体不是 JSON
+                raise RuntimeError(f"Invalid response from API Gateway (not JSON): {e}") from e
+        else:
+            # 回退到 Lambda invoke（保持向后兼容）
+            function_name = kwargs.get('function_name', self.function_name)
+            print(f"    Invoking Lambda function: {function_name}")
+            print(f"    Processing {len(segments)} segments...")
+            print(f"    Payload: video_uri={target_uri}, segments={len(segments)}, output_bucket={self.storage_bucket}")
+            
+            try:
+                response = self.lambda_client.invoke(
+                    FunctionName=function_name,
+                    InvocationType='RequestResponse',  # 同步调用
+                    Payload=json.dumps(request_body)
+                )
+                
+                # 解析响应
+                response_payload_str = response['Payload'].read()
+                if isinstance(response_payload_str, bytes):
+                    response_payload_str = response_payload_str.decode('utf-8')
+                
+                response_payload = json.loads(response_payload_str)
+                
+                # 检查 Lambda 函数是否出错
+                if response.get('FunctionError'):
+                    error_message = response_payload.get('errorMessage', 'Unknown error')
+                    error_type = response_payload.get('errorType', 'UnknownError')
+                    raise RuntimeError(f"Lambda function error ({error_type}): {error_message}")
+                
+                # 检查响应状态
+                if response_payload.get('status') != 'success':
+                    error_msg = response_payload.get('error', 'Unknown error')
+                    raise RuntimeError(f"Lambda function returned non-success status: {error_msg}")
+                
+                # 获取输出 URI 列表
+                output_uris = response_payload.get("output_uris", [])
+                segment_count = response_payload.get("segment_count", len(output_uris))
+                
+                if not output_uris:
+                    print(f"    Warning: Lambda function returned no output URIs")
                 else:
-                    for i, uri in enumerate(output_uris[:3], 1):
-                        print(f"      Segment {i}: {uri}")
-                    print(f"      ... (还有 {len(output_uris) - 3} 个片段)")
-            
-            return {
-                "provider": "aws_lambda",
-                "region": self.region,
-                "input_video": target_uri,
-                "segments": segments,
-                "output_uris": output_uris,
-                "output_count": len(output_uris),
-                "segment_count": segment_count
-            }
-            
-        except ClientError as e:
-            error_code = e.response.get('Error', {}).get('Code', 'Unknown')
-            error_message = e.response.get('Error', {}).get('Message', str(e))
-            raise RuntimeError(f"AWS Lambda API error ({error_code}): {error_message}")
-        except json.JSONDecodeError as e:
-            raise RuntimeError(f"Failed to parse Lambda response: {e}")
-        except Exception as e:
-            if isinstance(e, RuntimeError):
-                raise e
-            raise RuntimeError(f"Lambda invocation failed: {e}")
+                    print(f"    Successfully split video into {len(output_uris)} segments")
+                    if len(output_uris) <= 5:
+                        for i, uri in enumerate(output_uris, 1):
+                            print(f"      Segment {i}: {uri}")
+                    else:
+                        for i, uri in enumerate(output_uris[:3], 1):
+                            print(f"      Segment {i}: {uri}")
+                        print(f"      ... (还有 {len(output_uris) - 3} 个片段)")
+                
+                return {
+                    "provider": "aws_lambda",
+                    "region": self.region,
+                    "input_video": target_uri,
+                    "segments": segments,
+                    "output_uris": output_uris,
+                    "output_count": len(output_uris),
+                    "segment_count": segment_count
+                }
+                
+            except ClientError as e:
+                error_code = e.response.get('Error', {}).get('Code', 'Unknown')
+                error_message = e.response.get('Error', {}).get('Message', str(e))
+                raise RuntimeError(f"AWS Lambda API error ({error_code}): {error_message}")
+            except json.JSONDecodeError as e:
+                raise RuntimeError(f"Failed to parse Lambda response: {e}")
+            except Exception as e:
+                if isinstance(e, RuntimeError):
+                    raise e
+                raise RuntimeError(f"Lambda invocation failed: {e}")
 
 
 class AmazonRekognitionObjectDetectionImpl(ObjectDetector):
