@@ -25,7 +25,7 @@ from ops.impl.amazon_ops import (
     AmazonRekognitionObjectDetectionImpl,
 )
 from ops.impl.openai_ops import OpenAILLMImpl
-from ops.impl.azure_ops import AzureVideoIndexerSegmentImpl
+from ops.impl.azure_ops import AzureVideoIndexerSegmentImpl, AzureContentUnderstandingCaptionImpl
 # Storage 和 Transmission 操作直接使用 ops.utils 中的辅助类，不需要注册为 Operation
 
 REGISTRY = {}
@@ -249,6 +249,13 @@ for model, slug in _gcp_cap_models:
             "model": model
         })
 
+# Azure Content Understanding (Foundry Tools) - 2个区域
+# eastasia, westus2
+VISUAL_CAPTION_CATALOG.extend([
+    {"pid": "cap_azure_cu_ea", "cls": AzureContentUnderstandingCaptionImpl, "provider": "azure", "region": "eastasia", "bucket_key": "azure_ea"},
+    {"pid": "cap_azure_cu_wu", "cls": AzureContentUnderstandingCaptionImpl, "provider": "azure", "region": "westus2", "bucket_key": "azure_wu"},
+])
+
 # 3) LLM querying
 LLM_CATALOG = []
 
@@ -402,7 +409,11 @@ for item in VIDEO_SPLIT_CATALOG:
 # 参见上面的注释说明
 
 for item in VISUAL_CAPTION_CATALOG:
-    register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]], item["model"]))
+    # Azure Content Understanding 不需要 model 参数
+    if item["cls"] is AzureContentUnderstandingCaptionImpl:
+        register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]]))
+    else:
+        register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]], item["model"]))
 
 for item in LLM_CATALOG:
     bucket = BUCKETS[item["bucket_key"]] if item["bucket_key"] else None

@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 import requests
 from azure.identity import DefaultAzureCredential
 
-from ops.base import VideoSegmenter, VideoSplitter
+from ops.base import VideoSegmenter, VideoSplitter, VisualCaptioner
 from ops.utils import DataTransmission
 
 
@@ -751,3 +751,546 @@ class AzureVideoIndexerSegmentImpl(VideoSegmenter):
         }
 
         return result
+
+
+class AzureContentUnderstandingCaptionImpl(VisualCaptioner):
+    """
+    使用 Azure AI Content Understanding (Foundry Tools) 进行视频字幕生成。
+    
+    设计假设：
+    - 在 `config.py` 中配置：
+        AZURE_CONTENT_UNDERSTANDING_CONFIG = {
+            "eastasia": {
+                "endpoint": "https://<resource-name>.cognitiveservices.azure.com",
+                "resource_name": "<resource-name>",
+            },
+            "westus2": {
+                "endpoint": "https://<resource-name>.cognitiveservices.azure.com",
+                "resource_name": "<resource-name>",
+            }
+        }
+    - 视频可以是：
+        * 任何公网可访问的 HTTPS URL，或
+        * 任意云（S3 / GCS / Azure），本类会自动搬运到对应 Azure Storage，
+          再转换为 HTTPS Blob URL 交给 Content Understanding。
+    - 使用 DefaultAzureCredential 进行身份验证（支持多种认证方式）。
+    - 使用预构建的视频分析器 `prebuilt-videoAnalysis` 生成字幕。
+    """
+    
+    def __init__(self, provider: str, region: str, storage_bucket: str):
+        super().__init__(provider, region, storage_bucket)
+        self._credential: Optional[DefaultAzureCredential] = None
+        self._endpoint: Optional[str] = None
+        self._resource_name: Optional[str] = None
+        self._api_key: Optional[str] = None
+    
+    def _get_credential(self) -> DefaultAzureCredential:
+        """获取 Azure 认证凭据。"""
+        if self._credential is None:
+            self._credential = DefaultAzureCredential()
+        return self._credential
+    
+    def _get_content_understanding_config(self) -> Dict[str, str]:
+        """从 config.AZURE_CONTENT_UNDERSTANDING_CONFIG 中读取当前 region 的配置。"""
+        if self._endpoint is not None and self._resource_name is not None:
+            result = {
+                "endpoint": self._endpoint,
+                "resource_name": self._resource_name,
+            }
+            if self._api_key is not None:
+                result["api_key"] = self._api_key
+            return result
+        
+        try:
+            import config
+        except ImportError as e:
+            raise RuntimeError("config.py 未找到，无法读取 Azure Content Understanding 配置。") from e
+        
+        cu_configs = getattr(config, "AZURE_CONTENT_UNDERSTANDING_CONFIG", None)
+        if not isinstance(cu_configs, dict):
+            raise RuntimeError(
+                "请在 config.py 中配置 AZURE_CONTENT_UNDERSTANDING_CONFIG = { "
+                "'region': { 'endpoint': '...', 'resource_name': '...', 'api_key': '...' }, ... }"
+            )
+        
+        region_config = cu_configs.get(self.region)
+        if not region_config:
+            raise RuntimeError(
+                f"未在 AZURE_CONTENT_UNDERSTANDING_CONFIG 中找到 region='{self.region}' 的配置，"
+                f"请在 config.py 中添加。"
+            )
+        
+        endpoint = region_config.get("endpoint")
+        resource_name = region_config.get("resource_name")
+        api_key = region_config.get("api_key")
+        
+        if not endpoint:
+            raise RuntimeError(
+                f"AZURE_CONTENT_UNDERSTANDING_CONFIG['{self.region}'] 中缺少必需的字段：endpoint"
+            )
+        
+        # resource_name 可以从 endpoint 中提取，如果没有提供
+        if not resource_name:
+            # 从 endpoint 中提取 resource_name
+            # 格式：https://<resource-name>.cognitiveservices.azure.com
+            parsed = urlparse(endpoint)
+            resource_name = parsed.netloc.split(".")[0]
+        
+        self._endpoint = endpoint.rstrip("/")  # 移除末尾的斜杠
+        self._resource_name = resource_name
+        self._api_key = api_key
+        
+        result = {
+            "endpoint": self._endpoint,
+            "resource_name": self._resource_name,
+        }
+        if api_key:
+            result["api_key"] = api_key
+        
+        return result
+    
+    def _get_endpoint(self) -> str:
+        """获取 Content Understanding 的 endpoint。"""
+        if self._endpoint is None:
+            self._get_content_understanding_config()
+        return self._endpoint
+    
+    def _get_auth_headers(self) -> Dict[str, str]:
+        """
+        获取认证头信息。
+        优先使用 API Key，如果没有配置则使用 DefaultAzureCredential。
+        """
+        config_data = self._get_content_understanding_config()
+        
+        # 如果配置了 API Key，优先使用
+        api_key = config_data.get("api_key")
+        if api_key:
+            return {
+                "Ocp-Apim-Subscription-Key": api_key
+            }
+        
+        # 否则使用 DefaultAzureCredential
+        credential = self._get_credential()
+        scope = "https://cognitiveservices.azure.com/.default"
+        token = credential.get_token(scope).token
+        return {
+            "Authorization": f"Bearer {token}"
+        }
+    
+    def _is_https_url(self, uri: str) -> bool:
+        """检查 URI 是否为 HTTPS URL。"""
+        return uri.startswith("https://") or uri.startswith("http://")
+    
+    def _azure_blob_https_from_uri(self, azure_uri: str) -> str:
+        """
+        将 azure://container/blob 或 HTTPS Blob URL 标准化为 HTTPS URL。
+        如果配置了 SAS 令牌，会自动附加到 URL 中以便 Content Understanding 访问。
+        """
+        if self._is_https_url(azure_uri):
+            # 已经是 HTTPS，检查是否已有 SAS 令牌
+            if "?" in azure_uri and "sig=" in azure_uri:
+                return azure_uri
+            
+            # 如果是 Azure Blob Storage URL 但没有 SAS 令牌，尝试添加
+            if ".blob.core.windows.net" in azure_uri:
+                try:
+                    import config
+                    storage_accounts = getattr(config, "AZURE_STORAGE_ACCOUNTS", {})
+                    
+                    parsed = urlparse(azure_uri)
+                    account_name = parsed.netloc.split(".")[0]
+                    
+                    if account_name in storage_accounts:
+                        sas_token = storage_accounts[account_name].get("sas_token")
+                        if sas_token:
+                            separator = "&" if "?" in azure_uri else "?"
+                            return f"{azure_uri}{separator}{sas_token}"
+                except Exception:
+                    pass
+            
+            return azure_uri
+        
+        # 解析 azure://container/blob
+        if not azure_uri.startswith("azure://"):
+            raise ValueError(f"不支持的 Azure URI：{azure_uri}")
+        
+        parsed = urlparse(azure_uri)
+        container = parsed.netloc
+        blob_path = parsed.path.lstrip("/")
+        
+        try:
+            import config
+        except ImportError as e:
+            raise RuntimeError("config.py 未找到，无法解析 Azure Storage 账户。") from e
+        
+        storage_accounts = getattr(config, "AZURE_STORAGE_ACCOUNTS", {})
+        account_name = None
+        sas_token = None
+        
+        for name, info in storage_accounts.items():
+            if info.get("container") == container:
+                account_name = name
+                sas_token = info.get("sas_token")
+                break
+        
+        if not account_name:
+            raise RuntimeError(
+                f"无法根据容器名 '{container}' 在 AZURE_STORAGE_ACCOUNTS 中找到对应账户，"
+                f"请检查 config.py 中的 AZURE_STORAGE_ACCOUNTS 配置。"
+            )
+        
+        https_url = f"https://{account_name}.blob.core.windows.net/{container}/{blob_path}"
+        
+        if sas_token:
+            separator = "&" if "?" in https_url else "?"
+            https_url = f"{https_url}{separator}{sas_token}"
+        
+        return https_url
+    
+    def _ensure_video_https_url(self, video_uri: str, target_path: Optional[str] = None) -> str:
+        """
+        确保得到一个 Content Understanding 可访问的 HTTPS URL：
+        - 如果 input 已是 HTTPS，检查是否需要添加 SAS 令牌（如果是 Azure Blob URL）；
+        - 否则搬运到当前 region 对应的 Azure Blob 容器，并转成 HTTPS（自动添加 SAS 令牌）。
+        """
+        if self._is_https_url(video_uri):
+            if ".blob.core.windows.net" in video_uri:
+                if "?" not in video_uri or "sig=" not in video_uri:
+                    try:
+                        import config
+                        storage_accounts = getattr(config, "AZURE_STORAGE_ACCOUNTS", {})
+                        
+                        parsed = urlparse(video_uri)
+                        account_name = parsed.netloc.split(".")[0]
+                        
+                        if account_name in storage_accounts:
+                            sas_token = storage_accounts[account_name].get("sas_token")
+                            if sas_token:
+                                separator = "&" if "?" in video_uri else "?"
+                                video_uri = f"{video_uri}{separator}{sas_token}"
+                    except Exception:
+                        pass
+            return video_uri
+        
+        # 其它云（或本地） -> Azure Blob
+        try:
+            import config
+        except ImportError as e:
+            raise RuntimeError("config.py 未找到，无法确定 Azure Storage 账户。") from e
+        
+        storage_accounts = getattr(config, "AZURE_STORAGE_ACCOUNTS", {})
+        
+        region_to_account = {
+            "eastasia": "videoea",
+            "westus2": "videowu",
+        }
+        account_name = region_to_account.get(self.region)
+        if not account_name or account_name not in storage_accounts:
+            raise RuntimeError(
+                f"未在 AZURE_STORAGE_ACCOUNTS 中找到 region='{self.region}' 对应的账户，"
+                f"请确保存在 key '{account_name}'。"
+            )
+        
+        container = self.storage_bucket
+        
+        target_uri = self.transmitter.smart_move(
+            video_uri,
+            target_provider="azure",
+            target_bucket=container,
+            target_path=target_path,
+            azure_account_name=account_name,
+        )
+        
+        return self._azure_blob_https_from_uri(target_uri)
+    
+    def _submit_analysis(self, video_url: str) -> str:
+        """
+        提交视频分析任务，返回 operation location URL。
+        
+        Args:
+            video_url: 视频的 HTTPS URL
+            
+        Returns:
+            operation_location: 用于查询分析结果的 URL
+        """
+        endpoint = self._get_endpoint()
+        auth_headers = self._get_auth_headers()
+        
+        # API 端点
+        # 注意：某些区域可能使用不同的 endpoint 格式
+        # cognitiveservices.azure.com 或 services.ai.azure.com
+        api_url = f"{endpoint}/contentunderstanding/analyzers/prebuilt-videoAnalysis:analyze"
+        
+        print(f"    API URL: {api_url}")
+        
+        # 根据区域选择 API 版本
+        # 某些区域可能不支持 GA 版本，需要使用 preview 版本
+        # 尝试先使用 GA 版本，如果失败再尝试 preview 版本
+        # 注意：eastasia 区域可能不支持某些版本，需要尝试多个版本
+        api_versions = [
+            "2025-11-01",           # GA 版本
+            "2025-05-01-preview",   # Preview 版本
+            "2024-12-01-preview",   # 更早的 preview 版本
+            "2024-11-01-preview",   # 更早的 preview 版本（如果存在）
+            "2024-10-01-preview",   # 更早的 preview 版本（如果存在）
+        ]
+        
+        # 从配置中获取首选 API 版本（如果配置了）
+        config_data = self._get_content_understanding_config()
+        preferred_api_version = config_data.get("api_version")
+        if preferred_api_version:
+            # 将首选版本移到最前面
+            if preferred_api_version in api_versions:
+                api_versions.remove(preferred_api_version)
+            api_versions.insert(0, preferred_api_version)
+        
+        last_error = None
+        for api_version in api_versions:
+            params = {"api-version": api_version}
+        
+            # 请求体
+            request_body = {
+                "inputs": [
+                    {
+                        "url": video_url
+                    }
+                ]
+            }
+            
+            headers = {
+                **auth_headers,
+                "Content-Type": "application/json"
+            }
+            
+            print(f"    Submitting video analysis request to Azure Content Understanding...")
+            print(f"    Video URL: {video_url}")
+            print(f"    Trying API version: {api_version}")
+            
+            resp = requests.post(api_url, json=request_body, headers=headers, params=params, timeout=60)
+            
+            # 如果成功，返回结果
+            if resp.status_code == 202:  # Accepted
+                operation_location = resp.headers.get("Operation-Location")
+                if not operation_location:
+                    raise RuntimeError(
+                        f"Azure Content Understanding 响应中缺少 'Operation-Location' 头：{resp.headers}"
+                    )
+                print(f"    ✓ Successfully submitted with API version: {api_version}")
+                return operation_location
+            
+            # 如果是 404，检查错误信息
+            if resp.status_code == 404:
+                error_data = {}
+                error_message = ""
+                try:
+                    if resp.content:
+                        error_data = resp.json()
+                        error_message = error_data.get("error", {}).get("message", "")
+                except:
+                    error_message = resp.text[:200] if resp.text else ""
+                
+                # 打印详细的错误信息
+                print(f"    ✗ API version {api_version} failed:")
+                print(f"      Status: {resp.status_code}")
+                print(f"      Error: {error_message or resp.text[:200]}")
+                
+                # 如果错误信息提到 GA API 不支持或区域不支持，尝试下一个版本
+                if ("GA API is not supported" in error_message or 
+                    "not supported in this region" in error_message or
+                    "not supported" in error_message.lower()):
+                    print(f"    ⚠ API version {api_version} not supported, trying next version...")
+                    last_error = resp
+                    continue
+                else:
+                    # 其他类型的 404 错误，可能是 endpoint 或路径问题
+                    print(f"    ⚠ 404 error with API version {api_version}, but error message doesn't indicate version issue")
+                    print(f"      This might be an endpoint or path issue. Full response: {resp.text[:500]}")
+                    last_error = resp
+                    # 继续尝试下一个版本，但也可能是 endpoint 配置问题
+                    continue
+            
+            # 其他错误，抛出异常
+            try:
+                resp.raise_for_status()
+            except Exception as e:
+                last_error = resp
+                # 如果是最后一个版本，抛出异常
+                if api_version == api_versions[-1]:
+                    raise RuntimeError(
+                        f"提交 Azure Content Understanding 分析请求失败。\n"
+                        f"HTTP {resp.status_code}: {resp.text}\n"
+                        f"已尝试所有 API 版本: {', '.join(api_versions)}"
+                    ) from e
+                # 否则继续尝试下一个版本
+                continue
+        
+        # 如果所有版本都失败了
+        if last_error:
+            error_details = ""
+            try:
+                if last_error.content:
+                    error_json = last_error.json()
+                    error_details = f"\n错误详情: {json.dumps(error_json, indent=2, ensure_ascii=False)}"
+            except:
+                error_details = f"\n错误响应: {last_error.text[:500]}"
+            
+            raise RuntimeError(
+                f"提交 Azure Content Understanding 分析请求失败。\n"
+                f"HTTP {last_error.status_code}\n"
+                f"Endpoint: {api_url}\n"
+                f"Region: {self.region}\n"
+                f"已尝试所有 API 版本: {', '.join(api_versions)}\n"
+                f"{error_details}\n"
+                f"\n可能的原因：\n"
+                f"1. 该区域不支持 Azure Content Understanding API\n"
+                f"2. Endpoint 配置不正确（当前: {endpoint}）\n"
+                f"3. 资源未正确配置或未启用 Content Understanding 功能\n"
+                f"\n建议：\n"
+                f"- 检查 Azure Portal 中该资源是否支持 Content Understanding\n"
+                f"- 尝试使用 westus2 区域（如果配置了）\n"
+                f"- 确认 endpoint 格式是否正确（可能是 services.ai.azure.com 而不是 cognitiveservices.azure.com）"
+            )
+        else:
+            raise RuntimeError("无法提交分析请求：未知错误")
+    
+    def _poll_analysis_result(self, operation_location: str, timeout_sec: int = 1800) -> Dict[str, Any]:
+        """
+        轮询分析结果，直到处理完成或超时。
+        
+        Args:
+            operation_location: 操作位置 URL
+            timeout_sec: 超时时间（秒），默认30分钟
+            
+        Returns:
+            分析结果的 JSON 字典
+        """
+        auth_headers = self._get_auth_headers()
+        
+        headers = auth_headers.copy()
+        
+        start = time.time()
+        while True:
+            resp = requests.get(operation_location, headers=headers, timeout=60)
+            try:
+                resp.raise_for_status()
+            except Exception as e:
+                raise RuntimeError(
+                    f"轮询 Azure Content Understanding 结果失败。\n"
+                    f"HTTP {resp.status_code}: {resp.text}"
+                ) from e
+            
+            data = resp.json()
+            status = data.get("status", "unknown")
+            
+            if status == "Processing":
+                progress = data.get("progress", 0)
+                print(f"    [Azure Content Understanding] status={status}, progress={progress}%", end="\r")
+            else:
+                print(f"    [Azure Content Understanding] status={status}")
+            
+            if status == "Succeeded":
+                print("\n处理完成！")
+                return data.get("result", {})
+            
+            if status in ("Failed", "Error"):
+                error_info = data.get("error", {})
+                error_message = error_info.get("message", "Unknown error")
+                raise RuntimeError(
+                    f"Azure Content Understanding 处理失败：status={status}, error={error_message}"
+                )
+            
+            if time.time() - start > timeout_sec:
+                raise TimeoutError(
+                    f"等待 Azure Content Understanding 处理超时（>{timeout_sec} 秒）。最后状态：{status}"
+                )
+            
+            time.sleep(10)
+    
+    def _extract_caption_from_result(self, result: Dict[str, Any]) -> str:
+        """
+        从分析结果中提取字幕文本。
+        
+        Azure Content Understanding 返回的结果包含：
+        - transcript: WEBVTT 格式的字幕
+        - description: 自然语言描述
+        
+        优先使用 description，如果没有则从 transcript 中提取文本。
+        """
+        # 尝试获取 description（自然语言描述）
+        description = result.get("description")
+        if description:
+            return description
+        
+        # 如果没有 description，尝试从 transcript 中提取
+        transcript = result.get("transcript")
+        if transcript:
+            # transcript 可能是 WEBVTT 格式的字符串
+            # 简单提取：移除 WEBVTT 标记和时间戳，只保留文本
+            if isinstance(transcript, str):
+                lines = transcript.split("\n")
+                text_lines = []
+                for line in lines:
+                    line = line.strip()
+                    # 跳过 WEBVTT 头部、时间戳行、空行
+                    if not line or line.startswith("WEBVTT") or "-->" in line or line.isdigit():
+                        continue
+                    text_lines.append(line)
+                return " ".join(text_lines)
+            return str(transcript)
+        
+        # 如果都没有，返回默认消息
+        return "No caption generated from Azure Content Understanding."
+    
+    def execute(self, video_uri: str, **kwargs) -> Dict[str, Any]:
+        """
+        使用 Azure AI Content Understanding 对视频生成字幕。
+        
+        Args:
+            video_uri: 视频 URI，可以是本地路径、S3/GCS/Azure URI 或 HTTPS URL。
+            **kwargs:
+                - target_path: 可选，将视频复制到 Azure 时使用的相对路径前缀。
+                - start_time: 可选，视频片段的开始时间（秒）。
+                - end_time: 可选，视频片段的结束时间（秒）。
+        
+        Returns:
+            包含字幕结果的字典
+        """
+        print(f"--- [Azure Content Understanding Caption] Region: {self.region} ---")
+        
+        target_path = kwargs.get("target_path")
+        start_time = kwargs.get("start_time")
+        end_time = kwargs.get("end_time")
+        
+        # 1. 准备视频 URL
+        print(f"    Input video URI: {video_uri}")
+        
+        # 如果指定了时间范围，需要先提取视频片段
+        # 注意：Azure Content Understanding 可能不支持直接指定时间范围
+        # 如果需要片段，可以先提取片段再上传
+        video_https_url = self._ensure_video_https_url(video_uri, target_path=target_path)
+        print(f"    Video URL for Azure Content Understanding: {video_https_url}")
+        
+        # 2. 提交分析任务
+        operation_location = self._submit_analysis(video_https_url)
+        
+        # 3. 轮询结果
+        result = self._poll_analysis_result(operation_location)
+        
+        # 4. 提取字幕
+        caption = self._extract_caption_from_result(result)
+        
+        print("\n" + "=" * 80)
+        print("=== [Azure Content Understanding Caption] Result ===")
+        print("=" * 80)
+        print(caption)
+        print("=" * 80 + "\n")
+        
+        return {
+            "provider": "azure_content_understanding",
+            "region": self.region,
+            "caption": caption,
+            "source_used": video_https_url,
+            "start_time": start_time,
+            "end_time": end_time,
+            "raw_result": result,  # 保留原始结果以便后续处理
+        }
