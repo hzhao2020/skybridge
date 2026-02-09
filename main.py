@@ -66,7 +66,7 @@ def run_workflow_demo():
     # ========== 2) 配置workflow（指定每个步骤使用的operation） ==========
     config = {
         "segment": {
-            "operation_pid": "seg_azure_vi_ea",  # seg_google_us, seg_aws_us, seg_azure_vi_ea, seg_azure_vi_wu 等
+            "operation_pid": "seg_google_us",  # seg_google_us, seg_aws_us 等
             "enabled": True,
         },
         "split": {
@@ -74,7 +74,7 @@ def run_workflow_demo():
             "enabled": True,
         },
         "caption": {
-            "operation_pid": "cap_google_flash_sg",  # cap_google_flash_us 等
+            "operation_pid": "cap_aliyun_flash_ea",  # cap_google_flash_us 等
             "enabled": True,
         },
         "llm_query": {
@@ -184,18 +184,18 @@ if __name__ == "__main__":
     # 打印可用的 (provider, region, model) 组合
     # list_available_ops()
     print(list_supported_operations())
-    # result = run_workflow_demo()
+    result = run_workflow_demo()
 
-    # # 有条理地打印 result 的结果
-    # if result:
-    #     print("\n===== Workflow 执行结果 =====")
-    #     for key in [
-    #         "qid", "question", "segments", "segment_video_uris",
-    #         "captions", "concentrated_captions", "llm_response",
-    #         "pred_letter", "pred_idx", "answer", "answer_idx", "correct"
-    #     ]:
-    #         val = result.get(key)
-    #         print(f"{key}: {val}")
-    #     print("============================\n")
-    # else:
-    #     print("无 result 返回或为空。")
+    # 有条理地打印 result 的结果
+    if result:
+        print("\n===== Workflow 执行结果 =====")
+        for key in [
+            "qid", "question", "segments", "segment_video_uris",
+            "captions", "concentrated_captions", "llm_response",
+            "pred_letter", "pred_idx", "answer", "answer_idx", "correct"
+        ]:
+            val = result.get(key)
+            print(f"{key}: {val}")
+        print("============================\n")
+    else:
+        print("无 result 返回或为空。")

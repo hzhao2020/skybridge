@@ -25,7 +25,7 @@ from ops.impl.amazon_ops import (
     AmazonRekognitionObjectDetectionImpl,
 )
 from ops.impl.openai_ops import OpenAILLMImpl
-from ops.impl.azure_ops import AzureVideoIndexerSegmentImpl, AzureContentUnderstandingCaptionImpl
+from ops.impl.aliyun_ops import AliyunQwenCaptionImpl
 # Storage 和 Transmission 操作直接使用 ops.utils 中的辅助类，不需要注册为 Operation
 
 REGISTRY = {}
@@ -48,11 +48,9 @@ BUCKETS = {
     # Note: boto3 S3 API 需要 Bucket Name，不是 ARN；下面已从 ARN 提取为 bucket 名称。
     "aws_us": "sky-video-us",
     "aws_sg": "sky-video-sg",
-    # Azure (Region containers) - 与 config.AZURE_STORAGE_ACCOUNTS 中的 container 名保持一致
-    # eastasia  -> 账户 videoea, 容器 "video-ea"
-    # westus2   -> 账户 videowu, 容器 "video-wu"
-    "azure_ea": "video-ea",
-    "azure_wu": "video-wu",
+    # Aliyun (Region buckets)
+    "aliyun_us": "vqa-store-us",
+    "aliyun_se": "vqa-store-se",
 }
 
 # --- Serverless 服务 URL 配置 ---
@@ -174,9 +172,15 @@ AWS_REGIONS = [
     {"region": "ap-southeast-1", "bucket_key": "aws_sg"},
 ]
 
+# 阿里云OSS支持的区域（实际存储区域）
+# 注意：百炼平台的区域名称不同，需要在实现中进行映射
+ALIYUN_REGIONS = [
+    {"region": "us-east-1", "bucket_key": "aliyun_us", "ai_region": "eastasia"},  # OSS区域 -> 百炼平台区域
+    {"region": "ap-southeast-1", "bucket_key": "aliyun_se", "ai_region": "westus2"},
+]
+
 # 1) Video segmentation (shot detection)
 # Google Video Intelligence: 仅支持 us-west1, asia-east1
-# Azure Video Indexer: 支持 eastasia, westus2
 VIDEO_SEGMENT_CATALOG = [
     # Google Video Intelligence (2个区域)
     {"pid": "seg_google_us", "cls": GoogleVideoSegmentImpl, "provider": "google", "region": "us-west1", "bucket_key": "gcp_us"},
@@ -184,15 +188,11 @@ VIDEO_SEGMENT_CATALOG = [
     # Amazon Rekognition Video
     {"pid": "seg_aws_us", "cls": AmazonRekognitionSegmentImpl, "provider": "amazon", "region": "us-west-2", "bucket_key": "aws_us"},
     {"pid": "seg_aws_sg", "cls": AmazonRekognitionSegmentImpl, "provider": "amazon", "region": "ap-southeast-1", "bucket_key": "aws_sg"},
-    # Azure Video Indexer (2个区域)
-    {"pid": "seg_azure_vi_ea", "cls": AzureVideoIndexerSegmentImpl, "provider": "azure", "region": "eastasia", "bucket_key": "azure_ea"},
-    {"pid": "seg_azure_vi_wu", "cls": AzureVideoIndexerSegmentImpl, "provider": "azure", "region": "westus2", "bucket_key": "azure_wu"},
 ]
 
 # 1.5) Video splitting (physical cutting)
 # Google Cloud Function (video-splitter): 支持 us-west1, asia-southeast1
 # AWS Lambda: 支持多个区域
-# Azure Function (video-splitter): 支持 eastasia, westus2
 VIDEO_SPLIT_CATALOG = [
     # Google Cloud Function (service_url 由 GCP_VIDEOSPLIT_SERVICE_URLS 或 gcloud 项目号推导)
     {"pid": "split_google_us", "cls": GoogleCloudFunctionSplitImpl, "provider": "google", "region": "us-west1", "bucket_key": "gcp_us"},
@@ -249,12 +249,31 @@ for model, slug in _gcp_cap_models:
             "model": model
         })
 
-# Azure Content Understanding (Foundry Tools) - 2个区域
-# eastasia, westus2
-VISUAL_CAPTION_CATALOG.extend([
-    {"pid": "cap_azure_cu_ea", "cls": AzureContentUnderstandingCaptionImpl, "provider": "azure", "region": "eastasia", "bucket_key": "azure_ea"},
-    {"pid": "cap_azure_cu_wu", "cls": AzureContentUnderstandingCaptionImpl, "provider": "azure", "region": "westus2", "bucket_key": "azure_wu"},
-])
+# 阿里云百炼平台 Qwen3-VL - 2个模型 × 2个区域
+# qwen3-vl-plus, qwen3-vl-flash
+# OSS区域: us-east-1, ap-southeast-1
+_aliyun_cap_models = {
+    "qwen3-vl-plus": "plus",
+    "qwen3-vl-flash": "flash",
+}
+for model, slug in _aliyun_cap_models.items():
+    for reg in ALIYUN_REGIONS:
+        oss_region = reg["region"]  # OSS实际区域
+        if oss_region == "us-east-1":
+            pid = f"cap_aliyun_{slug}_ea"
+        elif oss_region == "ap-southeast-1":
+            pid = f"cap_aliyun_{slug}_wu"
+        else:
+            pid = f"cap_aliyun_{slug}_{oss_region.replace('-', '_')}"
+        VISUAL_CAPTION_CATALOG.append({
+            "pid": pid,
+            "cls": AliyunQwenCaptionImpl,
+            "provider": "aliyun",
+            "region": oss_region,  # 使用OSS实际区域
+            "bucket_key": reg["bucket_key"],
+            "model": model
+        })
+
 
 # 3) LLM querying
 LLM_CATALOG = []
@@ -409,11 +428,7 @@ for item in VIDEO_SPLIT_CATALOG:
 # 参见上面的注释说明
 
 for item in VISUAL_CAPTION_CATALOG:
-    # Azure Content Understanding 不需要 model 参数
-    if item["cls"] is AzureContentUnderstandingCaptionImpl:
-        register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]]))
-    else:
-        register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]], item["model"]))
+    register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]], item["model"]))
 
 for item in LLM_CATALOG:
     bucket = BUCKETS[item["bucket_key"]] if item["bucket_key"] else None

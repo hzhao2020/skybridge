@@ -243,7 +243,7 @@ class AWSLambdaSplitImpl(VideoSplitter):
                     service_url,
                     json=request_body,
                     headers={"Content-Type": "application/json"},
-                    timeout=900  # 15分钟超时（与Google和Azure一致）
+                    timeout=900  # 15分钟超时（与Google一致）
                 )
                 response.raise_for_status()
                 result = response.json()

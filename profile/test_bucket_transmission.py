@@ -6,8 +6,8 @@
 - Bandwidth: 带宽测试
 
 支持的传输类型：
-- 同云内跨 region 传输（S3->S3, GCS->GCS, Azure->Azure）
-- 跨云传输（S3<->GCS, S3<->Azure, GCS<->Azure）
+- 同云内跨 region 传输（S3->S3, GCS->GCS）
+- 跨云传输（S3<->GCS）
 """
 
 import os
@@ -56,8 +56,6 @@ class BucketTransmissionTester:
         "gcp_sg": {"provider": "google", "bucket": "video_sg", "region": "asia-southeast1"},
         "aws_us": {"provider": "amazon", "bucket": "sky-video-us", "region": "us-west-2"},
         "aws_sg": {"provider": "amazon", "bucket": "sky-video-sg", "region": "ap-southeast-1"},
-        "azure_ea": {"provider": "azure", "bucket": "video-ea", "region": "eastasia", "account": "videoea"},
-        "azure_wu": {"provider": "azure", "bucket": "video-wu", "region": "westus2", "account": "videowu"},
     }
     
     def __init__(self):
@@ -116,8 +114,6 @@ class BucketTransmissionTester:
             return f"gs://{bucket}/{filename}"
         elif provider == "amazon":
             return f"s3://{bucket}/{filename}"
-        elif provider == "azure":
-            return f"azure://{bucket}/{filename}"
         else:
             raise ValueError(f"Unknown provider: {provider}")
     
@@ -134,14 +130,8 @@ class BucketTransmissionTester:
         config = self.BUCKET_CONFIG[bucket_key]
         provider = config["provider"]
         bucket = config["bucket"]
-        azure_account = config.get("account")
         
-        if provider == "azure":
-            return self.transmitter.upload_local_to_cloud(
-                local_path, provider, bucket, azure_account_name=azure_account
-            )
-        else:
-            return self.transmitter.upload_local_to_cloud(local_path, provider, bucket)
+        return self.transmitter.upload_local_to_cloud(local_path, provider, bucket)
     
     def _transfer_file(self, source_uri: str, source_bucket_key: str, target_bucket_key: str) -> str:
         """传输文件（跨bucket）
@@ -159,13 +149,11 @@ class BucketTransmissionTester:
         
         target_provider = target_config["provider"]
         target_bucket = target_config["bucket"]
-        azure_account = target_config.get("account")
         
         return self.transmitter.smart_move(
             source_uri,
             target_provider=target_provider,
-            target_bucket=target_bucket,
-            azure_account_name=azure_account
+            target_bucket=target_bucket
         )
     
     def _delete_file(self, uri: str, bucket_key: str):
@@ -189,12 +177,6 @@ class BucketTransmissionTester:
                     blob.delete()
                 elif provider == "amazon":
                     self.transmitter.s3_client.delete_object(Bucket=bucket, Key=key)
-                elif provider == "azure":
-                    account = config.get("account")
-                    client = self.transmitter.get_azure_client(account)
-                    container_client = client.get_container_client(bucket)
-                    blob_client = container_client.get_blob_client(key)
-                    blob_client.delete_blob()
         except Exception as e:
             print(f"Warning: Failed to delete {uri}: {e}")
     

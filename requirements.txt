@@ -13,9 +13,11 @@ google-cloud-storage>=2.10.0
 google-cloud-videointelligence>=2.16.0
 google-cloud-aiplatform>=1.38.0
 
-# Azure 服务（Blob Storage, Identity）
-azure-storage-blob>=12.19.0
-azure-identity>=1.15.0
+# Aliyun OSS 服务
+oss2>=2.18.0
+
+# Aliyun 百炼平台服务（使用 OpenAI 兼容接口）
+# 注意：openai 库已经在 OpenAI 服务中列出，这里不需要重复添加
 
 # OpenAI 服务
 openai>=1.0.0
