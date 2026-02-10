@@ -25,7 +25,7 @@ from ops.impl.amazon_ops import (
     AmazonRekognitionObjectDetectionImpl,
 )
 from ops.impl.openai_ops import OpenAILLMImpl
-from ops.impl.aliyun_ops import AliyunQwenCaptionImpl
+from ops.impl.aliyun_ops import AliyunQwenCaptionImpl, AliyunQwenLLMImpl
 # Storage 和 Transmission 操作直接使用 ops.utils 中的辅助类，不需要注册为 Operation
 
 REGISTRY = {}
@@ -278,14 +278,19 @@ for model, slug in _aliyun_cap_models.items():
 # 3) LLM querying
 LLM_CATALOG = []
 
-# Google Vertex AI (Gemini 1.5) - 模型 x 区域
+# Google Vertex AI (Gemini 2.5) - 模型 x 区域
 # Vertex AI 仅支持 us-west1, asia-southeast1
+# 注意：gemini-2.5-flash-lite 仅在 us-west1 可用，asia-southeast1 不支持
 _gcp_llm_models = {
     "gemini-2.5-flash": "flash",  # 更新为推荐的稳定版本
-    "gemini-2.5-pro": "pro",  # 更新为推荐的稳定版本
+    "gemini-2.5-flash-lite": "flash_lite",  # 仅在 us-west1 可用
 }
 for model, slug in _gcp_llm_models.items():
     for reg in GCP_REGIONS:  # GCP_REGIONS 已包含正确的2个区域
+        # flash_lite 仅在 us-west1 支持，跳过 asia-southeast1
+        if slug == "flash_lite" and reg["region"] != "us-west1":
+            continue
+        
         if reg["region"] == "us-west1":
             pid = f"llm_google_{slug}_us"
         elif reg["region"] == "asia-southeast1":
@@ -303,10 +308,34 @@ for model, slug in _gcp_llm_models.items():
 
 
 # OpenAI (无区域概念)
+# 只使用 gpt-4o 模型
 LLM_CATALOG.extend([
-    {"pid": "llm_openai_gpt4o_mini", "cls": OpenAILLMImpl, "provider": "openai", "region": "global", "bucket_key": None, "model": "gpt-4o-mini"},
-    {"pid": "llm_openai_gpt4o",      "cls": OpenAILLMImpl, "provider": "openai", "region": "global", "bucket_key": None, "model": "gpt-4o"},
+    {"pid": "llm_openai_gpt4o", "cls": OpenAILLMImpl, "provider": "openai", "region": "global", "bucket_key": None, "model": "gpt-4o"},
 ])
+
+# Aliyun Qwen LLM - 模型 x 区域
+# 支持两个模型：qwen-plus 和 qwen-flash
+# 支持两个区域：us-east-1 和 ap-southeast-1
+_aliyun_llm_models = {
+    "qwen-plus": "plus",
+    "qwen-flash": "flash",
+}
+for model, slug in _aliyun_llm_models.items():
+    for reg in ALIYUN_REGIONS:
+        if reg["region"] == "us-east-1":
+            pid = f"llm_aliyun_{slug}_ea"
+        elif reg["region"] == "ap-southeast-1":
+            pid = f"llm_aliyun_{slug}_wu"
+        else:
+            pid = f"llm_aliyun_{slug}_{reg['region'].replace('-', '_')}"
+        LLM_CATALOG.append({
+            "pid": pid,
+            "cls": AliyunQwenLLMImpl,
+            "provider": "aliyun",
+            "region": reg["region"],
+            "bucket_key": reg["bucket_key"],
+            "model": model
+        })
 
 # 4) Visual encoding (embedding)
 VISUAL_ENCODING_CATALOG = []

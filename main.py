@@ -78,7 +78,7 @@ def run_workflow_demo():
             "enabled": True,
         },
         "llm_query": {
-            "operation_pid": "llm_google_flash_sg",  # llm_google_pro_us  等
+            "operation_pid": "llm_google_flash_sg",  # llm_google_flash_lite_us  等
             "enabled": True,
         },
     }
@@ -184,18 +184,18 @@ if __name__ == "__main__":
     # 打印可用的 (provider, region, model) 组合
     # list_available_ops()
     print(list_supported_operations())
-    result = run_workflow_demo()
+    # result = run_workflow_demo()
 
-    # 有条理地打印 result 的结果
-    if result:
-        print("\n===== Workflow 执行结果 =====")
-        for key in [
-            "qid", "question", "segments", "segment_video_uris",
-            "captions", "concentrated_captions", "llm_response",
-            "pred_letter", "pred_idx", "answer", "answer_idx", "correct"
-        ]:
-            val = result.get(key)
-            print(f"{key}: {val}")
-        print("============================\n")
-    else:
-        print("无 result 返回或为空。")
+    # # 有条理地打印 result 的结果
+    # if result:
+    #     print("\n===== Workflow 执行结果 =====")
+    #     for key in [
+    #         "qid", "question", "segments", "segment_video_uris",
+    #         "captions", "concentrated_captions", "llm_response",
+    #         "pred_letter", "pred_idx", "answer", "answer_idx", "correct"
+    #     ]:
+    #         val = result.get(key)
+    #         print(f"{key}: {val}")
+    #     print("============================\n")
+    # else:
+    #     print("无 result 返回或为空。")

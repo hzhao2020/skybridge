@@ -1,0 +1,119 @@
+{
+  "timestamp": "20260210_141103",
+  "test_operations": [
+    "llm_google_flash_us",
+    "llm_google_flash_sg",
+    "llm_google_pro_us",
+    "llm_google_pro_sg",
+    "llm_openai_gpt4o_mini",
+    "llm_openai_gpt4o",
+    "llm_aliyun_plus_ea",
+    "llm_aliyun_plus_wu",
+    "llm_aliyun_flash_ea",
+    "llm_aliyun_flash_wu"
+  ],
+  "basic_test_results": [
+    {
+      "success": true,
+      "operation_pid": "llm_google_flash_us",
+      "result": {
+        "provider": "google_vertex",
+        "model": "gemini-2.5-flash",
+        "response": "人工智能是让机器能够像人类一样思考、学习和解决问题的技术。"
+      },
+      "duration": 11.354773
+    },
+    {
+      "success": true,
+      "operation_pid": "llm_google_flash_sg",
+      "result": {
+        "provider": "google_vertex",
+        "model": "gemini-2.5-flash",
+        "response": "人工智能是让机器能够像人类一样思考、学习和解决问题的技术。"
+      },
+      "duration": 3.955472
+    },
+    {
+      "success": true,
+      "operation_pid": "llm_google_pro_us",
+      "result": {
+        "provider": "google_vertex",
+        "model": "gemini-2.5-pro",
+        "response": "人工智能是致力于让机器像人一样思考、学习并解决问题的科学与技术。"
+      },
+      "duration": 20.327414
+    },
+    {
+      "success": false,
+      "operation_pid": "llm_google_pro_sg",
+      "error": "404 POST https://asia-southeast1-aiplatform.googleapis.com/v1/projects/project-ab73e1ce-e25c-48b5-a91/locations/asia-southeast1/publishers/google/models/gemini-2.5-pro:generateContent?%24alt=json%3Benum-encoding%3Dint: Publisher Model `projects/project-ab73e1ce-e25c-48b5-a91/locations/asia-southeast1/publishers/google/models/gemini-2.5-pro` was not found or your project does not have access to it. Please ensure you are using a valid model version. For more information, see: https://cloud.google.com/vertex-ai/generative-ai/docs/learn/model-versions"
+    },
+    {
+      "success": false,
+      "operation_pid": "llm_openai_gpt4o_mini",
+      "error": "OpenAI API error: 环境变量 OPENAI_API_KEY 未设置。"
+    },
+    {
+      "success": false,
+      "operation_pid": "llm_openai_gpt4o",
+      "error": "OpenAI API error: 环境变量 OPENAI_API_KEY 未设置。"
+    },
+    {
+      "success": true,
+      "operation_pid": "llm_aliyun_plus_ea",
+      "result": {
+        "provider": "aliyun_qwen",
+        "model": "qwen-plus",
+        "region": "us-east-1",
+        "response": "人工智能（AI）是计算机科学的一个分支，旨在使机器能够模拟、延伸和扩展人类的感知、学习、推理、决策和交互等智能行为。"
+      },
+      "duration": 3.418325
+    },
+    {
+      "success": true,
+      "operation_pid": "llm_aliyun_plus_wu",
+      "result": {
+        "provider": "aliyun_qwen",
+        "model": "qwen-plus",
+        "region": "ap-southeast-1",
+        "response": "人工智能（AI）是指由计算机系统所表现出的、通常需要人类智能才能完成的认知能力，如学习、推理、识别、理解、决策和创造等。"
+      },
+      "duration": 1.262837
+    },
+    {
+      "success": true,
+      "operation_pid": "llm_aliyun_flash_ea",
+      "result": {
+        "provider": "aliyun_qwen",
+        "model": "qwen-flash",
+        "region": "us-east-1",
+        "response": "人工智能是让机器模拟、延伸或扩展人类智能的技术。"
+      },
+      "duration": 2.319071
+    },
+    {
+      "success": true,
+      "operation_pid": "llm_aliyun_flash_wu",
+      "result": {
+        "provider": "aliyun_qwen",
+        "model": "qwen-flash",
+        "region": "ap-southeast-1",
+        "response": "人工智能是让机器模拟人类智能行为的技术。"
+      },
+      "duration": 0.726118
+    }
+  ],
+  "cheat_test_results": [],
+  "summary": {
+    "basic_test": {
+      "total": 10,
+      "success": 7,
+      "success_rate": 70.0
+    },
+    "cheat_test": {
+      "total": 0,
+      "correct": 0,
+      "accuracy": 0
+    }
+  }
+}

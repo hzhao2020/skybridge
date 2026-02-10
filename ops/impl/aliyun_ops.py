@@ -6,7 +6,7 @@ import requests
 from typing import Dict, Any, Optional
 from urllib.parse import urlparse
 
-from ops.base import VisualCaptioner
+from ops.base import VisualCaptioner, LLMQuery
 
 try:
     from openai import OpenAI
@@ -347,6 +347,201 @@ class AliyunQwenCaptionImpl(VisualCaptioner):
                 else:
                     # 不可重试的错误或已达到最大重试次数
                     error_msg = f"Aliyun Qwen3-VL API Error: {str(e)}"
+                    if attempt >= max_retries - 1:
+                        error_msg += f" (已重试 {max_retries} 次)"
+                    print(f"    ✗ {error_msg}")
+                    import traceback
+                    traceback.print_exc()
+                    raise RuntimeError(error_msg) from e
+
+
+class AliyunQwenLLMImpl(LLMQuery):
+    """
+    使用阿里云百炼平台 Qwen LLM 模型进行文本查询。
+    
+    设计假设：
+    - 在 `config.py` 中配置：
+        ALIYUN_AI_CONFIG = {
+            "us-east-1": {
+                "API key": "...",
+            },
+            "ap-southeast-1": {
+                "API key": "...",
+            }
+        }
+    - 使用 OpenAI 兼容接口调用百炼平台 API
+    - 使用 API Key 进行身份验证
+    - 支持两个模型：qwen-plus 和 qwen-flash
+    - 根据区域自动选择对应的 base_url：
+        * us-east-1 -> https://dashscope-us.aliyuncs.com/compatible-mode/v1
+        * ap-southeast-1 -> https://dashscope-intl.aliyuncs.com/compatible-mode/v1
+    
+    注意：
+    - region 参数是 OSS 的实际区域（us-east-1 或 ap-southeast-1）
+    - 配置文件中 ALIYUN_AI_CONFIG 的 key 也使用 OSS 区域名称
+    """
+    
+    def __init__(self, provider: str, region: str, storage_bucket: str, model_name: str):
+        super().__init__(provider, region, storage_bucket, model_name)
+        self._api_key = None
+        self._openai_client = None
+        # OSS区域 -> API base_url 映射
+        self._base_url_mapping = {
+            "us-east-1": "https://dashscope-us.aliyuncs.com/compatible-mode/v1",
+            "ap-southeast-1": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+        }
+    
+    def _get_api_key(self) -> str:
+        """获取阿里云 API Key"""
+        if self._api_key is None:
+            try:
+                import config
+                if not hasattr(config, 'ALIYUN_AI_CONFIG'):
+                    raise RuntimeError("config.py 中未找到 ALIYUN_AI_CONFIG 配置")
+                
+                ai_config = config.ALIYUN_AI_CONFIG
+                # 使用OSS区域名称（现在配置文件中已经使用OSS区域名称）
+                if self.region not in ai_config:
+                    raise RuntimeError(
+                        f"未在 ALIYUN_AI_CONFIG 中找到 region='{self.region}' 的配置，"
+                        f"支持的区域: {list(ai_config.keys())}"
+                    )
+                
+                self._api_key = ai_config[self.region].get("API key") or ai_config[self.region].get("api_key")
+                if not self._api_key:
+                    raise RuntimeError(
+                        f"ALIYUN_AI_CONFIG['{self.region}'] 中缺少必需的字段：API key"
+                    )
+            except ImportError as e:
+                raise RuntimeError("config.py 未找到，无法读取阿里云 AI 配置。") from e
+        
+        return self._api_key
+    
+    def _get_openai_client(self):
+        """初始化 OpenAI 兼容客户端"""
+        if self._openai_client is None:
+            if OpenAI is None:
+                raise RuntimeError("openai library not installed. Install with: pip install openai")
+            
+            api_key = self._get_api_key()
+            base_url = self._base_url_mapping.get(self.region)
+            if not base_url:
+                raise RuntimeError(
+                    f"未找到区域 '{self.region}' 对应的 base_url，支持的区域: {list(self._base_url_mapping.keys())}"
+                )
+            
+            self._openai_client = OpenAI(
+                api_key=api_key,
+                base_url=base_url
+            )
+        
+        return self._openai_client
+    
+    def execute(self, prompt: str, **kwargs) -> Dict[str, Any]:
+        """
+        使用阿里云百炼平台 Qwen LLM 模型进行文本查询。
+        
+        Args:
+            prompt: 查询提示词
+            **kwargs:
+                - max_tokens: 最大输出token数（默认2048）
+                - temperature: 温度参数（默认0，确保确定性输出）
+        
+        Returns:
+            包含查询结果的字典
+        """
+        print(f"--- [Aliyun Qwen LLM] Region: {self.region}, Model: {self.model_name} ---")
+        
+        # 打印完整的prompt
+        print("\n" + "=" * 80)
+        print("=== [Aliyun Qwen LLM] Full Prompt ===")
+        print("=" * 80)
+        print(prompt)
+        print("=" * 80 + "\n")
+        
+        # 初始化 OpenAI 客户端
+        client = self._get_openai_client()
+        
+        # 重试配置
+        max_retries = 3
+        retry_delay = 2  # 初始延迟（秒）
+        
+        # 获取参数
+        max_tokens = kwargs.get('max_tokens', 2048)
+        temperature = kwargs.get('temperature', 0)  # 默认0，确保确定性输出
+        
+        base_url = self._base_url_mapping.get(self.region)
+        print(f"    Calling Aliyun Qwen LLM API (model: {self.model_name}, region: {self.region})...")
+        print(f"    Base URL: {base_url}")
+        print(f"    Temperature: {temperature}, Max tokens: {max_tokens}")
+        
+        for attempt in range(max_retries):
+            try:
+                # 调用 OpenAI 兼容的 chat.completions API
+                response = client.chat.completions.create(
+                    model=self.model_name,
+                    messages=[
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    stream=False
+                )
+                
+                # 处理响应
+                if response.choices and len(response.choices) > 0:
+                    answer = response.choices[0].message.content
+                    if not answer:
+                        answer = "No response generated from Aliyun Qwen LLM."
+                else:
+                    answer = "No response generated from Aliyun Qwen LLM."
+                
+                # 打印完整的响应
+                print("\n" + "=" * 80)
+                print("=== [Aliyun Qwen LLM] Full Response ===")
+                print("=" * 80)
+                print(answer)
+                print("=" * 80 + "\n")
+                
+                return {
+                    "provider": "aliyun_qwen",
+                    "model": self.model_name,
+                    "region": self.region,
+                    "response": answer
+                }
+                
+            except Exception as e:
+                # 检查是否是连接错误（可重试的错误）
+                is_retryable = False
+                error_type = type(e).__name__
+                
+                # 可重试的错误类型
+                retryable_errors = (
+                    "APIConnectionError",
+                    "ConnectionError",
+                    "RemoteProtocolError",
+                    "TimeoutError",
+                    "ConnectionTimeout",
+                    "ReadTimeout"
+                )
+                
+                if any(err_type in error_type for err_type in retryable_errors):
+                    is_retryable = True
+                elif hasattr(e, 'response') and e.response is not None:
+                    # HTTP 5xx 错误也可以重试
+                    status_code = getattr(e.response, 'status_code', None)
+                    if status_code and 500 <= status_code < 600:
+                        is_retryable = True
+                
+                if is_retryable and attempt < max_retries - 1:
+                    wait_time = retry_delay * (2 ** attempt)  # 指数退避
+                    print(f"    ⚠ 连接错误 (尝试 {attempt + 1}/{max_retries}): {str(e)}")
+                    print(f"    ⏳ {wait_time} 秒后重试...")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    # 不可重试的错误或已达到最大重试次数
+                    error_msg = f"Aliyun Qwen LLM API Error: {str(e)}"
                     if attempt >= max_retries - 1:
                         error_msg += f" (已重试 {max_retries} 次)"
                     print(f"    ✗ {error_msg}")

@@ -1,0 +1,112 @@
+{
+  "timestamp": "20260210_145451",
+  "test_operations": [
+    "llm_google_flash_us",
+    "llm_google_flash_sg",
+    "llm_google_flash_lite_us",
+    "llm_openai_gpt4o",
+    "llm_aliyun_plus_ea",
+    "llm_aliyun_plus_wu",
+    "llm_aliyun_flash_ea",
+    "llm_aliyun_flash_wu"
+  ],
+  "basic_test_results": [
+    {
+      "success": true,
+      "operation_pid": "llm_google_flash_us",
+      "result": {
+        "provider": "google_vertex",
+        "model": "gemini-2.5-flash",
+        "response": "人工智能是让机器能够像人类一样思考、学习和解决问题的技术。"
+      },
+      "duration": 10.346212
+    },
+    {
+      "success": true,
+      "operation_pid": "llm_google_flash_sg",
+      "result": {
+        "provider": "google_vertex",
+        "model": "gemini-2.5-flash",
+        "response": "人工智能是让机器能够像人类一样思考、学习和解决问题的技术。"
+      },
+      "duration": 4.065757
+    },
+    {
+      "success": true,
+      "operation_pid": "llm_google_flash_lite_us",
+      "result": {
+        "provider": "google_vertex",
+        "model": "gemini-2.5-flash-lite",
+        "response": "人工智能是让机器能够像人类一样思考、学习和行动的技术。"
+      },
+      "duration": 1.614729
+    },
+    {
+      "success": true,
+      "operation_pid": "llm_openai_gpt4o",
+      "result": {
+        "provider": "openai",
+        "model": "gpt-4o",
+        "response": "人工智能是指通过模拟人类智能的计算机系统或算法，使机器能够执行感知、学习、推理和决策等任务的技术。"
+      },
+      "duration": 2.20946
+    },
+    {
+      "success": true,
+      "operation_pid": "llm_aliyun_plus_ea",
+      "result": {
+        "provider": "aliyun_qwen",
+        "model": "qwen-plus",
+        "region": "us-east-1",
+        "response": "人工智能（AI）是计算机科学的一个分支，旨在使机器能够模拟、延伸和扩展人类的感知、学习、推理、决策和交互等智能行为。"
+      },
+      "duration": 3.240505
+    },
+    {
+      "success": true,
+      "operation_pid": "llm_aliyun_plus_wu",
+      "result": {
+        "provider": "aliyun_qwen",
+        "model": "qwen-plus",
+        "region": "ap-southeast-1",
+        "response": "人工智能（AI）是指由计算机系统模拟、延伸和扩展人类智能行为（如学习、推理、识别、决策、语言理解等）的理论、方法、技术及应用。"
+      },
+      "duration": 1.582704
+    },
+    {
+      "success": true,
+      "operation_pid": "llm_aliyun_flash_ea",
+      "result": {
+        "provider": "aliyun_qwen",
+        "model": "qwen-flash",
+        "region": "us-east-1",
+        "response": "人工智能是让机器模拟、延伸或扩展人类智能的技术。"
+      },
+      "duration": 2.487642
+    },
+    {
+      "success": true,
+      "operation_pid": "llm_aliyun_flash_wu",
+      "result": {
+        "provider": "aliyun_qwen",
+        "model": "qwen-flash",
+        "region": "ap-southeast-1",
+        "response": "人工智能是让机器模拟、延伸或扩展人类智能的技术。"
+      },
+      "duration": 0.646252
+    }
+  ],
+  "cheat_test_results": [],
+  "summary": {
+    "basic_test": {
+      "total": 8,
+      "success": 8,
+      "success_rate": 100.0
+    },
+    "cheat_test": {
+      "total": 0,
+      "correct": 0,
+      "accuracy": 0
+    }
+  }
+}

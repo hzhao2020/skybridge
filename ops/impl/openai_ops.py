@@ -13,9 +13,6 @@ class OpenAILLMImpl(LLMQuery):
         # OpenAI 是 SaaS，没有 Region Bucket 概念，传 None
         super().__init__(provider="openai", region="global", storage_bucket=None, model_name=model_name)
         self._openai_client = None
-        # 兼容第三方 OpenAI API 代理/兼容平台：
-        # - OPENAI_BASE_URL: 例如 https://api.openai-proxy.org/v1 （注意要带 /v1）
-        self.base_url = os.getenv("OPENAI_BASE_URL")
     
     @property
     def openai_client(self):
@@ -24,14 +21,23 @@ class OpenAILLMImpl(LLMQuery):
             if "OpenAI" not in globals():
                 raise ImportError("缺少依赖：openai（请先 pip install openai）")
 
-            api_key = os.getenv("OPENAI_API_KEY")
+            # 从 config.py 读取配置
+            try:
+                import config
+                api_key = getattr(config, 'OPENAI_API_KEY', None)
+                base_url = getattr(config, 'OPENAI_BASE_URL', None)
+            except ImportError:
+                raise RuntimeError("config.py 未找到，无法读取 OpenAI 配置。")
+            
             if not api_key:
-                raise RuntimeError("环境变量 OPENAI_API_KEY 未设置。")
+                raise RuntimeError("config.py 中未找到 OPENAI_API_KEY 配置。")
 
-            # 如果设置了 OPENAI_BASE_URL，则按第三方平台调用；否则走官方默认
-            if self.base_url:
-                self._openai_client = OpenAI(base_url=self.base_url, api_key=api_key)
+            # 使用 config.py 中的 base_url（如果设置了）
+            # base_url 应该包含 /v1 后缀，例如: "https://api.openai-proxy.org/v1"
+            if base_url:
+                self._openai_client = OpenAI(base_url=base_url, api_key=api_key)
             else:
+                # 如果没有设置 base_url，使用官方 OpenAI API
                 self._openai_client = OpenAI(api_key=api_key)
         return self._openai_client
 
