@@ -35,7 +35,7 @@ class AliyunQwenCaptionImpl(VisualCaptioner):
           再转换为 HTTPS URL 交给百炼平台。
     - 使用 OpenAI 兼容接口调用百炼平台 API
     - 使用 API Key 进行身份验证
-    - 支持两个模型：qwen3-vl-plus 和 qwen3-vl-flash
+    - 支持模型：qwen3-vl-flash
     - 根据区域自动选择对应的 base_url：
         * us-east-1 -> https://dashscope-us.aliyuncs.com/compatible-mode/v1
         * ap-southeast-1 -> https://dashscope-intl.aliyuncs.com/compatible-mode/v1
@@ -371,7 +371,7 @@ class AliyunQwenLLMImpl(LLMQuery):
         }
     - 使用 OpenAI 兼容接口调用百炼平台 API
     - 使用 API Key 进行身份验证
-    - 支持两个模型：qwen-plus 和 qwen-flash
+    - 支持模型：qwen-flash
     - 根据区域自动选择对应的 base_url：
         * us-east-1 -> https://dashscope-us.aliyuncs.com/compatible-mode/v1
         * ap-southeast-1 -> https://dashscope-intl.aliyuncs.com/compatible-mode/v1

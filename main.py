@@ -78,7 +78,7 @@ def run_workflow_demo():
             "enabled": True,
         },
         "llm_query": {
-            "operation_pid": "llm_google_flash_sg",  # llm_google_flash_lite_us  等
+            "operation_pid": "llm_google_flash_sg",  # llm_google_flash_us 等
             "enabled": True,
         },
     }
@@ -149,7 +149,7 @@ def run_workflow_demo():
             # 构建时间记录文件路径
             qid = input_data.get("qid", "unknown")
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            timing_dir = "timing_logs"
+            timing_dir = "results/timing_logs"
             os.makedirs(timing_dir, exist_ok=True)
             timing_filepath = os.path.join(timing_dir, f"timing_{qid}_{timestamp}.json")
             

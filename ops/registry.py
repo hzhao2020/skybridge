@@ -15,14 +15,10 @@ from ops.impl.google_ops import (
     GoogleVertexCaptionImpl,
     GoogleVertexLLMImpl,
     GoogleCloudFunctionSplitImpl,
-    GoogleVertexEmbeddingImpl,
-    GoogleVertexTextEmbeddingImpl,
-    GoogleVideoIntelligenceObjectDetectionImpl,
 )
 from ops.impl.amazon_ops import (
     AmazonRekognitionSegmentImpl,
     AWSLambdaSplitImpl,
-    AmazonRekognitionObjectDetectionImpl,
 )
 from ops.impl.openai_ops import OpenAILLMImpl
 from ops.impl.aliyun_ops import AliyunQwenCaptionImpl, AliyunQwenLLMImpl
@@ -161,12 +157,6 @@ GCP_REGIONS = [
     {"region": "asia-southeast1", "bucket_key": "gcp_sg"},
 ]
 
-# Google Video Intelligence 支持的区域：us-west1, asia-east1
-GCP_VIDEO_INTELLIGENCE_REGIONS = [
-    {"region": "us-west1", "bucket_key": "gcp_us"},
-    {"region": "asia-east1", "bucket_key": "gcp_tw"},
-]
-
 AWS_REGIONS = [
     {"region": "us-west-2", "bucket_key": "aws_us"},
     {"region": "ap-southeast-1", "bucket_key": "aws_sg"},
@@ -225,21 +215,21 @@ VIDEO_SPLIT_CATALOG = [
 # 2) Visual captioning
 VISUAL_CAPTION_CATALOG = []
 
-# Google Vertex AI (Gemini 1.5) - 模型 x 区域 笛卡尔积
+# Google Vertex AI (Gemini 2.0) - 模型 x 区域 笛卡尔积
 # Vertex AI 仅支持 us-west1, asia-southeast1
-# 注意：flash_lite 和 flash 都使用相同的模型 gemini-2.5-flash
-_gcp_cap_models = [
-    ("gemini-2.5-flash", "flash_lite"),  # 更新为推荐的稳定版本
-    ("gemini-2.5-flash", "flash"),  # 更新为推荐的稳定版本
-]
-for model, slug in _gcp_cap_models:
+_gcp_cap_models = {
+    "gemini-2.0-flash": "flash",
+}
+for model, slug in _gcp_cap_models.items():
     for reg in GCP_REGIONS:  # GCP_REGIONS 已包含正确的2个区域
-        pid = f"cap_google_{slug}_{reg['region'].split('-')[0]}" if 'west1' in reg['region'] or 'east1' in reg['region'] else f"cap_google_{slug}_{reg['region'].split('-')[1]}"
         # 更直观的 pid：使用区域简称
         if reg["region"] == "us-west1":
             pid = f"cap_google_{slug}_us"
         elif reg["region"] == "asia-southeast1":
             pid = f"cap_google_{slug}_sg"
+        else:
+            pid = f"cap_google_{slug}_{reg['region'].replace('-', '_')}"
+
         VISUAL_CAPTION_CATALOG.append({
             "pid": pid,
             "cls": GoogleVertexCaptionImpl,
@@ -249,11 +239,9 @@ for model, slug in _gcp_cap_models:
             "model": model
         })
 
-# 阿里云百炼平台 Qwen3-VL - 2个模型 × 2个区域
-# qwen3-vl-plus, qwen3-vl-flash
+# 阿里云百炼平台 Qwen3-VL - 1个模型 × 2个区域
 # OSS区域: us-east-1, ap-southeast-1
 _aliyun_cap_models = {
-    "qwen3-vl-plus": "plus",
     "qwen3-vl-flash": "flash",
 }
 for model, slug in _aliyun_cap_models.items():
@@ -278,19 +266,13 @@ for model, slug in _aliyun_cap_models.items():
 # 3) LLM querying
 LLM_CATALOG = []
 
-# Google Vertex AI (Gemini 2.5) - 模型 x 区域
+# Google Vertex AI (Gemini 2.0) - 模型 x 区域
 # Vertex AI 仅支持 us-west1, asia-southeast1
-# 注意：gemini-2.5-flash-lite 仅在 us-west1 可用，asia-southeast1 不支持
 _gcp_llm_models = {
-    "gemini-2.5-flash": "flash",  # 更新为推荐的稳定版本
-    "gemini-2.5-flash-lite": "flash_lite",  # 仅在 us-west1 可用
+    "gemini-2.0-flash": "flash",
 }
 for model, slug in _gcp_llm_models.items():
     for reg in GCP_REGIONS:  # GCP_REGIONS 已包含正确的2个区域
-        # flash_lite 仅在 us-west1 支持，跳过 asia-southeast1
-        if slug == "flash_lite" and reg["region"] != "us-west1":
-            continue
-        
         if reg["region"] == "us-west1":
             pid = f"llm_google_{slug}_us"
         elif reg["region"] == "asia-southeast1":
@@ -314,10 +296,8 @@ LLM_CATALOG.extend([
 ])
 
 # Aliyun Qwen LLM - 模型 x 区域
-# 支持两个模型：qwen-plus 和 qwen-flash
 # 支持两个区域：us-east-1 和 ap-southeast-1
 _aliyun_llm_models = {
-    "qwen-plus": "plus",
     "qwen-flash": "flash",
 }
 for model, slug in _aliyun_llm_models.items():
@@ -336,94 +316,6 @@ for model, slug in _aliyun_llm_models.items():
             "bucket_key": reg["bucket_key"],
             "model": model
         })
-
-# 4) Visual encoding (embedding)
-VISUAL_ENCODING_CATALOG = []
-
-# Google Vertex AI (multimodalembedding@001) - 支持2个区域
-# us-west1 (Oregon), asia-southeast1 (Singapore)
-for reg in GCP_REGIONS:  # GCP_REGIONS 已包含正确的2个区域
-    if reg["region"] == "us-west1":
-        pid = "embed_google_us"
-    elif reg["region"] == "asia-southeast1":
-        pid = "embed_google_sg"
-    else:
-        pid = f"embed_google_{reg['region'].replace('-', '_')}"
-    VISUAL_ENCODING_CATALOG.append({
-        "pid": pid,
-        "cls": GoogleVertexEmbeddingImpl,
-        "provider": "google",
-        "region": reg["region"],
-        "bucket_key": reg["bucket_key"],
-        "model": "multimodalembedding@001"
-    })
-
-
-# 5) Text encoding (embedding)
-TEXT_EMBEDDING_CATALOG = []
-
-# Google Vertex AI - 2个模型 × 2个区域
-# gemini-embedding-001: us-west1, asia-southeast1
-# text-embedding-005: us-west1, asia-southeast1
-_gcp_text_embedding_models = {
-    "gemini-embedding-001": "gemini",
-    "text-embedding-005": "text005",
-}
-for model, slug in _gcp_text_embedding_models.items():
-    for reg in GCP_REGIONS:  # GCP_REGIONS 已包含正确的2个区域
-        if reg["region"] == "us-west1":
-            pid = f"text_embed_google_{slug}_us"
-        elif reg["region"] == "asia-southeast1":
-            pid = f"text_embed_google_{slug}_sg"
-        else:
-            pid = f"text_embed_google_{slug}_{reg['region'].replace('-', '_')}"
-        TEXT_EMBEDDING_CATALOG.append({
-            "pid": pid,
-            "cls": GoogleVertexTextEmbeddingImpl,
-            "provider": "google",
-            "region": reg["region"],
-            "bucket_key": reg["bucket_key"],
-            "model": model
-        })
-
-
-# 6) Object detection
-OBJECT_DETECTION_CATALOG = []
-
-# Google Video Intelligence - 2个区域
-# us-west1 (Oregon), asia-east1 (Taiwan)
-for reg in GCP_VIDEO_INTELLIGENCE_REGIONS:
-    if reg["region"] == "us-west1":
-        pid = "obj_detect_google_us"
-    elif reg["region"] == "asia-east1":
-        pid = "obj_detect_google_tw"
-    else:
-        pid = f"obj_detect_google_{reg['region'].replace('-', '_')}"
-    OBJECT_DETECTION_CATALOG.append({
-        "pid": pid,
-        "cls": GoogleVideoIntelligenceObjectDetectionImpl,
-        "provider": "google",
-        "region": reg["region"],
-        "bucket_key": reg["bucket_key"]
-    })
-
-# Amazon Rekognition Video - 2个区域
-# us-west-2 (Oregon), ap-southeast-1 (Singapore)
-for reg in AWS_REGIONS:
-    if reg["region"] == "us-west-2":
-        pid_suffix = "us"
-    elif reg["region"] == "ap-southeast-1":
-        pid_suffix = "sg"
-    else:
-        pid_suffix = reg["region"].replace("-", "_")
-    pid = f"obj_detect_aws_{pid_suffix}"
-    OBJECT_DETECTION_CATALOG.append({
-        "pid": pid,
-        "cls": AmazonRekognitionObjectDetectionImpl,
-        "provider": "amazon",
-        "region": reg["region"],
-        "bucket_key": reg["bucket_key"]
-    })
 
 # =========================================================
 # Register all combinations from catalogs
@@ -467,14 +359,6 @@ for item in LLM_CATALOG:
     else:
         register(item["pid"], item["cls"](item["provider"], item["region"], bucket, item["model"]))
 
-for item in VISUAL_ENCODING_CATALOG:
-    register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]], item["model"]))
-
-for item in TEXT_EMBEDDING_CATALOG:
-    register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]], item["model"]))
-
-for item in OBJECT_DETECTION_CATALOG:
-    register(item["pid"], item["cls"](item["provider"], item["region"], BUCKETS[item["bucket_key"]]))
 
 
 # =========================================================
@@ -495,9 +379,6 @@ def list_supported_operations() -> str:
         "2. Video Splitting (视频切割 - 物理切割)": VIDEO_SPLIT_CATALOG,
         "3. Visual Captioning (视觉字幕生成)": VISUAL_CAPTION_CATALOG,
         "4. LLM Querying (大语言模型查询)": LLM_CATALOG,
-        "5. Visual Encoding (视觉嵌入)": VISUAL_ENCODING_CATALOG,
-        "6. Text Embedding (文本嵌入)": TEXT_EMBEDDING_CATALOG,
-        "7. Object Detection (目标检测)": OBJECT_DETECTION_CATALOG,
     }
     
     lines = []
@@ -562,9 +443,6 @@ def get_operation_info(pid: str, include_class: bool = False) -> Optional[Dict]:
         VIDEO_SPLIT_CATALOG,
         VISUAL_CAPTION_CATALOG,
         LLM_CATALOG,
-        VISUAL_ENCODING_CATALOG,
-        TEXT_EMBEDDING_CATALOG,
-        OBJECT_DETECTION_CATALOG,
     ]
     
     for catalog in all_catalogs:

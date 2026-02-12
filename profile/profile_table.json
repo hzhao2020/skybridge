@@ -1,0 +1,64 @@
+{  
+  "price": {
+    "billing_categories": {
+      "per_minute": {
+        "unit": "USD per minute",
+        "operations": {
+          "seg_google_us": {"price": 0.05},
+          "seg_google_tw": {"price": 0.05},
+          "seg_aws_us": {"price": 0.05},
+          "seg_aws_sg": {"price": 0.05},
+          "split_google_us": {"price": null},
+          "split_google_sg": {"price": null},
+          "split_aws_us": {"price": null},
+          "split_aws_sg": {"price": null}
+        }
+      },
+      "per_token": {
+        "unit": "USD per 1M tokens",
+        "operations": {
+          "cap_google_flash_us": {"input_price": 0.30, "output_price": 2.50},
+          "cap_google_flash_sg": {"input_price": 0.30, "output_price": 2.50},
+          "cap_aliyun_flash_ea": {"input_price": null, "output_price": null},
+          "cap_aliyun_flash_wu": {"input_price": null, "output_price": null},
+          "llm_google_flash_us": {"input_price": 0.30, "output_price": 2.50},
+          "llm_google_flash_sg": {"input_price": 0.30, "output_price": 2.50},
+          "llm_openai_gpt4o": {"input_price": null, "output_price": null},
+          "llm_aliyun_flash_ea": {"input_price": 0.05, "output_price": 0.40},
+          "llm_aliyun_flash_wu": {"input_price": 0.05, "output_price": 0.40}
+        }
+      },
+      "per_gb_storage": {
+        "unit": "USD per GB per month",
+        "operations": {
+          "storage_aws_us": {"price": 0.023},
+          "storage_aws_sg": {"price": null},
+          "storage_gcp_us": {"price": 0.02},
+          "storage_gcp_sg": {"price": null},
+          "storage_gcp_tw": {"price": null},
+          "storage_aliyun_us": {"price": 0.0173},
+          "storage_aliyun_se": {"price": null}
+        }
+      },
+      "per_gb_egress": {
+        "unit": "USD per GB",
+        "operations": {
+          "egress_aws_us": {"price": 0.09},
+          "egress_aws_sg": {"price": null},
+          "egress_gcp_us": {"price": 0.085},
+          "egress_gcp_sg": {"price": null},
+          "egress_gcp_tw": {"price": null},
+          "egress_aliyun_us": {"price": 0.10},
+          "egress_aliyun_se": {"price": 0.10}
+        }
+      },
+      "per_request": {
+        "unit": "USD per request",
+        "operations": {}
+      }
+    }
+  },
+  "accuracy": {
+
+  }
+}

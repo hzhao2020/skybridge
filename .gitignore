@@ -85,6 +85,6 @@ tmp.ipynb
 config.py
 
 # Timing logs
-timing_logs/
+results/timing_logs/
 
 test/
