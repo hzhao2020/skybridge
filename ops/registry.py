@@ -242,7 +242,7 @@ for model, slug in _gcp_cap_models.items():
 # 阿里云百炼平台 Qwen3-VL - 1个模型 × 2个区域
 # OSS区域: us-east-1, ap-southeast-1
 _aliyun_cap_models = {
-    "qwen3-vl-flash": "flash",
+    "qwen3-vl-flash-2025-10-15": "flash",
 }
 for model, slug in _aliyun_cap_models.items():
     for reg in ALIYUN_REGIONS:
@@ -290,15 +290,22 @@ for model, slug in _gcp_llm_models.items():
 
 
 # OpenAI (无区域概念)
-# 只使用 gpt-4o 模型
+# 使用更具体的 gpt-4o-2024-11-20 模型
 LLM_CATALOG.extend([
-    {"pid": "llm_openai_gpt4o", "cls": OpenAILLMImpl, "provider": "openai", "region": "global", "bucket_key": None, "model": "gpt-4o"},
+    {
+        "pid": "llm_openai_gpt4o",
+        "cls": OpenAILLMImpl,
+        "provider": "openai",
+        "region": "global",
+        "bucket_key": None,
+        "model": "gpt-4o-2024-11-20",
+    },
 ])
 
 # Aliyun Qwen LLM - 模型 x 区域
 # 支持两个区域：us-east-1 和 ap-southeast-1
 _aliyun_llm_models = {
-    "qwen-flash": "flash",
+    "qwen-flash-2025-07-28": "flash",
 }
 for model, slug in _aliyun_llm_models.items():
     for reg in ALIYUN_REGIONS:

@@ -56,6 +56,8 @@ class EdgeLatencyMonitor:
         self,
         duration_days: float = 7.0,
         interval_seconds: int = 600,
+        rtt_interval_seconds: Optional[int] = None,
+        bandwidth_interval_seconds: Optional[int] = None,
         test_rtt: bool = True,
         test_bandwidth: bool = True,
         bucket_pairs: Optional[List[Tuple[str, str]]] = None,
@@ -64,7 +66,9 @@ class EdgeLatencyMonitor:
         """
         Args:
             duration_days: 总测试时长（天），默认 7 天。
-            interval_seconds: 两次测试之间的间隔（秒），默认 600 秒（10 分钟）。
+            interval_seconds: 默认测试间隔（秒），当未单独指定 rtt/bandwidth 间隔时使用。
+            rtt_interval_seconds: RTT 测试间隔（秒），为 None 时使用 interval_seconds。
+            bandwidth_interval_seconds: 带宽测试间隔（秒），为 None 时使用 interval_seconds。
             test_rtt: 是否测试 RTT。
             test_bandwidth: 是否测试带宽。
             bucket_pairs: 指定需要测试的 bucket 对列表，如 [("gcp_us", "aws_us"), ...]。
@@ -78,6 +82,10 @@ class EdgeLatencyMonitor:
 
         self.duration_days = float(duration_days)
         self.interval_seconds = int(interval_seconds)
+        self.rtt_interval_seconds = int(rtt_interval_seconds or interval_seconds)
+        self.bandwidth_interval_seconds = int(bandwidth_interval_seconds or interval_seconds)
+        if self.rtt_interval_seconds <= 0 or self.bandwidth_interval_seconds <= 0:
+            raise ValueError("rtt_interval_seconds 和 bandwidth_interval_seconds 必须大于 0")
         self.test_rtt = bool(test_rtt)
         self.test_bandwidth = bool(test_bandwidth)
         self.bucket_pairs = bucket_pairs
@@ -89,42 +97,57 @@ class EdgeLatencyMonitor:
         self.BucketTransmissionTester = bt_module.BucketTransmissionTester
         self.TransmissionTestResult = bt_module.TransmissionTestResult
 
-    def _run_single_round(self, round_index: int) -> Path:
+    def _run_single_round(
+        self,
+        round_index: int,
+        run_rtt: bool,
+        run_bandwidth: bool,
+    ) -> Optional[Path]:
         """
-        执行一次完整的 bucket 间测试（所有指定 bucket 对），并将结果写入一个 JSON 文件。
+        执行一次 bucket 间测试（可指定只测 RTT 或只测带宽或两者都测），并将结果写入 JSON 文件。
+
+        Args:
+            round_index: 轮次编号。
+            run_rtt: 本轮是否执行 RTT 测试。
+            run_bandwidth: 本轮是否执行带宽测试。
 
         Returns:
-            当前轮次结果文件的路径
+            结果文件路径；若两者都不测则返回 None。
         """
+        if not run_rtt and not run_bandwidth:
+            return None
+
+        test_types = []
+        if run_rtt:
+            test_types.append("RTT")
+        if run_bandwidth:
+            test_types.append("Bandwidth")
         print("\n" + "=" * 80)
-        print(f"[EdgeLatency] 开始第 {round_index} 轮测试")
+        print(f"[EdgeLatency] 开始第 {round_index} 轮测试 ({'+'.join(test_types)})")
         print("=" * 80)
 
         start_time = datetime.now()
         tester = self.BucketTransmissionTester()
 
-        # 运行底层测试（不在这里调用 tester.save_results，改由本脚本统一输出）
         tester.run_all_tests(
-            test_rtt=self.test_rtt,
-            test_bandwidth=self.test_bandwidth,
+            test_rtt=run_rtt,
+            test_bandwidth=run_bandwidth,
             bucket_pairs=self.bucket_pairs,
         )
 
         end_time = datetime.now()
 
-        # 组织输出对象
         round_results = {
             "round_index": round_index,
             "start_time": start_time.isoformat(),
             "end_time": end_time.isoformat(),
             "duration_seconds": (end_time - start_time).total_seconds(),
-            "test_rtt": self.test_rtt,
-            "test_bandwidth": self.test_bandwidth,
+            "test_rtt": run_rtt,
+            "test_bandwidth": run_bandwidth,
             "bucket_pairs": self.bucket_pairs,
             "results": [asdict(r) for r in tester.results],
         }
 
-        # 以时间戳作为文件名的一部分，保证唯一
         timestamp = end_time.strftime("%Y%m%d_%H%M%S")
         filename = f"edge_latency_round{round_index:04d}_{timestamp}.json"
         output_path = self.results_dir / filename
@@ -141,31 +164,55 @@ class EdgeLatencyMonitor:
         start_time = datetime.now()
         end_time = start_time + total_duration
 
+        # 使用较短的间隔作为主循环的 tick 间隔
+        tick_interval = min(self.rtt_interval_seconds, self.bandwidth_interval_seconds)
+
         print("=" * 80)
         print("边缘节点带宽 & RTT 长时间监测启动")
         print("=" * 80)
         print(f"开始时间: {start_time.isoformat()}")
         print(f"计划结束时间: {end_time.isoformat()} (约 {self.duration_days} 天)")
-        print(f"测试间隔: {self.interval_seconds} 秒")
+        print(f"RTT 测试间隔: {self.rtt_interval_seconds} 秒")
+        print(f"带宽测试间隔: {self.bandwidth_interval_seconds} 秒")
         print(f"结果目录: {self.results_dir}")
         print("=" * 80)
 
         round_index = 0
+        last_rtt_time = 0.0
+        last_bandwidth_time = 0.0
 
         try:
             while datetime.now() < end_time:
                 round_index += 1
                 round_start_wall = time.time()
+                now_ts = time.time()
 
-                # 执行一轮测试
-                self._run_single_round(round_index)
+                # 判断本轮是否需要执行 RTT 和带宽测试
+                run_rtt = (
+                    self.test_rtt
+                    and (now_ts - last_rtt_time >= self.rtt_interval_seconds or last_rtt_time == 0)
+                )
+                run_bandwidth = (
+                    self.test_bandwidth
+                    and (
+                        now_ts - last_bandwidth_time >= self.bandwidth_interval_seconds
+                        or last_bandwidth_time == 0
+                    )
+                )
 
-                # 计算到下次测试的剩余时间（固定间隔）
-                next_round_time = round_start_wall + self.interval_seconds
-                sleep_seconds = max(0.0, next_round_time - time.time())
+                if run_rtt or run_bandwidth:
+                    self._run_single_round(round_index, run_rtt, run_bandwidth)
+                    if run_rtt:
+                        last_rtt_time = round_start_wall
+                    if run_bandwidth:
+                        last_bandwidth_time = round_start_wall
+
+                # 计算到下次 tick 的剩余时间
+                next_tick_time = round_start_wall + tick_interval
+                sleep_seconds = max(0.0, next_tick_time - time.time())
 
                 if sleep_seconds > 0 and datetime.now() < end_time:
-                    print(f"[EdgeLatency] 休眠 {sleep_seconds:.1f} 秒后开始下一轮测试...")
+                    print(f"[EdgeLatency] 休眠 {sleep_seconds:.1f} 秒后检查下一轮测试...")
                     time.sleep(sleep_seconds)
 
             print("\n" + "=" * 80)
@@ -192,7 +239,19 @@ def main():
         "--interval-seconds",
         type=int,
         default=600,
-        help="两次测试之间的间隔（秒），默认 600 秒（10 分钟）",
+        help="默认测试间隔（秒），当未单独指定 RTT/带宽间隔时使用；默认 600 秒",
+    )
+    parser.add_argument(
+        "--rtt-interval",
+        type=int,
+        default=None,
+        help="RTT 测试间隔（秒），默认 600 秒（10 分钟）",
+    )
+    parser.add_argument(
+        "--bandwidth-interval",
+        type=int,
+        default=None,
+        help="带宽测试间隔（秒），默认 3600 秒（1 小时）",
     )
     parser.add_argument(
         "--rtt-only",
@@ -233,9 +292,16 @@ def main():
                 return
             bucket_pairs.append((parts[0], parts[1]))
 
+    rtt_interval = args.rtt_interval if args.rtt_interval is not None else args.interval_seconds
+    bandwidth_interval = (
+        args.bandwidth_interval if args.bandwidth_interval is not None else 3600
+    )
+
     monitor = EdgeLatencyMonitor(
         duration_days=args.duration_days,
         interval_seconds=args.interval_seconds,
+        rtt_interval_seconds=rtt_interval,
+        bandwidth_interval_seconds=bandwidth_interval,
         test_rtt=test_rtt,
         test_bandwidth=test_bandwidth,
         bucket_pairs=bucket_pairs,
