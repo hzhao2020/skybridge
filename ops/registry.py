@@ -42,7 +42,8 @@ BUCKETS = {
     "gcp_sg": "video_sg",
     # AWS (Region buckets)
     # Note: boto3 S3 API 需要 Bucket Name，不是 ARN；下面已从 ARN 提取为 bucket 名称。
-    "aws_us": "sky-video-us",
+    # us-west-2 区域使用 sky-video-uw（注意区别于早期的 sky-video-us）
+    "aws_us": "sky-video-uw",
     "aws_sg": "sky-video-sg",
     # Aliyun (Region buckets)
     "aliyun_us": "vqa-store-us",
@@ -218,7 +219,7 @@ VISUAL_CAPTION_CATALOG = []
 # Google Vertex AI (Gemini 2.0) - 模型 x 区域 笛卡尔积
 # Vertex AI 仅支持 us-west1, asia-southeast1
 _gcp_cap_models = {
-    "gemini-2.0-flash": "flash",
+    "gemini-2.5-flash": "flash",
 }
 for model, slug in _gcp_cap_models.items():
     for reg in GCP_REGIONS:  # GCP_REGIONS 已包含正确的2个区域
@@ -269,7 +270,7 @@ LLM_CATALOG = []
 # Google Vertex AI (Gemini 2.0) - 模型 x 区域
 # Vertex AI 仅支持 us-west1, asia-southeast1
 _gcp_llm_models = {
-    "gemini-2.0-flash": "flash",
+    "gemini-2.5-flash": "flash",
 }
 for model, slug in _gcp_llm_models.items():
     for reg in GCP_REGIONS:  # GCP_REGIONS 已包含正确的2个区域

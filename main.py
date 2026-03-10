@@ -9,7 +9,7 @@ from utils.dataset import (
     ActivityNetQADataset,
 )
 from ops.registry import get_operation, REGISTRY,list_supported_operations
-from core.workflows.lvqa import LVQA
+from core.workflows.sequential import Sequential
 
 # 加载配置文件（如果存在）
 try:
@@ -57,11 +57,11 @@ def run_workflow_demo():
     """
     使用抽象的Workflow框架运行demo
     
-    这个函数展示了如何使用 LVQA 来执行 workflow。
+    这个函数展示了如何使用 Sequential 来执行 workflow。
     你可以通过配置来指定每个步骤使用的operation（通过pid）。
     """
     # ========== 1) 创建workflow实例 ==========
-    workflow = LVQA()
+    workflow = Sequential()
     
     # ========== 2) 配置workflow（指定每个步骤使用的operation） ==========
     config = {

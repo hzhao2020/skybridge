@@ -20,8 +20,8 @@
               "Resource": [
                 "arn:aws:s3:::sky-video-sg",
                 "arn:aws:s3:::sky-video-sg/*",
-                "arn:aws:s3:::sky-video-us",
-                "arn:aws:s3:::sky-video-us/*"
+                "arn:aws:s3:::sky-video-uw",
+                "arn:aws:s3:::sky-video-uw/*"
               ]
             }
           ]
@@ -214,7 +214,7 @@
               "Timeout": 300,
               "Environment": {
                 "Variables": {
-                  "DEFAULT_OUTPUT_BUCKET": "sky-video-us"
+                  "DEFAULT_OUTPUT_BUCKET": "sky-video-uw"
                 }
               },
               "Role": {
@@ -228,7 +228,7 @@
               "SplitVideoLogGroup"
             ]
           },
-          "SplitVideoLambdaVersionscyFcyDjEVfMvulCfh4NdX472TRXte6EVwVUmVAPFeY": {
+          "SplitVideoLambdaVersionrf55vd8TNG0PLgF80ekLKEX3qc7rgmSerT86mMGuVk": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
@@ -343,7 +343,7 @@
           "SplitVideoLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "SplitVideoLambdaVersionscyFcyDjEVfMvulCfh4NdX472TRXte6EVwVUmVAPFeY"
+              "Ref": "SplitVideoLambdaVersionrf55vd8TNG0PLgF80ekLKEX3qc7rgmSerT86mMGuVk"
             },
             "Export": {
               "Name": "sls-videosplit-dev-SplitVideoLambdaFunctionQualifiedArn"
@@ -472,7 +472,7 @@
     "custom": {
       "regionBuckets": {
         "ap-southeast-1": "sky-video-sg",
-        "us-west-2": "sky-video-us"
+        "us-west-2": "sky-video-uw"
       }
     },
     "pluginsData": {},
@@ -487,7 +487,7 @@
         "timeout": 300,
         "memorySize": 1024,
         "environment": {
-          "DEFAULT_OUTPUT_BUCKET": "sky-video-us"
+          "DEFAULT_OUTPUT_BUCKET": "sky-video-uw"
         },
         "events": [
           {
@@ -503,7 +503,7 @@
         "package": {},
         "memory": 1024,
         "vpc": {},
-        "versionLogicalId": "SplitVideoLambdaVersionscyFcyDjEVfMvulCfh4NdX472TRXte6EVwVUmVAPFeY"
+        "versionLogicalId": "SplitVideoLambdaVersionrf55vd8TNG0PLgF80ekLKEX3qc7rgmSerT86mMGuVk"
       }
     },
     "configValidationMode": "warn",
@@ -524,7 +524,7 @@
     "isDashboardMonitoringPreconfigured": false
   },
   "package": {
-    "artifactDirectoryName": "serverless/videosplit/dev/1770362852590-2026-02-06T07:27:32.590Z",
+    "artifactDirectoryName": "serverless/videosplit/dev/1773133453100-2026-03-10T09:04:13.100Z",
     "artifact": ""
   }
 }

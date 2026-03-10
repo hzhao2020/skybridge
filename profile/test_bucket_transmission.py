@@ -54,7 +54,8 @@ class BucketTransmissionTester:
         "gcp_us": {"provider": "google", "bucket": "video_us", "region": "us-west1"},
         "gcp_tw": {"provider": "google", "bucket": "video_tw", "region": "asia-east1"},
         "gcp_sg": {"provider": "google", "bucket": "video_sg", "region": "asia-southeast1"},
-        "aws_us": {"provider": "amazon", "bucket": "sky-video-us", "region": "us-west-2"},
+        # us-west-2 区域的 AWS bucket 更新为 sky-video-uw
+        "aws_us": {"provider": "amazon", "bucket": "sky-video-uw", "region": "us-west-2"},
         "aws_sg": {"provider": "amazon", "bucket": "sky-video-sg", "region": "ap-southeast-1"},
     }
     

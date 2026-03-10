@@ -1,5 +1,5 @@
 """
-LVQA: 视频问答 workflow 的具体实现（原 VideoQAWorkflow）
+Sequential: 视频问答 workflow 的具体实现（原 VideoQAWorkflow）
 
 Workflow 步骤：
 1. segment: 视频分割（检测场景切换）
@@ -42,7 +42,7 @@ def _build_operation_target_path(operation_name: str, video_path: str) -> str:
     return f"results/{operation_name}/{video_name}/"
 
 
-class LVQA(Workflow):
+class Sequential(Workflow):
     """
     视频问答 Workflow
 
@@ -59,7 +59,7 @@ class LVQA(Workflow):
 
     def __init__(self):
         super().__init__(
-            name="LVQA",
+            name="Sequential",
             description="视频问答 workflow：Segment → Split → Caption → LLM Query → Parse Result",
         )
 
@@ -141,11 +141,11 @@ class LVQA(Workflow):
                 "enabled": True,
             },
             "caption": {
-                "operation_pid": "cap_aws_nova_lite_sg",
+                "operation_pid": "cap_aliyun_flash_ea",
                 "enabled": True,
             },
             "llm_query": {
-                "operation_pid": "llm_openai_gpt4o_mini",
+                "operation_pid": "llm_google_flash_sg",
                 "enabled": True,
             },
         }
@@ -416,7 +416,7 @@ class LVQA(Workflow):
                 print("请先安装：pip install openai\n")
                 # 如果OpenAI未配置，打印prompt以便调试
                 print("\n" + "=" * 80)
-                print("=== [LVQA Workflow] Full Prompt to LLM ===")
+                print("=== [Sequential Workflow] Full Prompt to LLM ===")
                 print("=" * 80)
                 print(prompt)
                 print("=" * 80 + "\n")
@@ -428,7 +428,7 @@ class LVQA(Workflow):
                 print("如需使用第三方兼容平台，请同时设置：OPENAI_BASE_URL（例如 https://api.openai-proxy.org/v1）")
                 # 如果OpenAI未配置，打印prompt以便调试
                 print("\n" + "=" * 80)
-                print("=== [LVQA Workflow] Full Prompt to LLM ===")
+                print("=== [Sequential Workflow] Full Prompt to LLM ===")
                 print("=" * 80)
                 print(prompt)
                 print("=" * 80 + "\n")

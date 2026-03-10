@@ -145,8 +145,8 @@
                   "Resource": [
                     "arn:aws:s3:::sky-video-sg",
                     "arn:aws:s3:::sky-video-sg/*",
-                    "arn:aws:s3:::sky-video-us",
-                    "arn:aws:s3:::sky-video-us/*"
+                    "arn:aws:s3:::sky-video-uw",
+                    "arn:aws:s3:::sky-video-uw/*"
                   ]
                 }
               ]
@@ -186,7 +186,7 @@
         "Timeout": 300,
         "Environment": {
           "Variables": {
-            "DEFAULT_OUTPUT_BUCKET": "sky-video-us"
+            "DEFAULT_OUTPUT_BUCKET": "sky-video-uw"
           }
         },
         "Role": {
@@ -200,7 +200,7 @@
         "SplitVideoLogGroup"
       ]
     },
-    "SplitVideoLambdaVersionscyFcyDjEVfMvulCfh4NdX472TRXte6EVwVUmVAPFeY": {
+    "SplitVideoLambdaVersionrf55vd8TNG0PLgF80ekLKEX3qc7rgmSerT86mMGuVk": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
@@ -318,7 +318,7 @@
     "SplitVideoLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "SplitVideoLambdaVersionscyFcyDjEVfMvulCfh4NdX472TRXte6EVwVUmVAPFeY"
+        "Ref": "SplitVideoLambdaVersionrf55vd8TNG0PLgF80ekLKEX3qc7rgmSerT86mMGuVk"
       },
       "Export": {
         "Name": "sls-videosplit-dev-SplitVideoLambdaFunctionQualifiedArn"
