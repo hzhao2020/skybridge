@@ -7,7 +7,7 @@
 
 支持的传输类型：
 - 同云内跨 region 传输（S3->S3, GCS->GCS）
-- 跨云传输（S3<->GCS）
+- 跨云传输（S3 <-> GCS <-> OSS）
 """
 
 import os
@@ -51,12 +51,17 @@ class BucketTransmissionTester:
     
     # Bucket配置映射
     BUCKET_CONFIG = {
-        "gcp_us": {"provider": "google", "bucket": "video_us", "region": "us-west1"},
-        "gcp_tw": {"provider": "google", "bucket": "video_tw", "region": "asia-east1"},
-        "gcp_sg": {"provider": "google", "bucket": "video_sg", "region": "asia-southeast1"},
+        # Google (GCS)
+        "gcp_us": {"provider": "google", "bucket": BUCKETS["gcp_us"], "region": "us-west1"},
+        "gcp_tw": {"provider": "google", "bucket": BUCKETS["gcp_tw"], "region": "asia-east1"},
+        "gcp_sg": {"provider": "google", "bucket": BUCKETS["gcp_sg"], "region": "asia-southeast1"},
+        # AWS (S3)
         # us-west-2 区域的 AWS bucket 更新为 sky-video-uw
-        "aws_us": {"provider": "amazon", "bucket": "sky-video-uw", "region": "us-west-2"},
-        "aws_sg": {"provider": "amazon", "bucket": "sky-video-sg", "region": "ap-southeast-1"},
+        "aws_us": {"provider": "amazon", "bucket": BUCKETS["aws_us"], "region": "us-west-2"},
+        "aws_sg": {"provider": "amazon", "bucket": BUCKETS["aws_sg"], "region": "ap-southeast-1"},
+        # Aliyun (OSS)
+        "aliyun_us": {"provider": "aliyun", "bucket": BUCKETS["aliyun_us"], "region": "us-east-1"},
+        "aliyun_se": {"provider": "aliyun", "bucket": BUCKETS["aliyun_se"], "region": "ap-southeast-1"},
     }
     
     def __init__(self):
@@ -115,6 +120,8 @@ class BucketTransmissionTester:
             return f"gs://{bucket}/{filename}"
         elif provider == "amazon":
             return f"s3://{bucket}/{filename}"
+        elif provider == "aliyun":
+            return f"oss://{bucket}/{filename}"
         else:
             raise ValueError(f"Unknown provider: {provider}")
     
@@ -132,6 +139,10 @@ class BucketTransmissionTester:
         provider = config["provider"]
         bucket = config["bucket"]
         
+        if provider == "aliyun":
+            return self.transmitter.upload_local_to_cloud(
+                local_path, provider, bucket, target_region=config["region"]
+            )
         return self.transmitter.upload_local_to_cloud(local_path, provider, bucket)
     
     def _transfer_file(self, source_uri: str, source_bucket_key: str, target_bucket_key: str) -> str:
@@ -151,10 +162,17 @@ class BucketTransmissionTester:
         target_provider = target_config["provider"]
         target_bucket = target_config["bucket"]
         
+        if target_provider == "aliyun":
+            return self.transmitter.smart_move(
+                source_uri,
+                target_provider=target_provider,
+                target_bucket=target_bucket,
+                target_region=target_config["region"],
+            )
         return self.transmitter.smart_move(
             source_uri,
             target_provider=target_provider,
-            target_bucket=target_bucket
+            target_bucket=target_bucket,
         )
     
     def _delete_file(self, uri: str, bucket_key: str):
@@ -178,12 +196,17 @@ class BucketTransmissionTester:
                     blob.delete()
                 elif provider == "amazon":
                     self.transmitter.s3_client.delete_object(Bucket=bucket, Key=key)
+                elif provider == "aliyun":
+                    oss_bucket = self.transmitter.get_aliyun_bucket(config["region"])
+                    oss_bucket.delete_object(key)
         except Exception as e:
             print(f"Warning: Failed to delete {uri}: {e}")
     
     def test_rtt(self, source_bucket_key: str, target_bucket_key: str, 
                  num_runs: int = 3) -> TransmissionTestResult:
-        """测试RTT（往返时间）
+        """测试 RTT（标准往返时间 Round-Trip Time）
+        
+        每轮测量：源 bucket → 目标 bucket → 源 bucket 的总耗时，即标准 RTT。
         
         Args:
             source_bucket_key: 源bucket配置键
@@ -194,7 +217,7 @@ class BucketTransmissionTester:
             测试结果
         """
         print(f"\n{'='*60}")
-        print(f"RTT测试: {source_bucket_key} -> {target_bucket_key}")
+        print(f"RTT测试 (Round-Trip): {source_bucket_key} -> {target_bucket_key} -> {source_bucket_key}")
         print(f"{'='*60}")
         
         source_config = self.BUCKET_CONFIG[source_bucket_key]
@@ -217,29 +240,31 @@ class BucketTransmissionTester:
             upload_time = time.time() - upload_start
             print(f"上传完成 ({upload_time:.2f}s)")
             
-            # 多次运行传输测试取平均值（只测试传输时间，不包括上传时间）
-            transfer_durations = []
+            # 多次运行：每轮测量 源→目标→源 的往返时间
+            round_trip_durations = []
             for run in range(num_runs):
-                print(f"\n运行 {run + 1}/{num_runs}...")
+                print(f"\n运行 {run + 1}/{num_runs} (Round-Trip)...")
                 
-                # 传输到目标bucket
-                print(f"  传输到目标bucket: {target_bucket_key}...")
-                transfer_start = time.time()
+                round_trip_start = time.time()
+                # 1) 源 -> 目标
+                print(f"  传输 源 -> 目标 {target_bucket_key}...")
                 target_uri = self._transfer_file(source_uri, source_bucket_key, target_bucket_key)
-                transfer_time = time.time() - transfer_start
-                print(f"  传输完成 ({transfer_time:.2f}s)")
+                # 2) 目标 -> 源（返回）
+                print(f"  传输 目标 -> 源 {source_bucket_key}...")
+                source_uri = self._transfer_file(target_uri, target_bucket_key, source_bucket_key)
+                round_trip_time = time.time() - round_trip_start
+                print(f"  往返完成 ({round_trip_time:.2f}s)")
                 
-                transfer_durations.append(transfer_time)
+                round_trip_durations.append(round_trip_time)
                 
-                # 清理目标文件
+                # 清理目标bucket上的副本（源上已有一份，供下一轮使用）
                 self._delete_file(target_uri, target_bucket_key)
             
-            # 计算平均值（只计算传输时间）
-            avg_transfer_time = sum(transfer_durations) / len(transfer_durations)
-            rtt_ms = avg_transfer_time * 1000  # 转换为毫秒
+            # 平均往返时间 = 标准 RTT
+            avg_rtt_seconds = sum(round_trip_durations) / len(round_trip_durations)
+            rtt_ms = avg_rtt_seconds * 1000  # 转换为毫秒
             
-            print(f"\n平均传输时间: {avg_transfer_time:.2f}s")
-            print(f"平均RTT: {rtt_ms:.2f}ms")
+            print(f"\n平均 RTT (Round-Trip Time): {avg_rtt_seconds:.2f}s ({rtt_ms:.2f}ms)")
             
             # 清理源文件
             if source_uri:
@@ -252,7 +277,7 @@ class BucketTransmissionTester:
                 target_provider=target_config["provider"],
                 test_type="rtt",
                 file_size_bytes=test_file_size,
-                duration_seconds=avg_transfer_time,
+                duration_seconds=avg_rtt_seconds,
                 rtt_ms=rtt_ms,
                 success=True
             )

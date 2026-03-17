@@ -161,6 +161,9 @@ class TimingRecorder:
     def reset(self):
         """重置记录器"""
         self._workflow_timing = None
+        self._current_operation = None
+        if hasattr(self, '_operation_actual_start_times'):
+            self._operation_actual_start_times = {}
     
     def save_to_file(self, filepath: str):
         """将时间记录保存到文件"""

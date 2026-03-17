@@ -7,11 +7,7 @@
           "seg_google_us": {"price": 0.05},
           "seg_google_tw": {"price": 0.05},
           "seg_aws_us": {"price": 0.05},
-          "seg_aws_sg": {"price": 0.0675},
-          // "split_google_us": {"price": null},
-          // "split_google_sg": {"price": null},
-          // "split_aws_us": {"price": null},
-          // "split_aws_sg": {"price": null}
+          "seg_aws_sg": {"price": 0.0675}
         }
       },
       "per_token": {
@@ -49,10 +45,6 @@
           "egress_gcp_tw_to_sg": {"price": 0.05},
           "egress_gcp_sg_to_us": {"price": 0.08},
           "egress_gcp_sg_to_tw": {"price": 0.05}
-          // "egress_aws_us": {"price": 0.09},
-          // "egress_gcp_us": {"price": 0.085},
-          // "egress_aliyun_us": {"price": 0.10},
-          // "egress_aliyun_se": {"price": 0.10}
         }
       }
     }

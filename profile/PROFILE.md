@@ -19,15 +19,16 @@
 
 ### 1. 功能概述
 
-`test_bucket_transmission.py` 用于测试不同云厂商、不同 Region 之间 **对象存储 bucket 的传输性能**，包括：
+`test_bucket_transmission.py` 用于测试不同云厂商、不同 Region 之间 **对象存储 bucket 的传输性能**（S3 / GCS / OSS），包括：
 
-- **RTT（Round-Trip Time）**：这里指一次对象从源 bucket 复制到目标 bucket 的平均耗时（注意并非传统意义上的“网络往返时延”）。
+- **RTT（Round-Trip Time）**：标准往返时间。每轮测量「源 bucket → 目标 bucket → 源 bucket」的总耗时，多次取平均后转换为毫秒。
 - **带宽（Bandwidth）**：对不同大小文件进行传输测试，估算跨 bucket 复制时的有效带宽（Mbps）。
 
 目前内置的 bucket 配置包括：
 
 - GCP：`gcp_us`、`gcp_tw`、`gcp_sg`
 - AWS：`aws_us`、`aws_sg`
+- Aliyun：`aliyun_us`、`aliyun_se`
 
 ### 2. 实现细节
 
@@ -38,8 +39,8 @@
   - 通过 `_create_test_file(size_bytes)` 使用 `os.urandom` 生成指定大小的随机二进制数据，避免被压缩等优化影响测试结果。
 - RTT 测试：
   - 先生成一个 **1KB** 文件并上传到源 bucket。
-  - 然后多次（默认 3 次）调用 `smart_move` 将对象从源 bucket 复制到目标 bucket，记录每次复制的耗时。
-  - 取平均值并转换为毫秒视为该 bucket 对的“RTT”。
+  - 然后多次（默认 3 次）进行 **往返** 测试：每次先 `smart_move` 从源复制到目标，再从目标复制回源，记录整段往返时间。
+  - 取平均值并转换为毫秒，即为该 bucket 对的 **标准 RTT**。
 - 带宽测试：
   - 对一组文件大小（默认 `[1MB, 10MB, 100MB]`）逐个测试。
   - 每个大小的流程为：本地生成文件 → 上传至源 bucket → `smart_move` 复制到目标 bucket。
@@ -75,8 +76,9 @@ python -m profile.test_bucket_transmission \
 
 ### 4. 已知缺陷 / 局限
 
-- **RTT 定义不完全准确**：当前实现中的 RTT 是“一次跨 bucket 复制的平均耗时”，并非传统 ICMP 网络 RTT，需要在对外展示时明确说明。
+- **RTT 已按标准 Round-Trip 实现**：每轮为「源 → 目标 → 源」的完整往返，结果即为标准 RTT（单位：ms）。
 - **bucket 配置写死在代码中**：新增 / 修改 bucket 需改代码并重新部署，缺乏统一配置中心。
+- **阿里云 OSS 需要额外的 region 信息**：上传与搬运到 OSS 时需要 `target_region`；配置缺失会导致测试直接失败。
 - **依赖 DataTransmission 内部实现**：例如 `_parse_uri`、`gcs_client`、`s3_client` 等私有属性，一旦实现变更可能导致该脚本失效。
 - **成本与安全性**：大文件、多 bucket 对的带宽测试可能带来显著的云费用，当前没有速率限制和预算保护机制。
 
