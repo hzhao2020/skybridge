@@ -1,694 +1,852 @@
-import math
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
-import numpy as np
+from typing import Callable, Literal, Sequence
+
+import math
+import random
+
+# set global random number seed
+random.seed(42)
+
+# ----------------------------
+# Node definitions (12+12+20+20)
+# ----------------------------
+
+Workflow = Literal["segment", "split", "caption", "query"]
+ExecTimeFn = Callable[[float], float]
+TokenNumFn = Callable[[], int]
+LlmLatencyFn = Callable[[int], float]
 
 
-# 固定随机种子：调用方不传 rng 时，默认使用这个全局 RNG
-DEFAULT_RANDOM_SEED = 123
-_DEFAULT_RNG = np.random.default_rng(DEFAULT_RANDOM_SEED)
+@dataclass(frozen=True, slots=True)
+class Node:
+    name: str
+    provider: str
+    region: str | None
+    can_store: bool
+    storage_price_usd_per_gb_month: float | None
+    exec_time_s: ExecTimeFn | None
+    # Pricing:
+    # - segment cloud nodes: USD per minute
+    # - split cloud nodes: USD per second
+    # - llm nodes: USD per 1M tokens (input/output)
+    segment_price_usd_per_min: float | None
+    split_price_usd_per_s: float | None
+    llm_input_price_usd_per_1m_tokens: float | None
+    llm_output_price_usd_per_1m_tokens: float | None
+    output_token_num: TokenNumFn | None
+    llm_exec_latency_ms: LlmLatencyFn | None
+    llm_option: str | None = None  # optional; for LLM nodes / model choice nodes
 
 
-@dataclass
-class RttLognormalParams:
-    """
-    RTT 对数正态分布参数（单位：毫秒）。
+# Providers are normalized as p1..p5:
+# - p1..p3: cloud providers (have bucket storage)
+# - p4..p5: LLM-only providers (no storage, no region)
+_CLOUD_PROVIDERS: Sequence[str] = ("p1", "p2", "p3")
 
-    建模：RTT ~ LogNormal(mu, sigma)
-    - 你可以直接设置 mu / sigma；
-    - 或者用经验均值 m 和标准差 s 反推 mu / sigma（在外部自己算好再传进来）。
-    """
-
-    mu: float = math.log(30.0)  # 默认大致 30ms 量级
-    sigma: float = 0.4
-
-
-@dataclass
-class BandwidthParetoParams:
-    """
-    帕累托分布参数（单位以 Mbps 为尺度）
-
-    说明：
-    - numpy.pareto(a) 生成 Y，其密度 ~ (1 + y)^(-a-1)，y >= 0
-    - 实际带宽 X = xm * (1 + Y)，X >= xm
-    - alpha 越大，尾部 “肥” 程度越小（分布更集中）
-    """
-
-    # 最小带宽（尺度参数 xm），单位 Mbps
-    xm_mbps: float = 100.0
-    # 形状参数 alpha：越大分布越集中，尾部越不“肥”
-    alpha: float = 2.5
-
-
-@dataclass
-class OperationSizeLognormalParams:
-    """
-    各种操作的数据体积转化率（输出大小 / 输入大小）建模参数。
-
-    使用对数正态分布：
-    - ratio ~ LogNormal(mu, sigma)
-    - 期望 E[ratio] ≈ exp(mu + 0.5 * sigma^2)
-
-    默认设置：
-    - video_segment: 均值约 1，方差很小（sigma_small）
-    - video_split:   均值约 1，方差很小（sigma_small）
-    - caption:       均值约 0.1，方差中等（sigma_medium）
-    - query:         均值约 1，方差中等（sigma_medium）
-    """
-
-    # 控制整体“方差级别”的形状参数
-    sigma_small: float = 0.08   # 很小的离散程度
-    sigma_medium: float = 0.30  # 中等的离散程度
-
-    # 目标均值（在给定 sigma 下大致逼近）
-    mean_segment: float = 1.0
-    mean_split: float = 1.0
-    mean_caption: float = 0.1
-    mean_query: float = 1.0
-
-    @property
-    def segment_mu(self) -> float:
-        return math.log(self.mean_segment) - 0.5 * self.sigma_small**2
-
-    @property
-    def split_mu(self) -> float:
-        return math.log(self.mean_split) - 0.5 * self.sigma_small**2
-
-    @property
-    def caption_mu(self) -> float:
-        return math.log(self.mean_caption) - 0.5 * self.sigma_medium**2
-
-    @property
-    def query_mu(self) -> float:
-        return math.log(self.mean_query) - 0.5 * self.sigma_medium**2
-
-
-@dataclass
-class LlmTokenLognormalParams:
-    """
-    LLM 生成 token 数目的对数正态分布参数。
-
-    建模思路：
-    - 先用所有输入视频的“规模”构造一个标量（例如总时长分钟数）；
-    - 根据该规模线性调整 mu，再从 LogNormal(mu, sigma) 采样 token 数。
-
-    默认仅给出一个相对中性的线性模型，你可以按需要重写参数：
-    - base_mu:    基础 μ（当总视频规模接近 0 时）
-    - mu_per_unit: 每单位视频规模（比如每分钟）额外增加的 μ
-    - sigma:      控制 token 数目的离散程度
-    """
-
-    base_mu: float = math.log(512.0)  # 规模很小时，大致几百 token
-    mu_per_unit: float = 0.05         # 每单位视频规模带来的 μ 增量
-    sigma: float = 0.6
-
-
-def _get_rng(rng: Optional[np.random.Generator] = None) -> np.random.Generator:
-    """内部工具函数：统一获取 numpy Generator。"""
-    return _DEFAULT_RNG if rng is None else rng
-
-
-def sample_rtt_ms(
-    params: Optional[RttLognormalParams] = None,
-    rng: Optional[np.random.Generator] = None,
-) -> float:
-    """
-    采样单次 RTT（毫秒）。
-
-    使用对数正态分布采样一次 RTT（毫秒）。
-    所有“同云 / 跨云 / 远近”等语义由你在外部通过不同的参数对象来区分。
-    """
-    if params is None:
-        params = RttLognormalParams()
-    rng = _get_rng(rng)
-
-    rtt = float(rng.lognormal(mean=params.mu, sigma=params.sigma))
-    # 防止极端过小的 RTT（比如 < 0.1ms），做一个下界
-    return max(rtt, 0.1)
-
-
-def sample_bandwidth_mbps(
-    params: Optional[BandwidthParetoParams] = None,
-    rng: Optional[np.random.Generator] = None,
-) -> float:
-    """
-    采样单次带宽（Mbps）。
-
-    使用帕累托分布采样一次带宽（Mbps）。
-    - 你可以为不同类型的链路使用不同的 `BandwidthParetoParams` 实例。
-    """
-    if params is None:
-        params = BandwidthParetoParams()
-    rng = _get_rng(rng)
-
-    # numpy.pareto 返回 Y >= 0，实际带宽 X = xm * (1 + Y) >= xm
-    y = float(rng.pareto(params.alpha))
-    bw = params.xm_mbps * (1.0 + y)
-    return max(bw, 1.0)
-
-
-def sample_link(
-    rtt_params: Optional[RttLognormalParams] = None,
-    bw_params: Optional[BandwidthParetoParams] = None,
-    rng: Optional[np.random.Generator] = None,
-) -> tuple[float, float]:
-    """
-    同时采样一条链路的 RTT 与带宽。
-
-    返回：
-        (rtt_ms, bandwidth_mbps)
-    """
-    rng = _get_rng(rng)
-
-    rtt = sample_rtt_ms(params=rtt_params, rng=rng)
-    bw = sample_bandwidth_mbps(params=bw_params, rng=rng)
-    return rtt, bw
-
-
-# -----------------------------
-# Node definitions
-# -----------------------------
-
-NODES = [
-    "local",
-    "gcp_us",
-    "gcp_tw",
-    "gcp_sg",
-    "aws_us",
-    "aws_sg",
-    "aliyun_us",
-    "aliyun_se",
-]
-
-
-# -----------------------------
-# RTT mean table (ms)
-# -----------------------------
-
-RTT_MEAN_MS: Dict[Tuple[str, str], float] = {
-    ("local", "gcp_tw"): 35,
-    ("local", "gcp_sg"): 60,
-    ("local", "aws_sg"): 60,
-    ("local", "aliyun_se"): 60,
-    ("local", "gcp_us"): 140,
-    ("local", "aws_us"): 140,
-    ("local", "aliyun_us"): 200,
-    ("gcp_tw", "gcp_sg"): 45,
-    ("gcp_tw", "aws_sg"): 45,
-    ("gcp_tw", "aliyun_se"): 45,
-    ("gcp_tw", "gcp_us"): 130,
-    ("gcp_tw", "aws_us"): 130,
-    ("gcp_tw", "aliyun_us"): 190,
-    ("gcp_sg", "aws_sg"): 3,
-    ("gcp_sg", "aliyun_se"): 3,
-    ("aws_sg", "aliyun_se"): 3,
-    ("gcp_sg", "gcp_us"): 140,
-    ("gcp_sg", "aws_us"): 140,
-    ("gcp_sg", "aliyun_us"): 200,
-    ("aws_sg", "gcp_us"): 140,
-    ("aws_sg", "aws_us"): 140,
-    ("aws_sg", "aliyun_us"): 200,
-    ("aliyun_se", "gcp_us"): 140,
-    ("aliyun_se", "aws_us"): 140,
-    ("aliyun_se", "aliyun_us"): 200,
-    ("gcp_us", "aws_us"): 2,
-    ("gcp_us", "aliyun_us"): 75,
-    ("aws_us", "aliyun_us"): 75,
+# Total 6 regions; each cloud provider has 4 regions:
+# p1: r1,r2,r3,r4
+# p2: r1,r2,r5,r6
+# p3: r3,r4,r5,r6
+_CLOUD_REGIONS: dict[str, tuple[str, ...]] = {
+    "p1": ("r1", "r2", "r3", "r4"),
+    "p2": ("r1", "r2", "r5", "r6"),
+    "p3": ("r3", "r4", "r5", "r6"),
 }
 
-RTT_SIGMA = 0.25
-
-
-# -----------------------------
-# Bandwidth minimum (Mbps)
-# -----------------------------
-
-BW_XM_MBPS: Dict[Tuple[str, str], float] = {
-    ("local", "gcp_tw"): 200,
-    ("local", "gcp_sg"): 120,
-    ("local", "aws_sg"): 120,
-    ("local", "aliyun_se"): 120,
-    ("local", "gcp_us"): 80,
-    ("local", "aws_us"): 80,
-    ("local", "aliyun_us"): 60,
-    ("gcp_tw", "gcp_sg"): 400,
-    ("gcp_tw", "aws_sg"): 400,
-    ("gcp_tw", "aliyun_se"): 400,
-    ("gcp_tw", "gcp_us"): 150,
-    ("gcp_tw", "aws_us"): 150,
-    ("gcp_tw", "aliyun_us"): 120,
-    ("gcp_sg", "aws_sg"): 1500,
-    ("gcp_sg", "aliyun_se"): 1200,
-    ("gcp_sg", "gcp_us"): 200,
-    ("gcp_sg", "aws_us"): 200,
-    ("gcp_sg", "aliyun_us"): 150,
-    ("aws_sg", "gcp_us"): 200,
-    ("aws_sg", "aws_us"): 200,
-    ("aws_sg", "aliyun_us"): 150,
-    ("aliyun_se", "gcp_us"): 200,
-    ("aliyun_se", "aws_us"): 200,
-    ("aliyun_se", "aliyun_us"): 150,
-    ("gcp_us", "aws_us"): 2000,
-    ("gcp_us", "aliyun_us"): 800,
-    ("aws_us", "aliyun_us"): 800,
+# Language models: total 6 (m1..m6)
+# - p4 provides m1..m4
+# - p5 provides m3..m6
+_LLM_PROVIDER_TO_OPTIONS: dict[str, tuple[str, ...]] = {
+    "p4": ("m1", "m2", "m3", "m4"),
+    "p5": ("m3", "m4", "m5", "m6"),
 }
 
-BW_ALPHA = 2.5
+
+@dataclass(frozen=True, slots=True)
+class ExecTimeParams:
+    io_s_per_mb: float
+    k: float
+    theta0: float
+    theta1: float
+
+    def sample_seconds(self, video_size_mb: float) -> float:
+        if video_size_mb < 0:
+            raise ValueError("video_size_mb must be >= 0")
+        io_time = self.io_s_per_mb * video_size_mb
+        theta = self.theta0 + self.theta1 * video_size_mb
+        comp_time = random.gammavariate(self.k, theta)
+        return io_time + comp_time
 
 
-# -----------------------------
-# Internal helpers
-# -----------------------------
+@dataclass(frozen=True, slots=True)
+class RatioParams:
+    mean: float
+    sigma: float
 
-def _lookup(table: Dict[Tuple[str, str], float], src: str, dst: str) -> float:
-    if src == dst:
-        raise ValueError("No lookup needed when src == dst")
-
-    key = (src, dst)
-    rev = (dst, src)
-
-    if key in table:
-        return table[key]
-
-    if rev in table:
-        return table[rev]
-
-    raise ValueError(f"No parameter defined for link {src} <-> {dst}")
+    def sample_ratio(self) -> float:
+        if self.mean <= 0:
+            raise ValueError("mean must be > 0")
+        if self.sigma < 0:
+            raise ValueError("sigma must be >= 0")
+        mu = math.log(self.mean) - 0.5 * (self.sigma**2)
+        return random.lognormvariate(mu, self.sigma)
 
 
-# -----------------------------
-# Parameter builders
-# -----------------------------
+@dataclass(frozen=True, slots=True)
+class TokenNumParams:
+    """
+    LogNormal distribution for token counts (positive integers).
+    Parameterized by log-space (mu, sigma): log(X) ~ Normal(mu, sigma).
+    """
 
-def get_rtt_params(src: str, dst: str) -> RttLognormalParams:
-    if src == dst:
-        mean = 2
-    else:
-        mean = _lookup(RTT_MEAN_MS, src, dst)
+    mu: float
+    sigma: float
 
-    sigma = RTT_SIGMA
-    mu = math.log(mean) - 0.5 * sigma**2
+    @staticmethod
+    def from_mean(mean: float, sigma: float) -> "TokenNumParams":
+        """
+        For LogNormal(mu, sigma): E[X] = exp(mu + 0.5*sigma^2)
+        => mu = ln(mean) - 0.5*sigma^2
+        """
+        if mean <= 0:
+            raise ValueError("mean must be > 0")
+        if sigma < 0:
+            raise ValueError("sigma must be >= 0")
+        mu = math.log(mean) - 0.5 * (sigma**2)
+        return TokenNumParams(mu=mu, sigma=sigma)
 
-    return RttLognormalParams(mu=mu, sigma=sigma)
+    def sample_int(self) -> int:
+        if self.sigma < 0:
+            raise ValueError("sigma must be >= 0")
+        x = random.lognormvariate(self.mu, self.sigma)
+        return max(1, int(round(x)))
 
 
-def get_bw_params(src: str, dst: str) -> BandwidthParetoParams:
-    if src == dst:
-        xm = 2000
-    else:
-        xm = _lookup(BW_XM_MBPS, src, dst)
+@dataclass(frozen=True, slots=True)
+class LlmLatencyParams:
+    """
+    LLM execution latency model (milliseconds):
 
-    return BandwidthParetoParams(
-        xm_mbps=xm,
-        alpha=BW_ALPHA,
+      T = alpha_ms_per_token * N + beta_ms + Normal(0, noise_sigma_ms)
+    """
+
+    alpha_ms_per_token: float
+    beta_ms: float
+    noise_sigma_ms: float
+
+    def sample_ms(self, n_tokens: int) -> float:
+        if n_tokens < 0:
+            raise ValueError("n_tokens must be >= 0")
+        noise = random.gauss(0.0, self.noise_sigma_ms)
+        return max(0.0, self.alpha_ms_per_token * n_tokens + self.beta_ms + noise)
+
+
+@dataclass(frozen=True, slots=True)
+class CommCategoryParams:
+    # RTT: LogNormal mean (ms) + sigma; Bandwidth: Pareto xm (Mbps) + alpha
+    rtt_mean_ms: float
+    rtt_sigma: float
+    bw_xm_mbps: float
+    bw_alpha: float
+
+
+@dataclass(frozen=True, slots=True)
+class CommParams:
+    same_region: CommCategoryParams
+    same_cloud: CommCategoryParams
+    cross_cloud: CommCategoryParams
+    via_local: CommCategoryParams
+    via_llm_only: CommCategoryParams
+
+
+@dataclass(frozen=True, slots=True)
+class EgressParams:
+    # USD per GB (egress only; ingress is free)
+    intra_provider_usd_per_gb: float
+    cross_provider_usd_per_gb: float
+
+
+def sample_ratio_params() -> dict[Workflow, RatioParams]:
+    """
+    随机采样一次 per-workflow 的 ratio(LogNormal) 分布参数。
+    你应该保存返回值并在后续采样时复用它。
+    """
+    seg_sigma = random.uniform(0.0005, 0.005)
+    spl_sigma = random.uniform(0.0005, 0.005)
+    cap_mean = random.uniform(0.003, 0.03)
+    cap_sigma = random.uniform(0.4, 0.9)
+    qry_mean = random.uniform(0.2, 0.8)
+    qry_sigma = random.uniform(0.15, 0.45)
+
+    return {
+        "segment": RatioParams(mean=1.0, sigma=seg_sigma),
+        "split": RatioParams(mean=1.0, sigma=spl_sigma),
+        "caption": RatioParams(mean=cap_mean, sigma=cap_sigma),
+        "query": RatioParams(mean=qry_mean, sigma=qry_sigma),
+    }
+
+
+def sample_exec_time_params() -> dict[Workflow, ExecTimeParams | None]:
+    """
+    随机采样一次执行时间分布参数。
+    仅对 segment/split 有参数；caption/query 为 None。
+    """
+
+    def one() -> ExecTimeParams:
+        return ExecTimeParams(
+            io_s_per_mb=random.uniform(0.0001, 0.001),
+            k=random.uniform(1, 5),
+            theta0=random.uniform(0.02, 0.20),
+            theta1=random.uniform(0.001, 0.02),
+        )
+
+    return {"segment": one(), "split": one(), "caption": None, "query": None}
+
+
+def sample_comm_params() -> CommParams:
+    """
+    随机采样一次网络类别参数（RTT=LogNormal，bandwidth=Pareto）。
+    你应该保存返回值并用于后续生成矩阵。
+    """
+
+    def cat(
+        rtt_mean_range: tuple[float, float],
+        rtt_sigma_range: tuple[float, float],
+        bw_xm_range: tuple[float, float],
+        bw_alpha_range: tuple[float, float],
+    ) -> CommCategoryParams:
+        return CommCategoryParams(
+            rtt_mean_ms=random.uniform(*rtt_mean_range),
+            rtt_sigma=random.uniform(*rtt_sigma_range),
+            bw_xm_mbps=random.uniform(*bw_xm_range),
+            bw_alpha=random.uniform(*bw_alpha_range),
+        )
+
+    return CommParams(
+        same_region=cat((6, 10), (0.10, 0.18), (350, 900), (2.0, 3.0)),
+        same_cloud=cat((16, 28), (0.18, 0.28), (800, 1600), (2.2, 3.2)),
+        cross_cloud=cat((55, 90), (0.22, 0.35), (80, 250), (1.8, 2.6)),
+        via_local=cat((70, 120), (0.25, 0.40), (20, 120), (1.6, 2.3)),
+        via_llm_only=cat((75, 130), (0.25, 0.45), (50, 180), (1.7, 2.4)),
     )
 
 
-# -----------------------------
-# Main sampling API
-# -----------------------------
-
-def sample_link_between(
-    src: str,
-    dst: str,
-    rng: Optional[np.random.Generator] = None,
-) -> tuple[float, float]:
-    rng = _get_rng(rng)
-
-    rtt_params = get_rtt_params(src, dst)
-    bw_params = get_bw_params(src, dst)
-
-    rtt = sample_rtt_ms(rtt_params, rng)
-    bw = sample_bandwidth_mbps(bw_params, rng)
-
-    return rtt, bw
-
-
-def sample_operation_size_ratio(
-    operation: str,
-    params: Optional[OperationSizeLognormalParams] = None,
-    rng: Optional[np.random.Generator] = None,
-) -> float:
+def sample_storage_prices(workflow: Workflow) -> dict[str, float]:
     """
-    采样一次“数据转化率”（输出大小 / 输入大小）。
-
-    Args:
-        operation: 操作名称，支持的值：
-            - 'video_segment' / 'segment'
-            - 'video_split'   / 'split'
-            - 'caption'
-            - 'llm_query'     / 'query'
-        params: 可选，自定义各操作的对数正态分布参数
-        rng: 可选，共享的随机数发生器
-
-    Returns:
-        ratio (float): 本次采样得到的大小比例
+    随机采样一次某个 workflow 下云节点的存储价格（按节点名返回）。
     """
-    if params is None:
-        params = OperationSizeLognormalParams()
-    rng = _get_rng(rng)
-
-    op = operation.lower()
-    if op in {"video_segment", "segment"}:
-        mu = params.segment_mu
-        sigma = params.sigma_small
-    elif op in {"video_split", "split"}:
-        mu = params.split_mu
-        sigma = params.sigma_small
-    elif op == "caption":
-        mu = params.caption_mu
-        sigma = params.sigma_medium
-    elif op in {"llm_query", "query"}:
-        mu = params.query_mu
-        sigma = params.sigma_medium
-    else:
-        raise ValueError(
-            f"Unknown operation: {operation}. "
-            "Expected one of: 'video_segment', 'segment', 'video_split', 'split', 'caption', 'llm_query', 'query'."
-        )
-
-    ratio = float(rng.lognormal(mean=mu, sigma=sigma))
-    return ratio
+    prices: dict[str, float] = {}
+    for p in _CLOUD_PROVIDERS:
+        for r in _CLOUD_REGIONS[p]:
+            prices[f"{p}_{r}_{workflow}"] = random.uniform(0.015, 0.025)
+    return prices
 
 
-def sample_llm_tokens_from_videos(
-    videos,
-    *,
-    params: Optional[LlmTokenLognormalParams] = None,
-    rng: Optional[np.random.Generator] = None,
-    unit_extractor=None,
-) -> int:
+def sample_egress_params() -> EgressParams:
     """
-    根据输入的视频集合，采样一次 LLM 生成的 token 数量（对数正态）。
-
-    Args:
-        videos: 表示视频的可迭代对象。推荐几种简单用法：
-            1) 直接传总时长（秒）或总大小（MB）的浮点数；
-            2) 传入一个 list，每个元素是该视频的“规模”（例如时长秒数）；
-        params: LlmTokenLognormalParams，自定义 μ 的线性模型和 σ；
-        rng: 可选，共享的随机数发生器；
-        unit_extractor: 可选函数，用于从自定义 video 对象中提取“规模”标量。
-            如果提供，如: lambda v: v.duration_seconds。
-
-    返回:
-        采样得到的 token 数（int，至少为 1）。
+    随机采样一次出站流量费用参数（USD per GB）。
+    - 云内（同 provider）: 0.01 ~ 0.05
+    - 跨 provider:         0.08 ~ 0.12
     """
-    if params is None:
-        params = LlmTokenLognormalParams()
-    rng = _get_rng(rng)
+    return EgressParams(
+        intra_provider_usd_per_gb=random.uniform(0.01, 0.05),
+        cross_provider_usd_per_gb=random.uniform(0.08, 0.12),
+    )
 
-    # 统一把输入 videos 映射为一个正的“规模标量” total_units
-    if isinstance(videos, (int, float)):
-        total_units = max(float(videos), 0.0)
-    else:
-        total_units = 0.0
-        for v in videos:
-            if unit_extractor is not None:
-                val = float(unit_extractor(v))
+
+def sample_segment_prices() -> dict[str, float]:
+    """
+    Segment node price: Uniform(0.04, 0.08) USD per minute.
+    Returns mapping: node_name -> price.
+    """
+    prices: dict[str, float] = {}
+    workflow: Workflow = "segment"
+    for p in _CLOUD_PROVIDERS:
+        for r in _CLOUD_REGIONS[p]:
+            prices[f"{p}_{r}_{workflow}"] = random.uniform(0.04, 0.08)
+    return prices
+
+
+def sample_split_prices() -> dict[str, float]:
+    """
+    Split node price: Uniform(1e-5, 1e-4) USD per second.
+    Returns mapping: node_name -> price.
+    """
+    prices: dict[str, float] = {}
+    workflow: Workflow = "split"
+    for p in _CLOUD_PROVIDERS:
+        for r in _CLOUD_REGIONS[p]:
+            prices[f"{p}_{r}_{workflow}"] = random.uniform(0.00001, 0.0001)
+    return prices
+
+
+def sample_llm_token_prices(workflow: Workflow) -> dict[str, tuple[float, float]]:
+    """
+    LLM price per 1M tokens:
+    - input price: Uniform(0.05, 2.0) USD per 1M tokens
+    - output price: 4 * input price
+
+    Returns mapping: llm_node_name -> (input_price, output_price).
+    Intended workflows: caption/query.
+    """
+    prices: dict[str, tuple[float, float]] = {}
+    for p, provider_options in _LLM_PROVIDER_TO_OPTIONS.items():
+        for opt in provider_options:
+            name = f"{p}_{opt}_{workflow}"
+            inp = random.uniform(0.05, 2.0)
+            prices[name] = (inp, 4.0 * inp)
+    return prices
+
+
+def sample_llm_output_token_params(workflow: Workflow) -> dict[str, TokenNumParams]:
+    """
+    为 LLM 节点采样 output_token_num 的分布参数（LogNormal）。
+
+    - 分布参数只采样一次（你保存返回值并复用）。
+    - 对于 query：按固定参数建模：log-space μ=5, σ=1
+    - 对于 caption：token 数量量级按“回答文本”设计，取一个常见范围：
+      mean: 100 ~ 2000 tokens（用于推导 μ）
+      sigma(log-space): 0.3 ~ 0.9
+    """
+    params: dict[str, TokenNumParams] = {}
+    for p, provider_options in _LLM_PROVIDER_TO_OPTIONS.items():
+        for opt in provider_options:
+            name = f"{p}_{opt}_{workflow}"
+            if workflow == "query":
+                params[name] = TokenNumParams(mu=5.0, sigma=1.0)
             else:
-                # 默认为元素本身就是标量（例如时长秒数）
-                val = float(v)
-            if val > 0:
-                total_units += val
-
-    # 将“规模”转为对 μ 的线性影响；例如你可以约定 total_units 是分钟数
-    mu = params.base_mu + params.mu_per_unit * total_units
-    sigma = params.sigma
-
-    tokens = rng.lognormal(mean=mu, sigma=sigma)
-    # 向最近整数取整，并确保至少为 1
-    return max(int(round(tokens)), 1)
+                params[name] = TokenNumParams.from_mean(
+                    mean=random.uniform(100, 2000),
+                    sigma=random.uniform(0.3, 0.9),
+                )
+    return params
 
 
-def sample_video_size_mb(
+def sample_llm_latency_params(workflow: Workflow) -> dict[str, LlmLatencyParams]:
+    """
+    为 LLM 节点采样 execution latency 参数（只采样一次并复用）。
+
+    模型（ms）: T = alpha * N + beta + noise
+    - alpha: 20 ~ 50 ms/token
+    - beta:  400 ~ 800 ms
+    - noise: Normal(0, sigma)
+
+    噪声 sigma 这里取一个相对保守的范围：30 ~ 120 ms（你可以后续再调）。
+    """
+    params: dict[str, LlmLatencyParams] = {}
+    for p, provider_options in _LLM_PROVIDER_TO_OPTIONS.items():
+        for opt in provider_options:
+            name = f"{p}_{opt}_{workflow}"
+            params[name] = LlmLatencyParams(
+                alpha_ms_per_token=random.uniform(20.0, 50.0),
+                beta_ms=random.uniform(400.0, 800.0),
+                noise_sigma_ms=random.uniform(30.0, 120.0),
+            )
+    return params
+
+
+def _make_exec_time_fn() -> ExecTimeFn:
+    """
+    Returns a function: exec_time_s(video_size_mb) = io_time + computation_time.
+
+    - io_time is proportional to data size (seconds per MB).
+    - computation_time | size ~ Gamma(k, theta(size)) where theta increases with size.
+    All parameters are sampled once when the function is created (seeded by global RNG).
+    """
+    io_s_per_mb = random.uniform(0.0001, 0.001)  # 0.5ms~5ms per MB
+    k = random.uniform(1,5)  # shape
+    theta0 = random.uniform(0.02, 0.20)  # base scale (seconds)
+    theta1 = random.uniform(0.001, 0.02)  # scale slope per MB (seconds/MB)
+
+    def f(video_size_mb: float) -> float:
+        if video_size_mb < 0:
+            raise ValueError("video_size_mb must be >= 0")
+        io_time = io_s_per_mb * video_size_mb
+        theta = theta0 + theta1 * video_size_mb
+        comp_time = random.gammavariate(k, theta)
+        return io_time + comp_time
+
+    return f
+
+
+def _build_cloud_nodes(
+    workflow: Workflow,
     *,
-    min_mb: float = 5.0,
-    max_mb: float = 500.0,
-    rng: Optional[np.random.Generator] = None,
-) -> float:
+    storage_prices: dict[str, float] | None = None,
+    exec_params: ExecTimeParams | None = None,
+    segment_prices: dict[str, float] | None = None,
+    split_prices: dict[str, float] | None = None,
+) -> list[Node]:
+    nodes: list[Node] = []
+    exec_fn: ExecTimeFn | None = (exec_params.sample_seconds if exec_params is not None else None)
+    for p in _CLOUD_PROVIDERS:
+        for r in _CLOUD_REGIONS[p]:
+            name = f"{p}_{r}_{workflow}"
+            nodes.append(
+                Node(
+                    name=name,
+                    provider=p,
+                    region=r,
+                    can_store=True,
+                    storage_price_usd_per_gb_month=(
+                        storage_prices[name] if storage_prices is not None else random.uniform(0.015, 0.025)
+                    ),
+                    exec_time_s=exec_fn,
+                    segment_price_usd_per_min=(
+                        (segment_prices[name] if segment_prices is not None else random.uniform(0.04, 0.08))
+                        if workflow == "segment"
+                        else None
+                    ),
+                    split_price_usd_per_s=(
+                        (split_prices[name] if split_prices is not None else random.uniform(0.00001, 0.0001))
+                        if workflow == "split"
+                        else None
+                    ),
+                    llm_input_price_usd_per_1m_tokens=None,
+                    llm_output_price_usd_per_1m_tokens=None,
+                    output_token_num=None,
+                    llm_exec_latency_ms=None,
+                )
+            )
+    return nodes  # 3 * 4 = 12
+
+
+def _build_llm_nodes(workflow: Workflow) -> list[Node]:
+    nodes: list[Node] = []
+    for p, provider_options in _LLM_PROVIDER_TO_OPTIONS.items():
+        for opt in provider_options:
+            # LLM-only providers (e.g. OpenAI) are modeled as having no storage.
+            inp = random.uniform(0.05, 2.0)
+            nodes.append(
+                Node(
+                    name=f"{p}_{opt}_{workflow}",
+                    provider=p,
+                    region=None,
+                    can_store=False,
+                    storage_price_usd_per_gb_month=None,
+                    exec_time_s=None,
+                    segment_price_usd_per_min=None,
+                    split_price_usd_per_s=None,
+                    llm_input_price_usd_per_1m_tokens=inp,
+                    llm_output_price_usd_per_1m_tokens=4.0 * inp,
+                    output_token_num=(
+                        TokenNumParams(mu=5.0, sigma=1.0).sample_int
+                        if workflow == "query"
+                        else TokenNumParams.from_mean(
+                            mean=random.uniform(100, 2000),
+                            sigma=random.uniform(0.3, 0.9),
+                        ).sample_int
+                    ),
+                    llm_exec_latency_ms=LlmLatencyParams(
+                        alpha_ms_per_token=random.uniform(20.0, 50.0),
+                        beta_ms=random.uniform(400.0, 800.0),
+                        noise_sigma_ms=random.uniform(30.0, 120.0),
+                    ).sample_ms,
+                    llm_option=opt,
+                )
+            )
+    return nodes  # 2 * 4 = 8
+
+
+def build_nodes(workflow: Workflow) -> list[Node]:
     """
-    从均匀分布 U[min_mb, max_mb] 中采样单个视频大小（单位：MB）。
+    Returns nodes used by a workflow.
 
-    默认：
-        min_mb = 5 MB
-        max_mb = 500 MB
+    Counts:
+    - segment: 12 (storage only)
+    - split:   12 (storage only)
+    - caption: 20 (12 storage + 8 llm)
+    - query:   20 (12 storage + 8 llm)
     """
-    rng = _get_rng(rng)
-    low = float(min_mb)
-    high = float(max_mb)
-    if high < low:
-        raise ValueError(f"max_mb ({max_mb}) must be >= min_mb ({min_mb})")
-    return float(rng.uniform(low, high))
+    cloud = _build_cloud_nodes(workflow)
+    if workflow in ("segment", "split"):
+        return cloud
+    if workflow in ("caption", "query"):
+        return cloud + _build_llm_nodes(workflow)
+    raise ValueError(f"Unknown workflow: {workflow}")
 
 
-@dataclass
-class OperationGammaTimeParams:
-    """
-    使用 Gamma 条件分布建模单个 operation 的执行时间（并可叠加线性 IO 时间）：
-
-        T_compute | S ~ Gamma(shape=k, scale=theta(S))
-        E[T_compute|S] = k * theta(S) = base_time * f(S)
-        T_io(S) = io_time_per_mb * S
-        T_total = T_compute + T_io
-
-    - 规模 S：使用 video_size_mb（MB）
-    - 确定性部分 f(S)：可选择 O(S) 或 O(S log S)
-    - 噪声：通过 Gamma 的 shape=k 控制（k 越大抖动越小）
-
-    参数含义：
-    - shape: Gamma 的形状参数 k
-    - base_time_per_mb: 当 complexity='linear' 时，f(S)=S，对应每 MB 的平均时间（秒/MB）
-    - io_time_per_mb: IO 时间系数（秒/MB），总 IO 时间与输入大小线性成正比
-    - complexity: 'linear' 或 's_log_s'
-    """
-
-    shape: float = 3.0
-    base_time_per_mb: float = 0.05
-    io_time_per_mb: float = 0.0
-    complexity: str = "linear"  # 'linear' | 's_log_s'
-
-
-DEFAULT_EXECUTION_TIME_PARAMS: dict[str, OperationGammaTimeParams] = {
-    # -----------------------------
-    # Video Segmentation (S log S)
-    # -----------------------------
-    "seg_google_us": OperationGammaTimeParams(
-        shape=3.5,
-        base_time_per_mb=0.030,
-        io_time_per_mb=0.002,
-        complexity="s_log_s",
-    ),
-    "seg_google_tw": OperationGammaTimeParams(
-        shape=3.5,
-        base_time_per_mb=0.032,
-        io_time_per_mb=0.002,
-        complexity="s_log_s",
-    ),
-    "seg_google_sg": OperationGammaTimeParams(
-        shape=3.5,
-        base_time_per_mb=0.032,
-        io_time_per_mb=0.002,
-        complexity="s_log_s",
-    ),
-    "seg_aws_us": OperationGammaTimeParams(
-        shape=3.0,
-        base_time_per_mb=0.036,
-        io_time_per_mb=0.002,
-        complexity="s_log_s",
-    ),
-    "seg_aws_sg": OperationGammaTimeParams(
-        shape=3.0,
-        base_time_per_mb=0.036,
-        io_time_per_mb=0.002,
-        complexity="s_log_s",
-    ),
-    "seg_aliyun_us": OperationGammaTimeParams(
-        shape=2.8,
-        base_time_per_mb=0.040,
-        io_time_per_mb=0.002,
-        complexity="s_log_s",
-    ),
-    "seg_aliyun_se": OperationGammaTimeParams(
-        shape=2.8,
-        base_time_per_mb=0.040,
-        io_time_per_mb=0.002,
-        complexity="s_log_s",
-    ),
-
-    # -----------------------------
-    # Video Splitting (linear)
-    # -----------------------------
-    "split_google_us": OperationGammaTimeParams(
-        shape=4.0,
-        base_time_per_mb=0.020,
-        io_time_per_mb=0.002,
-        complexity="linear",
-    ),
-    "split_google_tw": OperationGammaTimeParams(
-        shape=4.0,
-        base_time_per_mb=0.022,
-        io_time_per_mb=0.002,
-        complexity="linear",
-    ),
-    "split_google_sg": OperationGammaTimeParams(
-        shape=4.0,
-        base_time_per_mb=0.022,
-        io_time_per_mb=0.002,
-        complexity="linear",
-    ),
-    "split_aws_us": OperationGammaTimeParams(
-        shape=4.0,
-        base_time_per_mb=0.024,
-        io_time_per_mb=0.002,
-        complexity="linear",
-    ),
-    "split_aws_sg": OperationGammaTimeParams(
-        shape=4.0,
-        base_time_per_mb=0.024,
-        io_time_per_mb=0.002,
-        complexity="linear",
-    ),
-    "split_aliyun_us": OperationGammaTimeParams(
-        shape=3.8,
-        base_time_per_mb=0.026,
-        io_time_per_mb=0.002,
-        complexity="linear",
-    ),
-    "split_aliyun_se": OperationGammaTimeParams(
-        shape=3.8,
-        base_time_per_mb=0.026,
-        io_time_per_mb=0.002,
-        complexity="linear",
-    ),
-}
-
-
-def sample_execution_time_seconds(
-    task_name: str,
-    operation_name: str,
-    video_size_mb: float,
+def build_nodes_with_params(
+    workflow: Workflow,
     *,
-    params_overrides: Optional[dict[str, OperationGammaTimeParams]] = None,
-    rng: Optional[np.random.Generator] = None,
-) -> float:
+    storage_prices: dict[str, float] | None = None,
+    exec_time_params: dict[Workflow, ExecTimeParams | None] | None = None,
+    segment_prices: dict[str, float] | None = None,
+    split_prices: dict[str, float] | None = None,
+    llm_token_prices: dict[str, tuple[float, float]] | None = None,
+    llm_output_token_params: dict[str, TokenNumParams] | None = None,
+    llm_latency_params: dict[str, LlmLatencyParams] | None = None,
+) -> list[Node]:
     """
-    使用 Gamma 分布估计某个 operation 的执行时间（秒）。
-
-    Args:
-        task_name: 任务名称（目前仅作为语义信息，不参与计算），例如：
-            - 'Video Segmentation'
-            - 'Video Splitting'
-        operation_name: 具体 operation 名称，例如：
-            - 'seg_aws_us', 'seg_aws_sg', 'seg_google_us', 'seg_google_tw'
-            - 'split_aws_us', 'split_aws_sg', 'split_google_us', 'split_google_sg'
-        video_size_mb: 视频大小（MB）
-        params_overrides: 可选，用于覆盖默认的每个 operation Gamma 参数：
-            例如：
-                {
-                  "seg_aws_us": OperationGammaTimeParams(shape=2.5, mean_time_per_mb=0.03),
-                  ...
-                }
-        rng: 可选，共享的随机数发生器。
-
-    Returns:
-        本次采样得到的执行时间（秒）。
+    简化用法（推荐）：
+    1) 你先调用 sample_storage_prices / sample_exec_time_params 采样一次参数
+    2) 后续把参数传进来，这里就会复用同一套参数构建节点
     """
-    rng = _get_rng(rng)
-    cfg_map = DEFAULT_EXECUTION_TIME_PARAMS if params_overrides is None else {
-        **DEFAULT_EXECUTION_TIME_PARAMS,
-        **params_overrides,
+    exec_params = exec_time_params[workflow] if exec_time_params is not None else None
+    cloud = _build_cloud_nodes(
+        workflow,
+        storage_prices=storage_prices,
+        exec_params=exec_params,
+        segment_prices=segment_prices,
+        split_prices=split_prices,
+    )
+    if workflow in ("segment", "split"):
+        return cloud
+    if workflow in ("caption", "query"):
+        llm_nodes = _build_llm_nodes(workflow)
+        if llm_token_prices is not None:
+            fixed: list[Node] = []
+            for n in llm_nodes:
+                inp, outp = llm_token_prices[n.name]
+                fixed.append(
+                    Node(
+                        name=n.name,
+                        provider=n.provider,
+                        region=n.region,
+                        can_store=n.can_store,
+                        storage_price_usd_per_gb_month=n.storage_price_usd_per_gb_month,
+                        exec_time_s=n.exec_time_s,
+                        segment_price_usd_per_min=n.segment_price_usd_per_min,
+                        split_price_usd_per_s=n.split_price_usd_per_s,
+                        llm_input_price_usd_per_1m_tokens=inp,
+                        llm_output_price_usd_per_1m_tokens=outp,
+                        output_token_num=n.output_token_num,
+                        llm_option=n.llm_option,
+                    )
+                )
+            llm_nodes = fixed
+
+        if llm_output_token_params is not None:
+            llm_nodes = [
+                Node(
+                    name=n.name,
+                    provider=n.provider,
+                    region=n.region,
+                    can_store=n.can_store,
+                    storage_price_usd_per_gb_month=n.storage_price_usd_per_gb_month,
+                    exec_time_s=n.exec_time_s,
+                    segment_price_usd_per_min=n.segment_price_usd_per_min,
+                    split_price_usd_per_s=n.split_price_usd_per_s,
+                    llm_input_price_usd_per_1m_tokens=n.llm_input_price_usd_per_1m_tokens,
+                    llm_output_price_usd_per_1m_tokens=n.llm_output_price_usd_per_1m_tokens,
+                    output_token_num=llm_output_token_params[n.name].sample_int,
+                    llm_exec_latency_ms=n.llm_exec_latency_ms,
+                    llm_option=n.llm_option,
+                )
+                for n in llm_nodes
+            ]
+
+        if llm_latency_params is not None:
+            llm_nodes = [
+                Node(
+                    name=n.name,
+                    provider=n.provider,
+                    region=n.region,
+                    can_store=n.can_store,
+                    storage_price_usd_per_gb_month=n.storage_price_usd_per_gb_month,
+                    exec_time_s=n.exec_time_s,
+                    segment_price_usd_per_min=n.segment_price_usd_per_min,
+                    split_price_usd_per_s=n.split_price_usd_per_s,
+                    llm_input_price_usd_per_1m_tokens=n.llm_input_price_usd_per_1m_tokens,
+                    llm_output_price_usd_per_1m_tokens=n.llm_output_price_usd_per_1m_tokens,
+                    output_token_num=n.output_token_num,
+                    llm_exec_latency_ms=llm_latency_params[n.name].sample_ms,
+                    llm_option=n.llm_option,
+                )
+                for n in llm_nodes
+            ]
+
+        return cloud + llm_nodes
+    raise ValueError(f"Unknown workflow: {workflow}")
+
+
+def _assert_node_counts() -> None:
+    expected = {"segment": 12, "split": 12, "caption": 20, "query": 20}
+    for wf, n in expected.items():
+        got = len(build_nodes(wf))  # type: ignore[arg-type]
+        if got != n:
+            raise AssertionError(f"{wf}: expected {n}, got {got}")
+
+
+_assert_node_counts()
+
+
+# data size, 均匀采样
+def get_data_size_mb(min_mb: float = 5.0, max_mb: float = 500.0) -> float:
+    if min_mb <= 0 or max_mb <= 0:
+        raise ValueError("min_mb/max_mb must be > 0")
+    if max_mb < min_mb:
+        raise ValueError("max_mb must be >= min_mb")
+    return random.uniform(min_mb, max_mb)
+
+
+def get_data_conversion_ratio(workflow: Workflow) -> float:
+    """
+    Data conversion ratio = output_size / input_size.
+
+    Sampled from a LogNormal distribution to keep ratio > 0.
+    Configured per-workflow by a target mean ratio and a log-space sigma.
+    """
+
+    # 兼容旧接口：直接调用会“每次重新采样一套参数再采样一次 ratio”。
+    # 更推荐：params = sample_ratio_params(); sample_data_conversion_ratio(workflow, params)
+    return sample_ratio_params()[workflow].sample_ratio()
+
+
+def sample_data_conversion_ratio(workflow: Workflow, params: dict[Workflow, RatioParams]) -> float:
+    """
+    推荐用法：
+    - params = sample_ratio_params()  # 只运行一次
+    - ratio  = sample_data_conversion_ratio("caption", params)
+    """
+    return params[workflow].sample_ratio()
+
+
+# ----------------------------
+# Network communication matrix (15 x 15)
+# ----------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class CommEndpoint:
+    name: str  # e.g. "local", "p1_r1", "p4"
+    provider: str  # "local" | "p1".."p5"
+    region: str | None  # r1..r6 for cloud, None for local/p4/p5
+
+
+@dataclass(frozen=True, slots=True)
+class CommMatrix:
+    endpoints: tuple[CommEndpoint, ...]
+    rtt_ms: tuple[tuple[float, ...], ...]
+    bandwidth_mbps: tuple[tuple[float, ...], ...]
+    index_by_name: dict[str, int]
+
+    def idx(self, node: int | str | CommEndpoint) -> int:
+        if isinstance(node, int):
+            return node
+        if isinstance(node, str):
+            try:
+                return self.index_by_name[node]
+            except KeyError as e:
+                raise KeyError(f"Unknown endpoint name: {node}") from e
+        # CommEndpoint
+        try:
+            return self.index_by_name[node.name]
+        except KeyError as e:
+            raise KeyError(f"Endpoint not in matrix: {node.name}") from e
+
+    def link(self, a: int | str | CommEndpoint, b: int | str | CommEndpoint) -> tuple[float, float]:
+        """
+        Returns (rtt_ms, bandwidth_mbps) for the link a<->b.
+        a/b can be index, endpoint name, or CommEndpoint.
+        """
+        i = self.idx(a)
+        j = self.idx(b)
+        return self.rtt_ms[i][j], self.bandwidth_mbps[i][j]
+
+
+@dataclass(frozen=True, slots=True)
+class EgressMatrix:
+    endpoints: tuple[CommEndpoint, ...]
+    usd_per_gb: tuple[tuple[float, ...], ...]  # non-symmetric
+    index_by_name: dict[str, int]
+
+    def idx(self, node: int | str | CommEndpoint) -> int:
+        if isinstance(node, int):
+            return node
+        if isinstance(node, str):
+            try:
+                return self.index_by_name[node]
+            except KeyError as e:
+                raise KeyError(f"Unknown endpoint name: {node}") from e
+        try:
+            return self.index_by_name[node.name]
+        except KeyError as e:
+            raise KeyError(f"Endpoint not in matrix: {node.name}") from e
+
+    def cost(self, src: int | str | CommEndpoint, dst: int | str | CommEndpoint) -> float:
+        """
+        Outbound egress cost (USD per GB) from src -> dst.
+        Note: non-symmetric; inbound is free.
+        """
+        i = self.idx(src)
+        j = self.idx(dst)
+        return self.usd_per_gb[i][j]
+
+
+def get_comm_endpoints() -> list[CommEndpoint]:
+    """
+    Communication endpoints (15 total):
+    - local
+    - p1's 4 regions, p2's 4 regions, p3's 4 regions (12)
+    - p4, p5 (no region)
+    """
+    eps: list[CommEndpoint] = [CommEndpoint(name="local", provider="local", region=None)]
+    for p in _CLOUD_PROVIDERS:
+        for r in _CLOUD_REGIONS[p]:
+            eps.append(CommEndpoint(name=f"{p}_{r}", provider=p, region=r))
+    eps.append(CommEndpoint(name="p4", provider="p4", region=None))
+    eps.append(CommEndpoint(name="p5", provider="p5", region=None))
+
+    if len(eps) != 15:
+        raise AssertionError(f"Expected 15 comm endpoints, got {len(eps)}")
+    return eps
+
+
+def _lognormal_ms(mean_ms: float, sigma: float) -> float:
+    if mean_ms <= 0:
+        raise ValueError("mean_ms must be > 0")
+    if sigma < 0:
+        raise ValueError("sigma must be >= 0")
+    mu = math.log(mean_ms) - 0.5 * (sigma**2)
+    return random.lognormvariate(mu, sigma)
+
+
+def _pareto_scale(xm: float, alpha: float) -> float:
+    """
+    Returns xm * Pareto(alpha) where random.paretovariate(alpha) has support [1, inf).
+    """
+    if xm <= 0:
+        raise ValueError("xm must be > 0")
+    if alpha <= 0:
+        raise ValueError("alpha must be > 0")
+    return xm * random.paretovariate(alpha)
+
+
+def build_comm_matrices(comm_params: CommParams) -> tuple[list[CommEndpoint], list[list[float]], list[list[float]]]:
+    """
+    Build symmetric 15x15 matrices:
+    - rtt_ms[i][j]: round-trip time in milliseconds (LogNormal)
+    - bw_mbps[i][j]: bandwidth in Mbps (Pareto)
+
+    Constraints:
+    - Same cloud provider (p1/p2/p3) => higher bandwidth, lower RTT
+    - Same region label (e.g. r1) => lower RTT (even across p1/p2/p3)
+    """
+    eps = get_comm_endpoints()
+    n = len(eps)
+    rtt_ms: list[list[float]] = [[0.0 for _ in range(n)] for _ in range(n)]
+    bw_mbps: list[list[float]] = [[0.0 for _ in range(n)] for _ in range(n)]
+
+    rtt_cfg = {
+        "same_region": (comm_params.same_region.rtt_mean_ms, comm_params.same_region.rtt_sigma),
+        "same_cloud": (comm_params.same_cloud.rtt_mean_ms, comm_params.same_cloud.rtt_sigma),
+        "cross_cloud": (comm_params.cross_cloud.rtt_mean_ms, comm_params.cross_cloud.rtt_sigma),
+        "via_local": (comm_params.via_local.rtt_mean_ms, comm_params.via_local.rtt_sigma),
+        "via_llm_only": (comm_params.via_llm_only.rtt_mean_ms, comm_params.via_llm_only.rtt_sigma),
+    }
+    bw_cfg = {
+        "same_region": (comm_params.same_region.bw_xm_mbps, comm_params.same_region.bw_alpha),
+        "same_cloud": (comm_params.same_cloud.bw_xm_mbps, comm_params.same_cloud.bw_alpha),
+        "cross_cloud": (comm_params.cross_cloud.bw_xm_mbps, comm_params.cross_cloud.bw_alpha),
+        "via_local": (comm_params.via_local.bw_xm_mbps, comm_params.via_local.bw_alpha),
+        "via_llm_only": (comm_params.via_llm_only.bw_xm_mbps, comm_params.via_llm_only.bw_alpha),
     }
 
-    op = operation_name.strip()
-    if op not in cfg_map:
-        raise ValueError(
-            f"Unknown operation_name for execution time: {operation_name}. "
-            "请检查 DEFAULT_EXECUTION_TIME_PARAMS 或通过 params_overrides 提供该 operation 的参数。"
-        )
+    def is_cloud(p: str) -> bool:
+        return p in _CLOUD_PROVIDERS
 
-    cfg = cfg_map[op]
-    size_mb = max(float(video_size_mb), 0.0)
+    def is_llm_only(p: str) -> bool:
+        return p in ("p4", "p5")
 
-    # 确定性复杂度部分 f(S)
-    if cfg.complexity == "linear":
-        f_s = size_mb
-    elif cfg.complexity == "s_log_s":
-        # 用 ln(1+S) 避免 S=0 时的 log(0)
-        f_s = size_mb * math.log1p(size_mb)
-    else:
-        raise ValueError(
-            f"Unknown complexity '{cfg.complexity}' for operation '{op}'. "
-            "Expected 'linear' or 's_log_s'."
-        )
+    for i in range(n):
+        for j in range(i, n):
+            if i == j:
+                rtt_ms[i][j] = 0.0
+                bw_mbps[i][j] = float("inf")
+                continue
 
-    # 条件均值：E[T|S] = base_time * f(S)
-    mean = cfg.base_time_per_mb * f_s
-    mean = max(mean, 1e-6)  # 防止 0
+            a, b = eps[i], eps[j]
 
-    k = cfg.shape
-    theta = mean / k
+            involves_local = (a.provider == "local") or (b.provider == "local")
+            involves_llm_only = is_llm_only(a.provider) or is_llm_only(b.provider)
 
-    compute_seconds = float(rng.gamma(shape=k, scale=theta))
-    io_seconds = cfg.io_time_per_mb * size_mb
-    return max(compute_seconds + io_seconds, 0.0)
+            same_provider = a.provider == b.provider
+            same_region = (a.region is not None) and (a.region == b.region)
 
+            # Pick category with priority to satisfy constraints:
+            # same_region lowest RTT; same_cloud next; then others.
+            if same_region and is_cloud(a.provider) and is_cloud(b.provider):
+                rtt_mean, rtt_sigma = rtt_cfg["same_region"]
+                bw_xm, bw_alpha = bw_cfg["same_region"]
+            elif same_provider and is_cloud(a.provider):
+                rtt_mean, rtt_sigma = rtt_cfg["same_cloud"]
+                bw_xm, bw_alpha = bw_cfg["same_cloud"]
+            elif involves_local:
+                rtt_mean, rtt_sigma = rtt_cfg["via_local"]
+                bw_xm, bw_alpha = bw_cfg["via_local"]
+            elif involves_llm_only:
+                rtt_mean, rtt_sigma = rtt_cfg["via_llm_only"]
+                bw_xm, bw_alpha = bw_cfg["via_llm_only"]
+            else:
+                rtt_mean, rtt_sigma = rtt_cfg["cross_cloud"]
+                bw_xm, bw_alpha = bw_cfg["cross_cloud"]
 
-__all__ = [
-    "RttLognormalParams",
-    "BandwidthParetoParams",
-    "OperationSizeLognormalParams",
-    "LlmTokenLognormalParams",
-    "OperationGammaTimeParams",
-    "NODES",
-    "RTT_MEAN_MS",
-    "RTT_SIGMA",
-    "BW_XM_MBPS",
-    "BW_ALPHA",
-    "get_rtt_params",
-    "get_bw_params",
-    "sample_link_between",
-    "sample_rtt_ms",
-    "sample_bandwidth_mbps",
-    "sample_link",
-    "sample_operation_size_ratio",
-    "sample_llm_tokens_from_videos",
-    "sample_video_size_mb",
-    "sample_execution_time_seconds",
-]
+            # Pair-specific jitter (keeps ordering but adds diversity).
+            rtt = _lognormal_ms(rtt_mean * random.uniform(0.9, 1.1), rtt_sigma)
+            bw = _pareto_scale(bw_xm * random.uniform(0.9, 1.1), bw_alpha)
+
+            rtt_ms[i][j] = rtt_ms[j][i] = rtt
+            bw_mbps[i][j] = bw_mbps[j][i] = bw
+
+    return eps, rtt_ms, bw_mbps
 
 
+def build_comm_matrix(comm_params: CommParams) -> CommMatrix:
+    """
+    Convenience wrapper around build_comm_matrices() that supports lookup:
+
+    - by indices: matrix.link(0, 3)
+    - by names:   matrix.link("p1_r1", "p2_r1")
+    - by endpoint objects
+    """
+    eps, rtt, bw = build_comm_matrices(comm_params)
+    endpoints = tuple(eps)
+    n = len(endpoints)
+    index_by_name = {ep.name: i for i, ep in enumerate(endpoints)}
+    rtt_t = tuple(tuple(rtt[i][j] for j in range(n)) for i in range(n))
+    bw_t = tuple(tuple(bw[i][j] for j in range(n)) for i in range(n))
+    return CommMatrix(endpoints=endpoints, rtt_ms=rtt_t, bandwidth_mbps=bw_t, index_by_name=index_by_name)
 
 
+def build_egress_matrix(egress_params: EgressParams) -> EgressMatrix:
+    """
+    Build a non-symmetric 15x15 egress-cost matrix (USD per GB).
 
+    Rules:
+    - Ingress is free; only egress (outbound) is charged.
+    - Only sources in cloud providers (p1/p2/p3) are charged.
+    - If src is cloud:
+      - dst in same provider => intra_provider_usd_per_gb
+      - dst in different provider (including local/p4/p5) => cross_provider_usd_per_gb
+    - If src is not cloud (local/p4/p5) => 0 everywhere.
+    """
+    eps = tuple(get_comm_endpoints())
+    n = len(eps)
+    index_by_name = {ep.name: i for i, ep in enumerate(eps)}
 
+    def is_cloud(p: str) -> bool:
+        return p in _CLOUD_PROVIDERS
 
+    mat: list[list[float]] = [[0.0 for _ in range(n)] for _ in range(n)]
+    for i in range(n):
+        src = eps[i]
+        if not is_cloud(src.provider):
+            continue  # all zeros
+        for j in range(n):
+            if i == j:
+                mat[i][j] = 0.0
+                continue
+            dst = eps[j]
+            if dst.provider == src.provider:
+                mat[i][j] = egress_params.intra_provider_usd_per_gb
+            else:
+                mat[i][j] = egress_params.cross_provider_usd_per_gb
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    usd_per_gb = tuple(tuple(mat[i][j] for j in range(n)) for i in range(n))
+    return EgressMatrix(endpoints=eps, usd_per_gb=usd_per_gb, index_by_name=index_by_name)
 
 
 

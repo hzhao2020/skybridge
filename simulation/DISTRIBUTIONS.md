@@ -1,319 +1,214 @@
-# Simulation Random Variables & APIs
+# 仿真参数分布说明
 
-本文件说明 `simulation/distribution.py` 中所有随机变量的**分布假设**、**函数接口**、**参数对象**、**单位**与**示例用法**。
+本文档说明 `simulation/distribution.py` 中 **各类参数是如何设置与采样** 的。
 
-> 约定：除非特别说明，所有采样函数都支持可选的 `rng: np.random.Generator` 参数，用于复现实验。
+核心设计原则：
 
----
+- **分布参数随机采样一次，之后固定**（在全局随机种子不变时可复现）。
+- **数值样本**（例如某条链路的 RTT/bandwidth，或一次采样得到的 conversion ratio）是否每次调用都会变化，取决于具体接口：有些接口返回“固定分布上的随机样本”，有些接口直接返回“固定矩阵/固定值”。
 
-## 1) RTT（Round-Trip Time）
+## 全局随机数与确定性
 
-### 分布
+在 `simulation/distribution.py` 中设置了全局随机种子：
 
-- **对数正态分布**  
-  \[
-  RTT \sim \mathrm{LogNormal}(\mu, \sigma)
-  \]
+- `random.seed(42)`
 
-### Region/Node 级参数生成（当前实现）
+本项目采用“**显式采样参数**”的方式来获得确定性：
 
-`simulation/distribution.py` 现在支持按 **src/dst region（node）对**生成 RTT 分布参数：
+- 你先调用 `sample_*_params()`（例如 `sample_ratio_params()` / `sample_comm_params()` / `sample_exec_time_params()`），**只运行一次**，拿到一组分布参数。
+- 后续所有采样都基于这组参数进行，从而保证“**分布参数固定**（seed 不变时可复现）”。
 
-- **节点集合**：`NODES = ["local", "gcp_us", "gcp_tw", "gcp_sg", "aws_us", "aws_sg", "aliyun_us", "aliyun_se"]`
-- **均值表（ms）**：`RTT_MEAN_MS[(src, dst)] = mean_ms`
-- **固定离散度**：`RTT_SIGMA = 0.25`
-- **对称查表**：如果 `(src, dst)` 不在表里，会尝试 `(dst, src)`；都没有则抛错
-- **同节点**：`src == dst` 时，使用 `mean = 2ms`（近似同机房/同 region）
-- **由均值反推 lognormal 参数**：
-  \[
-  \mu = \ln(\text{mean}) - \frac{1}{2}\sigma^2
-  \]
+如果你修改随机种子（或重启进程后重新采样参数），就会得到另一套不同但仍然“自洽”的参数集合。
 
-### 参数对象：`RttLognormalParams`
+## Workflow 类型
 
-- **字段**
-  - `mu: float`：对数空间均值（注意不是 RTT 的均值）
-  - `sigma: float`：对数空间标准差
-- **单位**
-  - RTT 输出单位为 **毫秒 (ms)**；`mu/sigma` 是对数正态的参数（无单位，但与输出尺度一致）
+目前定义的 workflow 包括：
 
-### 采样接口：`sample_rtt_ms(...) -> float`
+- `segment`
+- `split`
+- `caption`
+- `query`
 
-- **签名**
-  - `sample_rtt_ms(params: Optional[RttLognormalParams] = None, rng: Optional[np.random.Generator] = None) -> float`
-- **返回值**
-  - `rtt_ms: float`（ms），最小被截断为 `>= 0.1ms`
-- **示例**
+## Provider 与 Region
 
-```python
-from simulation.distribution import RttLognormalParams, sample_rtt_ms
+provider 名称统一规范化为 `p1..p5`。
 
-rtt_params = RttLognormalParams(mu=3.2, sigma=0.35)
-rtt_ms = sample_rtt_ms(rtt_params)
-```
+### 云 provider（具备存储能力）
 
-### 推荐接口：`get_rtt_params(src, dst) -> RttLognormalParams`
+- `p1`, `p2`, `p3` 为云 provider，带 region。
+- region 标签总数为 `r1..r6`。
+- 各 provider 拥有的 region 如下：
+  - `p1`: `r1,r2,r3,r4`
+  - `p2`: `r1,r2,r5,r6`
+  - `p3`: `r3,r4,r5,r6`
 
-```python
-from simulation.distribution import get_rtt_params, sample_rtt_ms
+### LLM-only provider（无存储、无 region）
 
-rtt_ms = sample_rtt_ms(get_rtt_params("local", "gcp_tw"))
-```
+- `p4`, `p5` **没有 `region`**（`region=None`）
 
----
+语言模型选项总数为 6 个：`m1..m6`：
 
-## 2) Bandwidth（链路带宽）
+- `p4`: `m1,m2,m3,m4`
+- `p5`: `m3,m4,m5,m6`
 
-### 分布
+## 节点构建（12 + 12 + 20 + 20）
 
-- **帕累托分布（numpy 形式）**
-  - 代码使用 `numpy.pareto(alpha)` 生成 \(Y \ge 0\)
-  - 带宽定义为：
-    \[
-    BW = x_m \cdot (1 + Y), \quad BW \ge x_m
-    \]
+节点由 `build_nodes(workflow)` 构建。
 
-### 参数对象：`BandwidthParetoParams`
+节点命名规则：
 
-- **字段**
-  - `xm_mbps: float`：尺度参数（最小带宽），单位 Mbps
-  - `alpha: float`：形状参数（越大尾部越短、波动越小）
+- 云节点：`{provider}_{region}_{workflow}`（例如 `p1_r1_segment`）
+- LLM 节点：`{provider}_{model}_{workflow}`（例如 `p4_m3_caption`）
 
-### 采样接口：`sample_bandwidth_mbps(...) -> float`
+数量：
 
-- **签名**
-  - `sample_bandwidth_mbps(params: Optional[BandwidthParetoParams] = None, rng: Optional[np.random.Generator] = None) -> float`
-- **返回值**
-  - `bandwidth_mbps: float`（Mbps），最小被截断为 `>= 1.0Mbps`
-- **示例**
+- `segment`: 12 nodes (cloud only)
+- `split`: 12 nodes (cloud only)
+- `caption`: 20 nodes (12 cloud + 8 LLM)
+- `query`: 20 nodes (12 cloud + 8 LLM)
 
-```python
-from simulation.distribution import BandwidthParetoParams, sample_bandwidth_mbps
+代码在 import 时会断言这些数量是否满足预期。
 
-bw_params = BandwidthParetoParams(xm_mbps=200, alpha=2.2)
-bw_mbps = sample_bandwidth_mbps(bw_params)
-```
+### 存储能力与存储价格
 
-### Region/Node 级参数生成（当前实现）
+- 云节点：`can_store=True`，并且 `storage_price_usd_per_gb_month` 按如下方式采样：
+  - `Uniform(0.015, 0.025)`（单位：USD per GB per month）
+- LLM-only 节点：`can_store=False` 且 `storage_price_usd_per_gb_month=None`
 
-`simulation/distribution.py` 现在支持按 **src/dst region（node）对**生成带宽分布参数：
+存储价格的“固定方式”采用显式参数采样：
 
-- **最小带宽表（Mbps）**：`BW_XM_MBPS[(src, dst)] = xm_mbps`
-- **固定形状参数**：`BW_ALPHA = 2.5`
-- **对称查表**：如果 `(src, dst)` 不在表里，会尝试 `(dst, src)`；都没有则抛错
-- **同节点**：`src == dst` 时，使用 `xm = 2000Mbps`
-- **采样方式**（与 numpy 一致）：
-  - `Y = numpy.pareto(alpha)`, \(Y \ge 0\)
-  - `BW = xm * (1 + Y)`, \(BW \ge xm\)
+- 你在初始化时调用一次 `sample_storage_prices(workflow)`，得到 `dict[node_name -> price]`
+- 后续构建节点时，通过 `build_nodes_with_params(..., storage_prices=...)` 传入并复用
 
-### 推荐接口：`get_bw_params(src, dst) -> BandwidthParetoParams`
+只要你不重新调用 `sample_storage_prices`，**每个节点的存储价格就会保持固定**。
 
-```python
-from simulation.distribution import get_bw_params, sample_bandwidth_mbps
+## 数据量（MB）采样
 
-bw_mbps = sample_bandwidth_mbps(get_bw_params("local", "gcp_tw"))
-```
+`get_data_size_mb(min_mb, max_mb)` 使用均匀分布采样数据量：
 
----
+- `Uniform(min_mb, max_mb)`（单位：MB）
 
-## 3) Link（RTT + Bandwidth 联合采样）
+## Data conversion ratio（输出/输入）
 
-### 分布
+`get_data_conversion_ratio(workflow)` 返回一个正数 ratio，来自 **对数正态分布（LogNormal）** 的采样。
 
-- RTT 与带宽分别按各自分布采样（当前实现**未显式建相关性**）。
+### 为什么用 LogNormal
 
-### 接口：`sample_link(...) -> tuple[float, float]`
+- ratio 必须 **> 0**
+- LogNormal 很适合表达“乘法尺度”的波动（相对比例的随机性）
 
-- **签名**
-  - `sample_link(rtt_params: Optional[RttLognormalParams] = None, bw_params: Optional[BandwidthParetoParams] = None, rng: Optional[np.random.Generator] = None) -> tuple[float, float]`
-- **返回值**
-  - `(rtt_ms, bandwidth_mbps)`
+### 参数化方式
 
-### 示例
+对每个 workflow，我们用两类参数配置其 ratio 分布：
 
-```python
-from simulation.distribution import sample_link, RttLognormalParams, BandwidthParetoParams
+- `mean`：ratio 的目标均值
+- `sigma`：log 空间标准差；越小表示方差越小
 
-rtt_params = RttLognormalParams(mu=3.0, sigma=0.4)
-bw_params = BandwidthParetoParams(xm_mbps=100, alpha=2.5)
+从 `mean` 推导 LogNormal 的 \(\mu\)：
 
-rtt_ms, bw_mbps = sample_link(rtt_params=rtt_params, bw_params=bw_params)
-```
+\[
+E[X] = \exp(\mu + 0.5\sigma^2)\quad\Rightarrow\quad \mu=\ln(mean)-0.5\sigma^2
+\]
 
-### 推荐接口：`sample_link_between(src, dst, rng=None) -> (rtt_ms, bw_mbps)`
+### 参数如何设置（随机一次后固定）
 
-当你希望“按 region 对”直接采样链路指标时，推荐用这个接口（内部会调用 `get_rtt_params/get_bw_params` 再采样）：
+每个 workflow 的 `(mean, sigma)` 会在“合理区间”内 **随机采样一次并固定**（通过 `sample_ratio_params()` 的返回值复用）。这些区间来自你的定性约束：
 
-```python
-import numpy as np
-from simulation.distribution import sample_link_between
+- `segment`：均值固定为 1，`sigma` **极小**（ratio ≈ 1，方差极小）
+- `split`：均值固定为 1，`sigma` **极小**
+- `caption`：video → text，均值在 **很小** 的范围内，`sigma` **更大**
+- `query`：text → text，输入（query+caption）通常大于输出（answer），均值在 (0,1)，`sigma` 适中
 
-rng = np.random.default_rng(123)
-rtt_ms, bw_mbps = sample_link_between("local", "gcp_tw", rng=rng)
-```
+每次调用 `get_data_conversion_ratio(workflow)` 都会从该“固定分布”再抽一个样本（分布固定、样本可变）。
 
----
+## 节点执行时间（仅 segment/split）
 
-## 4) Data Conversion Ratio（输出数据大小 / 输入数据大小）
+对 `segment` 与 `split` 节点，`Node.exec_time_s` 是一个函数：
 
-### 分布
+- 输入：`video_size_mb`
+- 输出：执行时间（秒）
 
-- **对数正态分布**
-  \[
-  ratio \sim \mathrm{LogNormal}(\mu_{op}, \sigma_{op})
-  \]
+对 `caption` 与 `query` 节点：
 
-### 参数对象：`OperationSizeLognormalParams`
+- `exec_time_s=None`
 
-- **字段（默认值概览）**
-  - `sigma_small`：小方差等级（用于 segment/split）
-  - `sigma_medium`：中等方差等级（用于 caption/query）
-  - `mean_segment`：segment 的目标均值（默认 1.0）
-  - `mean_split`：split 的目标均值（默认 1.0）
-  - `mean_caption`：caption 的目标均值（默认 0.1）
-  - `mean_query`：query 的目标均值（默认 1.0）
-- **说明**
-  - 文件内通过 \(\mu = \ln(\text{mean}) - \frac{1}{2}\sigma^2\) 来近似保证 \(E[ratio]\approx \text{mean}\)。
+### 执行时间模型
 
-### 接口：`sample_operation_size_ratio(operation, ...) -> float`
+\[
+T = T_{io} + T_{comp}
+\]
 
-- **签名**
-  - `sample_operation_size_ratio(operation: str, params: Optional[OperationSizeLognormalParams] = None, rng: Optional[np.random.Generator] = None) -> float`
-- **支持的 operation 名称（大小写不敏感）**
-  - `"video_segment"` / `"segment"`
-  - `"video_split"` / `"split"`
-  - `"caption"`
-  - `"llm_query"` / `"query"`
-- **示例**
+1) IO time (linear in size):
 
-```python
-from simulation.distribution import sample_operation_size_ratio
+\[
+T_{io} = a\cdot video\_size\_{mb}
+\]
 
-ratio = sample_operation_size_ratio("caption")
-```
+其中 `a`（seconds per MB）在创建该函数时随机采样一次并固定。
 
----
+2）计算时间（条件 Gamma）：
 
-## 5) LLM Tokens（与输入 videos 相关的 token 数）
+\[
+T_{comp}\mid video\_size\_{mb} \sim \Gamma(k,\theta(video\_size\_{mb}))
+\]
 
-### 分布
+其中：
 
-- **对数正态分布 + 取整**
-  - 先构造一个输入规模标量 `total_units`
-  - \[
-    X \sim \mathrm{LogNormal}(\mu(total\_units), \sigma)
-    \]
-  - 返回 `round(X)` 并截断到 `>= 1`
+- `k` 随机采样一次并固定（shape）
+- \(\theta(video\_size) = \theta_0 + \theta_1\cdot video\_size\_{mb}\)
+- `theta0`、`theta1` 随机采样一次并固定
 
-### 参数对象：`LlmTokenLognormalParams`
+### 确定性行为
 
-- **字段**
-  - `base_mu`：当视频规模接近 0 时的 \(\mu\)
-  - `mu_per_unit`：每单位输入规模对 \(\mu\) 的线性增量
-  - `sigma`：对数空间标准差
+- **分布参数** \((a,k,\theta_0,\theta_1)\) 会按 workflow 固定（通过 `sample_exec_time_params()` 的返回值复用）。
+- 每次调用 `exec_time_s(video_size_mb)` 会重新从该 Gamma 分布采样，因此是 **分布不变、样本会变**。
 
-### 接口：`sample_llm_tokens_from_videos(videos, ...) -> int`
+## 网络：RTT + bandwidth 矩阵（15 × 15）
 
-- **签名**
-  - `sample_llm_tokens_from_videos(videos, *, params: Optional[LlmTokenLognormalParams] = None, rng: Optional[np.random.Generator] = None, unit_extractor=None) -> int`
-- **`videos` 的推荐输入形式**
-  - 直接传一个标量（比如“总视频分钟数/总大小MB”）
-  - 传一个 list（每个元素是该视频的标量规模）
-  - 传自定义对象 list，并传 `unit_extractor=lambda v: v.xxx`
-- **示例**
+通信端点由 `get_comm_endpoints()` 构建（共 15 个）：
 
-```python
-from simulation.distribution import sample_llm_tokens_from_videos
+1. `local`
+2. `p1_r1,p1_r2,p1_r3,p1_r4` (4)
+3. `p2_r1,p2_r2,p2_r5,p2_r6` (4)
+4. `p3_r3,p3_r4,p3_r5,p3_r6` (4)
+5. `p4`
+6. `p5`
 
-tokens = sample_llm_tokens_from_videos([2.0, 1.5, 3.0])  # 例如单位=分钟
-```
+### 构建结果
 
----
+`build_comm_matrix()` 返回一个 `CommMatrix`，包含：
 
-## 6) Video Size（视频大小）
+- `endpoints`：长度为 15 的端点有序元组（索引含义由此确定）
+- `rtt_ms[i][j]`：对称 RTT 矩阵（单位：ms）
+- `bandwidth_mbps[i][j]`：对称带宽矩阵（单位：Mbps）
+- `index_by_name`：端点名 → 索引 的映射
 
-### 分布
+查询方式：
 
-- **均匀分布**
-  \[
-  Size \sim \mathrm{Uniform}(\text{min\_mb}, \text{max\_mb})
-  \]
+- 按索引：`matrix.link(0, 3)`
+- 按名字：`matrix.link("p1_r1", "p2_r1")`
 
-### 接口：`sample_video_size_mb(...) -> float`
+### 分布形式
 
-- **签名**
-  - `sample_video_size_mb(*, min_mb: float = 5.0, max_mb: float = 500.0, rng: Optional[np.random.Generator] = None) -> float`
-- **单位**
-  - 返回单位为 **MB**
-- **示例**
+- RTT：**LogNormal**（ms）
+- 带宽：**Pareto**（Mbps），用 Python 的 `random.paretovariate(alpha)` 并用 `xm` 做缩放：
+  - `bw = xm * paretovariate(alpha)` where the Pareto variate has support \([1,\infty)\).
 
-```python
-from simulation.distribution import sample_video_size_mb
+### 约束如何编码
 
-size_mb = sample_video_size_mb()  # 默认 5~500MB
-```
+对每一对端点，会先分配到一个类别，并按优先级选择参数：
 
----
+1. **同 region 标签**（cloud↔cloud）：RTT 最低  
+2. **同云 provider**（p1/p2/p3 内部）：相比跨云 RTT 更低、带宽更高  
+3. 涉及 **local**：通常 RTT 更高、带宽更低  
+4. 涉及 **p4/p5**：通常 RTT 更高、带宽更低  
+5. 其他情况：跨云 baseline
 
-## 7) Execution Time（节点执行时间，给定输入大小的条件分布）
+类别级参数会在合理的均匀分布区间内采样一次并固定（通过 `sample_comm_params()` 的返回值复用），然后每条链路再引入一个小的乘性抖动（jitter）增加差异性。
 
-### 条件分布
+### 确定性行为
 
-- **Gamma 条件分布**
-  \[
-  T \mid S \sim \mathrm{Gamma}(k, \theta(S))
-  \]
-  \[
-  E[T\mid S] = k\theta(S) = \text{base\_time} \cdot f(S)
-  \]
+如果你只调用一次 `build_comm_matrix(comm_params)` 并保存返回的矩阵对象复用，那么 **15×15 矩阵的数值也会固定不变**（在 seed 不变且不重新生成 `comm_params` 时）。
 
-### 参数对象：`OperationGammaTimeParams`
-
-- **字段**
-  - `shape: float`：Gamma 形状参数 \(k\)
-  - `base_time_per_mb: float`：基础系数（用于把视频大小映射到均值），单位秒/MB（当 `complexity='linear'` 时更直观）
-  - `complexity: str`：确定性复杂度形式
-    - `"linear"`：\(f(S)=S\)
-    - `"s_log_s"`：\(f(S)=S\ln(1+S)\)
-
-### 默认参数表：`DEFAULT_EXECUTION_TIME_PARAMS`
-
-当前文件内提供了 **Video Segmentation** / **Video Splitting** 的默认 operation 参数（可后续按 profile 数据替换）：
-
-- Segmentation：`seg_aws_us`, `seg_aws_sg`, `seg_google_us`, `seg_google_tw`
-- Splitting：`split_aws_us`, `split_aws_sg`, `split_google_us`, `split_google_sg`
-
-### 接口：`sample_execution_time_seconds(task_name, operation_name, video_size_mb, ...) -> float`
-
-- **签名**
-  - `sample_execution_time_seconds(task_name: str, operation_name: str, video_size_mb: float, *, params_overrides: Optional[dict[str, OperationGammaTimeParams]] = None, rng: Optional[np.random.Generator] = None) -> float`
-- **输入**
-  - `task_name`：任务名称（当前实现不参与计算，仅保留语义位）
-  - `operation_name`：operation id（必须在默认参数表里，或在 `params_overrides` 覆盖表里）
-  - `video_size_mb`：输入规模 \(S\)（MB）
-- **输出**
-  - `time_seconds: float`（秒）
-- **覆盖默认参数**
-
-```python
-from simulation.distribution import OperationGammaTimeParams, sample_execution_time_seconds
-
-overrides = {
-    "seg_aws_us": OperationGammaTimeParams(shape=2.5, base_time_per_mb=0.03, complexity="s_log_s")
-}
-
-t = sample_execution_time_seconds(
-    task_name="Video Segmentation",
-    operation_name="seg_aws_us",
-    video_size_mb=200.0,
-    params_overrides=overrides,
-)
-```
-
----
-
-## Notes
-
-- **单位一致性**：`video_size_mb` 作为执行时间模型的输入规模 \(S\)，当前默认单位为 **MB**。
-- **可重复性**：若需可重复采样，请在外部创建并传入同一个 `np.random.default_rng(seed)`。
+如果你希望“分布参数固定，但每次重新采样一张矩阵”，可以复用同一份 `comm_params`，但每次重新调用 `build_comm_matrix(comm_params)` 生成新矩阵即可。
 
