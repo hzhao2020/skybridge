@@ -20,9 +20,9 @@
 
 如果你修改随机种子（或重启进程后重新采样参数），就会得到另一套不同但仍然“自洽”的参数集合。
 
-## Workflow 类型
+## Operation 类型
 
-目前定义的 workflow 包括：
+目前定义的 operation 包括：
 
 - `segment`
 - `split`
@@ -53,12 +53,12 @@ provider 名称统一规范化为 `p1..p5`。
 
 ## 节点构建（12 + 12 + 20 + 20）
 
-节点由 `build_nodes(workflow)` 构建。
+节点由 `build_nodes(operation)` 构建。
 
 节点命名规则：
 
-- 云节点：`{provider}_{region}_{workflow}`（例如 `p1_r1_segment`）
-- LLM 节点：`{provider}_{model}_{workflow}`（例如 `p4_m3_caption`）
+- 云节点：`{provider}_{region}_{operation}`（例如 `p1_r1_segment`）
+- LLM 节点：`{provider}_{model}_{operation}`（例如 `p4_m3_caption`）
 
 数量：
 
@@ -77,7 +77,7 @@ provider 名称统一规范化为 `p1..p5`。
 
 存储价格的“固定方式”采用显式参数采样：
 
-- 你在初始化时调用一次 `sample_storage_prices(workflow)`，得到 `dict[node_name -> price]`
+- 你在初始化时调用一次 `sample_storage_prices(operation)`，得到 `dict[node_name -> price]`
 - 后续构建节点时，通过 `build_nodes_with_params(..., storage_prices=...)` 传入并复用
 
 只要你不重新调用 `sample_storage_prices`，**每个节点的存储价格就会保持固定**。
@@ -90,7 +90,7 @@ provider 名称统一规范化为 `p1..p5`。
 
 ## Data conversion ratio（输出/输入）
 
-`get_data_conversion_ratio(workflow)` 返回一个正数 ratio，来自 **对数正态分布（LogNormal）** 的采样。
+`get_data_conversion_ratio(operation)` 返回一个正数 ratio，来自 **对数正态分布（LogNormal）** 的采样。
 
 ### 为什么用 LogNormal
 
@@ -99,7 +99,7 @@ provider 名称统一规范化为 `p1..p5`。
 
 ### 参数化方式
 
-对每个 workflow，我们用两类参数配置其 ratio 分布：
+对每个 operation，我们用两类参数配置其 ratio 分布：
 
 - `mean`：ratio 的目标均值
 - `sigma`：log 空间标准差；越小表示方差越小
@@ -112,14 +112,14 @@ E[X] = \exp(\mu + 0.5\sigma^2)\quad\Rightarrow\quad \mu=\ln(mean)-0.5\sigma^2
 
 ### 参数如何设置（随机一次后固定）
 
-每个 workflow 的 `(mean, sigma)` 会在“合理区间”内 **随机采样一次并固定**（通过 `sample_ratio_params()` 的返回值复用）。这些区间来自你的定性约束：
+每个 operation 的 `(mean, sigma)` 会在“合理区间”内 **随机采样一次并固定**（通过 `sample_ratio_params()` 的返回值复用）。这些区间来自你的定性约束：
 
 - `segment`：均值固定为 1，`sigma` **极小**（ratio ≈ 1，方差极小）
 - `split`：均值固定为 1，`sigma` **极小**
 - `caption`：video → text，均值在 **很小** 的范围内，`sigma` **更大**
 - `query`：text → text，输入（query+caption）通常大于输出（answer），均值在 (0,1)，`sigma` 适中
 
-每次调用 `get_data_conversion_ratio(workflow)` 都会从该“固定分布”再抽一个样本（分布固定、样本可变）。
+每次调用 `get_data_conversion_ratio(operation)` 都会从该“固定分布”再抽一个样本（分布固定、样本可变）。
 
 ## 节点执行时间（仅 segment/split）
 
@@ -160,7 +160,7 @@ T_{comp}\mid video\_size\_{mb} \sim \Gamma(k,\theta(video\_size\_{mb}))
 
 ### 确定性行为
 
-- **分布参数** \((a,k,\theta_0,\theta_1)\) 会按 workflow 固定（通过 `sample_exec_time_params()` 的返回值复用）。
+- **分布参数** \((a,k,\theta_0,\theta_1)\) 会按 operation 固定（通过 `sample_exec_time_params()` 的返回值复用）。
 - 每次调用 `exec_time_s(video_size_mb)` 会重新从该 Gamma 分布采样，因此是 **分布不变、样本会变**。
 
 ## 网络：RTT + bandwidth 矩阵（15 × 15）

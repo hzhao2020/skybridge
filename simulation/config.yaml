@@ -1,0 +1,109 @@
+# 仿真经验参数配置
+# 所有原先硬编码在代码中的经验值集中于此，便于调参与复现
+
+# 存储相关（用于 cost 计算）
+storage:
+  hours: 1.0
+  hours_per_month: 720.0
+
+# Token 换算
+token:
+  tokens_per_mb: 800.0
+
+# 评估权重（accuracy = utility 加权和）
+utility_weights:
+  segment: 0.1
+  split: 0.0
+  caption: 0.45
+  query: 0.45
+
+# Budget 线性模型系数（solver 用）
+budget:
+  latency_intercept_s: 120.0
+  latency_slope_per_mb: 0.25
+  cost_intercept_usd: 0.05
+  cost_slope_per_mb: 0.0025
+
+# 数据量采样范围 [min, max] MB
+data_size: [5.0, 500.0]
+
+# Data conversion ratio 采样 [min, max]
+ratio:
+  seg_sigma: [0.0005, 0.005]
+  spl_sigma: [0.0005, 0.005]
+  cap_mean: [0.003, 0.03]
+  cap_sigma: [0.4, 0.9]
+  qry_mean: [0.2, 0.8]
+  qry_sigma: [0.15, 0.45]
+
+# Utility 参数采样
+utility:
+  caption_query_A: [0.35, 0.45]
+  caption_query_B: [0.2, 0.4]
+  segment_provider: [0.7, 1.0]
+  llm_model: [0.7, 1.0]
+
+# ExecTime 参数（segment / split）
+exec_time:
+  segment:
+    io_s_per_mb: [0.0005, 0.002]
+    k: [2.5, 4.0]
+    theta0: [2.2, 3.2]
+    theta1: [1.8, 2.7]
+  split:
+    io_s_per_mb: [0.0005, 0.002]
+    k: [2.5, 4.0]
+    theta0: [0.30, 0.50]
+    theta1: [0.25, 0.42]
+
+# 网络通信矩阵（每类链路的 RTT/bandwidth 采样范围）
+comm:
+  same_region: { rtt_mean: [6, 10], rtt_sigma: [0.10, 0.18], bw_xm: [350, 900], bw_alpha: [2.0, 3.0] }
+  same_cloud: { rtt_mean: [16, 28], rtt_sigma: [0.18, 0.28], bw_xm: [800, 1600], bw_alpha: [2.2, 3.2] }
+  cross_cloud: { rtt_mean: [55, 90], rtt_sigma: [0.22, 0.35], bw_xm: [80, 250], bw_alpha: [1.8, 2.6] }
+  via_local: { rtt_mean: [70, 120], rtt_sigma: [0.25, 0.40], bw_xm: [20, 120], bw_alpha: [1.6, 2.3] }
+  via_llm_only: { rtt_mean: [75, 130], rtt_sigma: [0.25, 0.45], bw_xm: [50, 180], bw_alpha: [1.7, 2.4] }
+  jitter: [0.9, 1.1]
+
+# 存储价格 USD/GB/月
+storage_price: [0.015, 0.025]
+
+# 出站费用 USD/GB
+egress:
+  intra_provider: [0.01, 0.05]
+  cross_provider: [0.08, 0.12]
+
+# 价格波动（各 region 相对 provider 中心价的 ± 比例）
+price_fluctuation: 0.20
+
+# Segment / Split 价格中心 [min, max]
+segment_center: [0.04, 0.08]
+split_center: [0.00001, 0.0001]
+
+# LLM Token 价格
+llm:
+  input_price: [0.05, 2.0]
+  output_multiplier: 4.0
+
+# LLM output token 参数（caption: CaptionTokenNumParams, query: TokenNumParams）
+llm_output_token:
+  query_mu: [4.0, 6.0]
+  query_sigma: [0.8, 1.2]
+  caption_base: [50.0, 200.0]
+  caption_coef_per_mb: [1.0, 10.0]
+  caption_sigma: [0.3, 0.9]
+  query_fallback_mu: 5.0
+  query_fallback_sigma: 1.0
+
+# LLM latency 参数（alpha ms/token, beta ms, noise sigma ms）
+llm_latency:
+  alpha_ms_per_token: [20.0, 50.0]
+  beta_ms: [400.0, 800.0]
+  noise_sigma_ms: [30.0, 120.0]
+
+# 云节点 fallback exec_time（build_nodes 无 exec_params 时）
+cloud_exec_fallback:
+  io_s_per_mb: [0.0001, 0.001]
+  k: [1.0, 5.0]
+  theta0: [0.02, 0.20]
+  theta1: [0.001, 0.02]

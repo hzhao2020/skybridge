@@ -28,5 +28,11 @@ pandas>=2.0.0
 # 进度条工具
 tqdm>=4.65.0
 
+# 优化求解（simulation/solver.py CVaR-MILP）
+pulp>=2.8.0
+
+# 仿真配置（simulation/config.yaml）
+pyyaml>=6.0
+
 # HTTP 请求库（用于 Cloud Functions 调用）
 requests>=2.31.0
