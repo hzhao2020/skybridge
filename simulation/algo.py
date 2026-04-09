@@ -160,6 +160,25 @@ class CvarMilpParams:
     solver_msg: bool = False
 
 
+@dataclass(frozen=True, slots=True)
+class LagrangianDualParams:
+    """
+    拉格朗日松弛 + 对偶子梯度参数。
+
+    说明：
+    - 将 (17) 的 McCormick 耦合约束松弛到目标函数中；
+    - 在每轮中把问题分解为可并行的“节点子问题”和“边子问题”；
+    - 用投影子梯度更新对偶变量。
+    """
+
+    max_iters: int = 120
+    init_step_size: float = 0.8
+    step_decay: float = 0.98
+    min_step_size: float = 1e-4
+    tol: float = 1e-4
+    verbose: bool = False
+
+
 # ---------------------------------------------------------------------------
 # 线性目标与约束：给定 (x,y) 下的 C 与 L_π
 # ---------------------------------------------------------------------------
@@ -409,6 +428,261 @@ def solve_deployment(
 
     meta["pick"] = pick
     meta["objective_value"] = pulp.value(prob.objective)
+    return status, meta
+
+
+def _mean_coeffs(
+    dag: LogicalDAG,
+    scenarios: Sequence[Sequence[ScenarioCoeffs]],
+) -> ScenarioCoeffs:
+    """对所有 (q,k) 场景取均值，得到用于拉格朗日子问题的平均线性系数。"""
+    n = dag.num_nodes()
+    Q = len(scenarios)
+    if Q == 0:
+        raise ValueError("scenarios must be non-empty")
+    K = len(scenarios[0])
+    if K == 0:
+        raise ValueError("scenario row must be non-empty")
+    for row in scenarios:
+        if len(row) != K:
+            raise ValueError("all scenario rows must have same length")
+
+    denom = float(Q * K)
+    node_exec_cost = [[0.0 for _ in dag.nodes[i].candidates] for i in range(n)]
+    node_exec_lat = [[0.0 for _ in dag.nodes[i].candidates] for i in range(n)]
+
+    edge_trans_cost: dict[tuple[int, int], list[list[float]]] = {}
+    edge_trans_lat: dict[tuple[int, int], list[list[float]]] = {}
+    for e in dag.edges:
+        ni = len(dag.nodes[e.src].candidates)
+        nj = len(dag.nodes[e.dst].candidates)
+        edge_trans_cost[(e.src, e.dst)] = [[0.0 for _ in range(nj)] for _ in range(ni)]
+        edge_trans_lat[(e.src, e.dst)] = [[0.0 for _ in range(nj)] for _ in range(ni)]
+
+    for q in range(Q):
+        for k in range(K):
+            coeff = scenarios[q][k]
+            for i in range(n):
+                for kk in range(len(dag.nodes[i].candidates)):
+                    node_exec_cost[i][kk] += coeff.node_exec_cost[i][kk] / denom
+                    node_exec_lat[i][kk] += coeff.node_exec_lat[i][kk] / denom
+            for e in dag.edges:
+                key = (e.src, e.dst)
+                mat_c = coeff.edge_trans_cost[key]
+                mat_l = coeff.edge_trans_lat[key]
+                ni = len(dag.nodes[e.src].candidates)
+                nj = len(dag.nodes[e.dst].candidates)
+                for kk in range(ni):
+                    for mm in range(nj):
+                        edge_trans_cost[key][kk][mm] += mat_c[kk][mm] / denom
+                        edge_trans_lat[key][kk][mm] += mat_l[kk][mm] / denom
+
+    return ScenarioCoeffs(
+        node_exec_cost=node_exec_cost,
+        edge_trans_cost=edge_trans_cost,
+        node_exec_lat=node_exec_lat,
+        edge_trans_lat=edge_trans_lat,
+    )
+
+
+def solve_deployment_lagrangian(
+    dag: LogicalDAG,
+    queries: Sequence[CalibrationQuery],
+    scenarios: Sequence[Sequence[ScenarioCoeffs]],
+    *,
+    dual_params: LagrangianDualParams | None = None,
+    risk_tradeoff_cost: float = 1.0,
+    risk_tradeoff_latency: float = 1.0,
+) -> tuple[str, dict[str, object]]:
+    """
+    使用拉格朗日松弛求解“Final ILP 核心结构”：
+    - 保留 (16) 每节点单选；
+    - 松弛 (17) McCormick 耦合，拆成节点/边独立子问题并行可解；
+    - 通过对偶子梯度迭代恢复可行一致性。
+
+    备注：
+    - 这里把多场景 CVaR 项折算到“均值 cost/latency 风险惩罚”系数里，作为可分解近似；
+    - 适合作为集中式 MILP 的分布式并行 warm-start / 近似解器。
+    """
+    if dual_params is None:
+        dual_params = LagrangianDualParams()
+    if not queries:
+        raise ValueError("queries must be non-empty")
+
+    n = dag.num_nodes()
+    mean_coeff = _mean_coeffs(dag, scenarios)
+
+    theta_cost = sum(q.theta_cost for q in queries) / float(len(queries))
+    theta_lat = sum(q.theta_latency for q in queries) / float(len(queries))
+    _ = (theta_cost, theta_lat)  # 预算值用于元信息输出，不直接进对偶更新。
+
+    # 对偶变量：
+    # mu1[e][k][m] 对应 y - x_i <= 0
+    # mu2[e][k][m] 对应 y - x_j <= 0
+    # mu3[e][k][m] 对应 x_i + x_j - 1 - y <= 0
+    mu1: dict[tuple[int, int], list[list[float]]] = {}
+    mu2: dict[tuple[int, int], list[list[float]]] = {}
+    mu3: dict[tuple[int, int], list[list[float]]] = {}
+    for e in dag.edges:
+        ni = len(dag.nodes[e.src].candidates)
+        nj = len(dag.nodes[e.dst].candidates)
+        key = (e.src, e.dst)
+        mu1[key] = [[0.0 for _ in range(nj)] for _ in range(ni)]
+        mu2[key] = [[0.0 for _ in range(nj)] for _ in range(ni)]
+        mu3[key] = [[0.0 for _ in range(nj)] for _ in range(ni)]
+
+    best_primal_val = float("-inf")
+    best_pick: list[int | None] = [None] * n
+    best_y: dict[tuple[int, int, int, int], float] = {}
+    best_gap = float("inf")
+    history: list[dict[str, float]] = []
+
+    step = max(dual_params.min_step_size, dual_params.init_step_size)
+
+    for it in range(dual_params.max_iters):
+        # -------------------------
+        # 1) 节点子问题（可并行）：每个 i 独立单选
+        # -------------------------
+        x_pick = [0 for _ in range(n)]
+        x_mat = [[0.0 for _ in dag.nodes[i].candidates] for i in range(n)]
+        for i in range(n):
+            scores = []
+            for k, ep in enumerate(dag.nodes[i].candidates):
+                sc = dag.nodes[i].weight * ep.mu
+                sc -= risk_tradeoff_cost * mean_coeff.node_exec_cost[i][k]
+                sc -= risk_tradeoff_latency * mean_coeff.node_exec_lat[i][k]
+                # 拉格朗日项贡献
+                for e in dag.edges:
+                    if e.src == i:
+                        key = (e.src, e.dst)
+                        for m in range(len(dag.nodes[e.dst].candidates)):
+                            sc += mu1[key][k][m] - mu3[key][k][m]
+                    if e.dst == i:
+                        key = (e.src, e.dst)
+                        for kk in range(len(dag.nodes[e.src].candidates)):
+                            sc += mu2[key][kk][k] - mu3[key][kk][k]
+                scores.append(sc)
+            k_star = max(range(len(scores)), key=lambda t: scores[t])
+            x_pick[i] = k_star
+            x_mat[i][k_star] = 1.0
+
+        # -------------------------
+        # 2) 边子问题（可并行）：每条边独立选一个 (k,m)
+        # -------------------------
+        y_val: dict[tuple[int, int, int, int], float] = {}
+        for e in dag.edges:
+            key = (e.src, e.dst)
+            ni = len(dag.nodes[e.src].candidates)
+            nj = len(dag.nodes[e.dst].candidates)
+            best_pair = (0, 0)
+            best_score = float("-inf")
+            for k in range(ni):
+                for m in range(nj):
+                    sc = 0.0
+                    sc -= risk_tradeoff_cost * mean_coeff.edge_trans_cost[key][k][m]
+                    sc -= risk_tradeoff_latency * mean_coeff.edge_trans_lat[key][k][m]
+                    sc += -mu1[key][k][m] - mu2[key][k][m] + mu3[key][k][m]
+                    if sc > best_score:
+                        best_score = sc
+                        best_pair = (k, m)
+            for k in range(ni):
+                for m in range(nj):
+                    y_val[(e.src, e.dst, k, m)] = 1.0 if (k, m) == best_pair else 0.0
+
+        # -------------------------
+        # 3) 评估当前可行修复（由 x 诱导 y）
+        # -------------------------
+        y_proj: dict[tuple[int, int, int, int], float] = {}
+        for e in dag.edges:
+            ni = len(dag.nodes[e.src].candidates)
+            nj = len(dag.nodes[e.dst].candidates)
+            for k in range(ni):
+                for m in range(nj):
+                    y_proj[(e.src, e.dst, k, m)] = (
+                        1.0 if (k == x_pick[e.src] and m == x_pick[e.dst]) else 0.0
+                    )
+
+        utility_val = 0.0
+        for i in range(n):
+            utility_val += dag.nodes[i].weight * dag.nodes[i].candidates[x_pick[i]].mu
+        risk_cost_val = linear_total_cost(dag, mean_coeff, x_mat, y_proj)
+        # DAG 仅用于单路径/多路径上限估算：这里取最大路径延迟作为全局风险代理。
+        path_lat_vals = [
+            linear_path_latency(dag, mean_coeff, p, x_mat, y_proj)
+            for p in dag.source_sink_paths()
+        ]
+        risk_lat_val = max(path_lat_vals) if path_lat_vals else 0.0
+        primal_val = utility_val - risk_tradeoff_cost * risk_cost_val - risk_tradeoff_latency * risk_lat_val
+
+        # -------------------------
+        # 4) 计算子梯度并更新对偶变量
+        # -------------------------
+        sq_norm = 0.0
+        gap_sum = 0.0
+        for e in dag.edges:
+            key = (e.src, e.dst)
+            ni = len(dag.nodes[e.src].candidates)
+            nj = len(dag.nodes[e.dst].candidates)
+            for k in range(ni):
+                for m in range(nj):
+                    ykm = y_val[(e.src, e.dst, k, m)]
+                    xi = x_mat[e.src][k]
+                    xj = x_mat[e.dst][m]
+
+                    g1 = ykm - xi
+                    g2 = ykm - xj
+                    g3 = xi + xj - 1.0 - ykm
+
+                    gap_sum += abs(g1) + abs(g2) + abs(g3)
+                    sq_norm += g1 * g1 + g2 * g2 + g3 * g3
+
+                    mu1[key][k][m] = max(0.0, mu1[key][k][m] + step * g1)
+                    mu2[key][k][m] = max(0.0, mu2[key][k][m] + step * g2)
+                    mu3[key][k][m] = max(0.0, mu3[key][k][m] + step * g3)
+
+        best_primal_val = max(best_primal_val, primal_val)
+        if primal_val >= best_primal_val - 1e-12:
+            best_pick = list(x_pick)
+            best_y = dict(y_proj)
+            best_gap = gap_sum
+
+        history.append(
+            {
+                "iter": float(it + 1),
+                "step": step,
+                "primal_val": primal_val,
+                "best_primal_val": best_primal_val,
+                "relaxed_violation_l1": gap_sum,
+                "subgrad_norm_l2": sq_norm**0.5,
+            }
+        )
+        if dual_params.verbose:
+            print(
+                "[lagrangian]",
+                f"iter={it+1:03d}",
+                f"step={step:.4g}",
+                f"primal={primal_val:.6f}",
+                f"best={best_primal_val:.6f}",
+                f"viol={gap_sum:.6f}",
+            )
+
+        if gap_sum <= dual_params.tol:
+            break
+        step = max(dual_params.min_step_size, step * dual_params.step_decay)
+
+    meta: dict[str, object] = {
+        "method": "lagrangian_dual_decomposition",
+        "pick": best_pick,
+        "y": best_y,
+        "objective_value": best_primal_val,
+        "relaxed_violation_l1": best_gap,
+        "history": history,
+        "risk_tradeoff_cost": risk_tradeoff_cost,
+        "risk_tradeoff_latency": risk_tradeoff_latency,
+        "avg_theta_cost": theta_cost,
+        "avg_theta_latency": theta_lat,
+    }
+    status = "Converged" if best_gap <= dual_params.tol else "Stopped"
     return status, meta
 
 
