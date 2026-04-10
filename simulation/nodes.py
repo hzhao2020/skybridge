@@ -46,17 +46,15 @@ class LocalNode(Node):
             utility=0.0,
         )
 
-    def calculate_latency(self, video_size_mb: float) -> float:
+    def calculate_latency(self, video_size_MB: float) -> float:
         return 0.0
 
 
 def _node_to_comm_endpoint(node: Node) -> str:
     """
-    将 Node 映射到 sample_egress_price / get_comm_endpoints 使用的 15 个端点名之一：
-    p1–p3 云为 "{provider}_{region}"；p4/p5 的 LLM-only 为 "p4"/"p5"；本地为 "local"。
+    将 Node 映射到 sample_egress_price / get_comm_endpoints 使用的端点名：
+    云侧为 "{provider}_{region}"；本地为 "local"。
     """
-    if node.provider in ("p4", "p5"):
-        return node.provider
     if node.provider == "local":
         return "local"
     if node.region is None:
@@ -67,7 +65,7 @@ def _node_to_comm_endpoint(node: Node) -> str:
 class Edge:
     """
     连接两个 Node 的链路：保存 RTT、BW 参数对象（与 distribution 中每条边的采样一致）。
-    calculate_latency(data_size_mb) 从 LogNormal(mean, std) 各采样一次 RTT(ms) 与带宽(Mbps)，
+    calculate_latency(data_size_MB) 从 LogNormal(mean, std) 各采样一次 RTT(ms) 与带宽(Mbps)，
     再返回传输延迟（秒）：RTT/2 + data_MB * 8 / bandwidth_Mbps。
     egress_price 为该有向边已解析好的出站单价 USD/GB（由调用方从 sample_egress_price 矩阵中查表填入）。
     """
@@ -92,9 +90,9 @@ class Edge:
         self.bw = bw
         self.egress_price = egress_price
 
-    def calculate_latency(self, data_size_mb: float) -> float:
-        if data_size_mb < 0:
-            raise ValueError("data_size_mb must be >= 0")
+    def calculate_latency(self, data_size_MB: float) -> float:
+        if data_size_MB < 0:
+            raise ValueError("data_size_MB must be >= 0")
         rtt_ms = LogNormalDistribution(float(self.rtt.mean), float(self.rtt.std)).sample()
         bandwidth_mbps = LogNormalDistribution(float(self.bw.mean), float(self.bw.std)).sample()
         rtt_half_s = rtt_ms / 2000.0
@@ -103,15 +101,15 @@ class Edge:
             raise ValueError("bandwidth_mbps must be > 0 (or +inf for local/zero transfer time)")
         if math.isinf(bw_mbps):
             return rtt_half_s
-        tx_s = (data_size_mb * 8.0) / bw_mbps
+        tx_s = (data_size_MB * 8.0) / bw_mbps
         return rtt_half_s + tx_s
 
 
-    def calculate_egress_cost(self, data_size_mb: float) -> float:
+    def calculate_egress_cost(self, data_size_MB: float) -> float:
         """GB × egress_price（USD/GB）。"""
-        if data_size_mb < 0:
-            raise ValueError("data_size_mb must be >= 0")
-        data_gb = data_size_mb / 1024.0
+        if data_size_MB < 0:
+            raise ValueError("data_size_MB must be >= 0")
+        data_gb = data_size_MB / 1024.0
         return data_gb * self.egress_price
 
 
@@ -128,16 +126,16 @@ class CloudNode(Node):
         super().__init__(name, provider, region, utility)
         self.storage_price_per_gb_month = storage_price_per_gb_month
 
-    def calculate_storage_cost(self, data_size_mb: float) -> float:
+    def calculate_storage_cost(self, data_size_MB: float) -> float:
         """按 config.storage 默认存放时长，将 USD/GB/月 折算为本次数据量的存储费（USD）。"""
-        if data_size_mb < 0:
-            raise ValueError("data_size_mb must be >= 0")
+        if data_size_MB < 0:
+            raise ValueError("data_size_MB must be >= 0")
         st = simulation_config.get("storage") or {}
         hours = float(st.get("hours", 24))
         hpm = float(st.get("hours_per_month", 720.0))
         if hpm <= 0:
             raise ValueError("storage.hours_per_month must be > 0")
-        data_gb = data_size_mb / 1024.0
+        data_gb = data_size_MB / 1024.0
         fraction_of_month = hours / hpm
         return data_gb * self.storage_price_per_gb_month * fraction_of_month
 
@@ -153,21 +151,21 @@ class SegmentNode(CloudNode):
         self.price_per_min = price_per_min
         self.exec_time_param = exec_time_param
 
-    def calculate_execution_cost(self, video_size_mb: float) -> float:
+    def calculate_execution_cost(self, video_size_MB: float) -> float:
         """Gamma 采样计算时间 × 每分钟单价（USD），不含存储费。"""
-        if video_size_mb < 0:
-            raise ValueError("video_size_mb must be >= 0")
-        theta = self.exec_time_param.theta0 + self.exec_time_param.theta1 * video_size_mb
+        if video_size_MB < 0:
+            raise ValueError("video_size_MB must be >= 0")
+        theta = self.exec_time_param.theta0 + self.exec_time_param.theta1 * video_size_MB
         comp_time_s = GammaDistribution(self.exec_time_param.alpha, theta).sample()
         return (comp_time_s / 60.0) * self.price_per_min
 
-    def calculate_latency(self, video_size_mb: float):
-        if video_size_mb < 0:
-            raise ValueError("video_size_mb must be >= 0")
+    def calculate_latency(self, video_size_MB: float):
+        if video_size_MB < 0:
+            raise ValueError("video_size_MB must be >= 0")
         # I/O 延迟：按数据量线性增长（秒/MB * MB）
-        io_time = self.exec_time_param.io_s_per_mb * video_size_mb
+        io_time = self.exec_time_param.io_s_per_MB * video_size_MB
         # 计算延迟：用 Gamma 分布模拟（参数随输入规模变化）
-        theta = self.exec_time_param.theta0 + self.exec_time_param.theta1 * video_size_mb
+        theta = self.exec_time_param.theta0 + self.exec_time_param.theta1 * video_size_MB
         comp_time = GammaDistribution(self.exec_time_param.alpha, theta).sample()
         return io_time + comp_time
 
@@ -182,21 +180,21 @@ class SplitNode(CloudNode):
         self.price_per_min = price_per_min
         self.exec_time_param = exec_time_param
 
-    def calculate_execution_cost(self, video_size_mb: float) -> float:
+    def calculate_execution_cost(self, video_size_MB: float) -> float:
         """Gamma 采样计算时间 × 每分钟单价（USD），不含存储费。"""
-        if video_size_mb < 0:
-            raise ValueError("video_size_mb must be >= 0")
-        theta = self.exec_time_param.theta0 + self.exec_time_param.theta1 * video_size_mb
+        if video_size_MB < 0:
+            raise ValueError("video_size_MB must be >= 0")
+        theta = self.exec_time_param.theta0 + self.exec_time_param.theta1 * video_size_MB
         comp_time_s = GammaDistribution(self.exec_time_param.alpha, theta).sample()
         return (comp_time_s / 60.0) * self.price_per_min
 
-    def calculate_latency(self, video_size_mb: float):
-        if video_size_mb < 0:
-            raise ValueError("video_size_mb must be >= 0")
+    def calculate_latency(self, video_size_MB: float):
+        if video_size_MB < 0:
+            raise ValueError("video_size_MB must be >= 0")
         # I/O 延迟：按数据量线性增长（秒/MB * MB）
-        io_time = self.exec_time_param.io_s_per_mb * video_size_mb
+        io_time = self.exec_time_param.io_s_per_MB * video_size_MB
         # 计算延迟：用 Gamma 分布模拟（参数随输入规模变化）
-        theta = self.exec_time_param.theta0 + self.exec_time_param.theta1 * video_size_mb
+        theta = self.exec_time_param.theta0 + self.exec_time_param.theta1 * video_size_MB
         comp_time = GammaDistribution(self.exec_time_param.alpha, theta).sample()
         return io_time + comp_time
 
@@ -224,35 +222,35 @@ class LlmNode:
         self.output_token_price = output_token_price
         self.llm_latency_param = llm_latency_param
 
-    def input_token_num(self, video_size_mb: float) -> int:
+    def input_token_num(self, video_size_MB: float) -> int:
         """Caption 等子类覆盖；Query 等无输入侧计费的节点默认 0。"""
         return 0
 
-    def output_token_num(self, video_size_mb: float) -> int:
+    def output_token_num(self, video_size_MB: float) -> int:
         raise NotImplementedError
 
     def calculate_token_cost(
-        self, video_size_mb: float, *, input_tokens: int | None = None
+        self, video_size_MB: float, *, input_tokens: int | None = None
     ) -> float:
         """
         按「百万 token」单价计费：(输入 token×输入单价 + 输出 token×输出单价) / 1e6 → USD。
         ``input_token_price`` / ``output_token_price`` 的单位为 **USD / 百万 tokens**。
 
         Caption→Query 流水线：上游 Caption 的输出 token 即下游 Query 的输入 token。
-        请先对 Caption 采样一次 ``n = caption.output_token_num(video_size_mb)``（或
-        ``caption_output_tokens_for_query(caption, video_size_mb)``），再传入
-        ``query.calculate_token_cost(video_size_mb, input_tokens=n)``，避免两侧各自采样不一致。
+        请先对 Caption 采样一次 ``n = caption.output_token_num(video_size_MB)``（或
+        ``caption_output_tokens_for_query(caption, video_size_MB)``），再传入
+        ``query.calculate_token_cost(video_size_MB, input_tokens=n)``，避免两侧各自采样不一致。
         若 ``input_tokens`` 为 None，则使用本节点的 ``input_token_num``（Query 默认为 0）。
         """
-        if video_size_mb < 0:
-            raise ValueError("video_size_mb must be >= 0")
+        if video_size_MB < 0:
+            raise ValueError("video_size_MB must be >= 0")
         if input_tokens is not None:
             if input_tokens < 0:
                 raise ValueError("input_tokens must be >= 0")
             n_in = float(input_tokens)
         else:
-            n_in = float(self.input_token_num(video_size_mb))
-        n_out = float(self.output_token_num(video_size_mb))
+            n_in = float(self.input_token_num(video_size_MB))
+        n_out = float(self.output_token_num(video_size_MB))
         return (
             n_in * float(self.input_token_price) + n_out * float(self.output_token_price)
         ) / LLM_TOKENS_PER_MILLION
@@ -270,14 +268,14 @@ class LlmNode:
             float(p.alpha_ms_per_token) * n_tokens + float(p.beta_ms) + noise,
         )
 
-    def _llm_latency_s(self, video_size_mb: float) -> float:
+    def _llm_latency_s(self, video_size_MB: float) -> float:
         """LLM 端到端延迟（秒）；子类（继承 Node）的 calculate_latency 应委托此处以满足 ABC。"""
-        return self.sample_ms(self.output_token_num(video_size_mb)) / 1000.0
+        return self.sample_ms(self.output_token_num(video_size_MB)) / 1000.0
 
 
-def caption_output_tokens_for_query(caption: LlmNode, video_size_mb: float) -> int:
+def caption_output_tokens_for_query(caption: LlmNode, video_size_MB: float) -> int:
     """Caption 输出 token 数，在 Caption→Query 链路上作为 Query 的 ``input_tokens`` 使用。"""
-    return caption.output_token_num(video_size_mb)
+    return caption.output_token_num(video_size_MB)
 
 
 class _CaptionTokenMixin:
@@ -286,17 +284,17 @@ class _CaptionTokenMixin:
     caption_input_token_num_param: CaptionInputTokenNumParam
     caption_output_token_num_param: CaptionOutputTokenNumParam
 
-    def input_token_num(self, video_size_mb: float) -> int:
-        if video_size_mb < 0:
-            raise ValueError("video_size_mb must be >= 0")
-        tpm = self.caption_input_token_num_param.input_tokens_per_mb
-        return max(0, int(round(video_size_mb * float(tpm))))
+    def input_token_num(self, video_size_MB: float) -> int:
+        if video_size_MB < 0:
+            raise ValueError("video_size_MB must be >= 0")
+        tpm = self.caption_input_token_num_param.input_tokens_per_MB
+        return max(0, int(round(video_size_MB * float(tpm))))
 
-    def output_token_num(self, video_size_mb: float) -> int:
-        if video_size_mb < 0:
-            raise ValueError("video_size_mb must be >= 0")
+    def output_token_num(self, video_size_MB: float) -> int:
+        if video_size_MB < 0:
+            raise ValueError("video_size_MB must be >= 0")
         p = self.caption_output_token_num_param
-        mean = max(float(p.base) + float(p.coef_per_mb) * video_size_mb, 20.0)
+        mean = max(float(p.base) + float(p.coef_per_MB) * video_size_MB, 20.0)
         sigma = float(p.std)
         if sigma < 0:
             raise ValueError("caption output token sigma must be >= 0")
@@ -309,7 +307,7 @@ class _QueryTokenMixin:
 
     query_output_token_num_param: QueryOutputTokenNumParam
 
-    def output_token_num(self, _video_size_mb: float) -> int:
+    def output_token_num(self, _video_size_MB: float) -> int:
         p = self.query_output_token_num_param
         return max(
             1,
@@ -327,8 +325,8 @@ class LlmCloudNode(CloudNode, LlmNode):
         # 初始化 LLM 部分
         LlmNode.__init__(self, llm_name, input_token_price, output_token_price, llm_latency_param)
 
-    def calculate_latency(self, video_size_mb: float) -> float:
-        return self._llm_latency_s(video_size_mb)
+    def calculate_latency(self, video_size_MB: float) -> float:
+        return self._llm_latency_s(video_size_MB)
 
 
 class LlmNonCloudNode(Node, LlmNode):
@@ -338,8 +336,8 @@ class LlmNonCloudNode(Node, LlmNode):
         Node.__init__(self, name, provider, region, utility)
         LlmNode.__init__(self, llm_name, input_token_price, output_token_price, llm_latency_param)
 
-    def calculate_latency(self, video_size_mb: float) -> float:
-        return self._llm_latency_s(video_size_mb)
+    def calculate_latency(self, video_size_MB: float) -> float:
+        return self._llm_latency_s(video_size_MB)
 
 
 # --- Caption / Query specialization ---

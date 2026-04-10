@@ -983,7 +983,7 @@ def workflow_scenarios_from_simulation(
         for qi, q in enumerate(queries):
             obs_cost: list[tuple[int, int, int, int, float]] = []
             obs_lat: list[tuple[int, int, int, int, float]] = []
-            s_mb = float(q.s_src)
+            s_MB = float(q.s_src)
 
             # 随机抽样 pipeline 并调用 black-box simulator
             for _ in range(max(1, samples_per_scenario)):
@@ -996,7 +996,7 @@ def workflow_scenarios_from_simulation(
                     spl_nodes[i1],
                     cap_nodes[i2],
                     qry_nodes[i3],
-                    s_mb,
+                    s_MB,
                     deterministic=deterministic,
                 )
                 obs_cost.append((i0, i1, i2, i3, float(rr.cost)))
@@ -1048,7 +1048,7 @@ def demo_with_simulation_env() -> None:
     queries = [
         CalibrationQuery(
             f"q{i+1}",
-            s_src=float(q.data_size_mb),
+            s_src=float(q.data_size_MB),
             theta_cost=float(q.cost_budget),
             theta_latency=float(q.latency_budget),
         )

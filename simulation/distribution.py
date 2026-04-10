@@ -81,7 +81,7 @@ class UniformDistribution:
 
 
 class SegSplExecTimeParam:
-    io_s_per_mb: float
+    io_s_per_MB: float
     alpha: float
     theta0: float
     theta1: float
@@ -94,12 +94,12 @@ class QueryOutputTokenNumParam:
 
 class CaptionOutputTokenNumParam:
     base: float
-    coef_per_mb: float
+    coef_per_MB: float
     std: float
 
 
 class CaptionInputTokenNumParam:
-    input_tokens_per_mb: float
+    input_tokens_per_MB: float
 
 
 class LlmlatencyParam:
@@ -109,7 +109,7 @@ class LlmlatencyParam:
 
 
 class Query:
-    data_size_mb: float
+    data_size_MB: float
     cost_budget: float # USD
     latency_budget: float # s
 
@@ -125,7 +125,7 @@ class BW:
 
 
 def sample_query_output_token_num_param() -> Dict[str, QueryOutputTokenNumParam]:
-    # 对所有的llm node生成QueryOutputTokenNumParam,基于config的参数,对于同一个llm而言,参数是一样的
+    # 对所有 llm 节点生成 QueryOutputTokenNumParam（按节点独立采样）
     mean_rng = config.get("query_mean")
     std_rng = config.get("query_std")
     if not isinstance(mean_rng, (list, tuple)) or len(mean_rng) != 2:
@@ -143,9 +143,8 @@ def sample_query_output_token_num_param() -> Dict[str, QueryOutputTokenNumParam]
     mean_dist = UniformDistribution(mean_lo, mean_hi)
     std_dist = UniformDistribution(std_lo, std_hi)
 
-    # 1) per-model-key sampled params
-    by_model: Dict[str, QueryOutputTokenNumParam] = {}
-    for mk in LLM_MODEL_KEYS:
+    out: Dict[str, QueryOutputTokenNumParam] = {}
+    for pr in cloud_region_names:
         p = QueryOutputTokenNumParam()
         p.mean = mean_dist.sample()
         p.std = std_dist.sample()
@@ -153,25 +152,19 @@ def sample_query_output_token_num_param() -> Dict[str, QueryOutputTokenNumParam]
             raise ValueError("sampled query_mean must be > 0")
         if p.std < 0:
             raise ValueError("sampled query_std must be >= 0")
-        by_model[mk] = p
+        out[f"{pr}_query"] = p
 
-    # 2) assign to nodes
-    out: Dict[str, QueryOutputTokenNumParam] = {}
-
-    # cloud query nodes: p?_r?_query -> model key is provider (p1/p2/p3)
-    for pr in cloud_region_names:
-        provider = pr.split("_", 1)[0]
-        out[f"{pr}_query"] = by_model[provider]
-
-    # llm-only query nodes: p4_m3_query / p5_m3_query -> model key is m3
     for name in get_llm_node_name():
         if not name.endswith("_query"):
             continue
-        parts = name.split("_")
-        if len(parts) < 3:
-            raise ValueError(f"Unexpected llm node name format: {name!r}")
-        model = parts[1]
-        out[name] = by_model[model]
+        p = QueryOutputTokenNumParam()
+        p.mean = mean_dist.sample()
+        p.std = std_dist.sample()
+        if p.mean <= 0:
+            raise ValueError("sampled query_mean must be > 0")
+        if p.std < 0:
+            raise ValueError("sampled query_std must be >= 0")
+        out[name] = p
 
     return out
 
@@ -195,364 +188,242 @@ def sample_data_conversion_ratio() -> Dict[Operation, LogNormalDistribution]:
 
 
 def sample_utility():
-    uv = config.get("utility_value")
-    ops: Sequence[Operation] = ("segment", "split", "caption", "query")
-    if not isinstance(uv, dict):
-        raise ValueError("config.utility_value must be a dict mapping operation -> [min, max]")
+    um = config.get("utility_by_node")
+    if not isinstance(um, dict):
+        raise ValueError("config.utility_by_node must be a dict with keys: segment/split/caption/query")
 
-    op_to_dist: Dict[Operation, UniformDistribution] = {}
-    for op in ops:
-        rng = uv.get(op)
-        if not isinstance(rng, (list, tuple)) or len(rng) != 2:
-            raise ValueError(f"config.utility_value[{op!r}] must be a 2-item list like [min, max]")
-        lo, hi = float(rng[0]), float(rng[1])
-        if hi < lo:
-            raise ValueError(f"config.utility_value[{op!r}] must satisfy max >= min")
-        op_to_dist[op] = UniformDistribution(lo, hi)
+    def _read_op_map(op: str) -> Dict[str, float]:
+        m = um.get(op)
+        if not isinstance(m, dict):
+            raise ValueError(f"config.utility_by_node.{op} must be a dict keyed by '<provider>_<region>'")
+        out: Dict[str, float] = {}
+        for pr in cloud_region_names:
+            if pr not in m:
+                raise ValueError(f"config.utility_by_node.{op} missing key {pr!r}")
+            out[pr] = float(m[pr])
+        return out
+
+    seg_u = _read_op_map("segment")
+    spl_u = _read_op_map("split")
+    cap_u = _read_op_map("caption")
+    qry_u = _read_op_map("query")
 
     utilities: Dict[str, float] = {}
-    for name in node_names:
-        op = name.rsplit("_", 1)[-1]
-        if op not in ops:
-            raise ValueError(f"Unknown operation parsed from node name {name!r}: {op!r}")
-        utilities[name] = op_to_dist[op].sample()  # type: ignore[index]
+    for pr in cloud_region_names:
+        utilities[f"{pr}_segment"] = seg_u[pr]
+        utilities[f"{pr}_split"] = spl_u[pr]
+        utilities[f"{pr}_caption"] = cap_u[pr]
+        utilities[f"{pr}_query"] = qry_u[pr]
     return utilities
 
 
 def sample_llm_token_price():
-    llm = config.get("llm", {})
-    inp_rng = llm.get("input_price")
-    mult = llm.get("output_multiplier")
-    if not isinstance(inp_rng, (list, tuple)) or len(inp_rng) != 2:
-        raise ValueError("config.llm.input_price must be a 2-item list like [min, max]")
-    if mult is None:
-        raise ValueError("config.llm.output_multiplier is required")
-
-    lo, hi = float(inp_rng[0]), float(inp_rng[1])
-    if hi < lo:
-        raise ValueError("config.llm.input_price must satisfy max >= min")
-    mult_f = float(mult)
-
-    # Return mapping: llm_node_name -> (input_price, output_price)，单位为 USD / 百万 tokens
-    # caption/query share the same sampled prices (per cloud provider+region or llm provider+model).
+    # Return mapping: llm_node_name -> (input_price, output_price)，单位 USD / 百万 tokens
+    llm_profiles = config.get("llm_profiles")
+    if not isinstance(llm_profiles, dict):
+        raise ValueError("config.llm_profiles must be a dict keyed by '<provider>_<region>'")
     llm_token_price: Dict[str, tuple[float, float]] = {}
-
-    # Cloud LLM nodes (provider+region): share across caption/query
     for pr in cloud_region_names:
-        inp = random.uniform(lo, hi)
-        outp = mult_f * inp
+        prof = llm_profiles.get(pr)
+        if not isinstance(prof, dict):
+            raise ValueError(f"config.llm_profiles[{pr!r}] is required")
+        inp = float(prof.get("input_price_per_m"))
+        outp = float(prof.get("output_price_per_m"))
         llm_token_price[f"{pr}_caption"] = (inp, outp)
         llm_token_price[f"{pr}_query"] = (inp, outp)
-
-    # LLM-only nodes (provider+model): share across caption/query
-    provider_model_seen: set[str] = set()
-    for name in get_llm_node_name():
-        # name format: p4_m1_caption
-        parts = name.split("_")
-        if len(parts) < 3:
-            raise ValueError(f"Unexpected llm node name format: {name!r}")
-        pm = f"{parts[0]}_{parts[1]}"
-        provider_model_seen.add(pm)
-
-    for pm in sorted(provider_model_seen):
-        inp = random.uniform(lo, hi)
-        outp = mult_f * inp
-        llm_token_price[f"{pm}_caption"] = (inp, outp)
-        llm_token_price[f"{pm}_query"] = (inp, outp)
-
     return llm_token_price
 
 
 def sample_storage_price():
-    # 每一个(cloud provider, region) 对应一个存储价格,但是key是具体的node
-    # 这需要是确定的量
-    rng = config.get("storage_price")
-    if not isinstance(rng, (list, tuple)) or len(rng) != 2:
-        raise ValueError("config.storage_price must be a 2-item list like [min, max]")
-    lo, hi = float(rng[0]), float(rng[1])
-    if hi < lo:
-        raise ValueError("config.storage_price must satisfy max >= min")
-
-    dist = UniformDistribution(lo, hi)
+    # 每个 (provider,region) 对应一个固定存储单价；跨 operation 复用
+    m = config.get("storage_price_per_gb_month")
+    if not isinstance(m, dict):
+        raise ValueError("config.storage_price_per_gb_month must be a dict keyed by '<provider>_<region>'")
     prices: Dict[str, float] = {}
     ops: Sequence[Operation] = ("segment", "split", "caption", "query")
-    # 先按 (provider, region) 采样一次，保证跨 operation 复用同一价格
-    pr_to_price: Dict[str, float] = {pr: dist.sample() for pr in cloud_region_names}
-    # 再展开为具体 node key: "{provider}_{region}_{operation}"
-    for pr, price in pr_to_price.items():
+    for pr in cloud_region_names:
+        if pr not in m:
+            raise ValueError(f"config.storage_price_per_gb_month missing key {pr!r}")
+        price = float(m[pr])
         for op in ops:
             prices[f"{pr}_{op}"] = price
     return prices
 
 
 def sample_egress_price():
-    # 生成一个矩阵,节点包括 *cloud_region_names, p4, p5, local, 一共15个节点,
-    # 也就是生成15*15的矩阵
-    # 元素(a,b)表示从a出站到b的价格,对于local,p4,p5,没有出站费用
-    # 对于元素(a,b)只有a是cloud node的时候,也就是a属于p1-3的时候,是非0数值,对角线为0,(a,b)表示从a到b的出站费用,此时,你需要考虑a和b是否属于同一个provider,如果是,从intra_provider的参数中均匀采样,如果不是,从cross_provider的参数中均匀采样
-    cfg = config.get("egress_price", {})
-    intra_rng = cfg.get("intra_provider")
-    cross_rng = cfg.get("cross_provider")
-    if not isinstance(intra_rng, (list, tuple)) or len(intra_rng) != 2:
-        raise ValueError("config.egress_price.intra_provider must be a 2-item list like [min, max]")
-    if not isinstance(cross_rng, (list, tuple)) or len(cross_rng) != 2:
-        raise ValueError("config.egress_price.cross_provider must be a 2-item list like [min, max]")
-    intra_lo, intra_hi = float(intra_rng[0]), float(intra_rng[1])
-    cross_lo, cross_hi = float(cross_rng[0]), float(cross_rng[1])
-    if intra_hi < intra_lo:
-        raise ValueError("config.egress_price.intra_provider must satisfy max >= min")
-    if cross_hi < cross_lo:
-        raise ValueError("config.egress_price.cross_provider must satisfy max >= min")
-
-    intra_dist = UniformDistribution(intra_lo, intra_hi)
-    cross_dist = UniformDistribution(cross_lo, cross_hi)
-
-    endpoints: list[str] = [*cloud_region_names, "p4", "p5", "local"]
-    if len(endpoints) != 15:
-        raise ValueError(f"Expected 15 endpoints, got {len(endpoints)}")
-
-    def provider_of(ep: str) -> str:
-        # cloud endpoints are like "p1_r1"
-        if ep in ("p4", "p5", "local"):
-            return ep
-        return ep.split("_", 1)[0]
-
-    def is_cloud(ep: str) -> bool:
-        # cloud endpoints are exactly the 12 provider+region names (p1..p3)
-        return ep not in ("p4", "p5", "local")
-
-    # matrix[src][dst] = outbound price from src -> dst (USD/GB)
-    matrix: list[list[float]] = [[0.0 for _ in endpoints] for _ in endpoints]
-    for i, src in enumerate(endpoints):
-        for j, dst in enumerate(endpoints):
-            if i == j:
-                matrix[i][j] = 0.0
-                continue
-            if not is_cloud(src):
-                matrix[i][j] = 0.0
-                continue
-            src_p = provider_of(src)
-            dst_p = provider_of(dst)
-            # 每个 (src, dst) 独立采样一次：
-            # - same provider => intra_provider range
-            # - different provider (including local/p4/p5) => cross_provider range
-            matrix[i][j] = intra_dist.sample() if (is_cloud(dst) and src_p == dst_p) else cross_dist.sample()
-
-    # 返回 endpoints + 15x15 matrix，便于用下标或名字查表
-    return {"endpoints": endpoints, "matrix": matrix}
+    cfg = config.get("egress_price_matrix", {})
+    endpoints = cfg.get("endpoints")
+    matrix = cfg.get("matrix")
+    if not isinstance(endpoints, list) or not all(isinstance(x, str) for x in endpoints):
+        raise ValueError("config.egress_price_matrix.endpoints must be a string list")
+    if not isinstance(matrix, list) or len(matrix) != len(endpoints):
+        raise ValueError("config.egress_price_matrix.matrix row count must match endpoints length")
+    for row in matrix:
+        if not isinstance(row, list) or len(row) != len(endpoints):
+            raise ValueError("config.egress_price_matrix.matrix must be a square matrix")
+    return {"endpoints": endpoints, "matrix": [[float(v) for v in row] for row in matrix]}
 
 
 def sample_segment_price():
-    # 一共有12中segment的node,即(provider_region_segment),为每一个节点分别进行均匀采样(依据config中的参数)
-    rng = config.get("segment_center")
-    if not isinstance(rng, (list, tuple)) or len(rng) != 2:
-        raise ValueError("config.segment_center must be a 2-item list like [min, max]")
-    lo, hi = float(rng[0]), float(rng[1])
-    if hi < lo:
-        raise ValueError("config.segment_center must satisfy max >= min")
-    dist = UniformDistribution(lo, hi)
-
+    m = config.get("segment_price_per_min")
+    if not isinstance(m, dict):
+        raise ValueError("config.segment_price_per_min must be a dict keyed by '<provider>_<region>'")
     prices: Dict[str, float] = {}
     for pr in cloud_region_names:
-        prices[f"{pr}_segment"] = dist.sample()
+        if pr not in m:
+            raise ValueError(f"config.segment_price_per_min missing key {pr!r}")
+        prices[f"{pr}_segment"] = float(m[pr])
     return prices
 
 
 def sample_split_price():
-    # 一共有12中split的node,即(provider_region_split),为每一个节点分别进行均匀采样(依据config中的参数)
-    rng = config.get("split_center")
-    if not isinstance(rng, (list, tuple)) or len(rng) != 2:
-        raise ValueError("config.split_center must be a 2-item list like [min, max]")
-    lo, hi = float(rng[0]), float(rng[1])
-    if hi < lo:
-        raise ValueError("config.split_center must satisfy max >= min")
-    dist = UniformDistribution(lo, hi)
-
+    m = config.get("split_price_per_min")
+    if not isinstance(m, dict):
+        raise ValueError("config.split_price_per_min must be a dict keyed by '<provider>_<region>'")
     prices: Dict[str, float] = {}
     for pr in cloud_region_names:
-        prices[f"{pr}_split"] = dist.sample()
+        if pr not in m:
+            raise ValueError(f"config.split_price_per_min missing key {pr!r}")
+        prices[f"{pr}_split"] = float(m[pr])
     return prices
 
 
 def sample_seg_spl_exec_time_param() -> Dict[str, SegSplExecTimeParam]:
-    # 为24个split和segment的node分别进行均匀采样(依据config中的exec_time参数)
+    # 为 24 个 split/segment 节点生成执行时间参数（逐节点确定值）。
     et = config.get("exec_time", {})
-    seg = et.get("segment", {})
-    spl = et.get("split", {})
-
-    def _req_range(obj: Any, key: str) -> tuple[float, float]:
-        rng = obj.get(key) if isinstance(obj, dict) else None
-        if not isinstance(rng, (list, tuple)) or len(rng) != 2:
-            raise ValueError(f"config.exec_time.*.{key} must be a 2-item list like [min, max]")
-        lo, hi = float(rng[0]), float(rng[1])
-        if hi < lo:
-            raise ValueError(f"config.exec_time.*.{key} must satisfy max >= min")
-        return lo, hi
-
-    seg_io = UniformDistribution(*_req_range(seg, "io_s_per_mb"))
-    seg_alpha = UniformDistribution(*_req_range(seg, "alpha"))
-    seg_t0 = UniformDistribution(*_req_range(seg, "theta0"))
-    seg_t1 = UniformDistribution(*_req_range(seg, "theta1"))
-
-    spl_io = UniformDistribution(*_req_range(spl, "io_s_per_mb"))
-    spl_alpha = UniformDistribution(*_req_range(spl, "alpha"))
-    spl_t0 = UniformDistribution(*_req_range(spl, "theta0"))
-    spl_t1 = UniformDistribution(*_req_range(spl, "theta1"))
+    seg_by_node = et.get("segment_by_node", {}) if isinstance(et, dict) else {}
+    spl_by_node = et.get("split_by_node", {}) if isinstance(et, dict) else {}
+    if not isinstance(seg_by_node, dict) or not isinstance(spl_by_node, dict):
+        raise ValueError("config.exec_time.segment_by_node / split_by_node must be dict")
 
     params: Dict[str, SegSplExecTimeParam] = {}
     for pr in cloud_region_names:
         seg_node = f"{pr}_segment"
         p1 = SegSplExecTimeParam()
-        p1.io_s_per_mb = seg_io.sample()
-        p1.alpha = seg_alpha.sample()
-        p1.theta0 = seg_t0.sample()
-        p1.theta1 = seg_t1.sample()
+        seg_cfg = seg_by_node.get(pr) if isinstance(seg_by_node, dict) else None
+        if not isinstance(seg_cfg, dict):
+            raise ValueError(f"config.exec_time.segment_by_node missing key {pr!r}")
+        p1.io_s_per_MB = float(seg_cfg["io_s_per_MB"])
+        p1.alpha = float(seg_cfg["alpha"])
+        p1.theta0 = float(seg_cfg["theta0"])
+        p1.theta1 = float(seg_cfg["theta1"])
         params[seg_node] = p1
 
         spl_node = f"{pr}_split"
         p2 = SegSplExecTimeParam()
-        p2.io_s_per_mb = spl_io.sample()
-        p2.alpha = spl_alpha.sample()
-        p2.theta0 = spl_t0.sample()
-        p2.theta1 = spl_t1.sample()
+        spl_cfg = spl_by_node.get(pr) if isinstance(spl_by_node, dict) else None
+        if not isinstance(spl_cfg, dict):
+            raise ValueError(f"config.exec_time.split_by_node missing key {pr!r}")
+        p2.io_s_per_MB = float(spl_cfg["io_s_per_MB"])
+        p2.alpha = float(spl_cfg["alpha"])
+        p2.theta0 = float(spl_cfg["theta0"])
+        p2.theta1 = float(spl_cfg["theta1"])
         params[spl_node] = p2
 
     return params
 
 
 def sample_caption_output_token_num_param() -> Dict[str, CaptionOutputTokenNumParam]:
-    # 为所有的LLM_MODEL_KEYS采样分布的参数,然后应用到所有对应的节点中
-    # 认为每一个cloud provider的llm是一样的,比如p1_r1-4 都用的是一个模型
-    # 然后对于p4_m3和p5_m3也是一个模型,参数也是相同的
+    llm_profiles = config.get("llm_profiles")
+    model_params = config.get("caption_model_params")
+    if not isinstance(llm_profiles, dict):
+        raise ValueError("config.llm_profiles must be a dict keyed by '<provider>_<region>'")
+    if not isinstance(model_params, dict):
+        raise ValueError("config.caption_model_params must be a dict keyed by model name")
 
-    base_rng = config.get("caption_base")
-    coef_rng = config.get("caption_coef_per_mb")
-    std_rng = config.get("caption_std")
-    if not isinstance(base_rng, (list, tuple)) or len(base_rng) != 2:
-        raise ValueError("config.caption_base must be a 2-item list like [min, max]")
-    if not isinstance(coef_rng, (list, tuple)) or len(coef_rng) != 2:
-        raise ValueError("config.caption_coef_per_mb must be a 2-item list like [min, max]")
-    if not isinstance(std_rng, (list, tuple)) or len(std_rng) != 2:
-        raise ValueError("config.caption_std must be a 2-item list like [min, max]")
-
-    base_dist = UniformDistribution(float(base_rng[0]), float(base_rng[1]))
-    coef_dist = UniformDistribution(float(coef_rng[0]), float(coef_rng[1]))
-    std_dist = UniformDistribution(float(std_rng[0]), float(std_rng[1]))
-
-    # 1) per-model-key sampled params
-    by_model: Dict[str, CaptionOutputTokenNumParam] = {}
-    for mk in LLM_MODEL_KEYS:
-        p = CaptionOutputTokenNumParam()
-        p.base = base_dist.sample()
-        p.coef_per_mb = coef_dist.sample()
-        p.std = std_dist.sample()
-        by_model[mk] = p
-
-    # 2) assign to nodes
     out: Dict[str, CaptionOutputTokenNumParam] = {}
-
-    # cloud caption nodes: p?_r?_caption -> model key is provider (p1/p2/p3)
     for pr in cloud_region_names:
-        provider = pr.split("_", 1)[0]
-        node = f"{pr}_caption"
-        out[node] = by_model[provider]
+        prof = llm_profiles.get(pr)
+        if not isinstance(prof, dict) or "model" not in prof:
+            raise ValueError(f"config.llm_profiles[{pr!r}].model is required")
+        model_name = str(prof["model"])
+        mp = model_params.get(model_name)
+        if not isinstance(mp, dict):
+            raise ValueError(f"config.caption_model_params[{model_name!r}] is required")
+        p = CaptionOutputTokenNumParam()
+        p.base = float(mp["base"])
+        p.coef_per_MB = float(mp["coef_per_MB"])
+        p.std = float(mp["std"])
+        out[f"{pr}_caption"] = p
 
-    # llm-only caption nodes: p4_m3_caption / p5_m3_caption -> model key is m3
     for name in get_llm_node_name():
         if not name.endswith("_caption"):
             continue
-        parts = name.split("_")
-        if len(parts) < 3:
-            raise ValueError(f"Unexpected llm node name format: {name!r}")
-        model = parts[1]
-        out[name] = by_model[model]
+        raise ValueError("LLM-only caption nodes are not supported in this config")
 
     return out
 
 
 def sample_caption_input_token_num_param() -> Dict[str, CaptionInputTokenNumParam]:
-    rng = config.get("input_tokens_per_mb")
-    if not isinstance(rng, (list, tuple)) or len(rng) != 2:
-        raise ValueError("config.input_tokens_per_mb must be a 2-item list like [min, max]")
-    lo, hi = float(rng[0]), float(rng[1])
-    if hi < lo:
-        raise ValueError("config.input_tokens_per_mb must satisfy max >= min")
+    llm_profiles = config.get("llm_profiles")
+    model_params = config.get("caption_model_params")
+    if not isinstance(llm_profiles, dict):
+        raise ValueError("config.llm_profiles must be a dict keyed by '<provider>_<region>'")
+    if not isinstance(model_params, dict):
+        raise ValueError("config.caption_model_params must be a dict keyed by model name")
 
-    dist = UniformDistribution(lo, hi)
-
-    # 1) per-model-key sampled params
-    by_model: Dict[str, CaptionInputTokenNumParam] = {}
-    for mk in LLM_MODEL_KEYS:
-        p = CaptionInputTokenNumParam()
-        p.input_tokens_per_mb = dist.sample()
-        if p.input_tokens_per_mb <= 0:
-            raise ValueError("sampled input_tokens_per_mb must be > 0")
-        by_model[mk] = p
-
-    # 2) assign to caption nodes
     out: Dict[str, CaptionInputTokenNumParam] = {}
-
-    # cloud caption nodes: p?_r?_caption -> model key is provider (p1/p2/p3)
     for pr in cloud_region_names:
-        provider = pr.split("_", 1)[0]
-        out[f"{pr}_caption"] = by_model[provider]
+        prof = llm_profiles.get(pr)
+        if not isinstance(prof, dict) or "model" not in prof:
+            raise ValueError(f"config.llm_profiles[{pr!r}].model is required")
+        model_name = str(prof["model"])
+        mp = model_params.get(model_name)
+        if not isinstance(mp, dict):
+            raise ValueError(f"config.caption_model_params[{model_name!r}] is required")
+        p = CaptionInputTokenNumParam()
+        p.input_tokens_per_MB = float(mp["input_tokens_per_MB"])
+        if p.input_tokens_per_MB <= 0:
+            raise ValueError("caption_model_params.input_tokens_per_MB must be > 0")
+        out[f"{pr}_caption"] = p
 
-    # llm-only caption nodes: p4_m3_caption / p5_m3_caption -> model key is m3
     for name in get_llm_node_name():
         if not name.endswith("_caption"):
             continue
-        parts = name.split("_")
-        if len(parts) < 3:
-            raise ValueError(f"Unexpected llm node name format: {name!r}")
-        model = parts[1]
-        out[name] = by_model[model]
+        raise ValueError("LLM-only caption nodes are not supported in this config")
 
     return out
 
 
 def sample_llm_latency_param() -> Dict[str, LlmlatencyParam]:
-    # 对于每一个llm node进行均匀采样参数
-    ll = config.get("llm_latency", {})
-    alpha_rng = ll.get("alpha_ms_per_token")
-    beta_rng = ll.get("beta_ms")
-    noise_rng = ll.get("noise_sigma_ms")
-    if not isinstance(alpha_rng, (list, tuple)) or len(alpha_rng) != 2:
-        raise ValueError("config.llm_latency.alpha_ms_per_token must be a 2-item list like [min, max]")
-    if not isinstance(beta_rng, (list, tuple)) or len(beta_rng) != 2:
-        raise ValueError("config.llm_latency.beta_ms must be a 2-item list like [min, max]")
-    if not isinstance(noise_rng, (list, tuple)) or len(noise_rng) != 2:
-        raise ValueError("config.llm_latency.noise_sigma_ms must be a 2-item list like [min, max]")
-
-    alpha_dist = UniformDistribution(float(alpha_rng[0]), float(alpha_rng[1]))
-    beta_dist = UniformDistribution(float(beta_rng[0]), float(beta_rng[1]))
-    noise_dist = UniformDistribution(float(noise_rng[0]), float(noise_rng[1]))
+    # 由 llm_profiles 直接给出 TTFT/TPT，噪声可在 llm_latency.default_noise_sigma_ms 设常数
+    llm_profiles = config.get("llm_profiles")
+    if not isinstance(llm_profiles, dict):
+        raise ValueError("config.llm_profiles must be a dict keyed by '<provider>_<region>'")
+    ll = config.get("llm_latency", {}) or {}
+    noise_sigma_ms = float(ll.get("default_noise_sigma_ms", 50.0))
 
     llm_nodes: list[str] = []
     for pr in cloud_region_names:
         llm_nodes.append(f"{pr}_caption")
         llm_nodes.append(f"{pr}_query")
-    llm_nodes.extend(get_llm_node_name())  # p4/p5 caption/query nodes
+    llm_nodes.extend(get_llm_node_name())
 
     out: Dict[str, LlmlatencyParam] = {}
     for node in llm_nodes:
+        pr = node.rsplit("_", 1)[0]
+        prof = llm_profiles.get(pr)
+        if not isinstance(prof, dict):
+            raise ValueError(f"config.llm_profiles[{pr!r}] is required")
         p = LlmlatencyParam()
-        p.alpha_ms_per_token = alpha_dist.sample()
-        p.beta_ms = beta_dist.sample()
-        p.noise_sigma_ms = noise_dist.sample()
+        p.alpha_ms_per_token = float(prof.get("tpt_ms_per_token"))
+        p.beta_ms = float(prof.get("ttft_ms"))
+        p.noise_sigma_ms = noise_sigma_ms
         out[node] = p
     return out
 
 
 def get_comm_endpoints() -> list[str]:
-    """通信端点 15 个：local + p1/p2/p3 各 4 region + p4 + p5。"""
-    eps = ["local"]
+    """通信端点列表，优先使用 network_matrix.endpoints。"""
+    nm = config.get("network_matrix", {})
+    eps = nm.get("endpoints") if isinstance(nm, dict) else None
+    if isinstance(eps, list) and all(isinstance(x, str) for x in eps):
+        return list(eps)
+    fallback = ["local"]
     for p in CLOUD_PROVIDERS:
         for r in CLOUD_REGIONS[p]:
-            eps.append(f"{p}_{r}")
-    eps.extend(["p4", "p5"])
-    if len(eps) != 15:
-        raise ValueError(f"Expected 15 comm endpoints, got {len(eps)}")
-    return eps
+            fallback.append(f"{p}_{r}")
+    return fallback
 
 
 def _classify_network_edge(a: str, b: str) -> str:
@@ -628,41 +499,58 @@ def _sample_bw_params_for_category(net: dict[str, Any], category: str) -> tuple[
 
 
 def sample_edge_rtt() -> Dict[Tuple[str, str], RTT]:
-    """
-    15 个端点两两无向边：对每条边按类别从 network.* 均匀采样 RTT 的 mean/std（用于 LogNormal 刻画）。
-    同时写入 (a,b) 与 (b,a)，参数相同。
-    """
-    net = _network_category_cfg()
+    """按 network_matrix.rtt_mean_std 读取每对端点的 RTT(mean,std)。"""
+    nm = config.get("network_matrix", {})
+    if not isinstance(nm, dict):
+        raise ValueError("config.network_matrix must be a dict")
     endpoints = get_comm_endpoints()
+    mat = nm.get("rtt_mean_std")
+    if not isinstance(mat, list) or len(mat) != len(endpoints):
+        raise ValueError("config.network_matrix.rtt_mean_std must be a square matrix")
+    for row in mat:
+        if not isinstance(row, list) or len(row) != len(endpoints):
+            raise ValueError("config.network_matrix.rtt_mean_std must be a square matrix")
     out: Dict[Tuple[str, str], RTT] = {}
-    for i in range(len(endpoints)):
-        for j in range(i + 1, len(endpoints)):
-            a, b = endpoints[i], endpoints[j]
-            cat = _classify_network_edge(a, b)
-            mean, std = _sample_rtt_params_for_category(net, cat)
+    for i, a in enumerate(endpoints):
+        for j, b in enumerate(endpoints):
+            if i == j:
+                continue
+            pair = mat[i][j]
+            if not isinstance(pair, (list, tuple)) or len(pair) != 2:
+                raise ValueError("each RTT matrix cell must be [mean_ms, std_ms]")
+            mean, std = float(pair[0]), float(pair[1])
             r = RTT()
             r.mean = mean
             r.std = std
             out[(a, b)] = r
-            out[(b, a)] = r
     return out
 
 
 def sample_edge_bw() -> Dict[Tuple[str, str], BW]:
-    """同上，对带宽（Mbps）的 mean/std 采样。"""
-    net = _network_category_cfg()
+    """按 network_matrix.bw_mean_std 读取每对端点的 BW(mean,std)。"""
+    nm = config.get("network_matrix", {})
+    if not isinstance(nm, dict):
+        raise ValueError("config.network_matrix must be a dict")
     endpoints = get_comm_endpoints()
+    mat = nm.get("bw_mean_std")
+    if not isinstance(mat, list) or len(mat) != len(endpoints):
+        raise ValueError("config.network_matrix.bw_mean_std must be a square matrix")
+    for row in mat:
+        if not isinstance(row, list) or len(row) != len(endpoints):
+            raise ValueError("config.network_matrix.bw_mean_std must be a square matrix")
     out: Dict[Tuple[str, str], BW] = {}
-    for i in range(len(endpoints)):
-        for j in range(i + 1, len(endpoints)):
-            a, b = endpoints[i], endpoints[j]
-            cat = _classify_network_edge(a, b)
-            mean, std = _sample_bw_params_for_category(net, cat)
+    for i, a in enumerate(endpoints):
+        for j, b in enumerate(endpoints):
+            if i == j:
+                continue
+            pair = mat[i][j]
+            if not isinstance(pair, (list, tuple)) or len(pair) != 2:
+                raise ValueError("each BW matrix cell must be [mean_mbps, std_mbps]")
+            mean, std = float(pair[0]), float(pair[1])
             w = BW()
             w.mean = mean
             w.std = std
             out[(a, b)] = w
-            out[(b, a)] = w
     return out
 
 
@@ -735,7 +623,7 @@ def sample_query_with_budget(num: float) -> list[Query]:
         raise ValueError("config.data_size must be a 2-item list like [min, max] MB")
 
     # 兼容两种写法：
-    # 1) 旧版：budget.latency_intercept_s / latency_slope_per_mb / cost_intercept_usd / cost_slope_per_mb
+    # 1) 旧版：budget.latency_intercept_s / latency_slope_per_MB / cost_intercept_usd / cost_slope_per_MB
     # 2) 数据驱动：budget.baseline.{...} + budget.slack_factor.{latency,cost}
     if isinstance(b, dict) and "baseline" in b:
         base = b.get("baseline") or {}
@@ -745,14 +633,14 @@ def sample_query_with_budget(num: float) -> list[Query]:
         if lat_sf <= 0 or cost_sf <= 0:
             raise ValueError("budget.slack_factor.latency/cost must be > 0")
         lat_i = float(base.get("latency_intercept_s")) * lat_sf
-        lat_s = float(base.get("latency_slope_per_mb")) * lat_sf
+        lat_s = float(base.get("latency_slope_per_MB")) * lat_sf
         cost_i = float(base.get("cost_intercept_usd")) * cost_sf
-        cost_s = float(base.get("cost_slope_per_mb")) * cost_sf
+        cost_s = float(base.get("cost_slope_per_MB")) * cost_sf
     else:
         lat_i = float(b.get("latency_intercept_s"))
-        lat_s = float(b.get("latency_slope_per_mb"))
+        lat_s = float(b.get("latency_slope_per_MB"))
         cost_i = float(b.get("cost_intercept_usd"))
-        cost_s = float(b.get("cost_slope_per_mb"))
+        cost_s = float(b.get("cost_slope_per_MB"))
 
     lo, hi = float(ds[0]), float(ds[1])
     if hi < lo:
@@ -761,11 +649,11 @@ def sample_query_with_budget(num: float) -> list[Query]:
     size_dist = UniformDistribution(lo, hi)
     out: list[Query] = []
     for _ in range(n):
-        data_size_mb = size_dist.sample()
+        data_size_MB = size_dist.sample()
         q = Query()
-        q.data_size_mb = data_size_mb
-        q.latency_budget = lat_i + lat_s * data_size_mb
-        q.cost_budget = cost_i + cost_s * data_size_mb
+        q.data_size_MB = data_size_MB
+        q.latency_budget = lat_i + lat_s * data_size_MB
+        q.cost_budget = cost_i + cost_s * data_size_MB
         out.append(q)
     return out
 

@@ -1,0 +1,347 @@
+# simulation parameters
+
+data_conversion_ratio:
+  segment_mean: 1
+  segment_std: 0.005
+  split_mean: 1
+  split_std: 0.005
+  caption_mean: 0.01
+  caption_std: 0.01
+  query_mean: 0.5
+  query_std: 0.3
+
+# per-region compute prices (USD/min)
+segment_price_per_min:
+  GCP_us-east1: 0.05
+  GCP_us-west1: 0.05
+  GCP_europe-west1: 0.05
+  GCP_asia-east1: 0.05
+  AWS_us-west-2: 0.05
+  AWS_us-east-2: 0.05
+  AWS_ap-southeast-1: 0.0675
+  AWS_eu-central-1: 0.06
+  Aliyun_cn-shanghai: 0.029
+  Aliyun_cn-beijing: 0.029
+  Aliyun_us-west-1: 0.05
+  Aliyun_ap-southeast-1: 0.035
+
+split_price_per_min:
+  GCP_us-east1: 0.0012
+  GCP_us-west1: 0.0012
+  GCP_europe-west1: 0.0012
+  GCP_asia-east1: 0.0012
+  AWS_us-west-2: 0.0010
+  AWS_us-east-2: 0.0010
+  AWS_ap-southeast-1: 0.0010
+  AWS_eu-central-1: 0.0010
+  Aliyun_cn-shanghai: 0.0010
+  Aliyun_cn-beijing: 0.0010
+  Aliyun_us-west-1: 0.0010
+  Aliyun_ap-southeast-1: 0.0010
+
+# storage (USD/GB/month)
+storage_price_per_gb_month:
+  GCP_us-east1: 0.020
+  GCP_us-west1: 0.020
+  GCP_europe-west1: 0.020
+  GCP_asia-east1: 0.023
+  AWS_us-west-2: 0.023
+  AWS_us-east-2: 0.023
+  AWS_ap-southeast-1: 0.025
+  AWS_eu-central-1: 0.0245
+  Aliyun_cn-shanghai: 0.0173
+  Aliyun_cn-beijing: 0.0173
+  Aliyun_us-west-1: 0.020
+  Aliyun_ap-southeast-1: 0.021
+
+# llm profile per cloud endpoint (using higher-accuracy model tier)
+llm_profiles:
+  GCP_us-east1:
+    model: Gemini 1.5 Pro
+    input_price_per_m: 1.25
+    output_price_per_m: 3.75
+    ttft_ms: 480
+    tpt_ms_per_token: 18.5
+  GCP_us-west1:
+    model: Gemini 1.5 Pro
+    input_price_per_m: 1.25
+    output_price_per_m: 3.75
+    ttft_ms: 450
+    tpt_ms_per_token: 18.2
+  GCP_europe-west1:
+    model: Gemini 1.5 Pro
+    input_price_per_m: 1.25
+    output_price_per_m: 3.75
+    ttft_ms: 520
+    tpt_ms_per_token: 19.8
+  GCP_asia-east1:
+    model: Gemini 1.5 Pro
+    input_price_per_m: 1.50
+    output_price_per_m: 4.50
+    ttft_ms: 610
+    tpt_ms_per_token: 21.0
+  AWS_us-west-2:
+    model: Claude 3.5 Sonnet
+    input_price_per_m: 3.00
+    output_price_per_m: 15.00
+    ttft_ms: 650
+    tpt_ms_per_token: 14.5
+  AWS_us-east-2:
+    model: Claude 3.5 Sonnet
+    input_price_per_m: 3.00
+    output_price_per_m: 15.00
+    ttft_ms: 620
+    tpt_ms_per_token: 14.2
+  AWS_ap-southeast-1:
+    model: Claude 3.5 Sonnet
+    input_price_per_m: 3.60
+    output_price_per_m: 18.00
+    ttft_ms: 780
+    tpt_ms_per_token: 16.5
+  AWS_eu-central-1:
+    model: Claude 3.5 Sonnet
+    input_price_per_m: 3.30
+    output_price_per_m: 16.50
+    ttft_ms: 710
+    tpt_ms_per_token: 15.8
+  Aliyun_cn-shanghai:
+    model: Qwen-VL-Max
+    input_price_per_m: 0.52
+    output_price_per_m: 2.08
+    ttft_ms: 550
+    tpt_ms_per_token: 22.0
+  Aliyun_cn-beijing:
+    model: Qwen-VL-Max
+    input_price_per_m: 0.52
+    output_price_per_m: 2.08
+    ttft_ms: 530
+    tpt_ms_per_token: 21.5
+  Aliyun_us-west-1:
+    model: Qwen-VL-Max
+    input_price_per_m: 1.20
+    output_price_per_m: 6.00
+    ttft_ms: 850
+    tpt_ms_per_token: 28.0
+  Aliyun_ap-southeast-1:
+    model: Qwen-VL-Max
+    input_price_per_m: 1.20
+    output_price_per_m: 6.00
+    ttft_ms: 720
+    tpt_ms_per_token: 24.5
+
+caption_model_params:
+  Gemini 1.5 Pro:
+    input_tokens_per_MB: 215
+    base: 35
+    coef_per_MB: 78.0
+    std: 65
+  Gemini 1.5 Flash:
+    input_tokens_per_MB: 185
+    base: 12
+    coef_per_MB: 42.0
+    std: 45
+  Claude 3.5 Sonnet:
+    input_tokens_per_MB: 225
+    base: 40
+    coef_per_MB: 82.0
+    std: 70
+  Claude 3.5 Haiku:
+    input_tokens_per_MB: 195
+    base: 10
+    coef_per_MB: 38.0
+    std: 40
+  Qwen-VL-Max:
+    input_tokens_per_MB: 205
+    base: 30
+    coef_per_MB: 72.0
+    std: 55
+  Qwen-VL-Plus:
+    input_tokens_per_MB: 190
+    base: 20
+    coef_per_MB: 55.0
+    std: 50
+
+llm_latency:
+  default_noise_sigma_ms: 50.0
+
+egress_price_matrix:
+  endpoints:
+    - GCP_us-east1
+    - GCP_us-west1
+    - GCP_europe-west1
+    - GCP_asia-east1
+    - AWS_us-west-2
+    - AWS_us-east-2
+    - AWS_ap-southeast-1
+    - AWS_eu-central-1
+    - Aliyun_cn-shanghai
+    - Aliyun_cn-beijing
+    - Aliyun_us-west-1
+    - Aliyun_ap-southeast-1
+    - local
+  matrix:
+    - [0, 0.01, 0.08, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12]
+    - [0.01, 0, 0.08, 0.10, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12]
+    - [0.08, 0.08, 0, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12]
+    - [0.12, 0.10, 0.12, 0, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12]
+    - [0.02, 0.02, 0.02, 0.02, 0, 0.02, 0.02, 0.02, 0.09, 0.09, 0.09, 0.09, 0.09]
+    - [0.02, 0.02, 0.02, 0.02, 0.02, 0, 0.02, 0.02, 0.09, 0.09, 0.09, 0.09, 0.09]
+    - [0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0, 0.02, 0.09, 0.09, 0.09, 0.09, 0.09]
+    - [0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0, 0.09, 0.09, 0.09, 0.09, 0.09]
+    - [0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0, 0.015, 0.075, 0.075, 0.12]
+    - [0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.015, 0, 0.075, 0.075, 0.12]
+    - [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.078, 0.078, 0, 0.078, 0.05]
+    - [0.09, 0.09, 0.09, 0.09, 0.09, 0.09, 0.09, 0.09, 0.08, 0.08, 0.078, 0, 0.09]
+    - [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+# execution-time params
+exec_time:
+  segment_by_node:
+    GCP_us-east1: { alpha: 5.0, theta0: 1.30, theta1: 0.45, io_s_per_MB: 0.0008 }
+    GCP_us-west1: { alpha: 5.0, theta0: 1.24, theta1: 0.45, io_s_per_MB: 0.0008 }
+    GCP_europe-west1: { alpha: 5.0, theta0: 1.56, theta1: 0.45, io_s_per_MB: 0.0008 }
+    GCP_asia-east1: { alpha: 5.0, theta0: 1.84, theta1: 0.52, io_s_per_MB: 0.0010 }
+    AWS_us-west-2: { alpha: 4.0, theta0: 2.12, theta1: 0.48, io_s_per_MB: 0.0006 }
+    AWS_us-east-2: { alpha: 4.0, theta0: 2.05, theta1: 0.48, io_s_per_MB: 0.0006 }
+    AWS_ap-southeast-1: { alpha: 4.0, theta0: 2.62, theta1: 0.55, io_s_per_MB: 0.0007 }
+    AWS_eu-central-1: { alpha: 4.0, theta0: 2.45, theta1: 0.50, io_s_per_MB: 0.0007 }
+    Aliyun_cn-shanghai: { alpha: 6.0, theta0: 0.92, theta1: 0.38, io_s_per_MB: 0.0005 }
+    Aliyun_cn-beijing: { alpha: 6.0, theta0: 0.96, theta1: 0.38, io_s_per_MB: 0.0005 }
+    Aliyun_us-west-1: { alpha: 5.5, theta0: 1.55, theta1: 0.50, io_s_per_MB: 0.0008 }
+    Aliyun_ap-southeast-1: { alpha: 5.8, theta0: 1.24, theta1: 0.42, io_s_per_MB: 0.0008 }
+  split_by_node:
+    GCP_us-east1: { alpha: 2.5, theta0: 0.048, theta1: 0.012, io_s_per_MB: 0.015 }
+    GCP_us-west1: { alpha: 2.5, theta0: 0.044, theta1: 0.012, io_s_per_MB: 0.015 }
+    GCP_europe-west1: { alpha: 2.5, theta0: 0.060, theta1: 0.012, io_s_per_MB: 0.015 }
+    GCP_asia-east1: { alpha: 2.5, theta0: 0.072, theta1: 0.015, io_s_per_MB: 0.018 }
+    AWS_us-west-2: { alpha: 3.5, theta0: 0.022, theta1: 0.008, io_s_per_MB: 0.012 }
+    AWS_us-east-2: { alpha: 3.5, theta0: 0.022, theta1: 0.008, io_s_per_MB: 0.012 }
+    AWS_ap-southeast-1: { alpha: 3.2, theta0: 0.044, theta1: 0.010, io_s_per_MB: 0.014 }
+    AWS_eu-central-1: { alpha: 3.2, theta0: 0.038, theta1: 0.010, io_s_per_MB: 0.014 }
+    Aliyun_cn-shanghai: { alpha: 3.8, theta0: 0.024, theta1: 0.007, io_s_per_MB: 0.011 }
+    Aliyun_cn-beijing: { alpha: 3.8, theta0: 0.024, theta1: 0.007, io_s_per_MB: 0.011 }
+    Aliyun_us-west-1: { alpha: 3.0, theta0: 0.050, theta1: 0.012, io_s_per_MB: 0.014 }
+    Aliyun_ap-southeast-1: { alpha: 3.5, theta0: 0.034, theta1: 0.009, io_s_per_MB: 0.012 }
+
+network_matrix:
+  endpoints:
+    - GCP_us-east1
+    - GCP_us-west1
+    - GCP_europe-west1
+    - GCP_asia-east1
+    - AWS_us-west-2
+    - AWS_us-east-2
+    - AWS_ap-southeast-1
+    - AWS_eu-central-1
+    - Aliyun_cn-shanghai
+    - Aliyun_cn-beijing
+    - Aliyun_us-west-1
+    - Aliyun_ap-southeast-1
+    - local
+  rtt_mean_std:
+    - [[0,0], [65,4], [90,6], [160,15], [68,12], [6,1], [180,25], [95,15], [220,35], [230,35], [65,12], [200,30], [220,40]]
+    - [[65,4], [0,0], [140,10], [120,12], [5,1], [68,12], [150,20], [150,20], [180,30], [190,30], [6,1], [160,25], [180,35]]
+    - [[90,6], [140,10], [0,0], [240,20], [145,25], [95,15], [210,30], [8,1], [250,40], [260,40], [140,25], [230,35], [250,45]]
+    - [[160,15], [120,12], [240,20], [0,0], [125,20], [165,25], [45,8], [230,35], [35,5], [45,6], [120,20], [40,6], [35,6]]
+    - [[68,12], [5,1], [145,25], [125,20], [0,0], [65,4], [155,25], [155,25], [185,35], [195,35], [6,1], [165,30], [185,40]]
+    - [[6,1], [68,12], [95,15], [165,25], [65,4], [0,0], [185,30], [100,18], [225,40], [235,40], [68,12], [205,35], [225,45]]
+    - [[180,25], [150,20], [210,30], [45,8], [155,25], [185,30], [0,0], [200,30], [75,12], [85,15], [150,25], [5,1], [75,15]]
+    - [[95,15], [150,20], [8,1], [230,35], [155,25], [100,18], [200,30], [0,0], [260,45], [270,45], [150,25], [210,35], [260,50]]
+    - [[220,35], [180,30], [250,40], [35,5], [185,35], [225,40], [75,12], [260,45], [0,0], [30,3], [180,30], [70,10], [2,1]]
+    - [[230,35], [190,30], [260,40], [45,6], [195,35], [235,40], [85,15], [270,45], [30,3], [0,0], [190,30], [80,12], [32,4]]
+    - [[65,12], [6,1], [140,25], [120,20], [6,1], [68,12], [150,25], [150,25], [180,30], [190,30], [0,0], [160,30], [180,40]]
+    - [[200,30], [160,25], [230,35], [40,6], [165,30], [205,35], [5,1], [210,35], [70,10], [80,12], [160,30], [0,0], [70,12]]
+    - [[220,40], [180,35], [250,45], [35,6], [185,40], [225,45], [75,15], [260,50], [2,1], [32,4], [180,40], [70,12], [0,0]]
+  bw_mean_std:
+    - [[0,0], [5000,500], [3000,300], [1500,200], [1200,250], [2500,400], [1000,200], [1200,250], [400,100], [400,100], [1200,250], [800,150], [100,30]]
+    - [[5000,500], [0,0], [1500,200], [3000,300], [2500,400], [1200,250], [1200,250], [1000,200], [600,150], [600,150], [2500,400], [1000,200], [150,40]]
+    - [[3000,300], [1500,200], [0,0], [800,150], [1000,200], [1200,250], [800,150], [2500,400], [400,100], [400,100], [1000,200], [800,150], [80,25]]
+    - [[1500,200], [3000,300], [800,150], [0,0], [1000,200], [800,150], [1500,250], [600,150], [2500,400], [2000,350], [1200,250], [2500,400], [250,50]]
+    - [[1200,250], [2500,400], [1000,200], [1000,200], [0,0], [5000,500], [2500,400], [2500,400], [500,120], [500,120], [2500,400], [1200,250], [120,30]]
+    - [[2500,400], [1200,250], [1200,250], [800,150], [5000,500], [0,0], [2000,350], [3000,450], [400,100], [400,100], [1200,250], [1000,200], [100,25]]
+    - [[1000,200], [1200,250], [800,150], [1500,250], [2500,400], [2000,350], [0,0], [2500,400], [1200,250], [1000,200], [1200,250], [5000,600], [200,40]]
+    - [[1200,250], [1000,200], [2500,400], [600,150], [2500,400], [3000,450], [2500,400], [0,0], [400,100], [400,100], [1000,200], [1200,250], [80,20]]
+    - [[400,100], [600,150], [400,100], [2500,400], [500,120], [400,100], [1200,250], [400,100], [0,0], [6000,700], [1200,250], [3000,450], [1000,100]]
+    - [[400,100], [600,150], [400,100], [2000,350], [500,120], [400,100], [1000,200], [400,100], [6000,700], [0,0], [1000,200], [2500,400], [800,100]]
+    - [[1200,250], [2500,400], [1000,200], [1200,250], [2500,400], [1200,250], [1200,250], [1000,200], [1200,250], [1000,200], [0,0], [1200,250], [150,40]]
+    - [[800,150], [1000,200], [800,150], [2500,400], [1200,250], [1000,200], [5000,600], [1200,250], [3000,450], [2500,400], [1200,250], [0,0], [250,50]]
+    - [[100,30], [150,40], [80,25], [250,50], [120,30], [100,25], [200,40], [80,20], [1000,100], [800,100], [150,40], [250,50], [0,0]]
+
+storage:
+  hours: 24
+  hours_per_month: 720.0
+
+utility_weight:
+  segment: 0.1
+  split: 0.0
+  caption: 0.45
+  query: 0.45
+
+utility_by_node:
+  segment:
+    GCP_us-east1: 0.952
+    GCP_us-west1: 0.952
+    GCP_europe-west1: 0.952
+    GCP_asia-east1: 0.952
+    AWS_us-west-2: 0.941
+    AWS_us-east-2: 0.941
+    AWS_ap-southeast-1: 0.941
+    AWS_eu-central-1: 0.941
+    Aliyun_cn-shanghai: 0.935
+    Aliyun_cn-beijing: 0.935
+    Aliyun_us-west-1: 0.935
+    Aliyun_ap-southeast-1: 0.935
+  split:
+    GCP_us-east1: 1.0
+    GCP_us-west1: 1.0
+    GCP_europe-west1: 1.0
+    GCP_asia-east1: 1.0
+    AWS_us-west-2: 1.0
+    AWS_us-east-2: 1.0
+    AWS_ap-southeast-1: 1.0
+    AWS_eu-central-1: 1.0
+    Aliyun_cn-shanghai: 1.0
+    Aliyun_cn-beijing: 1.0
+    Aliyun_us-west-1: 1.0
+    Aliyun_ap-southeast-1: 1.0
+  caption:
+    GCP_us-east1: 0.892
+    GCP_us-west1: 0.892
+    GCP_europe-west1: 0.892
+    GCP_asia-east1: 0.892
+    AWS_us-west-2: 0.904
+    AWS_us-east-2: 0.904
+    AWS_ap-southeast-1: 0.904
+    AWS_eu-central-1: 0.904
+    Aliyun_cn-shanghai: 0.887
+    Aliyun_cn-beijing: 0.887
+    Aliyun_us-west-1: 0.887
+    Aliyun_ap-southeast-1: 0.887
+  query:
+    GCP_us-east1: 0.892
+    GCP_us-west1: 0.892
+    GCP_europe-west1: 0.892
+    GCP_asia-east1: 0.892
+    AWS_us-west-2: 0.904
+    AWS_us-east-2: 0.904
+    AWS_ap-southeast-1: 0.904
+    AWS_eu-central-1: 0.904
+    Aliyun_cn-shanghai: 0.887
+    Aliyun_cn-beijing: 0.887
+    Aliyun_us-west-1: 0.887
+    Aliyun_ap-southeast-1: 0.887
+
+query_mean: [100, 150]
+query_std: [200, 250]
+
+budget:
+  baseline:
+    latency_intercept_s: 146.178724
+    latency_slope_per_MB: 15.068026
+    cost_intercept_usd: 0.031489
+    cost_slope_per_MB: 0.010597
+  slack_factor:
+    latency: 1.20
+    cost: 1.20
+
+data_size: [5.0, 500.0]

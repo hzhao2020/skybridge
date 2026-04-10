@@ -179,38 +179,38 @@ def _egress_usd_per_gb(params: DistributionParameters, src: Node, dst: Node) -> 
     return matrix[i][j]
 
 
-def _gamma_mean_comp_time(seg: SegmentNode | SplitNode, video_size_mb: float) -> float:
+def _gamma_mean_comp_time(seg: SegmentNode | SplitNode, video_size_MB: float) -> float:
     """Gamma(α,θ) 计算时间均值 α·θ，θ = θ0 + θ1·S。"""
     p = seg.exec_time_param
-    theta = p.theta0 + p.theta1 * video_size_mb
+    theta = p.theta0 + p.theta1 * video_size_MB
     return p.alpha * theta
 
 
-def _segment_mean_execution_cost(segment: SegmentNode, video_size_mb: float) -> float:
-    ct = _gamma_mean_comp_time(segment, video_size_mb)
+def _segment_mean_execution_cost(segment: SegmentNode, video_size_MB: float) -> float:
+    ct = _gamma_mean_comp_time(segment, video_size_MB)
     return (ct / 60.0) * segment.price_per_min
 
 
-def _split_mean_execution_cost(split: SplitNode, video_size_mb: float) -> float:
-    return (_gamma_mean_comp_time(split, video_size_mb) / 60.0) * split.price_per_min
+def _split_mean_execution_cost(split: SplitNode, video_size_MB: float) -> float:
+    return (_gamma_mean_comp_time(split, video_size_MB) / 60.0) * split.price_per_min
 
 
-def _segment_mean_latency(segment: SegmentNode, video_size_mb: float) -> float:
+def _segment_mean_latency(segment: SegmentNode, video_size_MB: float) -> float:
     p = segment.exec_time_param
-    io_time = p.io_s_per_mb * video_size_mb
-    return io_time + _gamma_mean_comp_time(segment, video_size_mb)
+    io_time = p.io_s_per_MB * video_size_MB
+    return io_time + _gamma_mean_comp_time(segment, video_size_MB)
 
 
-def _split_mean_latency(split: SplitNode, video_size_mb: float) -> float:
+def _split_mean_latency(split: SplitNode, video_size_MB: float) -> float:
     p = split.exec_time_param
-    io_time = p.io_s_per_mb * video_size_mb
-    return io_time + _gamma_mean_comp_time(split, video_size_mb)
+    io_time = p.io_s_per_MB * video_size_MB
+    return io_time + _gamma_mean_comp_time(split, video_size_MB)
 
 
-def _caption_mean_output_tokens(caption: CaptionCloudNode | CaptionNonCloudNode, video_size_mb: float) -> int:
+def _caption_mean_output_tokens(caption: CaptionCloudNode | CaptionNonCloudNode, video_size_MB: float) -> int:
     """Caption 输出 token 数：LogNormal 的均值参数（即 E[X]）取整，与 ``deterministic`` 口径一致。"""
     p = caption.caption_output_token_num_param
-    mean = max(float(p.base) + float(p.coef_per_mb) * video_size_mb, 20.0)
+    mean = max(float(p.base) + float(p.coef_per_MB) * video_size_MB, 20.0)
     return max(1, int(round(mean)))
 
 
@@ -397,7 +397,7 @@ class Workflow:
         r, bw = self._rtt_bw_objects(src, dst)
         return Edge(src, dst, r, bw, _egress_usd_per_gb(self.params, src, dst))
 
-    def _edge_latency_s(self, src: Node, dst: Node, data_size_mb: float) -> float:
+    def _edge_latency_s(self, src: Node, dst: Node, data_size_MB: float) -> float:
         if _node_to_comm_endpoint(src) == _node_to_comm_endpoint(dst):
             return 0.0
         if self._deterministic:
@@ -410,26 +410,26 @@ class Workflow:
                 return rtt_half_s
             if bw_mbps <= 0 and not math.isinf(bw_mbps):
                 raise ValueError("bandwidth_mbps must be > 0 (or +inf for local/zero transfer time)")
-            return rtt_half_s + (data_size_mb * 8.0) / bw_mbps
-        return self._edge(src, dst).calculate_latency(data_size_mb)
+            return rtt_half_s + (data_size_MB * 8.0) / bw_mbps
+        return self._edge(src, dst).calculate_latency(data_size_MB)
 
-    def _edge_egress_usd(self, src: Node, dst: Node, data_size_mb: float) -> float:
+    def _edge_egress_usd(self, src: Node, dst: Node, data_size_MB: float) -> float:
         if _node_to_comm_endpoint(src) == _node_to_comm_endpoint(dst):
             return 0.0
-        return self._edge(src, dst).calculate_egress_cost(data_size_mb)
+        return self._edge(src, dst).calculate_egress_cost(data_size_MB)
 
-    def _egress_and_latency_from_local(self, dst: Node, data_mb: float) -> tuple[float, float]:
+    def _egress_and_latency_from_local(self, dst: Node, data_MB: float) -> tuple[float, float]:
         """local → dst：出站 USD（矩阵中 src=local 时多为 0）与链路上传输延迟（秒）。"""
         return (
-            self._edge_egress_usd(self._local, dst, data_mb),
-            self._edge_latency_s(self._local, dst, data_mb),
+            self._edge_egress_usd(self._local, dst, data_MB),
+            self._edge_latency_s(self._local, dst, data_MB),
         )
 
-    def _egress_and_latency_to_local(self, src: Node, data_mb: float) -> tuple[float, float]:
+    def _egress_and_latency_to_local(self, src: Node, data_MB: float) -> tuple[float, float]:
         """src → local：云侧出站 USD + RTT/BW 传输延迟（终点为 ``local``，须占矩阵一条边）。"""
         return (
-            self._edge_egress_usd(src, self._local, data_mb),
-            self._edge_latency_s(src, self._local, data_mb),
+            self._edge_egress_usd(src, self._local, data_MB),
+            self._edge_latency_s(src, self._local, data_MB),
         )
 
     @staticmethod
@@ -457,7 +457,7 @@ class Workflow:
         split: SplitNode,
         caption: CaptionCloudNode | CaptionNonCloudNode,
         query: QueryCloudNode | QueryNonCloudNode,
-        video_size_mb: float,
+        video_size_MB: float,
         *,
         ratio_segment: float,
         ratio_split: float,
@@ -474,9 +474,9 @@ class Workflow:
         3) llm caption + cloud query：caption 无存储，mb3 回到 split；split 额外存 mb3；query 存 mb3、mb4。
         4) llm caption + llm query：caption 无存储，mb3 在 split；query 无存储，mb4 存回 split。
         """
-        if video_size_mb < 0:
-            raise ValueError("video_size_mb must be >= 0")
-        mb0 = video_size_mb
+        if video_size_MB < 0:
+            raise ValueError("video_size_MB must be >= 0")
+        mb0 = video_size_MB
         mb1 = mb0 * float(ratio_segment)
         mb2 = mb1 * float(ratio_split)
         mb3 = mb2 * float(ratio_caption)
@@ -532,7 +532,7 @@ class Workflow:
         split: SplitNode,
         caption: CaptionCloudNode | CaptionNonCloudNode,
         query: QueryCloudNode | QueryNonCloudNode,
-        video_size_mb: float,
+        video_size_MB: float,
         *,
         verbose: bool = False,
         include_breakdown: bool = False,
@@ -552,8 +552,8 @@ class Workflow:
         ``deterministic=True``：**确定性基线**——链路与计算时间取分布均值、Gamma 取均值、LLM token
         取期望输出规模、LLM 延迟取无噪声均值；不再对边延迟/执行时间/token 做随机采样。
         """
-        if video_size_mb < 0:
-            raise ValueError("video_size_mb must be >= 0")
+        if video_size_MB < 0:
+            raise ValueError("video_size_MB must be >= 0")
 
         self._deterministic = deterministic
         if deterministic:
@@ -565,7 +565,7 @@ class Workflow:
             deterministic=deterministic
         )
 
-        mb0 = video_size_mb
+        mb0 = video_size_MB
         mb1 = mb0 * float(ratio_segment)
         mb2 = mb1 * float(ratio_split)
         mb3 = mb2 * float(ratio_caption)
@@ -624,7 +624,7 @@ class Workflow:
             split,
             caption,
             query,
-            video_size_mb,
+            video_size_MB,
             ratio_segment=ratio_segment,
             ratio_split=ratio_split,
             ratio_caption=ratio_caption,

@@ -130,7 +130,7 @@ def build_candidate_pipelines(
 
 def profile(
     *,
-    sizes_mb: list[float],
+    sizes_MB: list[float],
     eta: float,
     mc_runs: int,
     random_pipelines: int,
@@ -148,7 +148,7 @@ def profile(
     cost_qs: list[float] = []
     lat_qs: list[float] = []
 
-    for s in sizes_mb:
+    for s in sizes_MB:
         best_mean_cost = (float("inf"), None)  # (value, pipeline)
         best_mean_lat = (float("inf"), None)
 
@@ -201,17 +201,17 @@ def profile(
 
     print("\n=== Suggested baseline (fit on quantiles) ===")
     print(f"cost_intercept_usd:    {a_c:.6f}")
-    print(f"cost_slope_per_mb:     {b_c:.6f}")
+    print(f"cost_slope_per_MB:     {b_c:.6f}")
     print(f"latency_intercept_s:   {a_t:.6f}")
-    print(f"latency_slope_per_mb:  {b_t:.6f}")
+    print(f"latency_slope_per_MB:  {b_t:.6f}")
 
     print("\n=== config.yaml snippet (budget.baseline + slack_factor) ===")
     print("budget:")
     print("  baseline:")
     print(f"    latency_intercept_s: {a_t:.6f}")
-    print(f"    latency_slope_per_mb: {b_t:.6f}")
+    print(f"    latency_slope_per_MB: {b_t:.6f}")
     print(f"    cost_intercept_usd: {a_c:.6f}")
-    print(f"    cost_slope_per_mb: {b_c:.6f}")
+    print(f"    cost_slope_per_MB: {b_c:.6f}")
     print("  slack_factor:")
     print("    latency: 1.20")
     print("    cost: 1.20")
@@ -229,13 +229,13 @@ def main() -> None:
     args = ap.parse_args()
 
     sizes: list[float] = []
-    x = float(args.min_mb)
-    while x <= float(args.max_mb) + 1e-9:
+    x = float(args.min_MB)
+    while x <= float(args.max_MB) + 1e-9:
         sizes.append(x)
-        x += float(args.step_mb)
+        x += float(args.step_MB)
 
     profile(
-        sizes_mb=sizes,
+        sizes_MB=sizes,
         eta=float(args.eta),
         mc_runs=int(args.mc),
         random_pipelines=int(args.random_pipelines),

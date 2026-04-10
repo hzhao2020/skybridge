@@ -177,8 +177,8 @@ def run_experiment(
     train_ratio: float = 0.5,
     baseline_runs: int = 40,
     *,
-    greedy_source_provider: str = "p1",
-    greedy_source_region: str = "r1",
+    greedy_source_provider: str = "GCP",
+    greedy_source_region: str = "us-east1",
     greedy_delta: float = 0.05,
     proposed_cfg: ProposedSearchConfig | None = None,
 ) -> None:
@@ -240,8 +240,8 @@ if __name__ == "__main__":
     ap.add_argument("--train-ratio", type=float, default=0.5, help="fraction of queries used for training (0-1)")
     ap.add_argument("--runs", type=int, default=40, help="Monte Carlo runs per test query")
     ap.add_argument("--train-runs", type=int, default=20, help="proposed: Monte Carlo runs per train query")
-    ap.add_argument("--greedy-src", default="p1", help="greedy baseline: assumed upload provider")
-    ap.add_argument("--greedy-region", default="r1", help="greedy baseline: assumed upload region")
+    ap.add_argument("--greedy-src", default="GCP", help="greedy baseline: assumed upload provider")
+    ap.add_argument("--greedy-region", default="us-east1", help="greedy baseline: assumed upload region")
     ap.add_argument("--greedy-delta", type=float, default=0.05, help="greedy baseline: cross-cloud if utility gain exceeds this")
     ap.add_argument("--eta-cost", type=float, default=0.10, help="proposed: max allowed cost violation rate on train")
     ap.add_argument("--eta-lat", type=float, default=0.10, help="proposed: max allowed latency violation rate on train")

@@ -166,7 +166,7 @@ def evaluate_pipeline(
                 spl,
                 cap,
                 qry,
-                q.data_size_mb,
+                q.data_size_MB,
                 deterministic=deterministic,
             )
             utilities.append(r.utility)
@@ -212,8 +212,8 @@ def run_greedy(
     queries: list[Query],
     n_runs: int,
     *,
-    source_provider: str = "p1",
-    source_region: str = "r1",
+    source_provider: str = "GCP",
+    source_region: str = "us-east1",
     accuracy_improvement_threshold: float = 0.05,
 ) -> BaselineMetrics:
     seg, spl, cap, qry = greedy(
@@ -251,8 +251,8 @@ def compare_baselines(
     num_calibration_queries: int = 20,
     n_runs: int = 30,
     *,
-    greedy_source_provider: str = "p1",
-    greedy_source_region: str = "r1",
+    greedy_source_provider: str = "GCP",
+    greedy_source_region: str = "us-east1",
     greedy_accuracy_delta: float = 0.05,
     deterministic_single_cloud_pipeline: bool = False,
 ) -> list[BaselineMetrics]:
@@ -298,8 +298,8 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Run baseline comparisons (utility, cost, latency, violation rates).")
     ap.add_argument("--queries", type=int, default=15, help="number of calibration queries")
     ap.add_argument("--runs", type=int, default=25, help="Monte Carlo runs per query (stochastic baselines)")
-    ap.add_argument("--greedy-src", default="p1", help="greedy: assumed upload provider")
-    ap.add_argument("--greedy-region", default="r1", help="greedy: assumed upload region")
+    ap.add_argument("--greedy-src", default="GCP", help="greedy: assumed upload provider")
+    ap.add_argument("--greedy-region", default="us-east1", help="greedy: assumed upload region")
     ap.add_argument("--greedy-delta", type=float, default=0.05, help="greedy: cross-cloud if utility gain exceeds this")
     ap.add_argument(
         "--deterministic-single-cloud",
