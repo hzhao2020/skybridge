@@ -13,18 +13,34 @@ CLOUD_REGIONS: dict[str, tuple[str, ...]] = {
     "Aliyun": ("cn-shanghai", "cn-beijing", "us-west-1", "ap-southeast-1"),
 }
 
-# 当前采用“云侧 provider+region 直接承载 LLM 节点”的方式，
-# 不再使用独立的 LLM-only provider。
-LLM_PROVIDER_TO_OPTIONS: dict[str, tuple[str, ...]] = {}
+# 每个 provider 的每个 region 支持两种 LLM。
+PROVIDER_LLM_MODELS: dict[str, tuple[str, str]] = {
+    "GCP": ("Gemini-1.5-Pro", "Gemini-1.5-Flash"),
+    "AWS": ("Claude-3.5-Sonnet", "Claude-3.5-Haiku"),
+    "Aliyun": ("Qwen-VL-Max", "Qwen-VL-Plus"),
+}
 
-LLM_MODEL_KEYS = (
-    "Gemini-1.5-Pro",
-    "Gemini-1.5-Flash",
-    "Claude-3.5-Sonnet",
-    "Claude-3.5-Haiku",
-    "Qwen-VL-Max",
-    "Qwen-VL-Plus",
+LLM_MODEL_KEYS = tuple(
+    k for models in PROVIDER_LLM_MODELS.values() for k in models
 )
+
+
+def build_llm_node_name(
+    provider: str,
+    region: str,
+    model_key: str,
+    operation: Literal["caption", "query"],
+) -> str:
+    return f"{provider}_{region}__{model_key}_{operation}"
+
+
+def iter_cloud_llm_deployments() -> list[tuple[str, str, str]]:
+    out: list[tuple[str, str, str]] = []
+    for provider in CLOUD_PROVIDERS:
+        for region in CLOUD_REGIONS[provider]:
+            for model_key in PROVIDER_LLM_MODELS[provider]:
+                out.append((provider, region, model_key))
+    return out
 
 
 def get_simulation_config(path: str = "param.yaml") -> dict[str, Any]:
@@ -42,14 +58,13 @@ def get_node_name():
     names: list[str] = []
 
     for operation in ops:
-        for provider in CLOUD_PROVIDERS:
-            for region in CLOUD_REGIONS[provider]:
-                names.append(f"{provider}_{region}_{operation}")
-
-        if operation in ("caption", "query"):
-            for provider, options in LLM_PROVIDER_TO_OPTIONS.items():
-                for opt in options:
-                    names.append(f"{provider}_{opt}_{operation}")
+        if operation in ("segment", "split"):
+            for provider in CLOUD_PROVIDERS:
+                for region in CLOUD_REGIONS[provider]:
+                    names.append(f"{provider}_{region}_{operation}")
+        else:
+            for provider, region, model_key in iter_cloud_llm_deployments():
+                names.append(build_llm_node_name(provider, region, model_key, operation))
     
     return names
 
@@ -65,12 +80,11 @@ def get_cloud_region_name():
 
 
 def get_llm_node_name():
-    # 获取所有的 llm 节点名称（当前无 LLM-only provider）
+    # 获取所有 llm 节点名称（云侧 2-model/region）。
     names: list[str] = []
     for operation in ("caption", "query"):
-        for provider, options in LLM_PROVIDER_TO_OPTIONS.items():
-            for opt in options:
-                names.append(f"{provider}_{opt}_{operation}")
+        for provider, region, model_key in iter_cloud_llm_deployments():
+            names.append(build_llm_node_name(provider, region, model_key, operation))
     return names
 
 

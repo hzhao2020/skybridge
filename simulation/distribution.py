@@ -1,16 +1,25 @@
 import random
 import math
-from typing import Any, Callable, Dict, Literal, Sequence, Tuple
-from abc import ABC, abstractmethod
+from typing import Any, Dict, Literal, Sequence, Tuple
 from dataclasses import dataclass
-from config import *
-from config import get_llm_node_name
+from param import *
+from param import build_llm_node_name, get_llm_node_name, iter_cloud_llm_deployments
 # 全局种子,确保实验可以复现
 random.seed(42)
 
 config = get_simulation_config()
-node_names = get_node_name()
 cloud_region_names = get_cloud_region_name()
+
+
+def _lookup_caption_model_param(model_params: dict[str, Any], model_key: str) -> dict[str, Any]:
+    mp = model_params.get(model_key)
+    if isinstance(mp, dict):
+        return mp
+    alt = model_key.replace("-", " ")
+    mp = model_params.get(alt)
+    if isinstance(mp, dict):
+        return mp
+    raise ValueError(f"config.caption_model_params[{model_key!r}] is required")
 
 
 class LogNormalDistribution:
@@ -24,7 +33,7 @@ class LogNormalDistribution:
             raise ValueError("mean must be > 0")
         if std < 0:
             raise ValueError("std must be >= 0")
-        # 记录原始 mean/std，便于 deterministic 口径直接取均值
+        # 记录原始 mean/std（用于从同一 LogNormal 参数采样）
         self.mean = float(mean)
         self.std = float(std)
         # 根据 LogNormal 分布性质，推导 mu, sigma
@@ -144,7 +153,7 @@ def sample_query_output_token_num_param() -> Dict[str, QueryOutputTokenNumParam]
     std_dist = UniformDistribution(std_lo, std_hi)
 
     out: Dict[str, QueryOutputTokenNumParam] = {}
-    for pr in cloud_region_names:
+    for provider, region, model_key in iter_cloud_llm_deployments():
         p = QueryOutputTokenNumParam()
         p.mean = mean_dist.sample()
         p.std = std_dist.sample()
@@ -152,10 +161,10 @@ def sample_query_output_token_num_param() -> Dict[str, QueryOutputTokenNumParam]
             raise ValueError("sampled query_mean must be > 0")
         if p.std < 0:
             raise ValueError("sampled query_std must be >= 0")
-        out[f"{pr}_query"] = p
+        out[build_llm_node_name(provider, region, model_key, "query")] = p
 
     for name in get_llm_node_name():
-        if not name.endswith("_query"):
+        if not name.endswith("_query") or name in out:
             continue
         p = QueryOutputTokenNumParam()
         p.mean = mean_dist.sample()
@@ -205,15 +214,49 @@ def sample_utility():
 
     seg_u = _read_op_map("segment")
     spl_u = _read_op_map("split")
-    cap_u = _read_op_map("caption")
-    qry_u = _read_op_map("query")
-
     utilities: Dict[str, float] = {}
     for pr in cloud_region_names:
         utilities[f"{pr}_segment"] = seg_u[pr]
         utilities[f"{pr}_split"] = spl_u[pr]
-        utilities[f"{pr}_caption"] = cap_u[pr]
-        utilities[f"{pr}_query"] = qry_u[pr]
+
+    cap_raw = um.get("caption")
+    qry_raw = um.get("query")
+    if not isinstance(cap_raw, dict) or not isinstance(qry_raw, dict):
+        raise ValueError("config.utility_by_node.caption/query must be dict")
+
+    # 优先读取模型粒度 key（<provider>_<region>__<model_key>）。
+    has_model_granularity = True
+    for provider, region, model_key in iter_cloud_llm_deployments():
+        nk = build_llm_node_name(provider, region, model_key, "caption").removesuffix("_caption")
+        if nk not in cap_raw or nk not in qry_raw:
+            has_model_granularity = False
+            break
+
+    if has_model_granularity:
+        for provider, region, model_key in iter_cloud_llm_deployments():
+            nk = build_llm_node_name(provider, region, model_key, "caption").removesuffix("_caption")
+            utilities[build_llm_node_name(provider, region, model_key, "caption")] = float(cap_raw[nk])
+            utilities[build_llm_node_name(provider, region, model_key, "query")] = float(qry_raw[nk])
+        return utilities
+
+    # 否则回退到 llm_profiles 里的 accuracy（兼容旧配置）。
+    llm_profiles = config.get("llm_profiles")
+    if not isinstance(llm_profiles, dict):
+        raise ValueError("config.llm_profiles must be a dict keyed by '<provider>_<region>'")
+    for provider, region, model_key in iter_cloud_llm_deployments():
+        pr = f"{provider}_{region}"
+        prof_by_model = llm_profiles.get(pr)
+        if not isinstance(prof_by_model, dict):
+            raise ValueError(f"config.llm_profiles[{pr!r}] is required")
+        mp = prof_by_model.get(model_key)
+        if not isinstance(mp, dict):
+            raise ValueError(f"config.llm_profiles[{pr!r}][{model_key!r}] is required")
+        acc = mp.get("accuracy")
+        if acc is None:
+            raise ValueError(f"config.llm_profiles[{pr!r}][{model_key!r}].accuracy is required")
+        u = float(acc)
+        utilities[build_llm_node_name(provider, region, model_key, "caption")] = u
+        utilities[build_llm_node_name(provider, region, model_key, "query")] = u
     return utilities
 
 
@@ -223,14 +266,18 @@ def sample_llm_token_price():
     if not isinstance(llm_profiles, dict):
         raise ValueError("config.llm_profiles must be a dict keyed by '<provider>_<region>'")
     llm_token_price: Dict[str, tuple[float, float]] = {}
-    for pr in cloud_region_names:
-        prof = llm_profiles.get(pr)
-        if not isinstance(prof, dict):
+    for provider, region, model_key in iter_cloud_llm_deployments():
+        pr = f"{provider}_{region}"
+        prof_by_model = llm_profiles.get(pr)
+        if not isinstance(prof_by_model, dict):
             raise ValueError(f"config.llm_profiles[{pr!r}] is required")
+        prof = prof_by_model.get(model_key)
+        if not isinstance(prof, dict):
+            raise ValueError(f"config.llm_profiles[{pr!r}][{model_key!r}] is required")
         inp = float(prof.get("input_price_per_m"))
         outp = float(prof.get("output_price_per_m"))
-        llm_token_price[f"{pr}_caption"] = (inp, outp)
-        llm_token_price[f"{pr}_query"] = (inp, outp)
+        llm_token_price[build_llm_node_name(provider, region, model_key, "caption")] = (inp, outp)
+        llm_token_price[build_llm_node_name(provider, region, model_key, "query")] = (inp, outp)
     return llm_token_price
 
 
@@ -240,13 +287,18 @@ def sample_storage_price():
     if not isinstance(m, dict):
         raise ValueError("config.storage_price_per_gb_month must be a dict keyed by '<provider>_<region>'")
     prices: Dict[str, float] = {}
-    ops: Sequence[Operation] = ("segment", "split", "caption", "query")
+    ops: Sequence[Operation] = ("segment", "split")
     for pr in cloud_region_names:
         if pr not in m:
             raise ValueError(f"config.storage_price_per_gb_month missing key {pr!r}")
         price = float(m[pr])
         for op in ops:
             prices[f"{pr}_{op}"] = price
+    for provider, region, model_key in iter_cloud_llm_deployments():
+        pr = f"{provider}_{region}"
+        price = float(m[pr])
+        prices[build_llm_node_name(provider, region, model_key, "caption")] = price
+        prices[build_llm_node_name(provider, region, model_key, "query")] = price
     return prices
 
 
@@ -332,24 +384,19 @@ def sample_caption_output_token_num_param() -> Dict[str, CaptionOutputTokenNumPa
         raise ValueError("config.caption_model_params must be a dict keyed by model name")
 
     out: Dict[str, CaptionOutputTokenNumParam] = {}
-    for pr in cloud_region_names:
-        prof = llm_profiles.get(pr)
-        if not isinstance(prof, dict) or "model" not in prof:
-            raise ValueError(f"config.llm_profiles[{pr!r}].model is required")
-        model_name = str(prof["model"])
-        mp = model_params.get(model_name)
-        if not isinstance(mp, dict):
-            raise ValueError(f"config.caption_model_params[{model_name!r}] is required")
+    for provider, region, model_key in iter_cloud_llm_deployments():
+        pr = f"{provider}_{region}"
+        prof_by_model = llm_profiles.get(pr)
+        if not isinstance(prof_by_model, dict):
+            raise ValueError(f"config.llm_profiles[{pr!r}] is required")
+        if model_key not in prof_by_model:
+            raise ValueError(f"config.llm_profiles[{pr!r}][{model_key!r}] is required")
+        mp = _lookup_caption_model_param(model_params, model_key)
         p = CaptionOutputTokenNumParam()
         p.base = float(mp["base"])
         p.coef_per_MB = float(mp["coef_per_MB"])
         p.std = float(mp["std"])
-        out[f"{pr}_caption"] = p
-
-    for name in get_llm_node_name():
-        if not name.endswith("_caption"):
-            continue
-        raise ValueError("LLM-only caption nodes are not supported in this config")
+        out[build_llm_node_name(provider, region, model_key, "caption")] = p
 
     return out
 
@@ -363,24 +410,19 @@ def sample_caption_input_token_num_param() -> Dict[str, CaptionInputTokenNumPara
         raise ValueError("config.caption_model_params must be a dict keyed by model name")
 
     out: Dict[str, CaptionInputTokenNumParam] = {}
-    for pr in cloud_region_names:
-        prof = llm_profiles.get(pr)
-        if not isinstance(prof, dict) or "model" not in prof:
-            raise ValueError(f"config.llm_profiles[{pr!r}].model is required")
-        model_name = str(prof["model"])
-        mp = model_params.get(model_name)
-        if not isinstance(mp, dict):
-            raise ValueError(f"config.caption_model_params[{model_name!r}] is required")
+    for provider, region, model_key in iter_cloud_llm_deployments():
+        pr = f"{provider}_{region}"
+        prof_by_model = llm_profiles.get(pr)
+        if not isinstance(prof_by_model, dict):
+            raise ValueError(f"config.llm_profiles[{pr!r}] is required")
+        if model_key not in prof_by_model:
+            raise ValueError(f"config.llm_profiles[{pr!r}][{model_key!r}] is required")
+        mp = _lookup_caption_model_param(model_params, model_key)
         p = CaptionInputTokenNumParam()
         p.input_tokens_per_MB = float(mp["input_tokens_per_MB"])
         if p.input_tokens_per_MB <= 0:
             raise ValueError("caption_model_params.input_tokens_per_MB must be > 0")
-        out[f"{pr}_caption"] = p
-
-    for name in get_llm_node_name():
-        if not name.endswith("_caption"):
-            continue
-        raise ValueError("LLM-only caption nodes are not supported in this config")
+        out[build_llm_node_name(provider, region, model_key, "caption")] = p
 
     return out
 
@@ -393,23 +435,21 @@ def sample_llm_latency_param() -> Dict[str, LlmlatencyParam]:
     ll = config.get("llm_latency", {}) or {}
     noise_sigma_ms = float(ll.get("default_noise_sigma_ms", 50.0))
 
-    llm_nodes: list[str] = []
-    for pr in cloud_region_names:
-        llm_nodes.append(f"{pr}_caption")
-        llm_nodes.append(f"{pr}_query")
-    llm_nodes.extend(get_llm_node_name())
-
     out: Dict[str, LlmlatencyParam] = {}
-    for node in llm_nodes:
-        pr = node.rsplit("_", 1)[0]
-        prof = llm_profiles.get(pr)
-        if not isinstance(prof, dict):
+    for provider, region, model_key in iter_cloud_llm_deployments():
+        pr = f"{provider}_{region}"
+        prof_by_model = llm_profiles.get(pr)
+        if not isinstance(prof_by_model, dict):
             raise ValueError(f"config.llm_profiles[{pr!r}] is required")
+        prof = prof_by_model.get(model_key)
+        if not isinstance(prof, dict):
+            raise ValueError(f"config.llm_profiles[{pr!r}][{model_key!r}] is required")
         p = LlmlatencyParam()
         p.alpha_ms_per_token = float(prof.get("tpt_ms_per_token"))
         p.beta_ms = float(prof.get("ttft_ms"))
         p.noise_sigma_ms = noise_sigma_ms
-        out[node] = p
+        out[build_llm_node_name(provider, region, model_key, "caption")] = p
+        out[build_llm_node_name(provider, region, model_key, "query")] = p
     return out
 
 
@@ -578,7 +618,7 @@ class DistributionParameters:
 
 
 
-def sample() -> DistributionParameters:
+def build_distribution_parameters() -> DistributionParameters:
     data_conversion_ratio = sample_data_conversion_ratio()
     utility = sample_utility()
     llm_token_price = sample_llm_token_price()
@@ -611,6 +651,11 @@ def sample() -> DistributionParameters:
     )
 
 
+def sample() -> DistributionParameters:
+    # 兼容旧调用名
+    return build_distribution_parameters()
+
+
 def sample_query_with_budget(num: float) -> list[Query]:
     # num 表示 query 的数量
     n = int(num)
@@ -622,9 +667,6 @@ def sample_query_with_budget(num: float) -> list[Query]:
     if not isinstance(ds, (list, tuple)) or len(ds) != 2:
         raise ValueError("config.data_size must be a 2-item list like [min, max] MB")
 
-    # 兼容两种写法：
-    # 1) 旧版：budget.latency_intercept_s / latency_slope_per_MB / cost_intercept_usd / cost_slope_per_MB
-    # 2) 数据驱动：budget.baseline.{...} + budget.slack_factor.{latency,cost}
     if isinstance(b, dict) and "baseline" in b:
         base = b.get("baseline") or {}
         slack = b.get("slack_factor") or {}
@@ -661,5 +703,4 @@ def sample_query_with_budget(num: float) -> list[Query]:
 
 
 if __name__ == "__main__":
-    queries = sample_query_with_budget(10)
-    print(queries)
+    param = sample()

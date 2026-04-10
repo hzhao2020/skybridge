@@ -57,77 +57,41 @@ storage_price_per_gb_month:
 # llm profile per cloud endpoint (using higher-accuracy model tier)
 llm_profiles:
   GCP_us-east1:
-    model: Gemini 1.5 Pro
-    input_price_per_m: 1.25
-    output_price_per_m: 3.75
-    ttft_ms: 480
-    tpt_ms_per_token: 18.5
+    Gemini-1.5-Pro: { input_price_per_m: 1.25, output_price_per_m: 3.75, ttft_ms: 480, tpt_ms_per_token: 18.5, accuracy: 0.892 }
+    Gemini-1.5-Flash: { input_price_per_m: 0.075, output_price_per_m: 0.30, ttft_ms: 180, tpt_ms_per_token: 7.5, accuracy: 0.785 }
   GCP_us-west1:
-    model: Gemini 1.5 Pro
-    input_price_per_m: 1.25
-    output_price_per_m: 3.75
-    ttft_ms: 450
-    tpt_ms_per_token: 18.2
+    Gemini-1.5-Pro: { input_price_per_m: 1.25, output_price_per_m: 3.75, ttft_ms: 450, tpt_ms_per_token: 18.2, accuracy: 0.892 }
+    Gemini-1.5-Flash: { input_price_per_m: 0.075, output_price_per_m: 0.30, ttft_ms: 165, tpt_ms_per_token: 7.2, accuracy: 0.785 }
   GCP_europe-west1:
-    model: Gemini 1.5 Pro
-    input_price_per_m: 1.25
-    output_price_per_m: 3.75
-    ttft_ms: 520
-    tpt_ms_per_token: 19.8
+    Gemini-1.5-Pro: { input_price_per_m: 1.25, output_price_per_m: 3.75, ttft_ms: 520, tpt_ms_per_token: 19.8, accuracy: 0.892 }
+    Gemini-1.5-Flash: { input_price_per_m: 0.075, output_price_per_m: 0.30, ttft_ms: 210, tpt_ms_per_token: 8.1, accuracy: 0.785 }
   GCP_asia-east1:
-    model: Gemini 1.5 Pro
-    input_price_per_m: 1.50
-    output_price_per_m: 4.50
-    ttft_ms: 610
-    tpt_ms_per_token: 21.0
+    Gemini-1.5-Pro: { input_price_per_m: 1.50, output_price_per_m: 4.50, ttft_ms: 610, tpt_ms_per_token: 21.0, accuracy: 0.892 }
+    Gemini-1.5-Flash: { input_price_per_m: 0.090, output_price_per_m: 0.36, ttft_ms: 260, tpt_ms_per_token: 9.5, accuracy: 0.785 }
   AWS_us-west-2:
-    model: Claude 3.5 Sonnet
-    input_price_per_m: 3.00
-    output_price_per_m: 15.00
-    ttft_ms: 650
-    tpt_ms_per_token: 14.5
+    Claude-3.5-Sonnet: { input_price_per_m: 3.00, output_price_per_m: 15.00, ttft_ms: 650, tpt_ms_per_token: 14.5, accuracy: 0.904 }
+    Claude-3.5-Haiku: { input_price_per_m: 0.250, output_price_per_m: 1.25, ttft_ms: 280, tpt_ms_per_token: 8.8, accuracy: 0.761 }
   AWS_us-east-2:
-    model: Claude 3.5 Sonnet
-    input_price_per_m: 3.00
-    output_price_per_m: 15.00
-    ttft_ms: 620
-    tpt_ms_per_token: 14.2
+    Claude-3.5-Sonnet: { input_price_per_m: 3.00, output_price_per_m: 15.00, ttft_ms: 620, tpt_ms_per_token: 14.2, accuracy: 0.904 }
+    Claude-3.5-Haiku: { input_price_per_m: 0.250, output_price_per_m: 1.25, ttft_ms: 265, tpt_ms_per_token: 8.5, accuracy: 0.761 }
   AWS_ap-southeast-1:
-    model: Claude 3.5 Sonnet
-    input_price_per_m: 3.60
-    output_price_per_m: 18.00
-    ttft_ms: 780
-    tpt_ms_per_token: 16.5
+    Claude-3.5-Sonnet: { input_price_per_m: 3.60, output_price_per_m: 18.00, ttft_ms: 780, tpt_ms_per_token: 16.5, accuracy: 0.904 }
+    Claude-3.5-Haiku: { input_price_per_m: 0.300, output_price_per_m: 1.50, ttft_ms: 390, tpt_ms_per_token: 10.2, accuracy: 0.761 }
   AWS_eu-central-1:
-    model: Claude 3.5 Sonnet
-    input_price_per_m: 3.30
-    output_price_per_m: 16.50
-    ttft_ms: 710
-    tpt_ms_per_token: 15.8
+    Claude-3.5-Sonnet: { input_price_per_m: 3.30, output_price_per_m: 16.50, ttft_ms: 710, tpt_ms_per_token: 15.8, accuracy: 0.904 }
+    Claude-3.5-Haiku: { input_price_per_m: 0.275, output_price_per_m: 1.38, ttft_ms: 340, tpt_ms_per_token: 9.5, accuracy: 0.761 }
   Aliyun_cn-shanghai:
-    model: Qwen-VL-Max
-    input_price_per_m: 0.52
-    output_price_per_m: 2.08
-    ttft_ms: 550
-    tpt_ms_per_token: 22.0
+    Qwen-VL-Max: { input_price_per_m: 0.52, output_price_per_m: 2.08, ttft_ms: 550, tpt_ms_per_token: 22.0, accuracy: 0.887 }
+    Qwen-VL-Plus: { input_price_per_m: 0.14, output_price_per_m: 0.41, ttft_ms: 320, tpt_ms_per_token: 11.5, accuracy: 0.813 }
   Aliyun_cn-beijing:
-    model: Qwen-VL-Max
-    input_price_per_m: 0.52
-    output_price_per_m: 2.08
-    ttft_ms: 530
-    tpt_ms_per_token: 21.5
+    Qwen-VL-Max: { input_price_per_m: 0.52, output_price_per_m: 2.08, ttft_ms: 530, tpt_ms_per_token: 21.5, accuracy: 0.887 }
+    Qwen-VL-Plus: { input_price_per_m: 0.14, output_price_per_m: 0.41, ttft_ms: 310, tpt_ms_per_token: 11.2, accuracy: 0.813 }
   Aliyun_us-west-1:
-    model: Qwen-VL-Max
-    input_price_per_m: 1.20
-    output_price_per_m: 6.00
-    ttft_ms: 850
-    tpt_ms_per_token: 28.0
+    Qwen-VL-Max: { input_price_per_m: 1.20, output_price_per_m: 6.00, ttft_ms: 850, tpt_ms_per_token: 28.0, accuracy: 0.887 }
+    Qwen-VL-Plus: { input_price_per_m: 0.32, output_price_per_m: 0.94, ttft_ms: 580, tpt_ms_per_token: 15.5, accuracy: 0.813 }
   Aliyun_ap-southeast-1:
-    model: Qwen-VL-Max
-    input_price_per_m: 1.20
-    output_price_per_m: 6.00
-    ttft_ms: 720
-    tpt_ms_per_token: 24.5
+    Qwen-VL-Max: { input_price_per_m: 1.20, output_price_per_m: 6.00, ttft_ms: 720, tpt_ms_per_token: 24.5, accuracy: 0.887 }
+    Qwen-VL-Plus: { input_price_per_m: 0.32, output_price_per_m: 0.94, ttft_ms: 490, tpt_ms_per_token: 13.8, accuracy: 0.813 }
 
 caption_model_params:
   Gemini 1.5 Pro:
@@ -305,43 +269,63 @@ utility_by_node:
     Aliyun_us-west-1: 1.0
     Aliyun_ap-southeast-1: 1.0
   caption:
-    GCP_us-east1: 0.892
-    GCP_us-west1: 0.892
-    GCP_europe-west1: 0.892
-    GCP_asia-east1: 0.892
-    AWS_us-west-2: 0.904
-    AWS_us-east-2: 0.904
-    AWS_ap-southeast-1: 0.904
-    AWS_eu-central-1: 0.904
-    Aliyun_cn-shanghai: 0.887
-    Aliyun_cn-beijing: 0.887
-    Aliyun_us-west-1: 0.887
-    Aliyun_ap-southeast-1: 0.887
+    GCP_us-east1__Gemini-1.5-Pro: 0.892
+    GCP_us-east1__Gemini-1.5-Flash: 0.785
+    GCP_us-west1__Gemini-1.5-Pro: 0.892
+    GCP_us-west1__Gemini-1.5-Flash: 0.785
+    GCP_europe-west1__Gemini-1.5-Pro: 0.892
+    GCP_europe-west1__Gemini-1.5-Flash: 0.785
+    GCP_asia-east1__Gemini-1.5-Pro: 0.892
+    GCP_asia-east1__Gemini-1.5-Flash: 0.785
+    AWS_us-west-2__Claude-3.5-Sonnet: 0.904
+    AWS_us-west-2__Claude-3.5-Haiku: 0.761
+    AWS_us-east-2__Claude-3.5-Sonnet: 0.904
+    AWS_us-east-2__Claude-3.5-Haiku: 0.761
+    AWS_ap-southeast-1__Claude-3.5-Sonnet: 0.904
+    AWS_ap-southeast-1__Claude-3.5-Haiku: 0.761
+    AWS_eu-central-1__Claude-3.5-Sonnet: 0.904
+    AWS_eu-central-1__Claude-3.5-Haiku: 0.761
+    Aliyun_cn-shanghai__Qwen-VL-Max: 0.887
+    Aliyun_cn-shanghai__Qwen-VL-Plus: 0.813
+    Aliyun_cn-beijing__Qwen-VL-Max: 0.887
+    Aliyun_cn-beijing__Qwen-VL-Plus: 0.813
+    Aliyun_us-west-1__Qwen-VL-Max: 0.887
+    Aliyun_us-west-1__Qwen-VL-Plus: 0.813
+    Aliyun_ap-southeast-1__Qwen-VL-Max: 0.887
+    Aliyun_ap-southeast-1__Qwen-VL-Plus: 0.813
   query:
-    GCP_us-east1: 0.892
-    GCP_us-west1: 0.892
-    GCP_europe-west1: 0.892
-    GCP_asia-east1: 0.892
-    AWS_us-west-2: 0.904
-    AWS_us-east-2: 0.904
-    AWS_ap-southeast-1: 0.904
-    AWS_eu-central-1: 0.904
-    Aliyun_cn-shanghai: 0.887
-    Aliyun_cn-beijing: 0.887
-    Aliyun_us-west-1: 0.887
-    Aliyun_ap-southeast-1: 0.887
+    GCP_us-east1__Gemini-1.5-Pro: 0.892
+    GCP_us-east1__Gemini-1.5-Flash: 0.785
+    GCP_us-west1__Gemini-1.5-Pro: 0.892
+    GCP_us-west1__Gemini-1.5-Flash: 0.785
+    GCP_europe-west1__Gemini-1.5-Pro: 0.892
+    GCP_europe-west1__Gemini-1.5-Flash: 0.785
+    GCP_asia-east1__Gemini-1.5-Pro: 0.892
+    GCP_asia-east1__Gemini-1.5-Flash: 0.785
+    AWS_us-west-2__Claude-3.5-Sonnet: 0.904
+    AWS_us-west-2__Claude-3.5-Haiku: 0.761
+    AWS_us-east-2__Claude-3.5-Sonnet: 0.904
+    AWS_us-east-2__Claude-3.5-Haiku: 0.761
+    AWS_ap-southeast-1__Claude-3.5-Sonnet: 0.904
+    AWS_ap-southeast-1__Claude-3.5-Haiku: 0.761
+    AWS_eu-central-1__Claude-3.5-Sonnet: 0.904
+    AWS_eu-central-1__Claude-3.5-Haiku: 0.761
+    Aliyun_cn-shanghai__Qwen-VL-Max: 0.887
+    Aliyun_cn-shanghai__Qwen-VL-Plus: 0.813
+    Aliyun_cn-beijing__Qwen-VL-Max: 0.887
+    Aliyun_cn-beijing__Qwen-VL-Plus: 0.813
+    Aliyun_us-west-1__Qwen-VL-Max: 0.887
+    Aliyun_us-west-1__Qwen-VL-Plus: 0.813
+    Aliyun_ap-southeast-1__Qwen-VL-Max: 0.887
+    Aliyun_ap-southeast-1__Qwen-VL-Plus: 0.813
 
 query_mean: [100, 150]
 query_std: [200, 250]
 
 budget:
-  baseline:
-    latency_intercept_s: 146.178724
-    latency_slope_per_MB: 15.068026
-    cost_intercept_usd: 0.031489
-    cost_slope_per_MB: 0.010597
-  slack_factor:
-    latency: 1.20
-    cost: 1.20
+  latency_intercept_s: 146.178724
+  latency_slope_per_MB: 15.068026
+  cost_intercept_usd: 0.031489
+  cost_slope_per_MB: 0.010597
 
 data_size: [5.0, 500.0]

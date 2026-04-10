@@ -1,8 +1,8 @@
 """
 根据 config 拓扑与 ``DistributionParameters`` 构造全量节点；
 ``Workflow`` 绑定一次 ``sample()``，在 ``calculate`` 中串联 segment→split→caption→query，
-并在 ``calculate`` 中由 ``params.edge_rtt`` / ``edge_bw`` 的分布采样出具体 RTT/BW 后计算
-cost / latency / utility。
+并在每次 ``calculate`` 时由 **RTT/BW 分布参数矩阵**（默认来自 ``params``，也可在构造 ``Workflow`` 时显式传入）
+对每条边采样出本轮具体 RTT(ms)/BW(Mbps)，再计算 cost / latency / utility。
 """
 
 from __future__ import annotations
@@ -11,7 +11,12 @@ import math
 from dataclasses import dataclass
 from typing import Any
 
-from config import CLOUD_PROVIDERS, CLOUD_REGIONS, LLM_PROVIDER_TO_OPTIONS
+from param import (
+    CLOUD_PROVIDERS,
+    CLOUD_REGIONS,
+    build_llm_node_name,
+    iter_cloud_llm_deployments,
+)
 from distribution import (
     BW,
     DistributionParameters,
@@ -22,15 +27,10 @@ from distribution import (
 )
 from nodes import (
     CaptionCloudNode,
-    CaptionNonCloudNode,
-    CloudNode,
     Edge,
-    LLM_TOKENS_PER_MILLION,
     LocalNode,
-    LlmNode,
     Node,
     QueryCloudNode,
-    QueryNonCloudNode,
     SegmentNode,
     SplitNode,
     _node_to_comm_endpoint,
@@ -44,8 +44,8 @@ class WorkflowNodes:
 
     segment: dict[str, SegmentNode]
     split: dict[str, SplitNode]
-    caption: dict[str, CaptionCloudNode | CaptionNonCloudNode]
-    query: dict[str, QueryCloudNode | QueryNonCloudNode]
+    caption: dict[str, CaptionCloudNode]
+    query: dict[str, QueryCloudNode]
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,9 +64,7 @@ class WorkflowBreakdown:
     egress_local_segment: float
     egress_segment_split: float
     egress_split_caption: float
-    egress_caption_split: float
     egress_to_query: float
-    egress_query_to_cloud: float
     egress_last_to_local: float
     storage: float
     # --- Latency (s) ---
@@ -76,10 +74,8 @@ class WorkflowBreakdown:
     lat_split_compute: float
     lat_split_caption: float
     lat_caption_compute: float
-    lat_caption_split: float
     lat_to_query: float
     lat_query_compute: float
-    lat_query_to_cloud: float
     lat_last_to_local: float
     # --- Data sizes (MB) ---
     mb0: float
@@ -97,9 +93,7 @@ class WorkflowBreakdown:
             + self.egress_local_segment
             + self.egress_segment_split
             + self.egress_split_caption
-            + self.egress_caption_split
             + self.egress_to_query
-            + self.egress_query_to_cloud
             + self.egress_last_to_local
             + self.storage
         )
@@ -112,10 +106,8 @@ class WorkflowBreakdown:
             + self.lat_split_compute
             + self.lat_split_caption
             + self.lat_caption_compute
-            + self.lat_caption_split
             + self.lat_to_query
             + self.lat_query_compute
-            + self.lat_query_to_cloud
             + self.lat_last_to_local
         )
 
@@ -132,9 +124,7 @@ class WorkflowBreakdown:
             row("egress local → segment (mb0)", self.egress_local_segment, unit=""),
             row("egress segment → split (mb1)", self.egress_segment_split, unit=""),
             row("egress split → caption (mb2)", self.egress_split_caption, unit=""),
-            row("egress caption → split (mb3)", self.egress_caption_split, unit=""),
             row("egress → query (mb3)", self.egress_to_query, unit=""),
-            row("egress query → cloud parent (mb4)", self.egress_query_to_cloud, unit=""),
             row("egress last → local (mb4)", self.egress_last_to_local, unit=""),
             row("storage (cloud)", self.storage, unit=""),
             row("── total cost", self.sum_cost(), unit=""),
@@ -146,10 +136,8 @@ class WorkflowBreakdown:
             row("split compute", self.lat_split_compute, unit=""),
             row("transfer split → caption", self.lat_split_caption, unit=""),
             row("caption LLM", self.lat_caption_compute, unit=""),
-            row("transfer caption → split (mb3)", self.lat_caption_split, unit=""),
             row("transfer → query (mb3)", self.lat_to_query, unit=""),
             row("query LLM", self.lat_query_compute, unit=""),
-            row("transfer query → cloud parent (mb4)", self.lat_query_to_cloud, unit=""),
             row("transfer last → local (mb4)", self.lat_last_to_local, unit=""),
             row("── total latency", self.sum_latency(), unit=""),
             "",
@@ -171,6 +159,14 @@ class WorkflowResult:
     breakdown: WorkflowBreakdown | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class NodeSelection:
+    segment: str
+    split: str
+    caption: str
+    query: str
+
+
 def _egress_usd_per_gb(params: DistributionParameters, src: Node, dst: Node) -> float:
     eps = params.egress_price["endpoints"]
     matrix = params.egress_price["matrix"]
@@ -179,61 +175,11 @@ def _egress_usd_per_gb(params: DistributionParameters, src: Node, dst: Node) -> 
     return matrix[i][j]
 
 
-def _gamma_mean_comp_time(seg: SegmentNode | SplitNode, video_size_MB: float) -> float:
-    """Gamma(α,θ) 计算时间均值 α·θ，θ = θ0 + θ1·S。"""
-    p = seg.exec_time_param
-    theta = p.theta0 + p.theta1 * video_size_MB
-    return p.alpha * theta
-
-
-def _segment_mean_execution_cost(segment: SegmentNode, video_size_MB: float) -> float:
-    ct = _gamma_mean_comp_time(segment, video_size_MB)
-    return (ct / 60.0) * segment.price_per_min
-
-
-def _split_mean_execution_cost(split: SplitNode, video_size_MB: float) -> float:
-    return (_gamma_mean_comp_time(split, video_size_MB) / 60.0) * split.price_per_min
-
-
-def _segment_mean_latency(segment: SegmentNode, video_size_MB: float) -> float:
-    p = segment.exec_time_param
-    io_time = p.io_s_per_MB * video_size_MB
-    return io_time + _gamma_mean_comp_time(segment, video_size_MB)
-
-
-def _split_mean_latency(split: SplitNode, video_size_MB: float) -> float:
-    p = split.exec_time_param
-    io_time = p.io_s_per_MB * video_size_MB
-    return io_time + _gamma_mean_comp_time(split, video_size_MB)
-
-
-def _caption_mean_output_tokens(caption: CaptionCloudNode | CaptionNonCloudNode, video_size_MB: float) -> int:
-    """Caption 输出 token 数：LogNormal 的均值参数（即 E[X]）取整，与 ``deterministic`` 口径一致。"""
-    p = caption.caption_output_token_num_param
-    mean = max(float(p.base) + float(p.coef_per_MB) * video_size_MB, 20.0)
-    return max(1, int(round(mean)))
-
-
-def _query_mean_output_tokens(query: QueryCloudNode | QueryNonCloudNode) -> int:
-    p = query.query_output_token_num_param
-    return max(1, int(round(float(p.mean))))
-
-
-def _llm_latency_mean_s(llm: LlmNode, n_output_tokens: int) -> float:
-    p = llm.llm_latency_param
-    if p is None:
-        raise ValueError("llm_latency_param is required for LLM latency")
-    return max(
-        0.0,
-        float(p.alpha_ms_per_token) * n_output_tokens + float(p.beta_ms),
-    ) / 1000.0
-
-
 def _utility_weighted(
     segment: SegmentNode,
     split: SplitNode,
-    caption: CaptionCloudNode | CaptionNonCloudNode,
-    query: QueryCloudNode | QueryNonCloudNode,
+    caption: CaptionCloudNode,
+    query: QueryCloudNode,
 ) -> float:
     uw: Any = simulation_config.get("utility_weight") or {}
     return (
@@ -247,8 +193,8 @@ def _utility_weighted(
 def build_workflow_nodes(params: DistributionParameters) -> WorkflowNodes:
     segment: dict[str, SegmentNode] = {}
     split: dict[str, SplitNode] = {}
-    caption: dict[str, CaptionCloudNode | CaptionNonCloudNode] = {}
-    query: dict[str, QueryCloudNode | QueryNonCloudNode] = {}
+    caption: dict[str, CaptionCloudNode] = {}
+    query: dict[str, QueryCloudNode] = {}
     for p in CLOUD_PROVIDERS:
         for r in CLOUD_REGIONS[p]:
             pr = f"{p}_{r}"
@@ -273,11 +219,10 @@ def build_workflow_nodes(params: DistributionParameters) -> WorkflowNodes:
                 exec_time_param=params.seg_spl_exec_time_param[spl_name],
             )
 
-    for p in CLOUD_PROVIDERS:
-        for r in CLOUD_REGIONS[p]:
+    for p, r, model_key in iter_cloud_llm_deployments():
             pr = f"{p}_{r}"
-            cap_name = f"{pr}_caption"
-            qry_name = f"{pr}_query"
+            cap_name = build_llm_node_name(p, r, model_key, "caption")
+            qry_name = build_llm_node_name(p, r, model_key, "query")
             cin, cout = params.llm_token_price[cap_name]
             caption[cap_name] = CaptionCloudNode(
                 name=cap_name,
@@ -285,7 +230,7 @@ def build_workflow_nodes(params: DistributionParameters) -> WorkflowNodes:
                 region=r,
                 utility=params.utility[cap_name],
                 storage_price_per_gb_month=params.storage_price[cap_name],
-                llm_name=f"{p}_cloud",
+                llm_name=model_key,
                 input_token_price=cin,
                 output_token_price=cout,
                 llm_latency_param=params.llm_latency_param[cap_name],
@@ -299,37 +244,7 @@ def build_workflow_nodes(params: DistributionParameters) -> WorkflowNodes:
                 region=r,
                 utility=params.utility[qry_name],
                 storage_price_per_gb_month=params.storage_price[qry_name],
-                llm_name=f"{p}_cloud",
-                input_token_price=qin,
-                output_token_price=qout,
-                llm_latency_param=params.llm_latency_param[qry_name],
-                query_output_token_num_param=params.query_output_token_num_param[qry_name],
-            )
-
-    for provider, options in LLM_PROVIDER_TO_OPTIONS.items():
-        for opt in options:
-            cap_name = f"{provider}_{opt}_caption"
-            qry_name = f"{provider}_{opt}_query"
-            cin, cout = params.llm_token_price[cap_name]
-            caption[cap_name] = CaptionNonCloudNode(
-                name=cap_name,
-                provider=provider,
-                region=None,
-                utility=params.utility[cap_name],
-                llm_name=opt,
-                input_token_price=cin,
-                output_token_price=cout,
-                llm_latency_param=params.llm_latency_param[cap_name],
-                caption_input_token_num_param=params.caption_input_token_num_param[cap_name],
-                caption_output_token_num_param=params.caption_output_token_num_param[cap_name],
-            )
-            qin, qout = params.llm_token_price[qry_name]
-            query[qry_name] = QueryNonCloudNode(
-                name=qry_name,
-                provider=provider,
-                region=None,
-                utility=params.utility[qry_name],
-                llm_name=opt,
+                llm_name=model_key,
                 input_token_price=qin,
                 output_token_price=qout,
                 llm_latency_param=params.llm_latency_param[qry_name],
@@ -350,37 +265,73 @@ def build_workflow_nodes_from_sample() -> WorkflowNodes:
 
 class Workflow:
     """
-    构造时 ``sample()`` 一次并初始化全部节点；``params.edge_rtt`` / ``params.edge_bw``
-    已在 ``distribution.sample()`` 中为每条边给出 LogNormal 的 mean/std（分布矩阵）。
-    每次 ``calculate`` 开头在此基础上对每条边再采样一次，得到本次运行的具体
-    RTT(ms) 与带宽(Mbps)（数据矩阵）；写入 ``Edge`` 时用 std=0 避免在 ``Edge.calculate_latency`` 内再次随机。
+    构造时 ``sample()`` 一次并初始化全部节点（除非传入 ``params``）。
+
+    **链路 RTT/BW**：每条有向边对应一对 ``(mean, std)``，语义与 ``distribution.sample_edge_rtt`` /
+    ``sample_edge_bw`` 一致；在 **每次** ``calculate`` 开头用 LogNormal(mean, std) 各采样一次得到
+    本轮实际 RTT(ms) 与 BW(Mbps)。默认矩阵来自 ``params.edge_rtt`` / ``params.edge_bw``；
+    也可在 ``__init__`` 用 ``edge_rtt=`` / ``edge_bw=`` 覆盖（便于实验换网络而不改整份 ``params``）。
     """
 
-    def __init__(self, params: DistributionParameters | None = None) -> None:
+    def __init__(
+        self,
+        params: DistributionParameters | None = None,
+        *,
+        edge_rtt: dict[tuple[str, str], RTT] | None = None,
+        edge_bw: dict[tuple[str, str], BW] | None = None,
+    ) -> None:
         self.params = params if params is not None else sample()
         self.nodes = build_workflow_nodes(self.params)
         self._local = LocalNode()
         self._rtt_ms: dict[tuple[str, str], float] = {}
         self._bw_mbps: dict[tuple[str, str], float] = {}
-        self._deterministic: bool = False
+        # 用于采样的分布参数矩阵（非本轮 realized 数值）
+        self._network_edge_rtt = edge_rtt if edge_rtt is not None else self.params.edge_rtt
+        self._network_edge_bw = edge_bw if edge_bw is not None else self.params.edge_bw
+
+    def list_node_names(self) -> dict[str, list[str]]:
+        """返回算法可见动作空间（仅节点名称，不暴露分布参数）。"""
+        return {
+            "segment": sorted(self.nodes.segment.keys()),
+            "split": sorted(self.nodes.split.keys()),
+            "caption": sorted(self.nodes.caption.keys()),
+            "query": sorted(self.nodes.query.keys()),
+        }
+
+    def sample_observation(
+        self,
+        selection: NodeSelection,
+        video_size_MB: float,
+        *,
+        include_breakdown: bool = False,
+        deterministic: bool = False,
+    ) -> WorkflowResult:
+        """黑盒采样接口：按节点名称采样一次观测，不需要读取真实分布参数。"""
+        return self.calculate(
+            self.nodes.segment[selection.segment],
+            self.nodes.split[selection.split],
+            self.nodes.caption[selection.caption],
+            self.nodes.query[selection.query],
+            video_size_MB,
+            include_breakdown=include_breakdown,
+            deterministic=deterministic,
+        )
 
     def _realize_network(self) -> None:
-        """由 ``self.params`` 中的 RTT/BW 分布参数矩阵采样出本轮各边的具体数值。"""
+        """由当前绑定的 RTT/BW 分布参数矩阵采样出本轮各边的具体数值。"""
         self._rtt_ms = {}
         self._bw_mbps = {}
-        for k, r in self.params.edge_rtt.items():
-            self._rtt_ms[k] = LogNormalDistribution(float(r.mean), float(r.std)).sample()
-        for k, w in self.params.edge_bw.items():
-            self._bw_mbps[k] = LogNormalDistribution(float(w.mean), float(w.std)).sample()
-
-    def _realize_network_mean(self) -> None:
-        """确定性基线：链路上 RTT/BW 取各边分布的均值（与 ``_realize_network`` 的 mean 字段一致）。"""
-        self._rtt_ms = {}
-        self._bw_mbps = {}
-        for k, r in self.params.edge_rtt.items():
-            self._rtt_ms[k] = float(r.mean)
-        for k, w in self.params.edge_bw.items():
-            self._bw_mbps[k] = float(w.mean)
+        det = getattr(self, "_deterministic_eval", False)
+        for k, r in self._network_edge_rtt.items():
+            if det:
+                self._rtt_ms[k] = float(r.mean)
+            else:
+                self._rtt_ms[k] = LogNormalDistribution(float(r.mean), float(r.std)).sample()
+        for k, w in self._network_edge_bw.items():
+            if det:
+                self._bw_mbps[k] = float(w.mean)
+            else:
+                self._bw_mbps[k] = LogNormalDistribution(float(w.mean), float(w.std)).sample()
 
     def _rtt_bw_objects(self, src: Node, dst: Node) -> tuple[RTT, BW]:
         a, b = _node_to_comm_endpoint(src), _node_to_comm_endpoint(dst)
@@ -400,18 +351,8 @@ class Workflow:
     def _edge_latency_s(self, src: Node, dst: Node, data_size_MB: float) -> float:
         if _node_to_comm_endpoint(src) == _node_to_comm_endpoint(dst):
             return 0.0
-        if self._deterministic:
-            a, b = _node_to_comm_endpoint(src), _node_to_comm_endpoint(dst)
-            key = (a, b)
-            rtt_ms = self._rtt_ms[key]
-            bw_mbps = self._bw_mbps[key]
-            rtt_half_s = rtt_ms / 2000.0
-            if math.isinf(bw_mbps):
-                return rtt_half_s
-            if bw_mbps <= 0 and not math.isinf(bw_mbps):
-                raise ValueError("bandwidth_mbps must be > 0 (or +inf for local/zero transfer time)")
-            return rtt_half_s + (data_size_MB * 8.0) / bw_mbps
-        return self._edge(src, dst).calculate_latency(data_size_MB)
+        det = getattr(self, "_deterministic_eval", False)
+        return self._edge(src, dst).calculate_latency(data_size_MB, deterministic=det)
 
     def _edge_egress_usd(self, src: Node, dst: Node, data_size_MB: float) -> float:
         if _node_to_comm_endpoint(src) == _node_to_comm_endpoint(dst):
@@ -432,31 +373,12 @@ class Workflow:
             self._edge_latency_s(src, self._local, data_MB),
         )
 
-    @staticmethod
-    def _pre_query_node(
-        split: SplitNode,
-        caption: CaptionCloudNode | CaptionNonCloudNode,
-    ) -> Node:
-        """Query 的输入 mb3 由谁发往 query：云 Caption 则 caption→query；非云 Caption 则 split→query（mb3 已先经 caption→split 回到 split）。"""
-        return caption if isinstance(caption, CaptionCloudNode) else split
-
-    @staticmethod
-    def _post_query_cloud_storage_node(
-        split: SplitNode,
-        caption: CaptionCloudNode | CaptionNonCloudNode,
-        query: QueryCloudNode | QueryNonCloudNode,
-    ) -> CloudNode:
-        """非云 query 时 answer（mb4）落盘的云父节点：云 caption 则 caption，否则 split。"""
-        if isinstance(caption, CaptionCloudNode):
-            return caption
-        return split
-
     def calculate_storage_cost(
         self,
         segment: SegmentNode,
         split: SplitNode,
-        caption: CaptionCloudNode | CaptionNonCloudNode,
-        query: QueryCloudNode | QueryNonCloudNode,
+        caption: CaptionCloudNode,
+        query: QueryCloudNode,
         video_size_MB: float,
         *,
         ratio_segment: float,
@@ -465,14 +387,8 @@ class Workflow:
         ratio_query: float,
     ) -> float:
         """
-        仅 ``CloudNode`` 计费。云侧先写入 bucket 再读取；无存储的 LLM 节点不付存储费，产物由前置云保存。
-
-        公共：segment 存 mb0（上传）、mb1；split 存 mb1、mb2。
-
-        1) cloud caption + cloud query：caption 存 mb2、mb3；query 存 mb3、mb4。
-        2) cloud caption + llm query：caption 存 mb2、mb3；query 无存储，最终 answer（mb4）存回云 caption。
-        3) llm caption + cloud query：caption 无存储，mb3 回到 split；split 额外存 mb3；query 存 mb3、mb4。
-        4) llm caption + llm query：caption 无存储，mb3 在 split；query 无存储，mb4 存回 split。
+        全云节点计费：segment 存 mb0、mb1；split 存 mb1、mb2；
+        caption 存 mb2、mb3；query 存 mb3、mb4。
         """
         if video_size_MB < 0:
             raise ValueError("video_size_MB must be >= 0")
@@ -482,7 +398,9 @@ class Workflow:
         mb3 = mb2 * float(ratio_caption)
         mb4 = mb3 * float(ratio_query)
 
-        def store(node: CloudNode, mb: float) -> float:
+        def store(node: Node, mb: float) -> float:
+            if not hasattr(node, "calculate_storage_cost"):
+                raise ValueError("all nodes must support storage cost in cloud-only mode")
             return node.calculate_storage_cost(mb)
 
         total = 0.0
@@ -490,29 +408,15 @@ class Workflow:
         total += store(segment, mb0) + store(segment, mb1)
         total += store(split, mb1) + store(split, mb2)
 
-        if isinstance(caption, CaptionCloudNode):
-            total += store(caption, mb2) + store(caption, mb3)
-        else:
-            total += store(split, mb3)
-
-        if isinstance(query, QueryCloudNode):
-            total += store(query, mb3) + store(query, mb4)
-        else:
-            total += store(
-                self._post_query_cloud_storage_node(split, caption, query), mb4
-            )
+        total += store(caption, mb2) + store(caption, mb3)
+        total += store(query, mb3) + store(query, mb4)
 
         return total
 
-    def _sample_data_conversion_ratios(
-        self, *, deterministic: bool
-    ) -> tuple[float, float, float, float]:
-        """
-        每次 calculate 采样一次 data conversion ratios（segment/split/caption/query）。
-        deterministic=True 时取各分布的均值（distribution.LogNormalDistribution.mean）。
-        """
+    def _sample_data_conversion_ratios(self) -> tuple[float, float, float, float]:
+        """每次 calculate 采样一次 data conversion ratios（segment/split/caption/query）。"""
         dc = self.params.data_conversion_ratio
-        if deterministic:
+        if getattr(self, "_deterministic_eval", False):
             return (
                 float(dc["segment"].mean),
                 float(dc["split"].mean),
@@ -530,8 +434,8 @@ class Workflow:
         self,
         segment: SegmentNode,
         split: SplitNode,
-        caption: CaptionCloudNode | CaptionNonCloudNode,
-        query: QueryCloudNode | QueryNonCloudNode,
+        caption: CaptionCloudNode,
+        query: QueryCloudNode,
         video_size_MB: float,
         *,
         verbose: bool = False,
@@ -543,196 +447,211 @@ class Workflow:
         最后一跳云节点→local；两段均计入传输延迟，出站费按 ``egress_price`` 矩阵
         ``(端点, local)`` 或 ``(local, 端点)`` 计费（与 ``Edge`` / ``_node_to_comm_endpoint`` 一致）。
 
-        非云 Caption：splitted video（mb2）经 split→caption，caption 产物（mb3）先 **caption→split**
-        落盘再 **split→query**，两段链路均计费；云 Caption 则 mb3 留在 caption 侧，仅 **caption→query**。
+        全云模式：mb2 经 split→caption，mb3 经 caption→query，最后 mb4 从 query→local。
 
-        ``verbose=True`` 时向 stdout 打印 cost/latency 分项；``include_breakdown=True`` 时在
-        ``WorkflowResult.breakdown`` 中返回 ``WorkflowBreakdown``（``verbose`` 为 True 时也会附带）。
+        默认每次调用对环境随机量重新采样；``deterministic=True`` 时用各分布/链路的 **均值**（及
+        Gamma 期望、LLM 无噪声等）求值，对应 Baseline DO 的简化环境。
 
-        ``deterministic=True``：**确定性基线**——链路与计算时间取分布均值、Gamma 取均值、LLM token
-        取期望输出规模、LLM 延迟取无噪声均值；不再对边延迟/执行时间/token 做随机采样。
+        ``verbose=True`` 时向 stdout 打印 cost/latency 分项。
+
+        ``include_breakdown=True`` 时在 ``WorkflowResult.breakdown`` 中填入 ``WorkflowBreakdown``：
+        各阶段 cost/latency 分项、存储费以及 ``mb0``–``mb4`` 数据量，便于记录或离线分析；
+        为 ``False`` 时仅返回 ``cost`` / ``latency`` / ``utility`` 三个标量（``breakdown`` 为 ``None``）。
+        ``verbose=True`` 时也会附带 breakdown（与 ``include_breakdown=True`` 等价用于构造分项）。
         """
         if video_size_MB < 0:
             raise ValueError("video_size_MB must be >= 0")
 
-        self._deterministic = deterministic
-        if deterministic:
-            self._realize_network_mean()
-        else:
+        self._deterministic_eval = deterministic
+        try:
             self._realize_network()
 
-        ratio_segment, ratio_split, ratio_caption, ratio_query = self._sample_data_conversion_ratios(
-            deterministic=deterministic
-        )
-
-        mb0 = video_size_MB
-        mb1 = mb0 * float(ratio_segment)
-        mb2 = mb1 * float(ratio_split)
-        mb3 = mb2 * float(ratio_caption)
-        mb4 = mb3 * float(ratio_query)
-
-        if not deterministic:
-            cost_seg = segment.calculate_execution_cost(mb0)
-            cost_spl = split.calculate_execution_cost(mb1)
-            cost_cap = caption.calculate_token_cost(mb2)
-            n_cap = caption_output_tokens_for_query(caption, mb2)
-            cost_qry = query.calculate_token_cost(mb2, input_tokens=n_cap)
-        else:
-            cost_seg = _segment_mean_execution_cost(segment, mb0)
-            cost_spl = _split_mean_execution_cost(split, mb1)
-            n_cap = _caption_mean_output_tokens(caption, mb2)
-            n_in_cap = float(caption.input_token_num(mb2))
-            cost_cap = (
-                n_in_cap * float(caption.input_token_price) + float(n_cap) * float(caption.output_token_price)
-            ) / LLM_TOKENS_PER_MILLION
-            n_out_q = _query_mean_output_tokens(query)
-            cost_qry = (
-                float(n_cap) * float(query.input_token_price) + float(n_out_q) * float(query.output_token_price)
-            ) / LLM_TOKENS_PER_MILLION
-
-        pre_q = self._pre_query_node(split, caption)
-
-        e0, lat_from_local_0 = self._egress_and_latency_from_local(segment, mb0)
-        e1 = self._edge_egress_usd(segment, split, mb1)
-        e2 = self._edge_egress_usd(split, caption, mb2)
-        # 非云 Caption：mb3 先回到 split，再 split→query；云 Caption：mb3 从 caption→query
-        if isinstance(caption, CaptionNonCloudNode):
-            e_cap_to_split = self._edge_egress_usd(caption, split, mb3)
-            lat_cap_to_split = self._edge_latency_s(caption, split, mb3)
-        else:
-            e_cap_to_split = 0.0
-            lat_cap_to_split = 0.0
-        e3 = self._edge_egress_usd(pre_q, query, mb3)
-
-        # 非云 query：answer（mb4）先回云父，再云→local
-        if isinstance(query, QueryNonCloudNode):
-            post_q = self._post_query_cloud_storage_node(split, caption, query)
-            e_ret_q = self._edge_egress_usd(query, post_q, mb4)
-            lat_ret_q = self._edge_latency_s(query, post_q, mb4)
-            last_before_local: Node = post_q
-        else:
-            e_ret_q = 0.0
-            lat_ret_q = 0.0
-            last_before_local = query
-
-        e_to_local, lat_to_local = self._egress_and_latency_to_local(
-            last_before_local, mb4
-        )
-
-        storage = self.calculate_storage_cost(
-            segment,
-            split,
-            caption,
-            query,
-            video_size_MB,
-            ratio_segment=ratio_segment,
-            ratio_split=ratio_split,
-            ratio_caption=ratio_caption,
-            ratio_query=ratio_query,
-        )
-        total_cost = (
-            cost_seg
-            + cost_spl
-            + cost_cap
-            + cost_qry
-            + e0
-            + e1
-            + e2
-            + e_cap_to_split
-            + e3
-            + e_ret_q
-            + e_to_local
-            + storage
-        )
-
-        if not deterministic:
-            lat_segment_compute = segment.calculate_latency(mb0)
-            lat_split_compute = split.calculate_latency(mb1)
-            lat_caption_compute = caption.calculate_latency(mb2)
-            lat_query_compute = query.calculate_latency(mb2)
-        else:
-            lat_segment_compute = _segment_mean_latency(segment, mb0)
-            lat_split_compute = _split_mean_latency(split, mb1)
-            lat_caption_compute = _llm_latency_mean_s(caption, n_cap)
-            lat_query_compute = _llm_latency_mean_s(query, n_out_q)
-
-        lat_segment_split = self._edge_latency_s(segment, split, mb1)
-        lat_split_caption = self._edge_latency_s(split, caption, mb2)
-        lat_to_query = self._edge_latency_s(pre_q, query, mb3)
-
-        latency = (
-            lat_from_local_0
-            + lat_segment_compute
-            + lat_segment_split
-            + lat_split_compute
-            + lat_split_caption
-            + lat_caption_compute
-            + lat_cap_to_split
-            + lat_to_query
-            + lat_query_compute
-            + lat_ret_q
-            + lat_to_local
-        )
-
-        utility = _utility_weighted(segment, split, caption, query)
-
-        self._deterministic = False
-
-        want_breakdown = verbose or include_breakdown
-        breakdown: WorkflowBreakdown | None = None
-        if want_breakdown:
-            breakdown = WorkflowBreakdown(
-                exec_segment=cost_seg,
-                exec_split=cost_spl,
-                llm_caption=cost_cap,
-                llm_query=cost_qry,
-                egress_local_segment=e0,
-                egress_segment_split=e1,
-                egress_split_caption=e2,
-                egress_caption_split=e_cap_to_split,
-                egress_to_query=e3,
-                egress_query_to_cloud=e_ret_q,
-                egress_last_to_local=e_to_local,
-                storage=storage,
-                lat_local_segment=lat_from_local_0,
-                lat_segment_compute=lat_segment_compute,
-                lat_segment_split=lat_segment_split,
-                lat_split_compute=lat_split_compute,
-                lat_split_caption=lat_split_caption,
-                lat_caption_compute=lat_caption_compute,
-                lat_caption_split=lat_cap_to_split,
-                lat_to_query=lat_to_query,
-                lat_query_compute=lat_query_compute,
-                lat_query_to_cloud=lat_ret_q,
-                lat_last_to_local=lat_to_local,
-                mb0=mb0,
-                mb1=mb1,
-                mb2=mb2,
-                mb3=mb3,
-                mb4=mb4,
+            ratio_segment, ratio_split, ratio_caption, ratio_query = (
+                self._sample_data_conversion_ratios()
             )
-            if not math.isclose(breakdown.sum_cost(), total_cost, rel_tol=1e-12, abs_tol=1e-9):
-                raise RuntimeError("internal: cost breakdown does not sum to total_cost")
-            if not math.isclose(breakdown.sum_latency(), latency, rel_tol=1e-12, abs_tol=1e-9):
-                raise RuntimeError("internal: latency breakdown does not sum to total latency")
 
-        if verbose and breakdown is not None:
-            print(breakdown)
-            print(f"  utility (weighted)                       {utility:>18.6f}")
+            mb0 = video_size_MB
+            mb1 = mb0 * float(ratio_segment)
+            mb2 = mb1 * float(ratio_split)
+            mb3 = mb2 * float(ratio_caption)
+            mb4 = mb3 * float(ratio_query)
 
-        return WorkflowResult(
-            cost=total_cost,
-            latency=latency,
-            utility=utility,
-            breakdown=breakdown,
+            cost_seg = segment.calculate_execution_cost(mb0, deterministic=deterministic)
+            cost_spl = split.calculate_execution_cost(mb1, deterministic=deterministic)
+            cost_cap = caption.calculate_token_cost(mb2, deterministic=deterministic)
+            n_cap = caption_output_tokens_for_query(caption, mb2, deterministic=deterministic)
+            cost_qry = query.calculate_token_cost(
+                mb2, input_tokens=n_cap, deterministic=deterministic
+            )
+
+            pre_q: Node = caption
+
+            e0, lat_from_local_0 = self._egress_and_latency_from_local(segment, mb0)
+            e1 = self._edge_egress_usd(segment, split, mb1)
+            e2 = self._edge_egress_usd(split, caption, mb2)
+            e3 = self._edge_egress_usd(pre_q, query, mb3)
+
+            last_before_local: Node = query
+
+            e_to_local, lat_to_local = self._egress_and_latency_to_local(
+                last_before_local, mb4
+            )
+
+            storage = self.calculate_storage_cost(
+                segment,
+                split,
+                caption,
+                query,
+                video_size_MB,
+                ratio_segment=ratio_segment,
+                ratio_split=ratio_split,
+                ratio_caption=ratio_caption,
+                ratio_query=ratio_query,
+            )
+            total_cost = (
+                cost_seg
+                + cost_spl
+                + cost_cap
+                + cost_qry
+                + e0
+                + e1
+                + e2
+                + e3
+                + e_to_local
+                + storage
+            )
+
+            lat_segment_compute = segment.calculate_latency(mb0, deterministic=deterministic)
+            lat_split_compute = split.calculate_latency(mb1, deterministic=deterministic)
+            lat_caption_compute = caption.calculate_latency(mb2, deterministic=deterministic)
+            lat_query_compute = query.calculate_latency(mb2, deterministic=deterministic)
+
+            lat_segment_split = self._edge_latency_s(segment, split, mb1)
+            lat_split_caption = self._edge_latency_s(split, caption, mb2)
+            lat_to_query = self._edge_latency_s(pre_q, query, mb3)
+
+            latency = (
+                lat_from_local_0
+                + lat_segment_compute
+                + lat_segment_split
+                + lat_split_compute
+                + lat_split_caption
+                + lat_caption_compute
+                + lat_to_query
+                + lat_query_compute
+                + lat_to_local
+            )
+
+            utility = _utility_weighted(segment, split, caption, query)
+
+            want_breakdown = verbose or include_breakdown
+            breakdown: WorkflowBreakdown | None = None
+            if want_breakdown:
+                breakdown = WorkflowBreakdown(
+                    exec_segment=cost_seg,
+                    exec_split=cost_spl,
+                    llm_caption=cost_cap,
+                    llm_query=cost_qry,
+                    egress_local_segment=e0,
+                    egress_segment_split=e1,
+                    egress_split_caption=e2,
+                    egress_to_query=e3,
+                    egress_last_to_local=e_to_local,
+                    storage=storage,
+                    lat_local_segment=lat_from_local_0,
+                    lat_segment_compute=lat_segment_compute,
+                    lat_segment_split=lat_segment_split,
+                    lat_split_compute=lat_split_compute,
+                    lat_split_caption=lat_split_caption,
+                    lat_caption_compute=lat_caption_compute,
+                    lat_to_query=lat_to_query,
+                    lat_query_compute=lat_query_compute,
+                    lat_last_to_local=lat_to_local,
+                    mb0=mb0,
+                    mb1=mb1,
+                    mb2=mb2,
+                    mb3=mb3,
+                    mb4=mb4,
+                )
+                if not math.isclose(
+                    breakdown.sum_cost(), total_cost, rel_tol=1e-12, abs_tol=1e-9
+                ):
+                    raise RuntimeError("internal: cost breakdown does not sum to total_cost")
+                if not math.isclose(
+                    breakdown.sum_latency(), latency, rel_tol=1e-12, abs_tol=1e-9
+                ):
+                    raise RuntimeError(
+                        "internal: latency breakdown does not sum to total latency"
+                    )
+
+            if verbose and breakdown is not None:
+                print(breakdown)
+                print(f"  utility (weighted)                       {utility:>18.6f}")
+
+            return WorkflowResult(
+                cost=total_cost,
+                latency=latency,
+                utility=utility,
+                breakdown=breakdown,
+            )
+        finally:
+            del self._deterministic_eval
+
+
+class SimulationEnvironment:
+    """
+    面向算法侧的黑盒环境接口：
+    - 不直接暴露 DistributionParameters
+    - 仅提供动作空间与采样观测接口
+
+    若未传入 ``workflow``，可用 ``params`` / ``edge_rtt`` / ``edge_bw`` 传给内部 ``Workflow(...)``。
+    """
+
+    def __init__(
+        self,
+        workflow: Workflow | None = None,
+        *,
+        params: DistributionParameters | None = None,
+        edge_rtt: dict[tuple[str, str], RTT] | None = None,
+        edge_bw: dict[tuple[str, str], BW] | None = None,
+    ) -> None:
+        if workflow is not None and (
+            params is not None or edge_rtt is not None or edge_bw is not None
+        ):
+            raise ValueError("provide workflow= XOR constructor kwargs for Workflow, not both")
+        self._workflow = workflow or Workflow(
+            params=params, edge_rtt=edge_rtt, edge_bw=edge_bw
+        )
+
+    def action_space(self) -> dict[str, list[str]]:
+        return self._workflow.list_node_names()
+
+    def sample_once(
+        self,
+        selection: NodeSelection,
+        video_size_MB: float,
+        *,
+        include_breakdown: bool = False,
+    ) -> WorkflowResult:
+        return self._workflow.sample_observation(
+            selection,
+            video_size_MB,
+            include_breakdown=include_breakdown,
         )
 
 
 if __name__ == "__main__":
-    wf = Workflow()
-    seg = next(iter(wf.nodes.segment.values()))
-    spl = next(iter(wf.nodes.split.values()))
-    cap = next(iter(wf.nodes.caption.values()))
-    qry = next(iter(wf.nodes.query.values()))
-    r = wf.calculate(seg, spl, cap, qry, 100.0, verbose=True)
-    print("totals: cost", r.cost, "latency", r.latency, "utility", r.utility)
+    env = SimulationEnvironment()
+    space = env.action_space()  # dict: segment/split/caption/query -> 节点名列表
+    choice = NodeSelection(
+        segment=space["segment"][0],
+        split=space["split"][0],
+        caption=space["caption"][0],
+        query=space["query"][0],
+    )
+    obs = env.sample_once(
+        choice,
+        video_size_MB=120.0,
+        include_breakdown=False,
+    )
+    print(obs.cost, obs.latency, obs.utility)

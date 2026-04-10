@@ -1,270 +1,266 @@
 """
-实验脚本：生成 queries，对比 **你的方法** 与 baselines。
+试运行：用 ``sample_query_with_budget`` 生成带预算的 queries，对 LO / GL / SC /
+DO（Deterministic-Optimal）/ 所提方法（经验 chance 约束）跑实验并打印指标表。
 
-你的方法（proposed）
--------------------
-由于当前仓库的工作流固定为链式 `local→segment→split→caption→query→local`，本脚本将你的方法实现为：
+与论文 chance constraint 对应：给定 η_C、η_T，若经验违反率 viol_c ≤ η_C 且 viol_t ≤ η_T，
+则认为该 baseline 在该次仿真下满足 SLO 口径（经验版）。
 
-- 在训练集（train queries）上，对所有候选流水线组合做搜索；
-- 用 Monte Carlo（多次 `Workflow.calculate`）估计每条流水线的
-  `mean_utility / mean_cost / mean_latency / violation_rate`；
-- 在满足 `cost_violation_rate <= eta_cost` 且 `latency_violation_rate <= eta_latency` 的可行解中，
-  选取 `mean_utility` 最大的流水线；若无可行解，则用惩罚项选择：
-  `score = mean_utility - penalty*(viol_cost + viol_lat)` 最大者。
+用法示例::
 
-这样能直接展示“部署耦合 + 约束下”相对 baselines 的优势（尤其相对 logical_optimal）。
-
-输出指标
---------
-- utility / cost / latency：测试集上的均值
-- cost_violation_rate / latency_violation_rate：测试集上超预算比例
+    python simulation.py --queries 20 --runs-per-query 2
+    python simulation.py --eta-c 0.1 --eta-t 0.05
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-import itertools
-import time
+import argparse
+from typing import Literal, cast
 
-from distribution import Query, sample_query_with_budget
+from param import CLOUD_PROVIDERS
+from distribution import build_distribution_parameters, sample_query_with_budget
 from workflow import Workflow
-from nodes import (
-    CaptionCloudNode,
-    CaptionNonCloudNode,
-    QueryCloudNode,
-    QueryNonCloudNode,
-    SegmentNode,
-    SplitNode,
-)
-
-from baselines import (
+from algos import (
     BaselineMetrics,
-    evaluate_pipeline,
-    format_metrics_table,
-    run_deterministic,
-    run_greedy,
-    run_logical_optimal,
-    run_single_cloud,
+    NodeSelection,
+    run_baseline_do,
+    run_baseline_gl,
+    run_baseline_lo,
+    run_baseline_sc,
+    run_proposed,
 )
 
 
-Pipeline = tuple[
-    SegmentNode,
-    SplitNode,
-    CaptionCloudNode | CaptionNonCloudNode,
-    QueryCloudNode | QueryNonCloudNode,
-]
-
-
-@dataclass(frozen=True, slots=True)
-class ProposedSearchConfig:
-    train_runs: int = 20
-    test_runs: int = 40
-    eta_cost: float = 0.10
-    eta_latency: float = 0.10
-    penalty: float = 1.0
-    max_candidates_per_stage: int | None = 30
-    """为避免组合爆炸：每个 stage 只保留 utility 最高的前 N 个（None 表示全保留）。"""
-    show_progress: bool = True
-
-
-def _topk_by_utility(values: list, k: int | None) -> list:
-    if k is None:
-        return values
-    return sorted(values, key=lambda n: float(getattr(n, "utility", 0.0)), reverse=True)[:k]
-
-
-def proposed_select_pipeline(
-    wf: Workflow,
-    train_queries: list[Query],
-    cfg: ProposedSearchConfig,
-) -> tuple[Pipeline, BaselineMetrics]:
-    """
-    在训练集上选择 pipeline，返回 (pipeline, 训练集表现)。
-    """
-    segs = list(wf.nodes.segment.values())
-    spls = list(wf.nodes.split.values())
-    caps = list(wf.nodes.caption.values())
-    qrys = list(wf.nodes.query.values())
-
-    best_pipeline: Pipeline | None = None
-    best_metrics: BaselineMetrics | None = None
-    best_score: float | None = None
-    total = len(segs) * len(spls) * len(caps) * len(qrys)
-    done = 0
-    start_ts = time.time()
-
-    def _render_progress(done_cnt: int) -> None:
-        if not cfg.show_progress:
-            return
-        elapsed = time.time() - start_ts
-        ratio = (done_cnt / total) if total > 0 else 1.0
-        eta = (elapsed / done_cnt) * (total - done_cnt) if done_cnt > 0 else 0.0
-        width = 28
-        filled = int(round(width * max(0.0, min(1.0, ratio))))
-        bar = "#" * filled + "-" * (width - filled)
-        print(
-            f"\r[simulation] proposed搜索进度 [{bar}] {done_cnt}/{total} "
-            f"({ratio*100:5.1f}%) | elapsed {elapsed:7.1f}s | eta {eta:7.1f}s",
-            end="",
-            flush=True,
-        )
-
-    for seg, spl, cap, qry in itertools.product(segs, spls, caps, qrys):
-        mu, mc, ml, cr, lr, n = evaluate_pipeline(
-            wf, seg, spl, cap, qry, train_queries, cfg.train_runs, deterministic=False
-        )
-        feasible = (cr <= cfg.eta_cost) and (lr <= cfg.eta_latency)
-        score = mu if feasible else (mu - cfg.penalty * (cr + lr))
-
-        if best_score is None or score > best_score:
-            best_score = score
-            best_pipeline = (seg, spl, cap, qry)
-            best_metrics = BaselineMetrics(
-                name="proposed(train)",
-                mean_utility=mu,
-                mean_cost=mc,
-                mean_latency=ml,
-                cost_violation_rate=cr,
-                latency_violation_rate=lr,
-                n_samples=n,
-            )
-        done += 1
-        _render_progress(done)
-
-    assert best_pipeline is not None and best_metrics is not None
-    if cfg.show_progress:
-        _render_progress(total)
-        print()
-    return best_pipeline, best_metrics
-
-
-def proposed_evaluate(
-    wf: Workflow,
-    train_queries: list[Query],
-    test_queries: list[Query],
-    cfg: ProposedSearchConfig,
-) -> tuple[BaselineMetrics, BaselineMetrics]:
-    """
-    返回 (train_metrics, test_metrics)。
-    """
-    pipeline, train_m = proposed_select_pipeline(wf, train_queries, cfg)
-    seg, spl, cap, qry = pipeline
-    mu, mc, ml, cr, lr, n = evaluate_pipeline(
-        wf, seg, spl, cap, qry, test_queries, cfg.test_runs, deterministic=False
+def _slo_ok(m: BaselineMetrics, eta_c: float, eta_t: float) -> bool:
+    return (
+        m.slo_violation.cost_violation_ratio <= eta_c
+        and m.slo_violation.latency_violation_ratio <= eta_t
     )
-    test_m = BaselineMetrics(
-        name="proposed",
-        mean_utility=mu,
-        mean_cost=mc,
-        mean_latency=ml,
-        cost_violation_rate=cr,
-        latency_violation_rate=lr,
-        n_samples=n,
-    )
-    return train_m, test_m
 
 
-def split_train_test(queries: list[Query], train_ratio: float = 0.5) -> tuple[list[Query], list[Query]]:
-    if not (0.0 < train_ratio < 1.0):
-        raise ValueError("train_ratio must be in (0,1)")
-    n_train = max(1, int(round(len(queries) * train_ratio)))
-    return queries[:n_train], queries[n_train:]
-
-
-def run_experiment(
-    num_queries: int = 30,
-    train_ratio: float = 0.5,
-    baseline_runs: int = 40,
+def _fmt_row(
+    label: str,
+    m: BaselineMetrics,
     *,
-    greedy_source_provider: str = "GCP",
-    greedy_source_region: str = "us-east1",
-    greedy_delta: float = 0.05,
-    proposed_cfg: ProposedSearchConfig | None = None,
-) -> None:
-    if proposed_cfg is None:
-        proposed_cfg = ProposedSearchConfig(train_runs=20, test_runs=baseline_runs)
-
-    wf = Workflow()
-    queries = sample_query_with_budget(num_queries)
-    train_q, test_q = split_train_test(queries, train_ratio=train_ratio)
-    if not test_q:
-        raise ValueError("test set is empty; increase num_queries or lower train_ratio")
-
-    # proposed
-    proposed_train, proposed_test = proposed_evaluate(wf, train_q, test_q, proposed_cfg)
-
-    # baselines（在 test 上评估）
-    rows = [
-        run_single_cloud(wf, test_q, baseline_runs),
-        run_logical_optimal(wf, test_q, baseline_runs),
-        run_greedy(
-            wf,
-            test_q,
-            baseline_runs,
-            source_provider=greedy_source_provider,
-            source_region=greedy_source_region,
-            accuracy_improvement_threshold=greedy_delta,
-        ),
-        run_deterministic(wf, test_q),
-        proposed_test,
-    ]
-
-    print("== Proposed selection on train ==")
-    print(
-        format_metrics_table(
-            [
-                BaselineMetrics(
-                    name="proposed(train)",
-                    mean_utility=proposed_train.mean_utility,
-                    mean_cost=proposed_train.mean_cost,
-                    mean_latency=proposed_train.mean_latency,
-                    cost_violation_rate=proposed_train.cost_violation_rate,
-                    latency_violation_rate=proposed_train.latency_violation_rate,
-                    n_samples=proposed_train.n_samples,
-                )
-            ]
-        )
+    eta_c: float,
+    eta_t: float,
+    show_selection: bool,
+    sel: NodeSelection | None,
+) -> str:
+    ok = _slo_ok(m, eta_c, eta_t)
+    line = (
+        f"{label:<22}"
+        f"  {m.mean_aggregate_utility:>10.4f}"
+        f"  {m.mean_cost_usd:>12.4f}"
+        f"  {m.mean_latency_s:>12.2f}"
+        f"  {m.slo_violation.cost_violation_ratio:>8.3f}"
+        f"  {m.slo_violation.latency_violation_ratio:>8.3f}"
+        f"  {m.num_observations:>6d}"
+        f"  {'Y' if ok else 'N':>5}"
     )
-    print()
+    if show_selection and sel is not None:
+        line += (
+            f"\n{'':22}  seg={sel.segment}\n"
+            f"{'':22}  spl={sel.split}\n"
+            f"{'':22}  cap={sel.caption}\n"
+            f"{'':22}  qry={sel.query}"
+        )
+    return line
 
-    print("== Test comparison ==")
-    print(format_metrics_table(rows))
+
+def _print_comparison_summary(
+    rows: list[tuple[str, NodeSelection, BaselineMetrics]],
+    *,
+    eta_c: float,
+    eta_t: float,
+) -> None:
+    """在满足 SLO 经验阈值的方法子集内对比效用/成本/延迟，并给出全体极值参考。"""
+    slo_rows = [(lbl, m) for lbl, _, m in rows if _slo_ok(m, eta_c, eta_t)]
+    if not slo_rows:
+        print("\n== 对比小结 ==")
+        print(" 无满足 SLO_ok 的方法（请放宽 η_C/η_T 或增加 --runs-per-query）。")
+        return
+
+    def min_by_metric(
+        pairs: list[tuple[str, BaselineMetrics]], key
+    ) -> tuple[str, BaselineMetrics]:
+        return min(pairs, key=lambda x: key(x[1]))
+
+    def max_by_metric(
+        pairs: list[tuple[str, BaselineMetrics]], key
+    ) -> tuple[str, BaselineMetrics]:
+        return max(pairs, key=lambda x: key(x[1]))
+
+    best_u = max_by_metric(slo_rows, lambda m: m.mean_aggregate_utility)
+    best_cost = min_by_metric(slo_rows, lambda m: m.mean_cost_usd)
+    best_lat = min_by_metric(slo_rows, lambda m: m.mean_latency_s)
+
+    print("\n== 对比小结（仅含 SLO_ok=Y 的方法） ==")
+    print(
+        f"  最高 mean_U:   {best_u[0]!r}  (U={best_u[1].mean_aggregate_utility:.4f})"
+    )
+    print(
+        f"  最低 mean_cost: {best_cost[0]!r}  (cost={best_cost[1].mean_cost_usd:.4f} USD)"
+    )
+    print(
+        f"  最低 mean_lat:  {best_lat[0]!r}  (T={best_lat[1].mean_latency_s:.2f} s)"
+    )
+
+    # 按效用排序（SLO_ok 子集）
+    ranked = sorted(slo_rows, key=lambda x: (-x[1].mean_aggregate_utility, x[0]))
+    print("  按 mean_U 降序: " + " > ".join(lbl for lbl, _ in ranked))
+
+    # 全体极值（含可能违反 SLO）
+    all_u = max(rows, key=lambda x: x[2].mean_aggregate_utility)
+    all_cost = min(rows, key=lambda x: x[2].mean_cost_usd)
+    all_lat = min(rows, key=lambda x: x[2].mean_latency_s)
+    print("\n== 全体极值参考（含 SLO_ok=N） ==")
+    print(
+        f"  mean_U 最大: {all_u[0]!r}  U={all_u[2].mean_aggregate_utility:.4f}  "
+        f"SLO_ok={'Y' if _slo_ok(all_u[2], eta_c, eta_t) else 'N'}"
+    )
+    print(
+        f"  mean_cost 最小: {all_cost[0]!r}  cost={all_cost[2].mean_cost_usd:.4f}  "
+        f"SLO_ok={'Y' if _slo_ok(all_cost[2], eta_c, eta_t) else 'N'}"
+    )
+    print(
+        f"  mean_lat 最小: {all_lat[0]!r}  T={all_lat[2].mean_latency_s:.2f} s  "
+        f"SLO_ok={'Y' if _slo_ok(all_lat[2], eta_c, eta_t) else 'N'}"
+    )
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="运行 LO / GL / SC / DO / Proposed 全方法并输出指标表与对比小结"
+    )
+    parser.add_argument(
+        "--queries",
+        type=int,
+        default=16,
+        help="生成的 query 条数（传给 sample_query_with_budget）",
+    )
+    parser.add_argument(
+        "--runs-per-query",
+        type=int,
+        default=1,
+        help="每条 query 重复观测次数（用于估计均值与经验违反率）",
+    )
+    parser.add_argument(
+        "--eta-c",
+        type=float,
+        default=0.05,
+        dest="eta_c",
+        help="η_C：成本侧允许的经验违反率上界，判定 viol_c ≤ η_C",
+    )
+    parser.add_argument(
+        "--eta-t",
+        type=float,
+        default=0.05,
+        dest="eta_t",
+        help="η_T：延迟侧允许的经验违反率上界，判定 viol_t ≤ η_T",
+    )
+    parser.add_argument(
+        "--search-runs",
+        type=int,
+        default=8,
+        help="所提方法在搜索最优部署时，每条 query 的蒙特卡洛次数（越大越准、越慢）",
+    )
+    parser.add_argument(
+        "--show-selection",
+        action="store_true",
+        help="在表格下方打印每条结果对应的 NodeSelection",
+    )
+    args = parser.parse_args()
+
+    if not (0.0 <= args.eta_c <= 1.0 and 0.0 <= args.eta_t <= 1.0):
+        parser.error("η_C 与 η_T 须在 [0, 1] 内")
+    if args.search_runs <= 0:
+        parser.error("--search-runs 须为正整数")
+
+    queries = sample_query_with_budget(float(args.queries))
+    params = build_distribution_parameters()
+    workflow = Workflow(params=params)
+
+    print(
+        f"SLO 阈值（经验判定）: η_C={args.eta_c:g}, η_T={args.eta_t:g} "
+        f"(viol_c ≤ η_C 且 viol_t ≤ η_T 则 SLO_ok=Y)"
+    )
+    print(
+        "运行方法: LO, GL(mean), GL(max), SC(global), "
+        + ", ".join(f"SC({p})" for p in CLOUD_PROVIDERS)
+        + ", DO, Proposed"
+    )
+
+    header = (
+        f"{'baseline':<22}"
+        f"  {'mean_U':>10}"
+        f"  {'mean_cost':>12}"
+        f"  {'mean_lat(s)':>12}"
+        f"  {'viol_c':>8}"
+        f"  {'viol_t':>8}"
+        f"  {'n_obs':>6}"
+        f"  {'SLO_ok':>5}"
+    )
+    print(header)
+    print("-" * len(header))
+
+    rows: list[tuple[str, NodeSelection, BaselineMetrics]] = []
+
+    sel_lo, m_lo = run_baseline_lo(
+        workflow, queries, runs_per_query=args.runs_per_query
+    )
+    rows.append(("LO", sel_lo, m_lo))
+
+    for ref in ("mean", "max"):
+        sel_gl, m_gl = run_baseline_gl(
+            workflow,
+            queries,
+            runs_per_query=args.runs_per_query,
+            ref_size=cast(Literal["mean", "max"], ref),
+        )
+        rows.append((f"GL(ref={ref})", sel_gl, m_gl))
+
+    sel_g, m_g = run_baseline_sc(
+        workflow, queries, runs_per_query=args.runs_per_query, provider=None
+    )
+    rows.append(("SC(global)", sel_g, m_g))
+    for p in CLOUD_PROVIDERS:
+        sel_p, m_p = run_baseline_sc(
+            workflow,
+            queries,
+            runs_per_query=args.runs_per_query,
+            provider=p,
+        )
+        rows.append((f"SC({p})", sel_p, m_p))
+
+    sel_do, m_do = run_baseline_do(
+        workflow, queries, runs_per_query=args.runs_per_query
+    )
+    rows.append(("DO", sel_do, m_do))
+
+    sel_pr, m_pr = run_proposed(
+        workflow,
+        queries,
+        args.eta_c,
+        args.eta_t,
+        runs_per_query=args.runs_per_query,
+        search_runs_per_query=args.search_runs,
+    )
+    rows.append(("Proposed", sel_pr, m_pr))
+
+    for label, sel, m in rows:
+        print(
+            _fmt_row(
+                label,
+                m,
+                eta_c=args.eta_c,
+                eta_t=args.eta_t,
+                show_selection=args.show_selection,
+                sel=sel,
+            )
+        )
+
+    _print_comparison_summary(rows, eta_c=args.eta_c, eta_t=args.eta_t)
 
 
 if __name__ == "__main__":
-    import argparse
-
-    ap = argparse.ArgumentParser(description="Run simulation experiment comparing proposed method vs baselines.")
-    ap.add_argument("--queries", type=int, default=100, help="number of generated queries")
-    ap.add_argument("--train-ratio", type=float, default=0.5, help="fraction of queries used for training (0-1)")
-    ap.add_argument("--runs", type=int, default=40, help="Monte Carlo runs per test query")
-    ap.add_argument("--train-runs", type=int, default=20, help="proposed: Monte Carlo runs per train query")
-    ap.add_argument("--greedy-src", default="GCP", help="greedy baseline: assumed upload provider")
-    ap.add_argument("--greedy-region", default="us-east1", help="greedy baseline: assumed upload region")
-    ap.add_argument("--greedy-delta", type=float, default=0.05, help="greedy baseline: cross-cloud if utility gain exceeds this")
-    ap.add_argument("--eta-cost", type=float, default=0.10, help="proposed: max allowed cost violation rate on train")
-    ap.add_argument("--eta-lat", type=float, default=0.10, help="proposed: max allowed latency violation rate on train")
-    ap.add_argument("--penalty", type=float, default=1.0, help="proposed: penalty weight when no feasible pipeline")
-    ap.add_argument("--topk", type=int, default=30, help="proposed: keep top-k by utility per stage to limit search")
-    ap.add_argument("--no-progress", action="store_true", help="disable proposed search progress bar")
-    args = ap.parse_args()
-
-    run_experiment(
-        num_queries=args.queries,
-        train_ratio=args.train_ratio,
-        baseline_runs=args.runs,
-        greedy_source_provider=args.greedy_src,
-        greedy_source_region=args.greedy_region,
-        greedy_delta=args.greedy_delta,
-        proposed_cfg=ProposedSearchConfig(
-            train_runs=args.train_runs,
-            test_runs=args.runs,
-            eta_cost=args.eta_cost,
-            eta_latency=args.eta_lat,
-            penalty=args.penalty,
-            max_candidates_per_stage=args.topk,
-            show_progress=not args.no_progress,
-        ),
-    )
-
+    main()
