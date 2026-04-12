@@ -323,9 +323,13 @@ query_mean: [100, 150]
 query_std: [200, 250]
 
 budget:
-  latency_intercept_s: 146.178724
-  latency_slope_per_MB: 15.068026
-  cost_intercept_usd: 0.031489
-  cost_slope_per_MB: 0.010597
+  baseline:
+    latency_intercept_s: 12.231082
+    latency_slope_per_MB: 3.216602
+    cost_intercept_usd: 0.009453
+    cost_slope_per_MB: 0.003756
+  slack_factor:
+    latency: 1.2
+    cost: 1.2
 
 data_size: [5.0, 500.0]
