@@ -91,14 +91,14 @@ write_probe_provenance "$PROVENANCE_FILE" "$SCRIPT_SELF" "$CONFIG_FILE"
   echo "region_local=${REGION_LOCAL} region_peer=${REGION_PEER}"
   echo "interval_sec=${INTERVAL_SEC} total_sec=${TOTAL_SEC}"
   echo "ping_cmd=ping -n -c ${PING_COUNT} -W 2 ${PEER_HOST}"
-  echo "iperf_cmd=iperf3 -c ${PEER_HOST} -p ${IPERF_PORT} -t ${IPERF_SECONDS} -f m"
+  echo "iperf_cmd=iperf3 -c ${PEER_HOST} -p ${IPERF_PORT} -t ${IPERF_SECONDS} -f m --bidir"
   echo "rtt_csv=${RTT_CSV}"
   echo "bandwidth_csv=${BW_CSV}"
   echo "provenance=${PROVENANCE_FILE}"
 } > "${LOG_DIR}/run_${_run_id}.meta"
 
 echo "timestamp_utc,region_local,region_peer,peer_host,ping_count,rtt_min_ms,rtt_avg_ms,rtt_max_ms,rtt_mdev_ms,packet_loss_pct,ping_ok,rtt_notes,ping_stdout_stderr" > "$RTT_CSV"
-echo "timestamp_utc,region_local,region_peer,peer_host,iperf_port,iperf_seconds,bw_mbits_per_sec,iperf_ok,bw_notes,iperf_stdout_stderr" > "$BW_CSV"
+echo "timestamp_utc,region_local,region_peer,peer_host,iperf_port,iperf_seconds,bw_out_mbits_per_sec,bw_in_mbits_per_sec,iperf_ok,bw_notes,iperf_stdout_stderr" > "$BW_CSV"
 
 log_rtt_row() {
   local ts="$1" rmin="$2" ravg="$3" rmax="$4" rmdev="$5" loss="$6" pok="$7" n="$8" raw="$9"
@@ -113,12 +113,12 @@ log_rtt_row() {
 }
 
 log_bw_row() {
-  local ts="$1" bw="$2" iok="$3" n="$4" raw="$5"
+  local ts="$1" bw_out="$2" bw_in="$3" iok="$4" n="$5" raw="$6"
   n="${n//,/;}"
   {
-    printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,' \
+    printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,' \
       "$ts" "$REGION_LOCAL" "$REGION_PEER" "$PEER_HOST" "$IPERF_PORT" "$IPERF_SECONDS" \
-      "$bw" "$iok" "$n"
+      "$bw_out" "$bw_in" "$iok" "$n"
     csv_field "$raw"
     printf '\n'
   } >> "$BW_CSV"
@@ -145,22 +145,44 @@ parse_ping_stats() {
   echo "$vals $loss"
 }
 
-parse_iperf_mbps() {
+# --bidir 下客户端：一条流 sender 非零为本地→对端，另一条流 receiver 非零为对端→本地
+parse_iperf_bidir_mbps() {
   local out="$1"
-  local line
-  line="$(echo "$out" | grep 'receiver' | tail -1 || true)"
-  if [[ -z "$line" ]]; then
-    echo "NA"
-    return
-  fi
-  echo "$line" | awk '
-    /receiver/ {
+  echo "$out" | awk '
+    function to_mbps(val, unit,   r) {
+      r = val + 0
+      if (unit == "Kbits/sec") return r / 1000
+      if (unit == "Mbits/sec") return r
+      if (unit == "Gbits/sec") return r * 1000
+      return -1
+    }
+    function rate_from_line(   i, mb) {
       for (i = 1; i <= NF; i++) {
-        if ($i == "Kbits/sec" && i > 1) { printf "%.6f\n", $(i-1) / 1000; exit }
-        if ($i == "Mbits/sec" && i > 1) { print $(i-1); exit }
-        if ($i == "Gbits/sec" && i > 1) { printf "%.6f\n", $(i-1) * 1000; exit }
+        if (($i == "Kbits/sec" || $i == "Mbits/sec" || $i == "Gbits/sec") && i > 1) {
+          mb = to_mbps($(i - 1), $i)
+          if (mb >= 0) return mb
+        }
       }
-      exit
+      return -1
+    }
+    !/\[SUM\]/ && /sender/ && /bits\/sec/ {
+      mb = rate_from_line()
+      if (mb > 0) bw_out = mb
+    }
+    !/\[SUM\]/ && /receiver/ && /bits\/sec/ {
+      mb = rate_from_line()
+      if (mb > 0) bw_in = mb
+    }
+    END {
+      if (bw_out == "" && bw_in == "") { print "NA NA"; exit }
+      if (bw_out == "") bw_out = "NA"
+      if (bw_in == "") bw_in = "NA"
+      if (bw_out != "NA" && bw_in != "NA")
+        printf "%.6f %.6f\n", bw_out, bw_in
+      else if (bw_out != "NA")
+        printf "%.6f NA\n", bw_out
+      else
+        printf "NA %.6f\n", bw_in
     }'
 }
 
@@ -183,26 +205,29 @@ probe_once() {
   fi
   log_rtt_row "$ts" "$rtt_min" "$rtt_avg" "$rtt_max" "$rtt_mdev" "$loss" "$ping_ok" "$rtt_notes" "$pout"
 
-  local iout istat bw="NA"
+  local iout istat bw_out="NA" bw_in="NA"
   set +e
-  iout="$(iperf3 -c "$PEER_HOST" -p "$IPERF_PORT" -t "$IPERF_SECONDS" -f m 2>&1)"
+  iout="$(iperf3 -c "$PEER_HOST" -p "$IPERF_PORT" -t "$IPERF_SECONDS" -f m --bidir 2>&1)"
   istat=$?
   set -e
 
   if [[ $istat -eq 0 ]]; then
     iperf_ok=1
-    bw="$(parse_iperf_mbps "$iout")"
-    if [[ -z "$bw" || "$bw" == "NA" ]]; then
-      bw="NA"
+    read -r bw_out bw_in <<< "$(parse_iperf_bidir_mbps "$iout")"
+    [[ -z "$bw_out" ]] && bw_out="NA"
+    [[ -z "$bw_in" ]] && bw_in="NA"
+    if [[ "$bw_out" == "NA" && "$bw_in" == "NA" ]]; then
       iperf_ok=0
       bw_notes="iperf_parse_failed"
+    elif [[ "$bw_out" == "NA" || "$bw_in" == "NA" ]]; then
+      bw_notes="iperf_bidir_partial_parse"
     fi
   else
     bw_notes="iperf_failed"
   fi
-  log_bw_row "$ts" "$bw" "$iperf_ok" "$bw_notes" "$iout"
+  log_bw_row "$ts" "$bw_out" "$bw_in" "$iperf_ok" "$bw_notes" "$iout"
 
-  echo "[${ts}] RTT avg=${rtt_avg} ms loss=${loss}% BW=${bw} Mbit/s (ping_ok=${ping_ok} iperf_ok=${iperf_ok})"
+  echo "[${ts}] RTT avg=${rtt_avg} ms loss=${loss}% BW_out=${bw_out} BW_in=${bw_in} Mbit/s (ping_ok=${ping_ok} iperf_ok=${iperf_ok})"
 }
 
 cleanup() {
