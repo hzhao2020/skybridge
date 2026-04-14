@@ -1,0 +1,25 @@
+# 复制为 cross_provider_probe.conf 后修改
+# cp cross_provider_probe.conf.example cross_provider_probe.conf
+#
+# 本脚本部署在「探测端 VM」（运行 ping / iperf3 客户端）。
+# 对端 VM 上需常驻: iperf3 -s -p 5201
+# 两端需网络互通（公网 IP、专线、或对等互联），安全组放行 TCP 5201 与 ICMP。
+
+# 对端 VM 地址（IP 或域名）
+PEER_HOST="203.0.113.50"
+
+# 探测端（本机）与对端的云厂商、区域 — 仅写入日志，便于跨云对比与审计
+PROVIDER_LOCAL="GCP"
+PROVIDER_PEER="AWS"
+REGION_LOCAL="asia-east1"
+REGION_PEER="ap-northeast-1"
+
+IPERF_PORT=5201
+IPERF_SECONDS=10
+PING_COUNT=10
+
+INTERVAL_SEC=300
+DURATION="24h"
+
+LOG_DIR="${HOME}/logs_cross_provider_probe"
+CONTINUE_ON_ERROR=1

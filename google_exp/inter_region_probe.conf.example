@@ -1,0 +1,30 @@
+# 复制为 inter_region_probe.conf 后修改
+# cp inter_region_probe.conf.example inter_region_probe.conf
+
+# 对端 VM 的内网或可达 IP（推荐同 VPC 内网 IP，结果更稳定）
+PEER_HOST="10.0.0.5"
+
+# 可选：区域标签（仅用于日志列，不参与测量）
+REGION_LOCAL="asia-east1"
+REGION_PEER="us-central1"
+
+# iperf3 端口（对端需 iperf3 -s 监听同端口）
+IPERF_PORT=5201
+
+# 每次 iperf 持续时间（秒），不宜过长以免占满链路
+IPERF_SECONDS=10
+
+# ping 每次探测发包数
+PING_COUNT=10
+
+# 采样间隔（秒），例如 300 = 每 5 分钟一次
+INTERVAL_SEC=300
+
+# 总运行时长；支持 86400、24h、12h 等形式
+DURATION="24h"
+
+# 日志目录（需可写）
+LOG_DIR="/var/log/inter_region_probe"
+
+# 是否在失败时继续（1=是）
+CONTINUE_ON_ERROR=1

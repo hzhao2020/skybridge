@@ -1,0 +1,26 @@
+# 复制为 local_to_cloud_probe.conf 后修改
+# cp local_to_cloud_probe.conf.example local_to_cloud_probe.conf
+
+# 云端 iperf3 服务端地址（域名或 IP）
+CLOUD_HOST="your.cloud.example.com"
+
+# 端点标签（仅写入日志列，便于归档）
+LABEL_LOCAL="home_office"
+LABEL_CLOUD="gcp_compute_vm"
+
+# iperf3
+IPERF_PORT=5201
+# 上行、下行各自测试时长（秒）
+IPERF_SECONDS=10
+
+# ping
+PING_COUNT=10
+
+# 长时轮询：采样间隔（秒）与总时长（如 24h、3600、2h）
+INTERVAL_SEC=300
+DURATION="24h"
+
+LOG_DIR="${HOME}/logs_local_to_cloud_probe"
+
+# 失败是否继续下一轮（1=是）
+CONTINUE_ON_ERROR=1
