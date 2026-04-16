@@ -75,8 +75,6 @@ service-account-key.json
 *.key
 
 # Results and outputs
-results/
-outputs/
 *.json.bak
 
 tmp.ipynb
@@ -84,8 +82,5 @@ tmp.ipynb
 # Configuration file with sensitive information
 config.py
 segment_split_measurement/config.py
-
-# Timing logs
-results/timing_logs/
 
 test/

@@ -1,0 +1,37 @@
+{
+  "meta": {
+    "run_id": "20260415_142140_9bc3b3b9",
+    "video_source": "/home/heng/segment_split_measurement/video/merged.mp4",
+    "duration_requested_sec": 720.0,
+    "segment_pid": "seg_google_us",
+    "split_pid": "split_google_us",
+    "bucket": "video_us",
+    "upload_prefix": "segment_split_sweep/20260415_135645Z/d720s_t6/20260415_142140_9bc3b3b9",
+    "gcs_uri": "gs://video_us/segment_split_sweep/20260415_135645Z/d720s_t6/20260415_142140_9bc3b3b9/sb_measure_20260415_142140_9bc3b3b9_merged_trunc_720s.mp4",
+    "reencode": false,
+    "max_split_segments": 80,
+    "utc_iso": "2026-04-15T14:22:16.471387+00:00"
+  },
+  "timings_sec": {
+    "truncate": 0.237451,
+    "upload": 1.877466,
+    "segment_execute": 28.372145,
+    "split_execute_http_observed": 5.514284
+  },
+  "segment": {
+    "shot_count": 5,
+    "result_location": "gs://video_us/results/segment/sb_measure_20260415_142140_9bc3b3b9_merged_trunc_720s/segment.json",
+    "source_used": "gs://video_us/segment_split_sweep/20260415_135645Z/d720s_t6/20260415_142140_9bc3b3b9/sb_measure_20260415_142140_9bc3b3b9_merged_trunc_720s.mp4"
+  },
+  "split": {
+    "segments_used_count": 5,
+    "output_count": 5,
+    "output_uris": [
+      "gs://video_us/segment_split_sweep/20260415_135645Z/d720s_t6/20260415_142140_9bc3b3b9/split_segments/sb_measure_20260415_142140_9bc3b3b9_merged_trunc_720s_segment_1_0_179.mp4",
+      "gs://video_us/segment_split_sweep/20260415_135645Z/d720s_t6/20260415_142140_9bc3b3b9/split_segments/sb_measure_20260415_142140_9bc3b3b9_merged_trunc_720s_segment_2_180_359.mp4",
+      "gs://video_us/segment_split_sweep/20260415_135645Z/d720s_t6/20260415_142140_9bc3b3b9/split_segments/sb_measure_20260415_142140_9bc3b3b9_merged_trunc_720s_segment_3_360_539.mp4",
+      "gs://video_us/segment_split_sweep/20260415_135645Z/d720s_t6/20260415_142140_9bc3b3b9/split_segments/sb_measure_20260415_142140_9bc3b3b9_merged_trunc_720s_segment_4_540_719.mp4",
+      "gs://video_us/segment_split_sweep/20260415_135645Z/d720s_t6/20260415_142140_9bc3b3b9/split_segments/sb_measure_20260415_142140_9bc3b3b9_merged_trunc_720s_segment_5_720_720.mp4"
+    ]
+  }
+}
