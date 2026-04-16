@@ -2,8 +2,12 @@
 截断本地长视频 → 上传 GCS → Google Video Intelligence（镜头检测）→ Cloud Function 物理切割，
 并记录各阶段耗时；结果写入 JSON。
 
-用法（在仓库 src 目录下）：
-  python segment_split_measurement/run_measurement.py --video path/to/long.mp4 --duration 600
+默认 segment / split 使用 Google美西：`seg_google_us`、`split_google_us`（可通过参数覆盖）。
+
+用法（建议在 segment_split_measurement 目录下）：
+  cd segment_split_measurement
+  python run_measurement.py --minutes 10
+  # 即从原片开头截取 10 分钟；默认读取本目录下 video/merged.mp4；也可用 --video 指定路径。
 
 请确保已配置 GCP 凭证，且 --segment-pid / --split-pid 对应同一 GCS bucket（例如均为 *_us），
 否则 split 前可能触发跨桶传输，耗时统计会混入搬运时间。
@@ -26,7 +30,12 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-# 与 main.py 一致：加载 config、代理等
+# 本目录含 ops/ 子包与 config.py，单独上传本文件夹即可运行
+_ROOT = os.path.dirname(os.path.abspath(__file__))
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
+
+# 加载本目录 config.py（VIDEO_SPLIT_URLS、代理等）
 try:
     import config  # noqa: F401
 
@@ -44,13 +53,25 @@ if hasattr(sys.stdout, "reconfigure"):
     except Exception:
         pass
 
-# 保证可从 src 根目录导入 ops、utils
-_REPO_SRC = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if _REPO_SRC not in sys.path:
-    sys.path.insert(0, _REPO_SRC)
-
 from ops.registry import get_operation  # noqa: E402
 from ops.utils import DataTransmission  # noqa: E402
+
+# 默认与 registry 中 Google us-west1 的 segment / split 成对，避免跨桶搬运
+DEFAULT_SEGMENT_PID = "seg_google_us"
+DEFAULT_SPLIT_PID = "split_google_us"
+
+
+def _ffmpeg_executable() -> str:
+    exe = shutil.which("ffmpeg")
+    if exe:
+        return exe
+    try:
+        import imageio_ffmpeg  # type: ignore
+
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        pass
+    raise RuntimeError("未找到 ffmpeg：请安装系统 ffmpeg 或 pip install imageio-ffmpeg。")
 
 
 def _run_ffmpeg_truncate(
@@ -59,11 +80,10 @@ def _run_ffmpeg_truncate(
     duration_sec: float,
     reencode: bool,
 ) -> None:
-    if not shutil.which("ffmpeg"):
-        raise RuntimeError("未找到 ffmpeg，请先安装并加入 PATH。")
+    ffmpeg = _ffmpeg_executable()
     if duration_sec <= 0:
-        raise ValueError("duration 必须为正数（秒）。")
-    cmd: List[str] = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", src, "-t", str(duration_sec)]
+        raise ValueError("截取时长必须为正数（秒）。")
+    cmd: List[str] = [ffmpeg, "-hide_banner", "-loglevel", "error", "-y", "-i", src, "-t", str(duration_sec)]
     if reencode:
         cmd.extend(["-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-c:a", "aac", "-b:a", "128k"])
     else:
@@ -98,13 +118,14 @@ def run(
     *,
     video_path: str,
     duration_sec: float,
-    segment_pid: str,
-    split_pid: str,
+    segment_pid: str = DEFAULT_SEGMENT_PID,
+    split_pid: str = DEFAULT_SPLIT_PID,
     upload_prefix: str,
     bucket: Optional[str],
     output_json: Optional[str],
     reencode: bool,
     max_split_segments: Optional[int],
+    silent: bool = False,
 ) -> Dict[str, Any]:
     if not os.path.isfile(video_path):
         raise FileNotFoundError(video_path)
@@ -205,17 +226,36 @@ def run(
         os.makedirs(os.path.dirname(os.path.abspath(output_json)) or ".", exist_ok=True)
         with open(output_json, "w", encoding="utf-8") as f:
             json.dump(record, f, ensure_ascii=False, indent=2)
-        print(f"已保存测量结果: {output_json}")
+        if not silent:
+            print(f"已保存测量结果: {output_json}")
 
     return record
 
 
 def main() -> None:
+    default_video = os.path.join(_ROOT, "video", "merged.mp4")
     p = argparse.ArgumentParser(description="截断视频、上传 GCS、测量 segment 与 split 耗时")
-    p.add_argument("--video", required=True, help="本地长视频路径")
-    p.add_argument("--duration", type=float, required=True, help="截断后的时长（秒），从头截取")
-    p.add_argument("--segment-pid", default="seg_google_us", help="registry 中的 segment 操作 pid")
-    p.add_argument("--split-pid", default="split_google_us", help="registry 中的 split 操作 pid")
+    p.add_argument(
+        "--video",
+        default=default_video,
+        help=f"本地长视频路径（默认本目录下 video/merged.mp4）",
+    )
+    p.add_argument(
+        "--minutes",
+        type=float,
+        required=True,
+        help="从原片开头截取的时长（分钟），例如 2 表示 0–120s",
+    )
+    p.add_argument(
+        "--segment-pid",
+        default=DEFAULT_SEGMENT_PID,
+        help=f"registry 中的 segment 操作 pid（默认 {DEFAULT_SEGMENT_PID}）",
+    )
+    p.add_argument(
+        "--split-pid",
+        default=DEFAULT_SPLIT_PID,
+        help=f"registry 中的 split 操作 pid（默认 {DEFAULT_SPLIT_PID}）",
+    )
     p.add_argument(
         "--upload-prefix",
         default="segment_split_measurement",
@@ -225,7 +265,7 @@ def main() -> None:
     p.add_argument(
         "--output",
         default=None,
-        help="测量结果 JSON 路径；默认 results/segment_split_measurement/<run_id>.json",
+        help="测量结果 JSON 路径；默认本目录下 results/measurement/<run_id>.json",
     )
     p.add_argument(
         "--reencode",
@@ -245,11 +285,11 @@ def main() -> None:
     out = args.output
     if not out:
         rid = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S") + "_" + uuid.uuid4().hex[:8]
-        out = os.path.join("results", "segment_split_measurement", f"measure_{rid}.json")
+        out = os.path.join(_ROOT, "results", "measurement", f"measure_{rid}.json")
 
     record = run(
         video_path=args.video,
-        duration_sec=args.duration,
+        duration_sec=float(args.minutes) * 60.0,
         segment_pid=args.segment_pid,
         split_pid=args.split_pid,
         upload_prefix=args.upload_prefix,

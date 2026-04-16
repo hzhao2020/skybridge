@@ -62,7 +62,7 @@ logs/
 Thumbs.db
 
 # Project specific - 视频文件（已在 datasets/ 中单独处理）
-# *.mp4
+*.mp4
 # *.avi
 # *.mov
 # *.mkv
@@ -83,6 +83,7 @@ tmp.ipynb
 
 # Configuration file with sensitive information
 config.py
+segment_split_measurement/config.py
 
 # Timing logs
 results/timing_logs/
