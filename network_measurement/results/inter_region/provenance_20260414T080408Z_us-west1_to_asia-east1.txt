@@ -1,0 +1,46 @@
+schema_version=1
+recorded_start_utc=2026-04-14T08:04:08Z
+local_hostname=gcp-us-west1-1
+local_fqdn=gcp-us-west1-1.us-west1-a.c.project-ab73e1ce-e25c-48b5-a91.internal
+login_user=zzy4399
+working_dir=/home/zzy4399
+uname=Linux gcp-us-west1-1 6.1.0-44-cloud-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.164-1 (2026-03-09) x86_64 GNU/Linux
+ping_bin=/usr/bin/ping
+ping_version_line=ping from iputils 20221126
+iperf3_bin=/usr/bin/iperf3
+iperf3_version_line=iperf 3.12 (cJSON 1.7.15)
+main_script_path=./inter_region_probe.sh
+main_script_sha256=fcbdd14044997f2fc0588cf97fe5c6956db1057780edd267c16e5f9197242822
+---- config_snapshot_begin ----
+# 复制为 inter_region_probe.conf 后修改
+# cp inter_region_probe.conf.example inter_region_probe.conf
+
+# 对端 VM 的内网或可达 IP（推荐同 VPC 内网 IP，结果更稳定）
+PEER_HOST="10.140.0.4"
+
+# 可选：区域标签（仅用于日志列，不参与测量）
+REGION_LOCAL="us-west1"
+REGION_PEER="asia-east1"
+
+# iperf3 端口（对端需 iperf3 -s 监听同端口）
+IPERF_PORT=5201
+
+# 每次 iperf 持续时间（秒），不宜过长以免占满链路
+IPERF_SECONDS=10
+
+# ping 每次探测发包数
+PING_COUNT=10
+
+# 采样间隔（秒），例如 300 = 每 5 分钟一次
+INTERVAL_SEC=300
+
+# 总运行时长；支持 86400、24h、12h 等形式
+DURATION="24h"
+
+# 日志目录（需可写）
+LOG_DIR="/home/zzy4399/inter_region_probe"
+
+# 是否在失败时继续（1=是）
+CONTINUE_ON_ERROR=1
+---- config_snapshot_end ----
+recorded_end_utc=2026-04-15T08:04:08Z

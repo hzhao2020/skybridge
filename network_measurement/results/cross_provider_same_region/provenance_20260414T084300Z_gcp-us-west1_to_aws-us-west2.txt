@@ -1,0 +1,65 @@
+schema_version=1
+recorded_start_utc=2026-04-14T08:43:00Z
+local_hostname=gcp-us-west1-2
+local_fqdn=gcp-us-west1-2.us-west1-a.c.project-ab73e1ce-e25c-48b5-a91.internal
+login_user=zzy4399
+working_dir=/home/zzy4399
+uname=Linux gcp-us-west1-2 6.1.0-44-cloud-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.164-1 (2026-03-09) x86_64 GNU/Linux
+ping_bin=/usr/bin/ping
+ping_version_line=ping from iputils 20221126
+iperf3_bin=/usr/bin/iperf3
+iperf3_version_line=iperf 3.12 (cJSON 1.7.15)
+main_script_path=./cross_provider_probe.sh
+main_script_sha256=7e737cac4891e91c7acbfa9e29061f456d484239817ea59b8012313d45f4cbc4
+---- config_snapshot_begin ----
+# 复制为 cross_provider_probe.conf 后修改
+# cp cross_provider_probe.conf.example cross_provider_probe.conf
+
+# 对端 VM 的公网或可达 IP（跨云常无同 VPC，多用公网 IP；若已打通专线/VPN 可用内网 IP）
+PEER_HOST="18.236.144.157"
+
+# 本端 / 对端：云厂商 + 区域（与云控制台里区域 ID 一致即可，仅用于 CSV / 文件名，不参与测量）
+# 例：同区域不同云（相近地理）可都填 us-west；跨洲则分别填 us-west1、ap-east-1等
+PROVIDER_LOCAL="gcp"
+REGION_LOCAL="us-west1"
+PROVIDER_PEER="aws"
+REGION_PEER="us-west2"
+
+# 实验拓扑简述（便于后处理筛选：跨云同区域 / 跨云跨区域）
+# 建议取值：cross_provider_same_region | cross_provider_cross_region | custom:你的说明
+TOPOLOGY_LABEL="cross_provider_cross_region"
+
+# ---------- 运行前连通性自检（在「本机」执行，把 PEER 换成 PEER_HOST 或 IP）----------
+# ICMP（对端安全组若禁 ping 会失败，但不影响部分场景下 TCP 仍通）
+#   ping -c 4 -W 2 PEER
+# 路由（可选）
+#   traceroute -n PEER
+#   # 或: tracepath PEER
+# TCP 端口是否可达（对端须先 iperf3 -s -p 5201；无 nc 可用 bash）
+#   nc -vz PEER 5201
+#   # 或: timeout 3 bash -c 'cat < /dev/null > /dev/tcp/PEER/5201' && echo tcp_ok
+# 短时带宽试跑（确认 iperf3 双向无防火墙拦截）
+#   iperf3 -c PEER -p 5201 -t 3 -f m --bidir
+
+# iperf3 端口（对端需 iperf3 -s 监听同端口）
+IPERF_PORT=5201
+
+# 每次 iperf 持续时间（秒），不宜过长以免占满链路
+IPERF_SECONDS=10
+
+# ping 每次探测发包数
+PING_COUNT=10
+
+# 采样间隔（秒），例如 300 = 每 5 分钟一次
+INTERVAL_SEC=300
+
+# 总运行时长；支持 86400、24h、12h 等形式
+DURATION="24h"
+
+# 日志目录（需可写）
+LOG_DIR="/home/zzy4399/log/cross_provider_probe"
+
+# 是否在失败时继续（1=是）
+CONTINUE_ON_ERROR=1
+---- config_snapshot_end ----
+recorded_end_utc=2026-04-15T08:43:00Z
