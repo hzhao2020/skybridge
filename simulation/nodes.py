@@ -15,6 +15,7 @@ from distribution import (
     SegSplExecTimeParam,
     config as simulation_config,
 )
+from segment_split_sweep_model import SegmentSplitSweepModel
 
 
 class Node(ABC):
@@ -151,73 +152,97 @@ class CloudNode(Node):
 
 class SegmentNode(CloudNode):
     exec_time_param: SegSplExecTimeParam
+    _seg_split_sweep: SegmentSplitSweepModel | None
 
-    def __init__(self, name: str, provider: str, region: str | None, utility: float, 
-                 storage_price_per_gb_month: float, price_per_min: float,
-                 exec_time_param: SegSplExecTimeParam):
+    def __init__(
+        self,
+        name: str,
+        provider: str,
+        region: str | None,
+        utility: float,
+        storage_price_per_gb_month: float,
+        price_per_min: float,
+        exec_time_param: SegSplExecTimeParam,
+        *,
+        seg_split_sweep: SegmentSplitSweepModel | None = None,
+    ):
         # 修复点：必须向 CloudNode 传递 storage_price_per_gb_month
         super().__init__(name, provider, region, utility, storage_price_per_gb_month)
         self.price_per_min = price_per_min
         self.exec_time_param = exec_time_param
+        self._seg_split_sweep = seg_split_sweep
 
+    def _comp_time_s(self, video_size_MB: float, *, deterministic: bool) -> float:
+        if self._seg_split_sweep is not None:
+            return self._seg_split_sweep.sample_segment_comp_sec(
+                video_size_MB, deterministic=deterministic
+            )
+        theta = self.exec_time_param.theta0 + self.exec_time_param.theta1 * video_size_MB
+        if deterministic:
+            return self.exec_time_param.alpha * theta
+        return GammaDistribution(self.exec_time_param.alpha, theta).sample()
 
     def calculate_execution_cost(
         self, video_size_MB: float, *, deterministic: bool = False
     ) -> float:
-        """Gamma 采样计算时间 × 每分钟单价（USD），不含存储费。"""
+        """计算时间（秒）× 每分钟单价（USD）；sweep 开启时由测量回归+残差驱动。"""
         if video_size_MB < 0:
             raise ValueError("video_size_MB must be >= 0")
-        theta = self.exec_time_param.theta0 + self.exec_time_param.theta1 * video_size_MB
-        if deterministic:
-            comp_time_s = self.exec_time_param.alpha * theta
-        else:
-            comp_time_s = GammaDistribution(self.exec_time_param.alpha, theta).sample()
+        comp_time_s = self._comp_time_s(video_size_MB, deterministic=deterministic)
         return (comp_time_s / 60.0) * self.price_per_min
 
     def calculate_latency(self, video_size_MB: float, *, deterministic: bool = False):
         if video_size_MB < 0:
             raise ValueError("video_size_MB must be >= 0")
         io_time = self.exec_time_param.io_s_per_MB * video_size_MB
-        theta = self.exec_time_param.theta0 + self.exec_time_param.theta1 * video_size_MB
-        if deterministic:
-            comp_time = self.exec_time_param.alpha * theta
-        else:
-            comp_time = GammaDistribution(self.exec_time_param.alpha, theta).sample()
+        comp_time = self._comp_time_s(video_size_MB, deterministic=deterministic)
         return io_time + comp_time
 
 
 class SplitNode(CloudNode):
     exec_time_param: SegSplExecTimeParam
+    _seg_split_sweep: SegmentSplitSweepModel | None
 
-    def __init__(self, name: str, provider: str, region: str | None, utility: float, 
-                 storage_price_per_gb_month: float, price_per_min: float,
-                 exec_time_param: SegSplExecTimeParam):
+    def __init__(
+        self,
+        name: str,
+        provider: str,
+        region: str | None,
+        utility: float,
+        storage_price_per_gb_month: float,
+        price_per_min: float,
+        exec_time_param: SegSplExecTimeParam,
+        *,
+        seg_split_sweep: SegmentSplitSweepModel | None = None,
+    ):
         super().__init__(name, provider, region, utility, storage_price_per_gb_month)
         self.price_per_min = price_per_min
         self.exec_time_param = exec_time_param
+        self._seg_split_sweep = seg_split_sweep
+
+    def _comp_time_s(self, video_size_MB: float, *, deterministic: bool) -> float:
+        if self._seg_split_sweep is not None:
+            return self._seg_split_sweep.sample_split_comp_sec(
+                video_size_MB, deterministic=deterministic
+            )
+        theta = self.exec_time_param.theta0 + self.exec_time_param.theta1 * video_size_MB
+        if deterministic:
+            return self.exec_time_param.alpha * theta
+        return GammaDistribution(self.exec_time_param.alpha, theta).sample()
 
     def calculate_execution_cost(
         self, video_size_MB: float, *, deterministic: bool = False
     ) -> float:
-        """Gamma 采样计算时间 × 每分钟单价（USD），不含存储费。"""
         if video_size_MB < 0:
             raise ValueError("video_size_MB must be >= 0")
-        theta = self.exec_time_param.theta0 + self.exec_time_param.theta1 * video_size_MB
-        if deterministic:
-            comp_time_s = self.exec_time_param.alpha * theta
-        else:
-            comp_time_s = GammaDistribution(self.exec_time_param.alpha, theta).sample()
+        comp_time_s = self._comp_time_s(video_size_MB, deterministic=deterministic)
         return (comp_time_s / 60.0) * self.price_per_min
 
     def calculate_latency(self, video_size_MB: float, *, deterministic: bool = False):
         if video_size_MB < 0:
             raise ValueError("video_size_MB must be >= 0")
         io_time = self.exec_time_param.io_s_per_MB * video_size_MB
-        theta = self.exec_time_param.theta0 + self.exec_time_param.theta1 * video_size_MB
-        if deterministic:
-            comp_time = self.exec_time_param.alpha * theta
-        else:
-            comp_time = GammaDistribution(self.exec_time_param.alpha, theta).sample()
+        comp_time = self._comp_time_s(video_size_MB, deterministic=deterministic)
         return io_time + comp_time
 
 

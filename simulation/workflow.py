@@ -1,13 +1,21 @@
 """
 根据 config 拓扑与 ``DistributionParameters`` 构造全量节点；
 ``Workflow`` 绑定一次 ``sample()``，在 ``calculate`` 中串联 segment→split→caption→query，
-并在每次 ``calculate`` 时由 **RTT/BW 分布参数矩阵**（默认来自 ``params``，也可在构造 ``Workflow`` 时显式传入）
-对每条边采样出本轮具体 RTT(ms)/BW(Mbps)，再计算 cost / latency / utility。
+并在每次 ``calculate`` 中计算链路上的传输时延与出站费。
+
+**网络传输（默认）**：使用 ``measured_workflow_network.PerEdgeMeasuredNetwork``，按通信端点将链路归入
+**三类实测场景**（同云跨地域 / 跨云同地域 / 跨云跨地域，含 ``local`` 边用跨云同地域表替代），
+每条有向边有**独立**的测量时序游标。可 ``use_measured_network=False`` 恢复为对 ``params.edge_rtt`` /
+``params.edge_bw`` 矩阵的 LogNormal 采样（旧行为）。
+
+``calculate`` 中由 **RTT/BW 实现** 提供本轮各边的具体 RTT(ms)/BW(Mbps)，再与计算/LLM/存储一起汇总
+cost / latency / utility。
 """
 
 from __future__ import annotations
 
 import math
+import random
 from dataclasses import dataclass
 from typing import Any
 
@@ -25,6 +33,11 @@ from distribution import (
     config as simulation_config,
     sample,
 )
+from measured_workflow_network import (
+    MeasuredNetworkOptions,
+    PerEdgeMeasuredNetwork,
+)
+from segment_split_sweep_model import SegmentSplitSweepModel, try_load_sweep_from_config
 from nodes import (
     CaptionCloudNode,
     Edge,
@@ -175,6 +188,19 @@ def _egress_usd_per_gb(params: DistributionParameters, src: Node, dst: Node) -> 
     return matrix[i][j]
 
 
+def _lognormal_sample_from_moments(mean: float, std: float, rng: random.Random) -> float:
+    """与 ``algos._lognormal_sample_from_moments`` 一致，避免 workflow 与 algos 循环导入。"""
+    if mean <= 0:
+        raise ValueError("LogNormal mean must be > 0")
+    if std <= 1e-15:
+        return float(mean)
+    variance = std**2
+    phi = math.sqrt(variance + mean**2)
+    mu = math.log(mean**2 / phi)
+    sigma = math.sqrt(math.log(phi**2 / mean**2))
+    return rng.lognormvariate(mu, sigma)
+
+
 def _utility_weighted(
     segment: SegmentNode,
     split: SplitNode,
@@ -190,7 +216,11 @@ def _utility_weighted(
     )
 
 
-def build_workflow_nodes(params: DistributionParameters) -> WorkflowNodes:
+def build_workflow_nodes(
+    params: DistributionParameters,
+    *,
+    seg_split_sweep: SegmentSplitSweepModel | None = None,
+) -> WorkflowNodes:
     segment: dict[str, SegmentNode] = {}
     split: dict[str, SplitNode] = {}
     caption: dict[str, CaptionCloudNode] = {}
@@ -208,6 +238,7 @@ def build_workflow_nodes(params: DistributionParameters) -> WorkflowNodes:
                 storage_price_per_gb_month=params.storage_price[seg_name],
                 price_per_min=params.segment_price[seg_name],
                 exec_time_param=params.seg_spl_exec_time_param[seg_name],
+                seg_split_sweep=seg_split_sweep,
             )
             split[spl_name] = SplitNode(
                 name=spl_name,
@@ -217,6 +248,7 @@ def build_workflow_nodes(params: DistributionParameters) -> WorkflowNodes:
                 storage_price_per_gb_month=params.storage_price[spl_name],
                 price_per_min=params.split_price[spl_name],
                 exec_time_param=params.seg_spl_exec_time_param[spl_name],
+                seg_split_sweep=seg_split_sweep,
             )
 
     for p, r, model_key in iter_cloud_llm_deployments():
@@ -260,17 +292,25 @@ def build_workflow_nodes(params: DistributionParameters) -> WorkflowNodes:
 
 
 def build_workflow_nodes_from_sample() -> WorkflowNodes:
-    return build_workflow_nodes(sample())
+    return build_workflow_nodes(
+        sample(), seg_split_sweep=try_load_sweep_from_config()
+    )
 
 
 class Workflow:
     """
     构造时 ``sample()`` 一次并初始化全部节点（除非传入 ``params``）。
 
-    **链路 RTT/BW**：每条有向边对应一对 ``(mean, std)``，语义与 ``distribution.sample_edge_rtt`` /
-    ``sample_edge_bw`` 一致；在 **每次** ``calculate`` 开头用 LogNormal(mean, std) 各采样一次得到
-    本轮实际 RTT(ms) 与 BW(Mbps)。默认矩阵来自 ``params.edge_rtt`` / ``params.edge_bw``；
-    也可在 ``__init__`` 用 ``edge_rtt=`` / ``edge_bw=`` 覆盖（便于实验换网络而不改整份 ``params``）。
+    **链路 RTT/BW**：
+
+    - 默认（``use_measured_network=True``）使用三类实测时序、每条有向边独立游标，见
+      ``measured_workflow_network`` 模块说明。
+    - 若 ``use_measured_network=False``：每条有向边对应 ``(mean, std)``，语义与
+      ``distribution.sample_edge_rtt`` / ``sample_edge_bw`` 一致；在 **每次** ``calculate`` 开头
+      用 LogNormal(mean, std) 各采样一次。矩阵来自 ``params`` 或 ``edge_rtt=`` / ``edge_bw=``。
+
+    **segment/split 计算时间**：默认读 ``param.yaml`` 的 ``segment_split_sweep``；启用时用
+    ``segment_split_sweep_model`` 的测量回归 + 残差采样。可 ``seg_split_sweep=`` 显式传入模型实例。
     """
 
     def __init__(
@@ -279,15 +319,40 @@ class Workflow:
         *,
         edge_rtt: dict[tuple[str, str], RTT] | None = None,
         edge_bw: dict[tuple[str, str], BW] | None = None,
+        use_measured_network: bool = True,
+        measured: PerEdgeMeasuredNetwork | None = None,
+        measured_options: MeasuredNetworkOptions | None = None,
+        seg_split_sweep: SegmentSplitSweepModel | None = None,
     ) -> None:
         self.params = params if params is not None else sample()
-        self.nodes = build_workflow_nodes(self.params)
+        self._seg_split_sweep: SegmentSplitSweepModel | None
+        if seg_split_sweep is not None:
+            self._seg_split_sweep = seg_split_sweep
+        else:
+            self._seg_split_sweep = try_load_sweep_from_config()
+        self.nodes = build_workflow_nodes(
+            self.params, seg_split_sweep=self._seg_split_sweep
+        )
         self._local = LocalNode()
         self._rtt_ms: dict[tuple[str, str], float] = {}
         self._bw_mbps: dict[tuple[str, str], float] = {}
-        # 用于采样的分布参数矩阵（非本轮 realized 数值）
+        # 用于采样的分布参数矩阵（非本轮 realized 数值；未启用实测时生效）
         self._network_edge_rtt = edge_rtt if edge_rtt is not None else self.params.edge_rtt
         self._network_edge_bw = edge_bw if edge_bw is not None else self.params.edge_bw
+        self._use_measured_network = bool(use_measured_network)
+        if self._use_measured_network:
+            self._per_edge_measured = measured
+            if self._per_edge_measured is None:
+                opts = measured_options or MeasuredNetworkOptions()
+                self._per_edge_measured = PerEdgeMeasuredNetwork(
+                    results_dir=opts.results_dir,
+                    hours=opts.hours,
+                    on_exhaust=opts.on_exhaust,
+                    per_edge_start_seed=opts.per_edge_start_seed,
+                    local_edge_scenario=opts.local_edge_scenario,
+                )
+        else:
+            self._per_edge_measured = None
 
     def list_node_names(self) -> dict[str, list[str]]:
         """返回算法可见动作空间（仅节点名称，不暴露分布参数）。"""
@@ -318,7 +383,15 @@ class Workflow:
         )
 
     def _realize_network(self) -> None:
-        """由当前绑定的 RTT/BW 分布参数矩阵采样出本轮各边的具体数值。"""
+        """
+        由 LogNormal 矩阵采样出**本轮**各边的具体数值（非实测模式）。
+
+        实测模式下传输延迟在每条边被使用时从 ``PerEdgeMeasuredNetwork`` 现取，不在此预填全矩阵。
+        """
+        if self._per_edge_measured is not None:
+            self._rtt_ms = {}
+            self._bw_mbps = {}
+            return
         self._rtt_ms = {}
         self._bw_mbps = {}
         det = getattr(self, "_deterministic_eval", False)
@@ -337,12 +410,65 @@ class Workflow:
         a, b = _node_to_comm_endpoint(src), _node_to_comm_endpoint(dst)
         key = (a, b)
         r = RTT()
-        r.mean = self._rtt_ms[key]
-        r.std = 0.0
         w = BW()
-        w.mean = self._bw_mbps[key]
-        w.std = 0.0
+        if self._per_edge_measured is not None:
+            if a == b:
+                r.mean = 0.0
+                r.std = 0.0
+                w.mean = float("inf")
+                w.std = 0.0
+            else:
+                det = getattr(self, "_deterministic_eval", False)
+                rtt_ms, bw = self._per_edge_measured.get_rtt_bw_mbps(
+                    a, b, deterministic=det
+                )
+                r.mean = rtt_ms
+                r.std = 0.0
+                w.mean = bw
+                w.std = 0.0
+        else:
+            r.mean = self._rtt_ms[key]
+            r.std = 0.0
+            w.mean = self._bw_mbps[key]
+            w.std = 0.0
         return r, w
+
+    def probe_transfer_latency_s(
+        self,
+        src_ep: str,
+        dst_ep: str,
+        data_mb: float,
+        rng: random.Random,
+    ) -> float:
+        """
+        对一条有向边做一次与 ``Edge.calculate_latency`` 同公式的时延（秒）估计。
+        启用实测时从对应场景时序中 **随机有放回** 取一对 (RTT, BW)，不推进主游标；否则从
+        ``params.edge_rtt/edge_bw`` 按对数正态各采一值。
+        """
+        if data_mb < 0:
+            raise ValueError("data_mb must be >= 0")
+        if src_ep == dst_ep:
+            return 0.0
+        if self._per_edge_measured is not None:
+            rtt_ms, bw_mbps = self._per_edge_measured.probe_random_pair(
+                src_ep, dst_ep, rng
+            )
+        else:
+            k = (src_ep, dst_ep)
+            er = self.params.edge_rtt[k]
+            eb = self.params.edge_bw[k]
+            rtt_ms = _lognormal_sample_from_moments(
+                float(er.mean), float(er.std), rng
+            )
+            bw_mbps = _lognormal_sample_from_moments(
+                float(eb.mean), float(eb.std), rng
+            )
+        if math.isinf(bw_mbps):
+            return rtt_ms / 2000.0
+        bw_mbps = float(bw_mbps)
+        if bw_mbps <= 0:
+            return float("inf")
+        return rtt_ms / 2000.0 + data_mb * 8.0 / bw_mbps
 
     def _edge(self, src: Node, dst: Node) -> Edge:
         r, bw = self._rtt_bw_objects(src, dst)
@@ -604,7 +730,8 @@ class SimulationEnvironment:
     - 不直接暴露 DistributionParameters
     - 仅提供动作空间与采样观测接口
 
-    若未传入 ``workflow``，可用 ``params`` / ``edge_rtt`` / ``edge_bw`` 传给内部 ``Workflow(...)``。
+    若未传入 ``workflow``，可用 ``params`` / ``edge_rtt`` / ``edge_bw`` / ``use_measured_network`` 等
+    传给内部 ``Workflow(...)``。
     """
 
     def __init__(
@@ -614,14 +741,31 @@ class SimulationEnvironment:
         params: DistributionParameters | None = None,
         edge_rtt: dict[tuple[str, str], RTT] | None = None,
         edge_bw: dict[tuple[str, str], BW] | None = None,
+        use_measured_network: bool = True,
+        measured_options: MeasuredNetworkOptions | None = None,
+        seg_split_sweep: SegmentSplitSweepModel | None = None,
     ) -> None:
-        if workflow is not None and (
-            params is not None or edge_rtt is not None or edge_bw is not None
-        ):
-            raise ValueError("provide workflow= XOR constructor kwargs for Workflow, not both")
-        self._workflow = workflow or Workflow(
-            params=params, edge_rtt=edge_rtt, edge_bw=edge_bw
-        )
+        if workflow is not None:
+            if (
+                params is not None
+                or edge_rtt is not None
+                or edge_bw is not None
+                or measured_options is not None
+                or seg_split_sweep is not None
+            ):
+                raise ValueError(
+                    "provide workflow= XOR constructor kwargs for Workflow, not both"
+                )
+            self._workflow = workflow
+        else:
+            self._workflow = Workflow(
+                params=params,
+                edge_rtt=edge_rtt,
+                edge_bw=edge_bw,
+                use_measured_network=use_measured_network,
+                measured_options=measured_options,
+                seg_split_sweep=seg_split_sweep,
+            )
 
     def action_space(self) -> dict[str, list[str]]:
         return self._workflow.list_node_names()

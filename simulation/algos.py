@@ -251,19 +251,6 @@ def _static_weighted_utility(workflow: Workflow, sel: NodeSelection) -> float:
     )
 
 
-def _lognormal_sample_from_moments(mean: float, std: float, rng: random.Random) -> float:
-    """与 ``LogNormalDistribution`` / ``Edge`` 一致：由对数正态的矩参数采样一次正值。"""
-    if mean <= 0:
-        raise ValueError("LogNormal mean must be > 0")
-    if std <= 1e-15:
-        return float(mean)
-    variance = std**2
-    phi = math.sqrt(variance + mean**2)
-    mu = math.log(mean**2 / phi)
-    sigma = math.sqrt(math.log(phi**2 / mean**2))
-    return rng.lognormvariate(mu, sigma)
-
-
 def _sample_one_transfer_latency_s(
     workflow: Workflow,
     src_ep: str,
@@ -272,22 +259,11 @@ def _sample_one_transfer_latency_s(
     rng: random.Random,
 ) -> float:
     """
-    对 local→segment 类边做一次随机探测：按与 ``Edge.calculate_latency`` 相同的方式
-    从 RTT/BW 的对数正态各采一值再算时延。仿真器仍用 ``params`` 驱动采样；算法侧
-    只应通过此类探测的样本做决策，不得把 ``r.mean`` 直接当作延迟。
+    对 local→segment 类边做一次随机探测，与 :meth:`Workflow.probe_transfer_latency_s` 一致：
+    启用实测时从时序有放回取 (RTT,BW)；否则从 ``params`` 的 LogNormal 各采一值。算法侧
+    只应通过此类探测的样本做决策，不得把标称均值直接当作实际延迟。
     """
-    if src_ep == dst_ep:
-        return 0.0
-    key = (src_ep, dst_ep)
-    r = workflow.params.edge_rtt[key]
-    w = workflow.params.edge_bw[key]
-    rtt_ms = _lognormal_sample_from_moments(float(r.mean), float(r.std), rng)
-    bw_mbps = _lognormal_sample_from_moments(float(w.mean), float(w.std), rng)
-    if math.isinf(bw_mbps):
-        return rtt_ms / 2000.0
-    if bw_mbps <= 0:
-        return float("inf")
-    return rtt_ms / 2000.0 + data_mb * 8.0 / bw_mbps
+    return workflow.probe_transfer_latency_s(src_ep, dst_ep, data_mb, rng)
 
 
 def _caption_to_query_name(caption_name: str) -> str:

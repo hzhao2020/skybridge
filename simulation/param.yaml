@@ -187,6 +187,15 @@ exec_time:
     Aliyun_us-west-1: { alpha: 3.0, theta0: 0.050, theta1: 0.012, io_s_per_MB: 0.014 }
     Aliyun_ap-southeast-1: { alpha: 3.5, theta0: 0.034, theta1: 0.009, io_s_per_MB: 0.012 }
 
+# segment/split 计算时间：用 sweep 测量数据（2–30 min 视频）做线性趋势 + 残差有放回；
+# 仿真用 video_size_MB / video_mb_per_minute 映到 [duration_min, duration_max] 分钟。关闭则回退为 exec_time Gamma。
+segment_split_sweep:
+  enabled: true
+  csv_rel: measurement/segment_split_measurement/results/sweep_20260415_135645Z.csv
+  video_mb_per_minute: 8.0
+  duration_min_minutes: 2.0
+  duration_max_minutes: 30.0
+
 network_matrix:
   endpoints:
     - GCP_us-east1

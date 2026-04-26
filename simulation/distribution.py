@@ -466,78 +466,6 @@ def get_comm_endpoints() -> list[str]:
     return fallback
 
 
-def _classify_network_edge(a: str, b: str) -> str:
-    """
-    返回 config.network 下的类别 key：
-    - edge_to_cloud: 涉及 local
-    - inter_region_intra_provider: 同云 provider、不同 region（仅 p1–p3 的 region 端点）
-    - intra_region_inter_provider: 同 region 名、不同云 provider
-    - inter_region_inter_provider: 其余（含 p4/p5 与云、或 p4 与 p5）
-    """
-    if a == b:
-        raise ValueError("edge endpoints must be distinct")
-    if a == "local" or b == "local":
-        return "edge_to_cloud"
-    if a in cloud_region_names and b in cloud_region_names:
-        pa, ra = a.split("_", 1)
-        pb, rb = b.split("_", 1)
-        if pa == pb and ra != rb:
-            return "inter_region_intra_provider"
-        if ra == rb and pa != pb:
-            return "intra_region_inter_provider"
-        return "inter_region_inter_provider"
-    return "inter_region_inter_provider"
-
-
-def _network_category_cfg() -> dict[str, Any]:
-    net = config.get("network")
-    if not isinstance(net, dict):
-        raise ValueError("config.network must be a dict")
-    for k in (
-        "inter_region_intra_provider",
-        "intra_region_inter_provider",
-        "inter_region_inter_provider",
-        "edge_to_cloud",
-    ):
-        if k not in net:
-            raise KeyError(f"config.network missing key {k!r}")
-    return net
-
-
-def _sample_rtt_params_for_category(net: dict[str, Any], category: str) -> tuple[float, float]:
-    cat = net[category]
-    mrng = cat.get("rtt_mean_ms")
-    srng = cat.get("rtt_std_ms")
-    if not isinstance(mrng, (list, tuple)) or len(mrng) != 2:
-        raise ValueError(f"config.network.{category}.rtt_mean_ms must be [min, max]")
-    if not isinstance(srng, (list, tuple)) or len(srng) != 2:
-        raise ValueError(f"config.network.{category}.rtt_std_ms must be [min, max]")
-    mean = UniformDistribution(float(mrng[0]), float(mrng[1])).sample()
-    std = UniformDistribution(float(srng[0]), float(srng[1])).sample()
-    if mean <= 0:
-        raise ValueError("sampled RTT mean must be > 0")
-    if std < 0:
-        raise ValueError("sampled RTT std must be >= 0")
-    return mean, std
-
-
-def _sample_bw_params_for_category(net: dict[str, Any], category: str) -> tuple[float, float]:
-    cat = net[category]
-    mrng = cat.get("bw_mean_mbps")
-    srng = cat.get("bw_std_mbps")
-    if not isinstance(mrng, (list, tuple)) or len(mrng) != 2:
-        raise ValueError(f"config.network.{category}.bw_mean_mbps must be [min, max]")
-    if not isinstance(srng, (list, tuple)) or len(srng) != 2:
-        raise ValueError(f"config.network.{category}.bw_std_mbps must be [min, max]")
-    mean = UniformDistribution(float(mrng[0]), float(mrng[1])).sample()
-    std = UniformDistribution(float(srng[0]), float(srng[1])).sample()
-    if mean <= 0:
-        raise ValueError("sampled BW mean must be > 0")
-    if std < 0:
-        raise ValueError("sampled BW std must be >= 0")
-    return mean, std
-
-
 def sample_edge_rtt() -> Dict[Tuple[str, str], RTT]:
     """按 network_matrix.rtt_mean_std 读取每对端点的 RTT(mean,std)。"""
     nm = config.get("network_matrix", {})
@@ -698,9 +626,3 @@ def sample_query_with_budget(num: float) -> list[Query]:
         q.cost_budget = cost_i + cost_s * data_size_MB
         out.append(q)
     return out
-
-
-
-
-if __name__ == "__main__":
-    param = sample()
