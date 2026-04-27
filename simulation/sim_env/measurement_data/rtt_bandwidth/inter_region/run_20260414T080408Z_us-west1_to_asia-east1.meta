@@ -1,0 +1,9 @@
+start_utc=2026-04-14T08:04:08Z
+peer=10.140.0.4
+region_local=us-west1 region_peer=asia-east1
+interval_sec=300 total_sec=86400
+ping_cmd=ping -n -c 10 -W 2 10.140.0.4
+iperf_cmd=iperf3 -c 10.140.0.4 -p 5201 -t 10 -f m --bidir
+rtt_csv=/home/zzy4399/inter_region_probe/rtt_20260414T080408Z_us-west1_to_asia-east1.csv
+bandwidth_csv=/home/zzy4399/inter_region_probe/bandwidth_20260414T080408Z_us-west1_to_asia-east1.csv
+provenance=/home/zzy4399/inter_region_probe/provenance_20260414T080408Z_us-west1_to_asia-east1.txt
