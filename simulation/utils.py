@@ -294,16 +294,22 @@ def generate_realistic_queries(num_queries: int, seed: int = 42) -> list[QueryPr
     rng = random.Random(seed)
 
     for _ in range(num_queries):
-        duration_sec = rng.uniform(60.0, 1800.0)
+        # duration_sec = rng.uniform(60.0, 1800.0)
+        duration_sec = 600
         s_src_mb = cfg.video_megabytes_from_duration_sec(duration_sec)
         s_src_gb = s_src_mb / 1000.0
 
-        ref_cost = end_to_end_cost(
-            baseline_nodes, s_src_gb, mean_rho, llm_token_rng_seed=42
-        )
-        ref_lat = end_to_end_latency(
-            baseline_nodes, s_src_gb, mean_rho, llm_token_rng_seed=42
-        )
+        # ref_cost = end_to_end_cost(
+        #     baseline_nodes, s_src_gb, mean_rho, llm_token_rng_seed=42
+        # )
+        # ref_lat = end_to_end_latency(
+        #     baseline_nodes, s_src_gb, mean_rho, llm_token_rng_seed=42
+        # )
+        # # print(duration_sec,ref_cost, ref_lat)
+        # print(ref_cost/s_src_gb, ref_lat/s_src_gb)
+        # break
+        ref_cost = 0.6822643408037057 * s_src_gb
+        ref_lat = 220.41057081608201 * s_src_gb
 
         factor_c = rng.uniform(0.8, 1.5)
         factor_t = rng.uniform(0.8, 1.5)
