@@ -62,7 +62,7 @@ class NetworkSample:
     @property
     def bandwidth_effective_mbits_per_sec(self) -> float:
         """Conservative single number for capacity planning (bottleneck of the two directions)."""
-        return min(self.bandwidth_out_mbits_per_sec, self.bandwidth_in_mbits_per_sec)
+        return (self.bandwidth_out_mbits_per_sec + self.bandwidth_in_mbits_per_sec) / 2.0
 
 
 def canonical_provider(name: str) -> str:
@@ -273,3 +273,20 @@ def link_cursor_position(src: tuple[str, str], dst: tuple[str, str]) -> int:
     sp, sr = canonical_provider(src[0]), src[1]
     dp, dr = canonical_provider(dst[0]), dst[1]
     return _LINK_INDICES.get(((sp, sr), (dp, dr)), 0)
+
+
+if __name__ == "__main__":
+    src = ("GCP", "us-east1")
+    src2 = ("AWS", "us-west-2")
+    dst1 = ("Aliyun", "cn-beijing")
+    dst2 = ("AWS", "us-west-2")
+    dst3 = ("GCP", "us-west1")
+
+
+    s1 = sample_link(src, dst1)
+    s2 = sample_link(src, dst2)
+    s3 = sample_link(src2, dst3)
+
+    print(s1)
+    print(s2)
+    print(s3)
