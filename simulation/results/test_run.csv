@@ -1,0 +1,11 @@
+sweep         , fixed_dimension, fixed_value, Q , S , variant      , wall_clock_sec      , master_iterations, peak_memory_bytes, objective_value   , pulp_status, error
+vary_S_fixed_Q, Q              ,          50, 50, 50, full         ,  907.9225586900138  ,                33,         589541376, 3.498575047       , Optimal    , 
+vary_S_fixed_Q, Q              ,          50, 50, 50, no_warm_start, 1949.6259256699996  ,                48,         675196928, 3.498079263       , Optimal    , 
+vary_S_fixed_Q, Q              ,          50, 50, 50, direct_milp  ,  231.99408626000513 ,                  ,        1565196288, 3.4986099480000004, Optimal    , 
+vary_Q_fixed_S, S              ,          50, 10, 50, full         ,   21.49229338701116 ,                 6,        1565196288, 3.4800000000000004, Optimal    , 
+vary_Q_fixed_S, S              ,          50, 10, 50, no_warm_start,   45.64042586099822 ,                 9,        1565196288, 3.4800000000000004, Optimal    , 
+vary_Q_fixed_S, S              ,          50, 10, 50, direct_milp  ,   20.992025737010408,                  ,        1565196288, 3.4800000000000004, Optimal    , 
+vary_Q_fixed_S, S              ,          50, 20, 50, full         ,  124.87816349501372 ,                15,        1565196288, 3.4982606100000004, Optimal    , 
+vary_Q_fixed_S, S              ,          50, 20, 50, no_warm_start,   87.31769472701126 ,                12,        1565196288, 3.498375063       , Optimal    , 
+vary_Q_fixed_S, S              ,          50, 20, 50, direct_milp  ,   96.19843896300881 ,                  ,        1565196288, 3.4982182190000004, Optimal    , 
+vary_Q_fixed_S, S              ,          50, 30, 50, full         ,  658.5148594480124  ,                33,        1565196288, 3.49              , Optimal    , 

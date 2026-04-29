@@ -6,7 +6,7 @@ Aggregate Utility / mean Cost / mean Latency / SVR。
 在 ``simulation/`` 目录下执行::
 
     python run_all_algorithms.py
-    python run_all_algorithms.py --num-queries 20 --max-per-op 5
+    python run_all_algorithms.py --num-queries 20
 
 大规模实验请调大 ``--num-queries`` / ``--sky-s-per-query``（Sky 会非常慢）。
 """
@@ -52,7 +52,6 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run LO, SC, DO, Sky + print KPIs.")
     parser.add_argument("--num-queries", type=int, default=100, help="calibration queries Q")
     parser.add_argument("--query-seed", type=int, default=42)
-    parser.add_argument("--max-per-op", type=int, default=5, help="cap each layer candidate count")
     parser.add_argument("--weights", type=float, nargs=4, default=[1.0, 1.0, 1.0, 1.0])
     parser.add_argument("--eval-samples-per-query", type=int, default=40, help="MC draws per query for KPIs")
     parser.add_argument("--eval-seed-base", type=int, default=9000, help="base RNG for Monte Carlo KPIs")
@@ -62,6 +61,12 @@ def main() -> None:
     parser.add_argument("--eta-c", type=float, default=0.1)
     parser.add_argument("--eta-t", type=float, default=0.1)
     parser.add_argument("--skip-sky", action="store_true", help="only run baselines (faster)")
+    parser.add_argument(
+        "--sky-variant",
+        choices=["full", "no_warm_start", "direct_milp"],
+        default="full",
+        help="Sky ablation: full (decomposition+warm-start), no_warm_start, or direct_milp (single Q×S MILP)",
+    )
     args = parser.parse_args()
 
     weights = tuple(args.weights)
@@ -73,11 +78,11 @@ def main() -> None:
     queries = generate_realistic_queries(args.num_queries, seed=args.query_seed)
     print(
         f"[setup] num_queries={len(queries)} query_seed={args.query_seed} "
-        f"max_per_op={args.max_per_op} weights={weights}"
+        f"weights={weights}"
     )
     print()
 
-    cands = sky_runner.enumerate_candidates(max_per_op=args.max_per_op)
+    cands = sky_runner.enumerate_candidates()
     print(f"[setup] candidate layer sizes: {[len(c) for c in cands]}")
 
     results: list[tuple[str, EmpiricalDeploymentMetrics | None]] = []
@@ -143,18 +148,19 @@ def main() -> None:
         print("[Sky] skipped (--skip-sky)")
         results.append(("Sky", None))
     else:
+        sky_dec, sky_warm = sky_runner.sky_ablation_settings(args.sky_variant)
         t0 = time.perf_counter()
         rep = sky_runner.run_sky_deployment(
             queries=queries,
             s_per_query=args.sky_s_per_query,
-            max_per_op=args.max_per_op,
             eta_c=args.eta_c,
             eta_t=args.eta_t,
             lamb_c=1.0,
             lamb_t=1.0,
             weights=weights,
             batch_k=args.sky_batch_k,
-            decomposition=True,
+            decomposition=sky_dec,
+            use_warm_start=sky_warm,
             rng_seed=args.sky_rng,
         )
         elapsed_sky = time.perf_counter() - t0
@@ -176,8 +182,13 @@ def main() -> None:
         print(f"[Sky] deployment: {sol.nodes}")
         print()
 
+        sky_labels = {
+            "full": "Sky (CVaR-SAA MILP full: decomposition+warm-start)",
+            "no_warm_start": "Sky (CVaR-SAA MILP ablation: decomposition, no warm-start)",
+            "direct_milp": "Sky (CVaR-SAA MILP ablation: direct full MILP)",
+        }
         m_sky = _evaluate_and_print(
-            "Sky (CVaR-SAA MILP decomposition)",
+            sky_labels[args.sky_variant],
             sol.nodes,
             queries,
             weights=weights,

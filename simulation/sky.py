@@ -16,7 +16,7 @@ from __future__ import annotations
 import math
 import random
 from dataclasses import dataclass
-from typing import NamedTuple
+from typing import Literal, NamedTuple
 
 from sim_env import config as cfg
 from sim_env.cost import (
@@ -33,6 +33,20 @@ from sim_env.utility import PhysicalNode, QueryProfile, physical_node_utility
 
 import utils as wf_utils
 
+# --- Ablation presets (paper): decomposition + greedy warm-start ----------
+# Variant 1 — Full Sky: scenario-adaptive decomposition + locality greedy MIP start.
+SKY_ABLATION_FULL: dict[str, bool] = {"decomposition": True, "use_warm_start": True}
+# Variant 2 — Decomposition only: same outer loop, no warm-start (cold CBC each iter).
+SKY_ABLATION_NO_WARM_START: dict[str, bool] = {
+    "decomposition": True,
+    "use_warm_start": False,
+}
+# Variant 3 — Direct full MILP: all joint scenarios Q×S in one solve (no decomposition).
+SKY_ABLATION_DIRECT_MILP: dict[str, bool] = {
+    "decomposition": False,
+    "use_warm_start": True,
+}
+
 try:
     import pulp as pl
 except ImportError as e:  # pragma: no cover
@@ -46,8 +60,8 @@ def _endpoint(n: PhysicalNode) -> ProviderRegion:
     return (n.provider, n.region)
 
 
-def enumerate_candidates(max_per_op: int | None = None) -> tuple[tuple[PhysicalNode, ...], ...]:
-    """Candidate sets U_i from ``WORKFLOW_OPERATIONS``; optionally cap list length per op."""
+def enumerate_candidates() -> tuple[tuple[PhysicalNode, ...], ...]:
+    """Candidate sets U_i from ``WORKFLOW_OPERATIONS`` (full enumeration per layer)."""
     layers: list[list[PhysicalNode]] = [[], [], [], []]
     for i, op in enumerate(OPS_ORDER):
         spec = cfg.WORKFLOW_OPERATIONS[op]
@@ -57,22 +71,12 @@ def enumerate_candidates(max_per_op: int | None = None) -> tuple[tuple[PhysicalN
             if models is None:
                 for rg in regions:
                     layers[i].append(PhysicalNode(op, _prov, rg, None))
-                    if max_per_op is not None and len(layers[i]) >= max_per_op:
-                        break
             else:
                 for rg in regions:
                     for m in models:
                         layers[i].append(PhysicalNode(op, _prov, rg, m))
-                        if max_per_op is not None and len(layers[i]) >= max_per_op:
-                            break
-                    if max_per_op is not None and len(layers[i]) >= max_per_op:
-                        break
-                if max_per_op is not None and len(layers[i]) >= max_per_op:
-                    break
         if not layers[i]:
             raise RuntimeError(f"No candidates for {op!r}")
-        if max_per_op is not None:
-            layers[i] = layers[i][:max_per_op]
     return tuple(tuple(x) for x in layers)
 
 
@@ -205,6 +209,15 @@ def prepare_coefficients(
     return a_cost_arr, b_cost_arr, a_lat_arr, b_lat_arr
 
 
+# Per-(cands, queries, scenarios) MILP coefficient tensors; reused across decomposition iters.
+PreparedCoefficients = tuple[
+    list[list[list[float]]],
+    list[list[list[list[float]]]],
+    list[list[list[float]]],
+    list[list[list[list[float]]]],
+]
+
+
 @dataclass
 class JointScenario:
     omega_id: int
@@ -280,7 +293,12 @@ def _solve_milp(
     weights: tuple[float, float, float, float],
     time_limit_sec: int | None = None,
     warm_start: tuple[int, int, int, int] | None = None,
+    coef_precomputed: PreparedCoefficients | None = None,
 ) -> MilpSolution:
+    """
+    If ``coef_precomputed`` is given, it must be ``prepare_coefficients(cands, queries, scenarios_all)``.
+    Reuse it across ``scenario_adaptive_decomposition`` iterations to avoid recomputing constant matrices.
+    """
     dims = tuple(len(cands[i]) for i in range(4))
     prob = pl.LpProblem("sky_milp", pl.LpMaximize)
 
@@ -326,9 +344,12 @@ def _solve_milp(
     z_cost = {oid: pl.LpVariable(f"zC_{oid}", lowBound=0) for oid in omega_active}
     z_lat = {oid: pl.LpVariable(f"zT_{oid}", lowBound=0) for oid in omega_active}
 
-    a_cost_arr, b_cost_arr, a_lat_arr, b_lat_arr = prepare_coefficients(
-        cands, queries, scenarios_all
-    )
+    if coef_precomputed is not None:
+        a_cost_arr, b_cost_arr, a_lat_arr, b_lat_arr = coef_precomputed
+    else:
+        a_cost_arr, b_cost_arr, a_lat_arr, b_lat_arr = prepare_coefficients(
+            cands, queries, scenarios_all
+        )
 
     for oid in omega_active:
         qprof = queries[scenarios_all[oid].q_idx]
@@ -433,6 +454,7 @@ def scenario_adaptive_decomposition(
     seed_init_ratio: float = 0.15,
     time_limit_sec: int | None = None,
     rng: random.Random | None = None,
+    use_warm_start: bool = True,
 ) -> DecompositionResult:
     """
     Joint Scenario-Adaptive Decomposition (Algorithm in paper).
@@ -440,6 +462,10 @@ def scenario_adaptive_decomposition(
     Starts from a random subset of joint scenarios ω=(q,s), solves restricted MILPs,
     measures violation Δ on withheld ω, grows active set by top-``batch_k``.
     Terminates when no positive violations remain among withheld scenarios.
+
+    ``use_warm_start``: if True (default), each restricted solve is seeded with
+    ``locality_greedy_warm_start_indices``; if False, ``_solve_milp`` is called with
+    no MIP start (ablation: decomposition without warm-start).
     """
     r = rng or random.Random()
     n_tot = len(scenarios)
@@ -450,17 +476,21 @@ def scenario_adaptive_decomposition(
     active = sorted(omega_space[: min(n0, n_tot)])
     active_set = set(active)
 
+    coef_bundle = prepare_coefficients(cands, queries, scenarios)
+
     iters = 0
     sol: MilpSolution | None = None
 
     while True:
-        warm = locality_greedy_warm_start_indices(
-            cands,
-            omega_active=sorted(active_set),
-            scenarios=scenarios,
-            queries=queries,
-            weights=weights,
-        )
+        warm: tuple[int, int, int, int] | None = None
+        if use_warm_start:
+            warm = locality_greedy_warm_start_indices(
+                cands,
+                omega_active=sorted(active_set),
+                scenarios=scenarios,
+                queries=queries,
+                weights=weights,
+            )
         sol = _solve_milp(
             cands,
             queries,
@@ -473,11 +503,10 @@ def scenario_adaptive_decomposition(
             weights=weights,
             time_limit_sec=time_limit_sec,
             warm_start=warm,
+            coef_precomputed=coef_bundle,
         )
         picks = sol.x_choice
-        a_cost_arr, b_cost_arr, a_lat_arr, b_lat_arr = prepare_coefficients(
-            cands, queries, scenarios
-        )
+        a_cost_arr, b_cost_arr, a_lat_arr, b_lat_arr = coef_bundle
 
         violators: list[tuple[float, int]] = []
         for oid in omega_space:
@@ -609,7 +638,6 @@ def run_sky_deployment(
     *,
     queries: list[QueryProfile],
     s_per_query: int,
-    max_per_op: int | None = None,
     eta_c: float = 0.1,
     eta_t: float = 0.1,
     lamb_c: float = 1.0,
@@ -617,13 +645,21 @@ def run_sky_deployment(
     weights: tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0),
     batch_k: int = 8,
     decomposition: bool = True,
+    use_warm_start: bool = True,
     rng_seed: int = 0,
 ) -> DecompositionResult | MilpSolution:
     """
     Convenience: build candidates + joint scenarios, optionally run decomposition loop.
+
+    Ablation (paper):
+        - Full: ``decomposition=True``, ``use_warm_start=True`` (see ``SKY_ABLATION_FULL``).
+        - w/o warm-start: ``decomposition=True``, ``use_warm_start=False``.
+        - w/o decomposition (direct Q×S MILP): ``decomposition=False``; greedy
+          warm-start for that single solve is controlled by ``use_warm_start``
+          (default True, matches previous behavior).
     """
     r = random.Random(rng_seed)
-    cands = enumerate_candidates(max_per_op=max_per_op)
+    cands = enumerate_candidates()
     scen = build_joint_scenarios(queries, s_per_query, r)
     if decomposition:
         return scenario_adaptive_decomposition(
@@ -637,15 +673,19 @@ def run_sky_deployment(
             weights=weights,
             batch_k=batch_k,
             rng=r,
+            use_warm_start=use_warm_start,
         )
     omega_all = list(range(len(scen)))
-    warm = locality_greedy_warm_start_indices(
-        cands,
-        omega_active=omega_all,
-        scenarios=scen,
-        queries=queries,
-        weights=weights,
-    )
+    warm: tuple[int, int, int, int] | None = None
+    if use_warm_start:
+        warm = locality_greedy_warm_start_indices(
+            cands,
+            omega_active=omega_all,
+            scenarios=scen,
+            queries=queries,
+            weights=weights,
+        )
+    coef_bundle = prepare_coefficients(cands, queries, scen)
     return _solve_milp(
         cands,
         queries,
@@ -657,7 +697,27 @@ def run_sky_deployment(
         lamb_t=lamb_t,
         weights=weights,
         warm_start=warm,
+        coef_precomputed=coef_bundle,
     )
+
+
+def sky_ablation_settings(
+    variant: Literal["full", "no_warm_start", "direct_milp"],
+) -> tuple[bool, bool]:
+    """
+    Map ablation label to ``(decomposition, use_warm_start)`` for ``run_sky_deployment``.
+
+    - ``full``: decomposition + greedy warm-start (Variant 1).
+    - ``no_warm_start``: decomposition only (Variant 2).
+    - ``direct_milp``: single MILP over all joint scenarios (Variant 3); warm-start on.
+    """
+    if variant == "full":
+        return (True, True)
+    if variant == "no_warm_start":
+        return (True, False)
+    if variant == "direct_milp":
+        return (False, True)
+    raise ValueError(f"unknown variant: {variant!r}")
 
 
 if __name__ == "__main__":  # pragma: no cover
@@ -669,8 +729,6 @@ if __name__ == "__main__":  # pragma: no cover
     QUERY_SEED = 42
     RUN_RNG_SEED = 0
 
-    # 限制每层候选数以控制 MILP 规模；None 为全量（可能极慢）
-    MAX_PER_OP = 5
     BATCH_K = 12
     ETA_C = 0.1
     ETA_T = 0.1
@@ -685,7 +743,6 @@ if __name__ == "__main__":  # pragma: no cover
     rep = run_sky_deployment(
         queries=queries,
         s_per_query=S_PER_QUERY,
-        max_per_op=MAX_PER_OP,
         eta_c=ETA_C,
         eta_t=ETA_T,
         batch_k=BATCH_K,

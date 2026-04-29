@@ -15,13 +15,15 @@ Same provider + same region: no network transfer (RTT 0, unlimited bandwidth).
 Local is modeled as provider "Local" with region "cn-shanghai" (Shanghai).
 
 Each directed link (src -> dst) keeps its own cursor into the appropriate trace;
-samples are taken sequentially and independently per link.
+samples are taken sequentially and independently per link. On first use, each link
+draws a uniform random rotation into its trace so parallel edges do not march in lockstep.
 """
 
 from __future__ import annotations
 
 import csv
 import math
+import random
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -207,7 +209,10 @@ def _load_category_series() -> dict[LinkCategory, list[tuple[float, float, float
 
 
 _SERIES: dict[LinkCategory, list[tuple[float, float, float]]] | None = None
+# Per directed link: number of draws taken so far (advances each sample_link call).
 _LINK_INDICES: dict[tuple[tuple[str, str], tuple[str, str]], int] = {}
+# Per directed link: random rotation into trace (chosen once per link), mixing phases across edges.
+_LINK_ROTATION_OFFSET: dict[tuple[tuple[str, str], tuple[str, str]], int] = {}
 
 
 def _get_series() -> dict[LinkCategory, list[tuple[float, float, float]]]:
@@ -219,18 +224,21 @@ def _get_series() -> dict[LinkCategory, list[tuple[float, float, float]]]:
 
 def reset_link_counters(links: Iterable[tuple[tuple[str, str], tuple[str, str]]] | None = None) -> None:
     """Clear per-link sampling cursors (all links if `links` is None)."""
-    global _LINK_INDICES
+    global _LINK_INDICES, _LINK_ROTATION_OFFSET
     if links is None:
         _LINK_INDICES = {}
+        _LINK_ROTATION_OFFSET = {}
         return
     for key in links:
         _LINK_INDICES.pop(key, None)
+        _LINK_ROTATION_OFFSET.pop(key, None)
 
 
 def reset_measurement_cache() -> None:
     """Reload CSVs from disk on next sample (for tests / notebook reload)."""
     global _SERIES
     _SERIES = None
+    reset_link_counters(None)
 
 
 def sample_link(
@@ -241,6 +249,8 @@ def sample_link(
     Return the next RTT / bandwidth sample for directed link src -> dst.
 
     Cursors are independent per (src, dst) pair and advance by one on each call.
+    On first use, each link picks a uniform random rotation into its trace so
+    parallel edges do not sample identical phases by default.
     """
     sp, sr = canonical_provider(src[0]), src[1]
     dp, dr = canonical_provider(dst[0]), dst[1]
@@ -256,10 +266,15 @@ def sample_link(
         )
     series_map = _get_series()
     series = series_map[cat]
+    n = len(series)
     key = (canon_src, canon_dst)
+    if key not in _LINK_ROTATION_OFFSET:
+        _LINK_ROTATION_OFFSET[key] = random.randrange(n)
+    offset = _LINK_ROTATION_OFFSET[key]
     idx = _LINK_INDICES.get(key, 0)
     _LINK_INDICES[key] = idx + 1
-    rtt, bw_out, bw_in = series[idx % len(series)]
+    pos = (offset + idx) % n
+    rtt, bw_out, bw_in = series[pos]
     return NetworkSample(
         rtt_ms=rtt,
         bandwidth_out_mbits_per_sec=bw_out,

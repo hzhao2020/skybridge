@@ -367,12 +367,11 @@ def deterministic_optimal_baseline(
 def run_all_baselines(
     queries: list[QueryProfile],
     *,
-    max_per_op: int | None = None,
     weights: tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0),
     do_token_seed: int = 0,
 ) -> tuple[BaselineResult, BaselineResult, BaselineResult]:
     """Enumerate candidates once; return SC, LO, DO results."""
-    cands = sky_mod.enumerate_candidates(max_per_op=max_per_op)
+    cands = sky_mod.enumerate_candidates()
     sc = single_cloud_baseline(cands, weights=weights)
     lo = logical_optimal_baseline(cands, weights=weights)
     do = deterministic_optimal_baseline(
@@ -388,7 +387,7 @@ if __name__ == "__main__":  # pragma: no cover
 
     n_q = 5
     qs = wf_utils.generate_realistic_queries(n_q, seed=7)
-    cands = sky_mod.enumerate_candidates(max_per_op=4)
+    cands = sky_mod.enumerate_candidates()
     WEIGHTS = (1.0, 1.0, 1.0, 1.0)
     EVAL_SQ = 30
     EVAL_SEED = 2026

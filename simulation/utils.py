@@ -308,8 +308,8 @@ def generate_realistic_queries(num_queries: int, seed: int = 42) -> list[QueryPr
         # # print(duration_sec,ref_cost, ref_lat)
         # print(ref_cost/s_src_gb, ref_lat/s_src_gb)
         # break
-        ref_cost = 0.6822643408037057 * s_src_gb
-        ref_lat = 220.41057081608201 * s_src_gb
+        ref_cost = 0.7 * s_src_gb
+        ref_lat = 200 * s_src_gb
 
         factor_c = rng.uniform(0.8, 1.5)
         factor_t = rng.uniform(0.8, 1.5)
