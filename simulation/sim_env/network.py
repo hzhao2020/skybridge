@@ -63,8 +63,12 @@ class NetworkSample:
 
     @property
     def bandwidth_effective_mbits_per_sec(self) -> float:
-        """Conservative single number for capacity planning (bottleneck of the two directions)."""
-        return (self.bandwidth_out_mbits_per_sec + self.bandwidth_in_mbits_per_sec) / 2.0
+        """Conservative single number for capacity planning (directional bottleneck)."""
+        bo = float(self.bandwidth_out_mbits_per_sec)
+        bi = float(self.bandwidth_in_mbits_per_sec)
+        if math.isinf(bo) or math.isinf(bi):
+            return max(bo, bi)
+        return min(bo, bi)
 
 
 def canonical_provider(name: str) -> str:
@@ -244,6 +248,7 @@ def reset_measurement_cache() -> None:
 def sample_link(
     src: tuple[str, str],
     dst: tuple[str, str],
+    rng: random.Random | None = None,
 ) -> NetworkSample:
     """
     Return the next RTT / bandwidth sample for directed link src -> dst.
@@ -251,6 +256,9 @@ def sample_link(
     Cursors are independent per (src, dst) pair and advance by one on each call.
     On first use, each link picks a uniform random rotation into its trace so
     parallel edges do not sample identical phases by default.
+
+    If ``rng`` is given, it is used for that rotation (and reproducibility across runs);
+    otherwise the global ``random`` module is used.
     """
     sp, sr = canonical_provider(src[0]), src[1]
     dp, dr = canonical_provider(dst[0]), dst[1]
@@ -269,7 +277,9 @@ def sample_link(
     n = len(series)
     key = (canon_src, canon_dst)
     if key not in _LINK_ROTATION_OFFSET:
-        _LINK_ROTATION_OFFSET[key] = random.randrange(n)
+        _LINK_ROTATION_OFFSET[key] = (
+            rng.randrange(n) if rng is not None else random.randrange(n)
+        )
     offset = _LINK_ROTATION_OFFSET[key]
     idx = _LINK_INDICES.get(key, 0)
     _LINK_INDICES[key] = idx + 1

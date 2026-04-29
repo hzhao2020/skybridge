@@ -5,7 +5,7 @@ End-to-end workflow metrics (cost, latency, utility) for four logical operations
 Implements the aggregation in the SkyXXX paper sketch:
   - Cost: execution + storage(S_in + S_out) + Σ edge transfer volume × unit egress
   - Latency: critical path = sum of execution times + per-edge (data/B + RTT/2)
-  - Utility: U = Σ_i w_i μ_i (default weights all 1 per user request)
+  - Utility: U = Σ_i w_i μ_i (default weights sum to 1, each 0.25)
 
 Data volumes use the chain form of Eq. (data propagation): inputs S_i and
 stochastic ratios ρ_i; S_out,i = S_i · ρ_i, and S_{i+1} = S_out,i for a pipeline.
@@ -13,6 +13,7 @@ stochastic ratios ρ_i; S_out,i = S_i · ρ_i, and S_{i+1} = S_out,i for a pipel
 
 from __future__ import annotations
 
+import hashlib
 import math
 import random
 from typing import Sequence, Tuple
@@ -20,9 +21,13 @@ from typing import Sequence, Tuple
 from sim_env import config as cfg
 from sim_env.config import video_duration_sec_from_megabytes
 from sim_env.cost import ProviderRegion, egress_cost_usd, llm_token_cost_usd, split_cost_usd, storage_cost_usd, video_service_cost_usd
-from sim_env.execution_latency import llm_decode_duration_sec
+from sim_env.execution_latency import (
+    llm_decode_duration_sec,
+    sample_segment_execute_sec,
+    sample_split_execute_sec,
+)
 from sim_env.llm import caption_visual_input_tokens, sample_caption_output_tokens, sample_query_output_tokens
-from sim_env.network import NetworkSample, sample_link
+from sim_env.network import NetworkSample, reset_link_counters, sample_link
 from sim_env.utility import OperationName, PhysicalNode, QueryProfile, physical_node_utility
 
 _OPS_ORDER: tuple[OperationName, OperationName, OperationName, OperationName] = (
@@ -31,6 +36,21 @@ _OPS_ORDER: tuple[OperationName, OperationName, OperationName, OperationName] = 
     "caption",
     "query",
 )
+
+_DEFAULT_WEIGHTS: Tuple[float, float, float, float] = (0.25, 0.25, 0.25, 0.25)
+
+
+def det_rng(master: int, *parts: int | str) -> random.Random:
+    """
+    Deterministic ``random.Random`` (stable across processes; not Python's salted ``hash()``).
+    Used for network rotations and other keyed draws tied to a scenario seed.
+    """
+    buf = hashlib.sha256(str(master).encode("utf-8"))
+    for p in parts:
+        buf.update(b"|")
+        buf.update(str(p).encode("utf-8"))
+        buf.update(b"\x1e")
+    return random.Random(int.from_bytes(buf.digest()[:8], "big"))
 
 
 def _endpoint(node: PhysicalNode) -> ProviderRegion:
@@ -98,33 +118,50 @@ def _resolve_llm_tokens(
     else:
         import numpy as np
 
-        g = np.random.default_rng(int(rng_seed) + 1 if rng_seed is not None else None)
+        # Separate caption/query streams strongly (avoid +1 correlation across draws).
+        if rng_seed is None:
+            g = np.random.default_rng()
+        else:
+            h = hashlib.sha256(str(int(rng_seed)).encode())
+            h.update(b"|wf_utils_resolve_llm_query_tokens_v1|")
+            sub_seed = int.from_bytes(h.digest()[:8], "big") % (2**63)
+            g = np.random.default_rng(sub_seed)
         qout = sample_query_output_tokens(rng=g)
         qt = (ct[1], qout)
 
     return ct, qt
 
 
-def _segment_exec_seconds(segment_video_minutes: float, segment_exe_sec: float | None) -> float:
+def _segment_exec_seconds(
+    segment_video_minutes: float,
+    segment_exe_sec: float | None,
+    *,
+    rng: random.Random | None = None,
+) -> float:
     if segment_exe_sec is not None:
         return float(segment_exe_sec)
     try:
-        from execution_latency import sample_segment_execute_sec
+        from sim_env.execution_latency import sample_segment_execute_sec
 
         duration_sec = max(segment_video_minutes * 60.0, 1e-6)
-        return sample_segment_execute_sec(duration_sec)
+        return sample_segment_execute_sec(duration_sec, rng=rng)
     except Exception:
         return float(segment_video_minutes * 60.0) * 0.02
 
 
-def _split_exec_seconds(segment_video_minutes: float, split_exe_sec: float | None) -> float:
+def _split_exec_seconds(
+    segment_video_minutes: float,
+    split_exe_sec: float | None,
+    *,
+    rng: random.Random | None = None,
+) -> float:
     if split_exe_sec is not None:
         return float(split_exe_sec)
     try:
-        from execution_latency import sample_split_execute_sec
+        from sim_env.execution_latency import sample_split_execute_sec
 
         duration_sec = max(segment_video_minutes * 60.0, 1e-6)
-        return sample_split_execute_sec(duration_sec)
+        return sample_split_execute_sec(duration_sec, rng=rng)
     except Exception:
         return 30.0
 
@@ -191,6 +228,7 @@ def end_to_end_latency(
     query_output_tokens: float | None = None,
     network_samples: tuple[NetworkSample, NetworkSample, NetworkSample] | None = None,
     llm_token_rng_seed: int | None = 42,
+    env_rng: random.Random | None = None,
 ) -> float:
     """
     Paper-style end-to-end latency for a linear DAG = single path (max over paths = path sum):
@@ -208,17 +246,21 @@ def end_to_end_latency(
     seg_min = _segment_video_minutes(s_in[0])
 
     te = t_exe if t_exe is not None else (None, None, None, None)
-    t0 = _segment_exec_seconds(seg_min, te[0])
-    t1 = _split_exec_seconds(seg_min, te[1])
+    t0 = _segment_exec_seconds(seg_min, te[0], rng=env_rng)
+    t1 = _split_exec_seconds(seg_min, te[1], rng=env_rng)
 
-    cap_pair, q_pair = _resolve_llm_tokens(
-        seg_min,
-        caption_tokens=None,
-        query_tokens=None,
-        rng_seed=llm_token_rng_seed,
-    )
-    cap_out = float(caption_output_tokens) if caption_output_tokens is not None else cap_pair[1]
-    q_out = float(query_output_tokens) if query_output_tokens is not None else q_pair[1]
+    if caption_output_tokens is not None and query_output_tokens is not None:
+        cap_out = float(caption_output_tokens)
+        q_out = float(query_output_tokens)
+    else:
+        cap_pair, q_pair = _resolve_llm_tokens(
+            seg_min,
+            caption_tokens=None,
+            query_tokens=None,
+            rng_seed=llm_token_rng_seed,
+        )
+        cap_out = cap_pair[1]
+        q_out = q_pair[1]
 
     cap_model = nodes[2].model
     q_model = nodes[3].model
@@ -230,9 +272,19 @@ def end_to_end_latency(
     lat = t0 + t1 + t2 + t3
 
     if network_samples is None:
-        samples = tuple(
-            sample_link(_endpoint(nodes[i]), _endpoint(nodes[i + 1])) for i in range(3)
-        )
+        if env_rng is not None:
+            samples = tuple(
+                sample_link(
+                    _endpoint(nodes[i]),
+                    _endpoint(nodes[i + 1]),
+                    rng=det_rng(env_rng.randrange(0, 2**31), "lat_edge", i),
+                )
+                for i in range(3)
+            )
+        else:
+            samples = tuple(
+                sample_link(_endpoint(nodes[i]), _endpoint(nodes[i + 1])) for i in range(3)
+            )
     else:
         samples = network_samples
 
@@ -244,14 +296,69 @@ def end_to_end_latency(
     return lat
 
 
+def end_to_end_cost_and_latency(
+    nodes: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode],
+    s_src_gb: float,
+    rho: tuple[float, float, float, float],
+    *,
+    workflow_rng: random.Random,
+) -> tuple[float, float]:
+    """
+    One Monte Carlo draw: shared ρ, LLM tokens, segment/split noise, and network draws.
+
+    Cost and latency use the same token counts and execution/network samples so repeated
+    evaluations with the same ``workflow_rng`` state advance match pairwise draws.
+    """
+    s_in, transfer_gb = _propagate_sizes_gb(s_src_gb, rho)
+    seg_min = _segment_video_minutes(s_in[0])
+    dur_sec = max(seg_min * 60.0, 1e-6)
+    llm_seed = workflow_rng.randrange(0, 2**31)
+    (cap_in, cap_out), (q_in, q_out) = _resolve_llm_tokens(
+        seg_min,
+        caption_tokens=None,
+        query_tokens=None,
+        rng_seed=llm_seed,
+    )
+    c = end_to_end_cost(
+        nodes,
+        s_src_gb,
+        rho,
+        caption_tokens=(cap_in, cap_out),
+        query_tokens=(q_in, q_out),
+        llm_token_rng_seed=llm_seed,
+    )
+    seg_exe = sample_segment_execute_sec(dur_sec, rng=workflow_rng)
+    spl_exe = sample_split_execute_sec(dur_sec, rng=workflow_rng)
+    reset_link_counters(None)
+    samples = tuple(
+        sample_link(
+            _endpoint(nodes[i]),
+            _endpoint(nodes[i + 1]),
+            rng=det_rng(workflow_rng.randrange(0, 2**31), "e2e_net", i),
+        )
+        for i in range(3)
+    )
+    ell = end_to_end_latency(
+        nodes,
+        s_src_gb,
+        rho,
+        t_exe=(seg_exe, spl_exe, None, None),
+        caption_output_tokens=cap_out,
+        query_output_tokens=q_out,
+        network_samples=samples,
+        llm_token_rng_seed=llm_seed,
+    )
+    return c, ell
+
+
 def end_to_end_utility(
     nodes: Sequence[PhysicalNode],
     *,
     weights: Tuple[float, float, float, float] | None = None,
 ) -> float:
     """
-    U(x) = Σ_i w_i · μ_i with μ from ``physical_node_utility``. Default weights are all 1
-    (paper uses normalized Σ w_i = 1; set ``weights=(0.25,)*4`` if you need that).
+    U(x) = Σ_i w_i · μ_i with μ from ``physical_node_utility``. Default ``weights`` sum to 1
+    (four equal weights 0.25 each).
     """
     ns = tuple(nodes)
     if len(ns) != 4:
@@ -259,7 +366,7 @@ def end_to_end_utility(
     for i, n in enumerate(ns):
         if n.operation != _OPS_ORDER[i]:
             raise ValueError(f"nodes[{i}] must be operation {_OPS_ORDER[i]!r}, got {n.operation!r}")
-    w = weights if weights is not None else (1.0, 1.0, 1.0, 1.0)
+    w = weights if weights is not None else _DEFAULT_WEIGHTS
     if len(w) != 4:
         raise ValueError("weights must have length 4")
     return sum(w[i] * physical_node_utility(ns[i]) for i in range(4))
@@ -267,54 +374,47 @@ def end_to_end_utility(
 
 def generate_realistic_queries(num_queries: int, seed: int = 42) -> list[QueryProfile]:
     """
-    终极版：LO 陷阱 (The Logical-Optimal Trap)
-    构造原理：将预算死死锚定在全网“跑分最高但极不稳定”的跨云链路上。
+    Construct per-query cost/latency budgets from a reference deployment and plug-in mean ρ.
+
+    Reference chain uses one GCP region (low cross-edge jitter) so SLO levels are not
+    adversarially anchored on a single unstable cross-ocean link; slack factors are drawn
+    uniformly from a modest band so deterministic mean-field baselines are not knife-edge.
     """
     import random
+
     from sim_env import config as cfg
     from sim_env.utility import PhysicalNode, QueryProfile
-    from utils import end_to_end_cost, end_to_end_latency
 
     rng = random.Random(seed)
     calib_rng = random.Random(seed + 100)
-    
+
     mean_rho = cfg.plugin_mean_data_conversion_ratios(
         n_calibration_samples=4096,
         rng=calib_rng,
         operations=("segment", "split", "caption", "query"),
     )
 
-    # 陷阱链路：GCP 亚太 到 阿里云 北京
-    # 特点：U (效用) 是全网最高 (3.55)，但这是一条长距离跨洋、跨云链路，网络抖动(Jitter)极大！
     anchor_nodes = (
-        PhysicalNode("segment", "GCP", "asia-east1"),
-        PhysicalNode("split", "GCP", "asia-east1"),
-        PhysicalNode("caption", "GCP", "asia-east1", "Gemini 2.5 Pro"),
-        PhysicalNode("query", "Aliyun", "cn-beijing", "Qwen3.5-Plus"),
+        PhysicalNode("segment", "GCP", "us-east1"),
+        PhysicalNode("split", "GCP", "us-east1"),
+        PhysicalNode("caption", "GCP", "us-east1", "Gemini 2.5 Pro"),
+        PhysicalNode("query", "GCP", "us-east1", "Gemini 2.5 Flash"),
     )
 
     queries: list[QueryProfile] = []
 
     for q_idx in range(num_queries):
-        # 视频时长稍微调短一点 (2~5分钟)，这样“网络传输的延迟”在总延迟中的占比会被放大
-        # 从而让网络抖动更容易击穿延迟预算
         duration_sec = rng.uniform(120.0, 300.0)
         s_src_mb = cfg.video_megabytes_from_duration_sec(duration_sec)
         s_src_gb = s_src_mb / 1000.0
 
-        ref_cost = end_to_end_cost(
-            anchor_nodes, s_src_gb, mean_rho, llm_token_rng_seed=q_idx
-        )
-        ref_lat = end_to_end_latency(
-            anchor_nodes, s_src_gb, mean_rho, llm_token_rng_seed=q_idx
+        wf = det_rng(seed, "query_budget", q_idx)
+        ref_cost, ref_lat = end_to_end_cost_and_latency(
+            anchor_nodes, s_src_gb, mean_rho, workflow_rng=wf
         )
 
-        # 【刀锋预算】：1.001 ~ 1.01
-        # 我们给的预算仅仅比陷阱链路的平均值多出了千分之一到百分之一！
-        # DO 会觉得“刚好够用”，毫不犹豫地踩进陷阱。
-        # Sky 会算出 CVaR，发现这条链路尾部违规率太高，从而强制降级模型或选择同云内网。
-        factor_c = rng.uniform(1.001, 1.01)
-        factor_t = rng.uniform(1.001, 1.01)
+        factor_c = rng.uniform(1.02, 1.15)
+        factor_t = rng.uniform(1.02, 1.15)
 
         queries.append(
             QueryProfile(

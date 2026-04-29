@@ -52,9 +52,16 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run LO, SC, DO, Sky + print KPIs.")
     parser.add_argument("--num-queries", type=int, default=100, help="calibration queries Q")
     parser.add_argument("--query-seed", type=int, default=42)
-    parser.add_argument("--weights", type=float, nargs=4, default=[1.0, 1.0, 1.0, 1.0])
+    parser.add_argument("--weights", type=float, nargs=4, default=[0.25, 0.25, 0.25, 0.25])
     parser.add_argument("--eval-samples-per-query", type=int, default=40, help="MC draws per query for KPIs")
-    parser.add_argument("--eval-seed-base", type=int, default=9000, help="base RNG for Monte Carlo KPIs")
+    parser.add_argument(
+        "--eval-seed",
+        "--eval-seed-base",
+        dest="eval_seed",
+        type=int,
+        default=9000,
+        help="single RNG seed for empirical KPI evaluation (same MC draws for LO/SC/DO/Sky; alias: --eval-seed-base)",
+    )
     parser.add_argument("--sky-s-per-query", type=int, default=10, help="SAA scenarios S per query for Sky")
     parser.add_argument("--sky-batch-k", type=int, default=10)
     parser.add_argument("--sky-rng", type=int, default=0)
@@ -70,6 +77,7 @@ def main() -> None:
     args = parser.parse_args()
 
     weights = tuple(args.weights)
+    eval_seed = int(args.eval_seed)
 
     print("=" * 70)
     print("run_all_algorithms: shared calibration set + empirical KPIs")
@@ -78,7 +86,7 @@ def main() -> None:
     queries = generate_realistic_queries(args.num_queries, seed=args.query_seed)
     print(
         f"[setup] num_queries={len(queries)} query_seed={args.query_seed} "
-        f"weights={weights}"
+        f"weights={weights} eval_seed={eval_seed}"
     )
     print()
 
@@ -97,7 +105,7 @@ def main() -> None:
         queries,
         weights=weights,
         samples_per_query=args.eval_samples_per_query,
-        eval_seed=args.eval_seed_base + 1,
+        eval_seed=eval_seed,
         extra=f"closed_form_U={lo.total_utility:.6g}",
     )
     results.append(("LO", m_lo))
@@ -115,14 +123,14 @@ def main() -> None:
         queries,
         weights=weights,
         samples_per_query=args.eval_samples_per_query,
-        eval_seed=args.eval_seed_base + 2,
+        eval_seed=eval_seed,
         extra=f"closed_form_U={sc.total_utility:.6g}",
     )
     results.append(("SC", m_sc))
 
     t0 = time.perf_counter()
     do = baseline_runner.deterministic_optimal_baseline(
-        queries, cands, weights=weights, token_seed=args.eval_seed_base
+        queries, cands, weights=weights, token_seed=eval_seed
     )
     print(
         f"[DO] MILP status={do.pulp_status} MILP_obj_U={do.total_utility} "
@@ -138,7 +146,7 @@ def main() -> None:
         queries,
         weights=weights,
         samples_per_query=args.eval_samples_per_query,
-        eval_seed=args.eval_seed_base + 3,
+        eval_seed=eval_seed,
         extra=extra_do,
     )
     results.append(("DO", m_do))
@@ -193,7 +201,7 @@ def main() -> None:
             queries,
             weights=weights,
             samples_per_query=args.eval_samples_per_query,
-            eval_seed=args.eval_seed_base + 100,
+            eval_seed=eval_seed,
             extra=extra_sky,
         )
         results.append(("Sky", m_sky))

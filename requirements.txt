@@ -28,8 +28,9 @@ pandas>=2.0.0
 # 进度条工具
 tqdm>=4.65.0
 
-# 优化求解（simulation/solver.py CVaR-MILP）
+# 优化求解：baseline 等仍使用 PuLP；simulation/sky.py MILP 使用 Gurobi（需许可证）
 pulp>=2.8.0
+gurobipy>=13.0.0
 
 # 仿真配置（simulation/config.yaml）
 pyyaml>=6.0

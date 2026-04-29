@@ -1,0 +1,8 @@
+sweep,fixed_dimension,fixed_value,Q,S,variant,batch_k,wall_clock_sec,master_iterations,peak_memory_bytes,objective_value,pulp_status,error
+fixed_Q_S,Q_S,"50,50",50,50,full,50,195.60674603498774,14,950632448,-3.7096409760363014,Optimal,
+fixed_Q_S,Q_S,"50,50",50,50,no_warm_start,50,209.65680935099954,14,1071935488,-4.5321228859547595,Optimal,
+fixed_Q_S,Q_S,"50,50",50,50,direct_milp,50,50.25547277502483,,1558667264,-3.731192806724042,Optimal,
+fixed_Q_S,Q_S,"50,50",50,50,full,50,196.82187134597916,14,952258560,-3.4426071604239685,Optimal,
+fixed_Q_S,Q_S,"50,50",50,50,no_warm_start,50,126.71072390800691,12,998457344,-3.4425346588145262,Optimal,
+fixed_Q_S,Q_S,"50,50",50,50,direct_milp,50,59.41956355300499,,1846964224,-3.4427192981643295,Optimal,
+fixed_Q_S,Q_S,"100,100",100,100,full,50,3552.138981194992,44,6709956608,-4.818656087971319,Optimal,

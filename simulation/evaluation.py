@@ -14,11 +14,9 @@ Runs from ``simulation/`` alongside ``sky`` / ``baseline``.
 from __future__ import annotations
 
 import math
-import random
 from typing import Iterable, Sequence
 
 from sim_env import config as cfg
-from sim_env.network import reset_link_counters
 from sim_env.utility import PhysicalNode, QueryProfile
 
 import utils as wf_utils
@@ -64,7 +62,7 @@ def evaluate_deployment_empirical(
     nodes: Sequence[PhysicalNode],
     queries: Iterable[QueryProfile],
     *,
-    weights: tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0),
+    weights: tuple[float, float, float, float] = (0.25, 0.25, 0.25, 0.25),
     samples_per_query: int = 50,
     eval_seed: int = 137,
     cost_tol_abs: float = 1e-9,
@@ -82,24 +80,19 @@ def evaluate_deployment_empirical(
     tup = tuple(nodes)
     u_val = wf_utils.end_to_end_utility(tup, weights=weights)
 
-    rng = random.Random(eval_seed)
     costs: list[float] = []
     lats: list[float] = []
     viol_cost = 0
     viol_latency = 0
     draws = 0
 
-    for _, qprof in enumerate(ql):
-        for _s in range(samples_per_query):
-            reset_link_counters(None)
-            rho = tuple(cfg.sample_data_conversion_ratio(op, rng) for op in _OPS)
-            seed_tok = rng.randrange(0, 2**31)
-            c = wf_utils.end_to_end_cost(
-                tup, qprof.s_src_gb, rho, llm_token_rng_seed=seed_tok
-            )
-            reset_link_counters(None)
-            ell = wf_utils.end_to_end_latency(
-                tup, qprof.s_src_gb, rho, llm_token_rng_seed=seed_tok
+    for q_idx, qprof in enumerate(ql):
+        for s_idx in range(samples_per_query):
+            rho_rng = wf_utils.det_rng(eval_seed, "eval_rho", q_idx, s_idx)
+            wf_rng = wf_utils.det_rng(eval_seed, "eval_mc", q_idx, s_idx)
+            rho = tuple(cfg.sample_data_conversion_ratio(op, rho_rng) for op in _OPS)
+            c, ell = wf_utils.end_to_end_cost_and_latency(
+                tup, qprof.s_src_gb, rho, workflow_rng=wf_rng
             )
             costs.append(c)
             lats.append(ell)

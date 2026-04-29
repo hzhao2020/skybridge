@@ -9,7 +9,14 @@ Sky 消融实验：独立变量 × 三种变体，记录求解时间、迭代次
 每次实验在 **独立子进程** 中运行，以便 ``resource.getrusage`` 反映该次求解的峰值驻留内存
 （Linux: ru_maxrss 为 KB）。
 
-依赖: PuLP、solve 前已满足的 sim_env/utils；可选 ``tqdm`` 显示进度。
+结果写入 ``--out`` CSV：若文件已存在且非空则 **续写**（不写表头）；新文件或空文件则先写表头。
+需要整文件重写时使用 ``--overwrite``。列 ``batch_k`` 与命令行 ``--batch-k`` 一致。
+
+对同一网格点 (Q, S, sweep)，三种变体共用同一 ``rng_seed``（**不含 variant**），因而 ``build_joint_scenarios`` 的联合场景、每条 ω 上的 segment/split 执行噪声、LLM token、链路的 ``sample_link`` 旋转均由此种子确定性导出（``sky.prepare_coefficients`` / ``utils.det_rng``），消融对比下随机环境一致。
+
+单点消融（例如 Q=50、S=50）::
+
+    python sky_ablation_experiment.py --only-q 50 --only-s 50 --out results/q50s50.csv
 """
 
 from __future__ import annotations
@@ -60,7 +67,7 @@ def run_sky_single_in_process(payload: dict[str, Any]) -> dict[str, Any]:
     lamb_c = float(payload.get("lamb_c", 1.0))
     lamb_t = float(payload.get("lamb_t", 1.0))
     weights: tuple[float, float, float, float] = tuple(
-        float(x) for x in payload.get("weights", (1.0, 1.0, 1.0, 1.0))
+        float(x) for x in payload.get("weights", (0.25, 0.25, 0.25, 0.25))
     )
     batch_k = int(payload.get("batch_k", 8))
 
@@ -166,22 +173,55 @@ def run_isolated_subprocess(
     }
 
 
-def _stable_sky_rng(
-    sweep: str,
-    q: int,
-    s: int,
-    variant: str,
-    base: int,
-) -> int:
-    """可复现：同一 (sweep, Q, S, variant) 组合对应固定 RNG seed（与子进程无关）。"""
-    sweep_code = 1 if sweep == "vary_S_fixed_Q" else 2
-    vcode = {"full": 11, "no_warm_start": 22, "direct_milp": 33}.get(variant, 0)
-    return int(base + sweep_code * 100_000 + q * 10_007 + s * 1301 + vcode)
+def _stable_experiment_rng_seed(sweep: str, q: int, s: int, base: int) -> int:
+    """
+    固定 (sweep, Q, S) 下的主随机种子，**故意不包含 variant**。
+
+    ``sky.run_sky_deployment(rng_seed=...)`` 用同一 RNG 先后驱动 ``build_joint_scenarios`` 与
+    ``scenario_adaptive_decomposition`` 的初始 shuffle，保证消融对比时场景数据与分解随机序一致。
+    """
+    if sweep == "vary_S_fixed_Q":
+        sweep_code = 1
+    elif sweep == "vary_Q_fixed_S":
+        sweep_code = 2
+    else:
+        sweep_code = 3  # fixed_Q_S
+    return int(base + sweep_code * 100_000 + q * 10_007 + s * 1301)
 
 
 def build_jobs(args: argparse.Namespace) -> list[dict[str, Any]]:
     variants: list[VariantName] = list(args.variants)  # type: ignore[assignment]
     jobs: list[dict[str, Any]] = []
+
+    if args.only_q is not None:
+        q, s = args.only_q, args.only_s
+        for variant in variants:
+            jobs.append(
+                {
+                    "sweep": "fixed_Q_S",
+                    "fixed_dimension": "Q_S",
+                    "fixed_value": f"{q},{s}",
+                    "independent_S": s,
+                    "independent_Q": q,
+                    "variant": variant,
+                    "payload": {
+                        "variant": variant,
+                        "num_queries": q,
+                        "s_per_query": s,
+                        "query_seed": args.query_seed,
+                        "sky_rng_seed": _stable_experiment_rng_seed(
+                            "fixed_Q_S", q, s, args.sky_rng_base
+                        ),
+                        "eta_c": args.eta_c,
+                        "eta_t": args.eta_t,
+                        "lamb_c": args.lamb_c,
+                        "lamb_t": args.lamb_t,
+                        "weights": list(args.weights),
+                        "batch_k": args.batch_k,
+                    },
+                }
+            )
+        return jobs
 
     # Sweep 1: fixed Q, vary S
     for s in args.s_list:
@@ -200,8 +240,8 @@ def build_jobs(args: argparse.Namespace) -> list[dict[str, Any]]:
                         "num_queries": q,
                         "s_per_query": s,
                         "query_seed": args.query_seed,
-                        "sky_rng_seed": _stable_sky_rng(
-                            "vary_S_fixed_Q", q, s, variant, args.sky_rng_base
+                        "sky_rng_seed": _stable_experiment_rng_seed(
+                            "vary_S_fixed_Q", q, s, args.sky_rng_base
                         ),
                         "eta_c": args.eta_c,
                         "eta_t": args.eta_t,
@@ -230,8 +270,8 @@ def build_jobs(args: argparse.Namespace) -> list[dict[str, Any]]:
                         "num_queries": q,
                         "s_per_query": s,
                         "query_seed": args.query_seed,
-                        "sky_rng_seed": _stable_sky_rng(
-                            "vary_Q_fixed_S", q, s, variant, args.sky_rng_base
+                        "sky_rng_seed": _stable_experiment_rng_seed(
+                            "vary_Q_fixed_S", q, s, args.sky_rng_base
                         ),
                         "eta_c": args.eta_c,
                         "eta_t": args.eta_t,
@@ -254,7 +294,12 @@ def main() -> None:
         "--out",
         type=Path,
         default=Path("sky_ablation_results.csv"),
-        help="output CSV path",
+        help="output CSV path (append if file exists and is non-empty, unless --overwrite)",
+    )
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="truncate --out and write a fresh header before this run",
     )
     parser.add_argument(
         "--s-list",
@@ -270,8 +315,27 @@ def main() -> None:
         help="comma-separated Q values for sweep vary_Q_fixed_S",
     )
     parser.add_argument("--s-fixed", type=int, default=50, help="fixed S when varying Q")
+    parser.add_argument(
+        "--only-q",
+        type=int,
+        default=None,
+        metavar="Q",
+        help="with --only-s: run exactly one (Q,S) cell × variants (ignores default sweeps)",
+    )
+    parser.add_argument(
+        "--only-s",
+        type=int,
+        default=None,
+        metavar="S",
+        help="with --only-q: per-query scenario count S for that single cell",
+    )
     parser.add_argument("--query-seed", type=int, default=42)
-    parser.add_argument("--sky-rng-base", type=int, default=0, help="base for derived sky RNG seeds")
+    parser.add_argument(
+        "--sky-rng-base",
+        type=int,
+        default=0,
+        help="base for experiment RNG seed (same per Q,S,sweep for all variants; not per-variant)",
+    )
     parser.add_argument("--batch-k", type=int, default=8)
     parser.add_argument("--eta-c", type=float, default=0.1)
     parser.add_argument("--eta-t", type=float, default=0.1)
@@ -281,7 +345,7 @@ def main() -> None:
         "--weights",
         type=float,
         nargs=4,
-        default=[1.0, 1.0, 1.0, 1.0],
+        default=[0.25, 0.25, 0.25, 0.25],
     )
     parser.add_argument(
         "--variants",
@@ -304,6 +368,9 @@ def main() -> None:
     args = parser.parse_args()
     args.weights = tuple(args.weights)  # type: ignore[assignment]
 
+    if (args.only_q is None) ^ (args.only_s is None):
+        parser.error("--only-q and --only-s must be used together")
+
     jobs = build_jobs(args)
     fieldnames = [
         "sweep",
@@ -312,6 +379,7 @@ def main() -> None:
         "Q",
         "S",
         "variant",
+        "batch_k",
         "wall_clock_sec",
         "master_iterations",
         "peak_memory_bytes",
@@ -321,6 +389,12 @@ def main() -> None:
     ]
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
+    append_mode = (
+        not args.overwrite
+        and args.out.exists()
+        and args.out.stat().st_size > 0
+    )
+    file_mode = "a" if append_mode else "w"
     try:
         from tqdm import tqdm
     except ImportError:
@@ -328,9 +402,10 @@ def main() -> None:
 
     iterator = tqdm(jobs, desc="ablation") if tqdm else jobs
 
-    with args.out.open("w", newline="", encoding="utf-8") as f:
+    with args.out.open(file_mode, newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=fieldnames)
-        w.writeheader()
+        if not append_mode:
+            w.writeheader()
         f.flush()
 
         for job in iterator:
@@ -347,6 +422,7 @@ def main() -> None:
                 "Q": job["independent_Q"],
                 "S": job["independent_S"],
                 "variant": job["variant"],
+                "batch_k": payload.get("batch_k", ""),
                 "wall_clock_sec": r.get("wall_clock_sec", math.nan),
                 "master_iterations": r.get("master_iterations", ""),
                 "peak_memory_bytes": r.get("peak_memory_bytes", ""),
@@ -359,7 +435,8 @@ def main() -> None:
             w.writerow(row)
             f.flush()
 
-    print(f"Wrote {len(jobs)} rows to {args.out.resolve()}")
+    action = "Appended" if append_mode else "Wrote"
+    print(f"{action} {len(jobs)} rows to {args.out.resolve()}")
 
 
 if __name__ == "__main__":

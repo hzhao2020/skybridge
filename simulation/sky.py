@@ -4,7 +4,7 @@ Scenario-Adaptive decomposition, locality-aware greedy warm-start).
 
 Pipeline: segment → split → caption → query.
 
-Dependencies: ``pip install pulp``
+Dependencies: ``pip install gurobipy`` (Gurobi Optimizer with valid license).
 
 Import resolution: the directory that **contains** ``sim_env/`` (usually
 ``simulation/``) must be on ``sys.path``. Run scripts from that folder, or add
@@ -27,7 +27,11 @@ from sim_env.cost import (
     storage_cost_usd,
     video_service_cost_usd,
 )
-from sim_env.execution_latency import llm_decode_duration_sec
+from sim_env.execution_latency import (
+    llm_decode_duration_sec,
+    sample_segment_execute_sec,
+    sample_split_execute_sec,
+)
 from sim_env.network import reset_link_counters, sample_link
 from sim_env.utility import PhysicalNode, QueryProfile, physical_node_utility
 
@@ -48,9 +52,42 @@ SKY_ABLATION_DIRECT_MILP: dict[str, bool] = {
 }
 
 try:
-    import pulp as pl
+    import gurobipy as gp
+    from gurobipy import GRB
 except ImportError as e:  # pragma: no cover
-    raise ImportError("Sky MILP requires PuLP: pip install pulp") from e
+    raise ImportError(
+        "Sky MILP requires gurobipy: pip install gurobipy (Gurobi license required)"
+    ) from e
+
+
+def _gurobi_status_str(model: gp.Model) -> str:
+    """Map Gurobi status to strings similar to PuLP ``LpStatus`` for downstream logs/CSV."""
+    s = model.Status
+    if s == GRB.OPTIMAL:
+        return "Optimal"
+    if s == GRB.INFEASIBLE:
+        return "Infeasible"
+    if s == GRB.UNBOUNDED:
+        return "Unbounded"
+    if s in (GRB.INF_OR_UNBD, GRB.NUMERIC_ERROR):
+        return "Undefined"
+    if s == GRB.TIME_LIMIT:
+        return "TimeLimit"
+    if s == GRB.INTERRUPTED:
+        return "Interrupted"
+    if s == GRB.SUBOPTIMAL:
+        return "Not Solved"
+    if s in (GRB.LOADED,):
+        return "Not Solved"
+    return "Undefined"
+
+
+def _safe_var_x(v: gp.Var) -> float:
+    try:
+        x = v.X
+        return float(x) if x == x else 0.0  # NaN -> 0
+    except (gp.GurobiError, AttributeError, ValueError):
+        return 0.0
 
 
 OPS_ORDER = ("segment", "split", "caption", "query")
@@ -90,34 +127,32 @@ def coef_local_cost_latency(
     s_in: list[float],
     rho: tuple[float, float, float, float],
     seg_minutes: float,
-    rng_seed: int | None,
+    *,
+    seg_exe_sec: float,
+    spl_exe_sec: float,
+    cap_pair: tuple[float, float],
+    q_pair: tuple[float, float],
 ) -> tuple[float, float]:
-    """Node-local exe + storage (USD), and execution-only latency (seconds)."""
+    """Node-local exe + storage (USD), and execution-only latency (seconds).
+
+    Per joint scenario ω, segment/split times and LLM tokens are shared across all
+    candidates so coefficients reflect one realized environment, not per-candidate draws.
+    """
     rho_i = float(rho[i])
     stor = storage_cost_usd(
         node.provider, node.region, float(s_in[i]) * (1.0 + rho_i), days=1.0
     )
     op = OPS_ORDER[i]
-    rsq = rng_seed
+    cin, cout = cap_pair
+    qin, qout = q_pair
 
     if op == "segment":
         exe = video_service_cost_usd(node.provider, node.region, "segment", seg_minutes)
-        t_exe = wf_utils._segment_exec_seconds(seg_minutes, None)
-        return exe + stor, t_exe
+        return exe + stor, seg_exe_sec
 
     if op == "split":
         exe = split_cost_usd(node.provider, node.region, minutes=1.0)
-        t_exe = wf_utils._split_exec_seconds(seg_minutes, None)
-        return exe + stor, t_exe
-
-    cap_pair, q_pair = wf_utils._resolve_llm_tokens(
-        seg_minutes,
-        caption_tokens=None,
-        query_tokens=None,
-        rng_seed=rsq,
-    )
-    cin, cout = cap_pair
-    qin, qout = q_pair
+        return exe + stor, spl_exe_sec
 
     if op == "caption":
         mm = node.model or ""
@@ -135,11 +170,13 @@ def _edge_pair_cost_latency(
     src: PhysicalNode,
     dst: PhysicalNode,
     xfer_gb: float,
+    *,
+    rng: random.Random | None = None,
 ) -> tuple[float, float]:
     ep_s, ep_d = _endpoint(src), _endpoint(dst)
     cents = egress_cost_usd(ep_s, ep_d, xfer_gb)
     reset_link_counters([(ep_s, ep_d)])
-    sm = sample_link(ep_s, ep_d)
+    sm = sample_link(ep_s, ep_d, rng=rng)
     lat = wf_utils._transfer_seconds(xfer_gb, sm) + 0.5 * (sm.rtt_ms / 1000.0)
     return cents, lat
 
@@ -167,6 +204,16 @@ def prepare_coefficients(
         seed = om.rng_seed
         sn, xfer = wf_utils._propagate_sizes_gb(s_src, rho)
         seg_min = _segment_minutes(sn[0])
+        dur_sec = max(seg_min * 60.0, 1e-6)
+        rng_env = random.Random(seed)
+        seg_exe = sample_segment_execute_sec(dur_sec, rng=rng_env)
+        spl_exe = sample_split_execute_sec(dur_sec, rng=rng_env)
+        cap_pair, q_pair = wf_utils._resolve_llm_tokens(
+            seg_min,
+            caption_tokens=None,
+            query_tokens=None,
+            rng_seed=seed,
+        )
 
         ac: list[list[float]] = []
         al: list[list[float]] = []
@@ -175,7 +222,15 @@ def prepare_coefficients(
             row_l = []
             for ki, node in enumerate(cands[i]):
                 c_ij, lat_ij = coef_local_cost_latency(
-                    i, node, sn, rho, seg_min, seed + ki
+                    i,
+                    node,
+                    sn,
+                    rho,
+                    seg_min,
+                    seg_exe_sec=seg_exe,
+                    spl_exe_sec=spl_exe,
+                    cap_pair=cap_pair,
+                    q_pair=q_pair,
                 )
                 row_c.append(c_ij)
                 row_l.append(lat_ij)
@@ -193,7 +248,22 @@ def prepare_coefficients(
                 rc = []
                 rl = []
                 for kb, nb in enumerate(cands[i1]):
-                    nc, nl = _edge_pair_cost_latency(na, nb, xg)
+                    ep_a = wf_utils._endpoint(na)
+                    ep_b = wf_utils._endpoint(nb)
+                    nc, nl = _edge_pair_cost_latency(
+                        na,
+                        nb,
+                        xg,
+                        rng=wf_utils.det_rng(
+                            seed,
+                            "sky_edge",
+                            ei,
+                            ep_a[0],
+                            ep_a[1],
+                            ep_b[0],
+                            ep_b[1],
+                        ),
+                    )
                     rc.append(nc)
                     rl.append(nl)
                 mat_c.append(rc)
@@ -256,16 +326,17 @@ class MilpSolution(NamedTuple):
     pulp_status: str
 
 
-def _safe_set_initial(var: pl.LpVariable, val: float) -> None:
-    """PuLP CBC may ignore MIP starts, but setting values is still the correct API."""
-    setter = getattr(var, "setInitialValue", None)
-    if callable(setter):
-        setter(val)
+def _safe_set_initial(var: gp.Var, val: float) -> None:
+    """Gurobi MIP start."""
+    try:
+        var.Start = float(val)
+    except (gp.GurobiError, AttributeError):  # pragma: no cover
+        pass
 
 
 def _apply_warm_start(
-    x: list[list[pl.LpVariable]],
-    y_edge: list[list[list[pl.LpVariable]]],
+    x: list[list[gp.Var]],
+    y_edge: list[list[list[gp.Var]]],
     dims: tuple[int, int, int, int],
     warm: tuple[int, int, int, int],
 ) -> None:
@@ -300,17 +371,23 @@ def _solve_milp(
     Reuse it across ``scenario_adaptive_decomposition`` iterations to avoid recomputing constant matrices.
     """
     dims = tuple(len(cands[i]) for i in range(4))
-    prob = pl.LpProblem("sky_milp", pl.LpMaximize)
+    m = gp.Model("sky_milp")
+    m.setParam("OutputFlag", 0)
+    if time_limit_sec is not None and time_limit_sec > 0:
+        m.setParam("TimeLimit", float(time_limit_sec))
 
-    x: list[list[pl.LpVariable]] = [
-        [pl.LpVariable(f"x_{i}_{k}", cat=pl.LpBinary) for k in range(dims[i])]
+    x: list[list[gp.Var]] = [
+        [
+            m.addVar(vtype=GRB.BINARY, name=f"x_{i}_{k}")
+            for k in range(dims[i])
+        ]
         for i in range(4)
     ]
-    y_edge: list[list[list[pl.LpVariable]]] = []
+    y_edge: list[list[list[gp.Var]]] = []
     for ei in range(3):
         mat = [
             [
-                pl.LpVariable(f"y_{ei}_{ka}_{kb}", lowBound=0, upBound=1)
+                m.addVar(lb=0.0, ub=1.0, vtype=GRB.CONTINUOUS, name=f"y_{ei}_{ka}_{kb}")
                 for kb in range(dims[ei + 1])
             ]
             for ka in range(dims[ei])
@@ -318,31 +395,30 @@ def _solve_milp(
         y_edge.append(mat)
 
     for i in range(4):
-        prob += pl.lpSum(x[i][kk] for kk in range(dims[i])) == 1
+        m.addConstr(gp.quicksum(x[i][kk] for kk in range(dims[i])) == 1)
 
     for ei in range(3):
         for ka in range(dims[ei]):
             for kb in range(dims[ei + 1]):
                 yv = y_edge[ei][ka][kb]
-                prob += yv <= x[ei][ka]
-                prob += yv <= x[ei + 1][kb]
-                prob += yv >= x[ei][ka] + x[ei + 1][kb] - 1
+                m.addConstr(yv <= x[ei][ka])
+                m.addConstr(yv <= x[ei + 1][kb])
+                m.addConstr(yv >= x[ei][ka] + x[ei + 1][kb] - 1)
 
     mu_w = weights
-    util_terms: list = []
-    for i in range(4):
-        for k in range(dims[i]):
-            util_terms.append(
-                mu_w[i] * physical_node_utility(cands[i][k]) * x[i][k]
-            )
+    util_expr = gp.quicksum(
+        mu_w[i] * physical_node_utility(cands[i][k]) * x[i][k]
+        for i in range(4)
+        for k in range(dims[i])
+    )
 
-    alpha_c_v = pl.LpVariable("alpha_C", lowBound=None, cat=pl.LpContinuous)
-    alpha_t_v = pl.LpVariable("alpha_T", lowBound=None, cat=pl.LpContinuous)
-    eps_c = pl.LpVariable("eps_C", lowBound=0)
-    eps_t = pl.LpVariable("eps_T", lowBound=0)
+    alpha_c_v = m.addVar(lb=-GRB.INFINITY, ub=GRB.INFINITY, name="alpha_C")
+    alpha_t_v = m.addVar(lb=-GRB.INFINITY, ub=GRB.INFINITY, name="alpha_T")
+    eps_c = m.addVar(lb=0.0, name="eps_C")
+    eps_t = m.addVar(lb=0.0, name="eps_T")
 
-    z_cost = {oid: pl.LpVariable(f"zC_{oid}", lowBound=0) for oid in omega_active}
-    z_lat = {oid: pl.LpVariable(f"zT_{oid}", lowBound=0) for oid in omega_active}
+    z_cost = {oid: m.addVar(lb=0.0, name=f"zC_{oid}") for oid in omega_active}
+    z_lat = {oid: m.addVar(lb=0.0, name=f"zT_{oid}") for oid in omega_active}
 
     if coef_precomputed is not None:
         a_cost_arr, b_cost_arr, a_lat_arr, b_lat_arr = coef_precomputed
@@ -356,25 +432,25 @@ def _solve_milp(
         om_a, om_b = a_cost_arr[oid], b_cost_arr[oid]
         om_la, om_lb = a_lat_arr[oid], b_lat_arr[oid]
 
-        lc_terms: list = []
+        lc = gp.LinExpr()
         for i in range(4):
             for k in range(dims[i]):
-                lc_terms.append(om_a[i][k] * x[i][k])
+                lc.add(om_a[i][k] * x[i][k])
         for ei in range(3):
             for ka in range(dims[ei]):
                 for kb in range(dims[ei + 1]):
-                    lc_terms.append(om_b[ei][ka][kb] * y_edge[ei][ka][kb])
-        lt_terms: list = []
+                    lc.add(om_b[ei][ka][kb] * y_edge[ei][ka][kb])
+        lt = gp.LinExpr()
         for i in range(4):
             for k in range(dims[i]):
-                lt_terms.append(om_la[i][k] * x[i][k])
+                lt.add(om_la[i][k] * x[i][k])
         for ei in range(3):
             for ka in range(dims[ei]):
                 for kb in range(dims[ei + 1]):
-                    lt_terms.append(om_lb[ei][ka][kb] * y_edge[ei][ka][kb])
+                    lt.add(om_lb[ei][ka][kb] * y_edge[ei][ka][kb])
 
-        prob += z_cost[oid] >= pl.lpSum(lc_terms) - qprof.theta_cost - alpha_c_v
-        prob += z_lat[oid] >= pl.lpSum(lt_terms) - qprof.theta_latency_sec - alpha_t_v
+        m.addConstr(z_cost[oid] >= lc - qprof.theta_cost - alpha_c_v)
+        m.addConstr(z_lat[oid] >= lt - qprof.theta_latency_sec - alpha_t_v)
 
     # SAA denominator: paper uses η · Q · S; inactive scenarios contribute z=0 in the sum.
     n_saa_total = max(len(scenarios_all), 1)
@@ -383,41 +459,58 @@ def _solve_milp(
     inv_c = 1.0 / den_c if den_c > 0 else 0.0
     inv_t = 1.0 / den_t if den_t > 0 else 0.0
 
-    prob += alpha_c_v + inv_c * pl.lpSum(z_cost[oid] for oid in omega_active) <= eps_c
-    prob += alpha_t_v + inv_t * pl.lpSum(z_lat[oid] for oid in omega_active) <= eps_t
+    m.addConstr(
+        alpha_c_v + inv_c * gp.quicksum(z_cost[oid] for oid in omega_active) <= eps_c
+    )
+    m.addConstr(
+        alpha_t_v + inv_t * gp.quicksum(z_lat[oid] for oid in omega_active) <= eps_t
+    )
 
-    prob += pl.lpSum(util_terms) - lamb_c * eps_c - lamb_t * eps_t
+    m.setObjective(util_expr - lamb_c * eps_c - lamb_t * eps_t, GRB.MAXIMIZE)
 
     if warm_start is not None:
         _apply_warm_start(x, y_edge, dims, warm_start)
 
-    solver = pl.PULP_CBC_CMD(msg=0, timeLimit=time_limit_sec if time_limit_sec else None)
-    prob.solve(solver)
-
-    status_str = str(pl.LpStatus[prob.status])
+    m.optimize()
+    status_str = _gurobi_status_str(m)
 
     picks: list[int] = []
     for i in range(4):
-        vals = [(k, float(pl.value(v) or 0.0)) for k, v in enumerate(x[i])]
+        vals = [(k, _safe_var_x(x[i][k])) for k in range(dims[i])]
         ks = sorted(vals, key=lambda t: t[1], reverse=True)[0][0]
         picks.append(int(ks))
 
     chosen = tuple(cands[i][picks[i]] for i in range(4))
 
-    def gv(v: pl.LpVariable) -> float | None:
-        vv = pl.value(v)
-        return float(vv) if vv is not None else None
+    def gv(var: gp.Var) -> float | None:
+        try:
+            v = var.X
+            return float(v) if v == v else None
+        except (gp.GurobiError, AttributeError, ValueError):
+            return None
 
-    obj_val = pl.value(prob.objective)
+    obj_val: float | None
+    try:
+        ov = m.ObjVal
+        obj_val = float(ov) if ov == ov else None
+    except (gp.GurobiError, AttributeError, ValueError):
+        obj_val = None
+
+    alpha_c_sol = gv(alpha_c_v)
+    alpha_t_sol = gv(alpha_t_v)
+    eps_c_sol = gv(eps_c)
+    eps_t_sol = gv(eps_t)
+
+    m.dispose()
 
     return MilpSolution(
         x_choice=tuple(picks),
         nodes=chosen,
-        objective_value=float(obj_val) if obj_val is not None else None,
-        alpha_c=gv(alpha_c_v),
-        alpha_t=gv(alpha_t_v),
-        eps_c=gv(eps_c),
-        eps_t=gv(eps_t),
+        objective_value=obj_val,
+        alpha_c=alpha_c_sol,
+        alpha_t=alpha_t_sol,
+        eps_c=eps_c_sol,
+        eps_t=eps_t_sol,
         pulp_status=status_str,
     )
 
@@ -556,17 +649,38 @@ def prefix_aggregate_ct(
         return 0.0, 0.0
     sn, xfer = wf_utils._propagate_sizes_gb(src_gb, rho)
     seg_min = _segment_minutes(sn[0])
+    dur_sec = max(seg_min * 60.0, 1e-6)
+    rng_env = random.Random(seed)
+    seg_exe = sample_segment_execute_sec(dur_sec, rng=rng_env)
+    spl_exe = sample_split_execute_sec(dur_sec, rng=rng_env)
+    cap_pair, q_pair = wf_utils._resolve_llm_tokens(
+        seg_min,
+        caption_tokens=None,
+        query_tokens=None,
+        rng_seed=seed,
+    )
     c_tot = 0.0
     t_tot = 0.0
     for i in range(len(nodes_prefix)):
         cc, lt = coef_local_cost_latency(
-            i, nodes_prefix[i], sn, rho, seg_min, seed + i
+            i,
+            nodes_prefix[i],
+            sn,
+            rho,
+            seg_min,
+            seg_exe_sec=seg_exe,
+            spl_exe_sec=spl_exe,
+            cap_pair=cap_pair,
+            q_pair=q_pair,
         )
         c_tot += cc
         t_tot += lt
     for ei in range(len(nodes_prefix) - 1):
         ec, et = _edge_pair_cost_latency(
-            nodes_prefix[ei], nodes_prefix[ei + 1], xfer[ei]
+            nodes_prefix[ei],
+            nodes_prefix[ei + 1],
+            xfer[ei],
+            rng=wf_utils.det_rng(seed, "warm_edge", ei),
         )
         c_tot += ec
         t_tot += et
@@ -581,7 +695,7 @@ def locality_greedy_warm_start_indices(
     queries: list[QueryProfile],
     weights: tuple[float, float, float, float],
 ) -> tuple[int, int, int, int]:
-    """
+    r"""
     Greedy heuristic: sequential choice maximizing
 
         (w_i · μ_{i,k}) / ( Ĉ_prefix / Θ̄_C + \hat{T}_prefix / Θ̄_T ),
@@ -601,11 +715,15 @@ def locality_greedy_warm_start_indices(
 
     rho_tup = (mean_rho[0], mean_rho[1], mean_rho[2], mean_rho[3])
 
-    theta_c_bar = (
-        max(sum(q.theta_cost for q in queries) / max(len(queries), 1), 1e-9)
+    active_q_idx = {scenarios[oid].q_idx for oid in oa}
+    theta_c_bar = max(
+        sum(queries[qi].theta_cost for qi in active_q_idx) / max(len(active_q_idx), 1),
+        1e-9,
     )
-    theta_t_bar = (
-        max(sum(q.theta_latency_sec for q in queries) / max(len(queries), 1), 1e-9)
+    theta_t_bar = max(
+        sum(queries[qi].theta_latency_sec for qi in active_q_idx)
+        / max(len(active_q_idx), 1),
+        1e-9,
     )
 
     ref = oa[len(oa) // 2]
@@ -642,7 +760,7 @@ def run_sky_deployment(
     eta_t: float = 0.1,
     lamb_c: float = 1.0,
     lamb_t: float = 1.0,
-    weights: tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0),
+    weights: tuple[float, float, float, float] = (0.25, 0.25, 0.25, 0.25),
     batch_k: int = 8,
     decomposition: bool = True,
     use_warm_start: bool = True,
@@ -650,6 +768,10 @@ def run_sky_deployment(
 ) -> DecompositionResult | MilpSolution:
     """
     Convenience: build candidates + joint scenarios, optionally run decomposition loop.
+
+    ``rng_seed`` seeds one ``random.Random`` used for ``build_joint_scenarios``
+    and (when ``decomposition=True``) for the initial ``omega_space`` shuffle—same
+    seed fixes both the SAA draws and outer-loop randomness.
 
     Ablation (paper):
         - Full: ``decomposition=True``, ``use_warm_start=True`` (see ``SKY_ABLATION_FULL``).
@@ -739,7 +861,7 @@ if __name__ == "__main__":  # pragma: no cover
         f"Loaded {len(queries)} queries (joint scenarios ≤ {len(queries) * S_PER_QUERY})."
     )
 
-    WEIGHTS_KPI = (1.0, 1.0, 1.0, 1.0)
+    WEIGHTS_KPI = (0.25, 0.25, 0.25, 0.25)
     rep = run_sky_deployment(
         queries=queries,
         s_per_query=S_PER_QUERY,

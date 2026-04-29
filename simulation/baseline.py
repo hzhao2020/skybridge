@@ -7,7 +7,7 @@ Baseline deployment policies for comparison with Sky (CVaR–MILP).
   latency, cross-edge effects) — utility upper bound for the linear μ model.
 * **DO (Deterministic-Optimal):** replace stochastic ξ with plug-in means of ρ via
   calibration sampling (not closed-form E[·]); midpoint segment/split execution from
-  measured bounds, fixed LLM token path, and empirical mean network delay from trace
+  measured bounds, empirical mean LLM output tokens, empirical mean network delay from trace
   samples per link; maximise Σ w_i μ_i subject to deterministic **mean** cost &
   latency ≤ each query’s SLO (linear program, no CVaR slacks).
 
@@ -22,6 +22,7 @@ import random
 import pulp as pl
 
 from sim_env import config as cfg
+from sim_env.llm import caption_visual_input_tokens, sample_caption_output_tokens, sample_query_output_tokens
 from sim_env.cost import egress_cost_usd, llm_token_cost_usd, split_cost_usd, storage_cost_usd, video_service_cost_usd
 from sim_env.execution_latency import llm_decode_duration_sec, segment_split_bounds_at
 from sim_env.network import LinkCategory, classify_link, reset_link_counters, sample_link
@@ -35,6 +36,8 @@ PROVIDERS_SINGLE_CLOUD = ("GCP", "AWS", "Aliyun")
 
 # Empirical network mean: samples per directed edge (coefficient build).
 _NET_MEAN_SAMPLES = 64
+# Plug-in mean for LLM output tokens (caption / query), same spirit as ρ calibration.
+_LLM_TOKEN_MEAN_SAMPLES = 512
 
 
 class BaselineResult(NamedTuple):
@@ -44,14 +47,53 @@ class BaselineResult(NamedTuple):
     pulp_status: str | None
 
 
+def _deterministic_llm_token_means(
+    seg_minutes: float,
+    token_seed: int,
+    n_samples: int,
+) -> tuple[tuple[float, float], tuple[float, float]]:
+    """
+    Empirical mean of caption/query output tokens (plug-in mean-field for DO LP).
+
+    ``qin`` for billing uses the mean caption output (feed-forward plug-in).
+    """
+    import numpy as np
+
+    dur_sec = max(seg_minutes * 60.0, 1e-6)
+    cin = caption_visual_input_tokens(dur_sec)
+    cout_acc = 0.0
+    qout_acc = 0.0
+    for si in range(n_samples):
+        cap_rng_seed = wf_utils.det_rng(token_seed, "do_llm_cap", si).randrange(0, 2**31)
+        cout_i = sample_caption_output_tokens(dur_sec, rng=cap_rng_seed)
+        g = np.random.default_rng(
+            wf_utils.det_rng(token_seed, "do_llm_qry", si).randrange(0, 2**31)
+        )
+        qout_i = sample_query_output_tokens(rng=g)
+        cout_acc += cout_i
+        qout_acc += qout_i
+    cout_m = cout_acc / float(n_samples)
+    qout_m = qout_acc / float(n_samples)
+    qin_m = cout_m
+    return (cin, cout_m), (qin_m, qout_m)
+
+
 def _mean_network_transfer_and_rtt(
     src: tuple[str, str],
     dst: tuple[str, str],
     xfer_gb: float,
     n: int = _NET_MEAN_SAMPLES,
+    *,
+    token_seed: int,
+    q_idx: int,
+    ei: int,
+    ka: int,
+    kb: int,
 ) -> tuple[float, float]:
     """
-    E[transfer_seconds] + E[RTT/2] for (src,dst) using trace means in ``sample_link`` pool.
+    Empirical mean of transfer time + RTT/2 for (src,dst) from trace pools.
+
+    Each Monte Carlo draw uses a deterministic ``rng`` for ``sample_link`` rotation.
     """
     cat = classify_link(src, dst)
     if cat == LinkCategory.NONE:
@@ -60,8 +102,24 @@ def _mean_network_transfer_and_rtt(
     reset_link_counters([(src, dst)])
     tsf = 0.0
     rtt_h = 0.0
-    for _ in range(n):
-        sm = sample_link(src, dst)
+    for si in range(n):
+        sm = sample_link(
+            src,
+            dst,
+            rng=wf_utils.det_rng(
+                token_seed,
+                "do_net",
+                q_idx,
+                ei,
+                ka,
+                kb,
+                src[0],
+                src[1],
+                dst[0],
+                dst[1],
+                si,
+            ),
+        )
         tsf += wf_utils._transfer_seconds(xfer_gb, sm)
         rtt_h += 0.5 * (sm.rtt_ms / 1000.0)
     return tsf / float(n), rtt_h / float(n)
@@ -71,10 +129,25 @@ def _edge_mean_cost_latency(
     na: PhysicalNode,
     nb: PhysicalNode,
     xfer_gb: float,
+    *,
+    token_seed: int,
+    q_idx: int,
+    ei: int,
+    ka: int,
+    kb: int,
 ) -> tuple[float, float]:
     ep_s, ep_d = sky_mod._endpoint(na), sky_mod._endpoint(nb)
     cents = egress_cost_usd(ep_s, ep_d, xfer_gb)
-    t_tr, t_rtt = _mean_network_transfer_and_rtt(ep_s, ep_d, xfer_gb)
+    t_tr, t_rtt = _mean_network_transfer_and_rtt(
+        ep_s,
+        ep_d,
+        xfer_gb,
+        token_seed=token_seed,
+        q_idx=q_idx,
+        ei=ei,
+        ka=ka,
+        kb=kb,
+    )
     return cents, t_tr + t_rtt
 
 
@@ -84,7 +157,9 @@ def _deterministic_local_cost_latency(
     s_in: list[float],
     rho: tuple[float, float, float, float],
     seg_minutes: float,
-    token_seed: int,
+    *,
+    cap_pair: tuple[float, float],
+    q_pair: tuple[float, float],
 ) -> tuple[float, float]:
     rho_i = float(rho[i])
     stor = storage_cost_usd(
@@ -104,12 +179,6 @@ def _deterministic_local_cost_latency(
         t_exe = 0.5 * (bd.split_min_sec + bd.split_max_sec)
         return exe + stor, t_exe
 
-    cap_pair, q_pair = wf_utils._resolve_llm_tokens(
-        seg_minutes,
-        caption_tokens=None,
-        query_tokens=None,
-        rng_seed=token_seed,
-    )
     cin, cout = cap_pair
     qin, qout = q_pair
 
@@ -130,6 +199,8 @@ def _prepare_deterministic_coefficients(
     queries: list[QueryProfile],
     mean_rho: tuple[float, float, float, float],
     token_seed: int,
+    *,
+    llm_token_mean_samples: int = _LLM_TOKEN_MEAN_SAMPLES,
 ) -> tuple[
     list[list[list[float]]],
     list[list[list[list[float]]]],
@@ -147,6 +218,11 @@ def _prepare_deterministic_coefficients(
         sn, xfer = wf_utils._propagate_sizes_gb(s_src, mean_rho)
         seg_min = sky_mod._segment_minutes(sn[0])
         seed = token_seed + q_idx * 17
+        cap_pair, q_pair = _deterministic_llm_token_means(
+            seg_min,
+            seed,
+            llm_token_mean_samples,
+        )
 
         ac: list[list[float]] = []
         al: list[list[float]] = []
@@ -154,7 +230,7 @@ def _prepare_deterministic_coefficients(
             rc, rl = [], []
             for ki, node in enumerate(cands[i]):
                 c_ij, lat_ij = _deterministic_local_cost_latency(
-                    i, node, sn, mean_rho, seg_min, seed + ki
+                    i, node, sn, mean_rho, seg_min, cap_pair=cap_pair, q_pair=q_pair
                 )
                 rc.append(c_ij)
                 rl.append(lat_ij)
@@ -171,7 +247,16 @@ def _prepare_deterministic_coefficients(
                 row_c = []
                 row_l = []
                 for kb, nb in enumerate(cands[ei + 1]):
-                    ec, el = _edge_mean_cost_latency(na, nb, xg)
+                    ec, el = _edge_mean_cost_latency(
+                        na,
+                        nb,
+                        xg,
+                        token_seed=token_seed,
+                        q_idx=q_idx,
+                        ei=ei,
+                        ka=ka,
+                        kb=kb,
+                    )
                     row_c.append(ec)
                     row_l.append(el)
                 mat_c.append(row_c)
@@ -189,7 +274,7 @@ def _prepare_deterministic_coefficients(
 
 def logical_optimal_baseline(
     cands: tuple[tuple[PhysicalNode, ...], tuple[PhysicalNode, ...], tuple[PhysicalNode, ...], tuple[PhysicalNode, ...]],
-    weights: tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0),
+    weights: tuple[float, float, float, float] = (0.25, 0.25, 0.25, 0.25),
 ) -> BaselineResult:
     """LO: independent argmax μ per layer (within full candidate lists)."""
     picks: list[PhysicalNode] = []
@@ -211,7 +296,7 @@ def logical_optimal_baseline(
 
 def single_cloud_baseline(
     cands: tuple[tuple[PhysicalNode, ...], tuple[PhysicalNode, ...], tuple[PhysicalNode, ...], tuple[PhysicalNode, ...]],
-    weights: tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0),
+    weights: tuple[float, float, float, float] = (0.25, 0.25, 0.25, 0.25),
 ) -> BaselineResult:
     """
     SC: choose cloud provider P such that all four layers admit candidates on P,
@@ -250,17 +335,19 @@ def deterministic_optimal_baseline(
     queries: list[QueryProfile],
     cands: tuple[tuple[PhysicalNode, ...], tuple[PhysicalNode, ...], tuple[PhysicalNode, ...], tuple[PhysicalNode, ...]],
     *,
-    weights: tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0),
+    weights: tuple[float, float, float, float] = (0.25, 0.25, 0.25, 0.25),
     token_seed: int = 0,
     time_limit_sec: int | None = None,
     rho_calibration_samples: int = 8192,
     rho_calibration_seed: int = 4242,
+    llm_token_mean_samples: int = _LLM_TOKEN_MEAN_SAMPLES,
 ) -> BaselineResult:
     """
     DO: LP max Σ w_i μ_i x_i s.t. mean cost & mean latency ≤ SLO per query.
 
     Mean-field ``mean_rho`` is a plug-in average from ``rho_calibration_samples`` i.i.d.
     draws (not closed-form E[·] from hidden lognormal parameters).
+    LLM output tokens use ``llm_token_mean_samples`` draws averaged per query (plug-in mean).
     """
     calib_rng = random.Random(rho_calibration_seed)
     mean_rho = cfg.plugin_mean_data_conversion_ratios(
@@ -269,7 +356,11 @@ def deterministic_optimal_baseline(
         operations=OPS,
     )
     a_cost, b_cost, a_lat, b_lat = _prepare_deterministic_coefficients(
-        cands, queries, mean_rho, token_seed
+        cands,
+        queries,
+        mean_rho,
+        token_seed,
+        llm_token_mean_samples=llm_token_mean_samples,
     )
 
     dims = tuple(len(cands[i]) for i in range(4))
@@ -367,7 +458,7 @@ def deterministic_optimal_baseline(
 def run_all_baselines(
     queries: list[QueryProfile],
     *,
-    weights: tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0),
+    weights: tuple[float, float, float, float] = (0.25, 0.25, 0.25, 0.25),
     do_token_seed: int = 0,
 ) -> tuple[BaselineResult, BaselineResult, BaselineResult]:
     """Enumerate candidates once; return SC, LO, DO results."""
@@ -388,7 +479,7 @@ if __name__ == "__main__":  # pragma: no cover
     n_q = 5
     qs = wf_utils.generate_realistic_queries(n_q, seed=7)
     cands = sky_mod.enumerate_candidates()
-    WEIGHTS = (1.0, 1.0, 1.0, 1.0)
+    WEIGHTS = (0.25, 0.25, 0.25, 0.25)
     EVAL_SQ = 30
     EVAL_SEED = 2026
 
@@ -418,6 +509,6 @@ if __name__ == "__main__":  # pragma: no cover
         do.nodes,
     )
     md = evaluate_deployment_empirical(
-        do.nodes, qs, weights=WEIGHTS, samples_per_query=EVAL_SQ, eval_seed=EVAL_SEED + 1
+        do.nodes, qs, weights=WEIGHTS, samples_per_query=EVAL_SQ, eval_seed=EVAL_SEED
     )
     print_metrics_report(algorithm_label=f"{do.name} | MILP={do.pulp_status}", metrics=md)
