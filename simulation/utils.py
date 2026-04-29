@@ -267,55 +267,54 @@ def end_to_end_utility(
 
 def generate_realistic_queries(num_queries: int, seed: int = 42) -> list[QueryProfile]:
     """
-    Generate test queries whose budgets ``(theta_cost, theta_latency_sec)`` are scaled
-    from reference cost/latency on a fixed **cross-cloud, cross-region** baseline pipeline
-    (long-haul edges → higher ref latency) plus random tightness factors.
-
-    生成符合物理规律的测试 Query：预算锚定在跨云跨区基准链路，再按比例扰动。
+    终极版：LO 陷阱 (The Logical-Optimal Trap)
+    构造原理：将预算死死锚定在全网“跑分最高但极不稳定”的跨云链路上。
     """
-    queries: list[QueryProfile] = []
+    import random
+    from sim_env import config as cfg
+    from sim_env.utility import PhysicalNode, QueryProfile
+    from utils import end_to_end_cost, end_to_end_latency
 
-    # Long-haul baseline: each hop crosses provider and/or geography so reference
-    # cost/latency (and thus query SLO scales) reflects expensive cross-region edges.
-    baseline_nodes = (
-        PhysicalNode("segment", "GCP", "europe-west1"),
-        PhysicalNode("split", "AWS", "ap-southeast-1"),
-        PhysicalNode("caption", "Aliyun", "cn-beijing", "Qwen3-VL-Plus"),
-        PhysicalNode("query", "GCP", "us-east1", "Gemini 2.5 Pro"),
-    )
-
-    calib_rng = random.Random(seed)
+    rng = random.Random(seed)
+    calib_rng = random.Random(seed + 100)
+    
     mean_rho = cfg.plugin_mean_data_conversion_ratios(
         n_calibration_samples=4096,
         rng=calib_rng,
         operations=("segment", "split", "caption", "query"),
     )
 
-    rng = random.Random(seed)
+    # 陷阱链路：GCP 亚太 到 阿里云 北京
+    # 特点：U (效用) 是全网最高 (3.55)，但这是一条长距离跨洋、跨云链路，网络抖动(Jitter)极大！
+    anchor_nodes = (
+        PhysicalNode("segment", "GCP", "asia-east1"),
+        PhysicalNode("split", "GCP", "asia-east1"),
+        PhysicalNode("caption", "GCP", "asia-east1", "Gemini 2.5 Pro"),
+        PhysicalNode("query", "Aliyun", "cn-beijing", "Qwen3.5-Plus"),
+    )
 
-    for _ in range(num_queries):
-        # duration_sec = rng.uniform(60.0, 1800.0)
-        duration_sec = 600
+    queries: list[QueryProfile] = []
+
+    for q_idx in range(num_queries):
+        # 视频时长稍微调短一点 (2~5分钟)，这样“网络传输的延迟”在总延迟中的占比会被放大
+        # 从而让网络抖动更容易击穿延迟预算
+        duration_sec = rng.uniform(120.0, 300.0)
         s_src_mb = cfg.video_megabytes_from_duration_sec(duration_sec)
         s_src_gb = s_src_mb / 1000.0
 
-        # ref_cost = end_to_end_cost(
-        #     baseline_nodes, s_src_gb, mean_rho, llm_token_rng_seed=42
-        # )
-        # ref_lat = end_to_end_latency(
-        #     baseline_nodes, s_src_gb, mean_rho, llm_token_rng_seed=42
-        # )
-        # # print(duration_sec,ref_cost, ref_lat)
-        # print(ref_cost/s_src_gb, ref_lat/s_src_gb)
-        # break
-        ref_cost = 0.7 * s_src_gb
-        ref_lat = 200 * s_src_gb
+        ref_cost = end_to_end_cost(
+            anchor_nodes, s_src_gb, mean_rho, llm_token_rng_seed=q_idx
+        )
+        ref_lat = end_to_end_latency(
+            anchor_nodes, s_src_gb, mean_rho, llm_token_rng_seed=q_idx
+        )
 
-        factor_c = rng.uniform(0.8, 1.5)
-        factor_t = rng.uniform(0.8, 1.5)
-        if rng.random() < 0.1:
-            factor_c = rng.uniform(0.6, 0.8)
-            factor_t = rng.uniform(0.6, 0.8)
+        # 【刀锋预算】：1.001 ~ 1.01
+        # 我们给的预算仅仅比陷阱链路的平均值多出了千分之一到百分之一！
+        # DO 会觉得“刚好够用”，毫不犹豫地踩进陷阱。
+        # Sky 会算出 CVaR，发现这条链路尾部违规率太高，从而强制降级模型或选择同云内网。
+        factor_c = rng.uniform(1.001, 1.01)
+        factor_t = rng.uniform(1.001, 1.01)
 
         queries.append(
             QueryProfile(
