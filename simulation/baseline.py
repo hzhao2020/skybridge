@@ -338,7 +338,7 @@ def deterministic_optimal_baseline(
     weights: tuple[float, float, float, float] = (0.25, 0.25, 0.25, 0.25),
     token_seed: int = 0,
     time_limit_sec: int | None = None,
-    rho_calibration_samples: int = 8192,
+    rho_calibration_samples: int = 128,
     rho_calibration_seed: int = 4242,
     llm_token_mean_samples: int = _LLM_TOKEN_MEAN_SAMPLES,
 ) -> BaselineResult:

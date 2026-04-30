@@ -336,7 +336,7 @@ def main() -> None:
         default=0,
         help="base for experiment RNG seed (same per Q,S,sweep for all variants; not per-variant)",
     )
-    parser.add_argument("--batch-k", type=int, default=8)
+    parser.add_argument("--batch-k", type=int, default=10)
     parser.add_argument("--eta-c", type=float, default=0.1)
     parser.add_argument("--eta-t", type=float, default=0.1)
     parser.add_argument("--lamb-c", type=float, default=1.0)

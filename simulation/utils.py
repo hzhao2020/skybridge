@@ -404,7 +404,7 @@ def generate_realistic_queries(num_queries: int, seed: int = 42) -> list[QueryPr
     queries: list[QueryProfile] = []
 
     for q_idx in range(num_queries):
-        duration_sec = rng.uniform(120.0, 300.0)
+        duration_sec = rng.uniform(60.0, 3600.0)
         s_src_mb = cfg.video_megabytes_from_duration_sec(duration_sec)
         s_src_gb = s_src_mb / 1000.0
 
@@ -413,8 +413,8 @@ def generate_realistic_queries(num_queries: int, seed: int = 42) -> list[QueryPr
             anchor_nodes, s_src_gb, mean_rho, workflow_rng=wf
         )
 
-        factor_c = rng.uniform(1.02, 1.15)
-        factor_t = rng.uniform(1.02, 1.15)
+        factor_c = rng.uniform(1.05, 1.15)   # 原 1.02-1.15
+        factor_t = rng.uniform(1.30, 1.60)   # 原 1.02-1.15  ← 关键改动
 
         queries.append(
             QueryProfile(

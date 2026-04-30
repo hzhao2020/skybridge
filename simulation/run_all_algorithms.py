@@ -53,7 +53,7 @@ def main() -> None:
     parser.add_argument("--num-queries", type=int, default=100, help="calibration queries Q")
     parser.add_argument("--query-seed", type=int, default=42)
     parser.add_argument("--weights", type=float, nargs=4, default=[0.25, 0.25, 0.25, 0.25])
-    parser.add_argument("--eval-samples-per-query", type=int, default=40, help="MC draws per query for KPIs")
+    parser.add_argument("--eval-samples-per-query", type=int, default=50, help="MC draws per query for KPIs")
     parser.add_argument(
         "--eval-seed",
         "--eval-seed-base",
@@ -62,7 +62,7 @@ def main() -> None:
         default=9000,
         help="single RNG seed for empirical KPI evaluation (same MC draws for LO/SC/DO/Sky; alias: --eval-seed-base)",
     )
-    parser.add_argument("--sky-s-per-query", type=int, default=10, help="SAA scenarios S per query for Sky")
+    parser.add_argument("--sky-s-per-query", type=int, default=50, help="SAA scenarios S per query for Sky")
     parser.add_argument("--sky-batch-k", type=int, default=10)
     parser.add_argument("--sky-rng", type=int, default=0)
     parser.add_argument("--eta-c", type=float, default=0.1)
