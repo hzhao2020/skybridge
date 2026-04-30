@@ -1,0 +1,12 @@
+# 目标运行环境：Ubuntu VM。统一 LF，避免 *.sh shebang 与 bash 解析因 CRLF 出错。
+* text=auto eol=lf
+
+*.py text eol=lf
+*.sh text eol=lf
+*.txt text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.csv text eol=lf
+*.toml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf

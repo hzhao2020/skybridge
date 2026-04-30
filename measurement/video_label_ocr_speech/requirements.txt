@@ -1,0 +1,4 @@
+google-cloud-storage>=2.10.0
+google-cloud-videointelligence>=2.16.0
+requests>=2.31.0
+imageio-ffmpeg>=0.4.9

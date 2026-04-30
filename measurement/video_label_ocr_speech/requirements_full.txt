@@ -1,0 +1,2 @@
+# 若还需运行 ops/impl/google_ops.py 中的 Vertex / Cloud Function 分割等能力，可额外安装：
+google-cloud-aiplatform>=1.38.0

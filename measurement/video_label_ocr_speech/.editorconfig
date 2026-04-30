@@ -1,0 +1,14 @@
+# 与 Ubuntu VM 一致使用 LF，减少从 Windows 提交/打包时的换行问题。
+root = true
+
+[*]
+end_of_line = lf
+insert_final_newline = true
+charset = utf-8
+
+[*.{py,sh}]
+indent_style = space
+indent_size = 4
+
+[*.ps1]
+end_of_line = lf
