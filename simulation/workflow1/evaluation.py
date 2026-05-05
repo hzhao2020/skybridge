@@ -8,7 +8,7 @@ Empirical KPIs after a deployment plan is fixed:
     - Cost VR: fraction where C > Θ_C^q
     - Latency VR: fraction where T > Θ_T^q
 
-Runs from ``simulation/`` alongside ``sky`` / ``baseline``.
+From ``simulation/``: use as ``from workflow1 import evaluation`` or via ``workflow1.run_all_algorithms``.
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ from typing import Iterable, Sequence
 from sim_env import config as cfg
 from sim_env.utility import PhysicalNode, QueryProfile
 
-import utils as wf_utils
+from . import utils as wf_utils
 
 _OPS = ("segment", "split", "caption", "query")
 

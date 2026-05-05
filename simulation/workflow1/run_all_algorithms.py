@@ -3,10 +3,10 @@
 并对同一批 ``queries`` 调用 ``evaluation.evaluate_deployment_empirical`` 打印 KPI：
 Aggregate Utility / mean Cost / mean Latency / SVR。
 
-在 ``simulation/`` 目录下执行::
+在包含 ``workflow1`` 与 ``sim_env`` 的 ``simulation/`` 目录下执行::
 
-    python run_all_algorithms.py
-    python run_all_algorithms.py --num-queries 20
+    python -m workflow1.run_all_algorithms
+    python -m workflow1.run_all_algorithms --num-queries 20
 
 大规模实验请调大 ``--num-queries`` / ``--sky-s-per-query``（Sky 会非常慢）。
 """
@@ -18,11 +18,12 @@ import sys
 import time
 from typing import Any
 
-import baseline as baseline_runner
-import sky as sky_runner
-from evaluation import EmpiricalDeploymentMetrics, evaluate_deployment_empirical, print_metrics_report
 from sim_env.utility import QueryProfile
-from utils import generate_realistic_queries
+
+from . import baseline as baseline_runner
+from . import sky as sky_runner
+from .evaluation import EmpiricalDeploymentMetrics, evaluate_deployment_empirical, print_metrics_report
+from .utils import generate_realistic_queries
 
 
 def _evaluate_and_print(

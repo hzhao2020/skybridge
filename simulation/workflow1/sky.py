@@ -6,9 +6,11 @@ Pipeline: segment → split → caption → query.
 
 Dependencies: ``pip install gurobipy`` (Gurobi Optimizer with valid license).
 
-Import resolution: the directory that **contains** ``sim_env/`` (usually
-``simulation/``) must be on ``sys.path``. Run scripts from that folder, or add
-it to ``PYTHONPATH``, or install the project as a package.
+Import resolution: the directory that **contains** ``sim_env/`` and ``workflow1/``
+(Usually ``simulation/``) must be on ``sys.path``. From there run, e.g.::
+
+    python -m workflow1.run_all_algorithms
+    python -m workflow1.sky_ablation_experiment
 """
 
 from __future__ import annotations
@@ -35,7 +37,7 @@ from sim_env.execution_latency import (
 from sim_env.network import reset_link_counters, sample_link
 from sim_env.utility import PhysicalNode, QueryProfile, physical_node_utility
 
-import utils as wf_utils
+from . import utils as wf_utils
 
 # --- Ablation presets (paper): decomposition + greedy warm-start ----------
 # Variant 1 — Full Sky: scenario-adaptive decomposition + locality greedy MIP start.
@@ -890,7 +892,7 @@ if __name__ == "__main__":  # pragma: no cover
     print("deployment", s.nodes)
     print(f"elapsed_sec {elapsed:.2f}")
 
-    from evaluation import evaluate_deployment_empirical, print_metrics_report
+    from .evaluation import evaluate_deployment_empirical, print_metrics_report
 
     EVAL_SAMPLES_PER_QUERY = 40
     EVAL_MC_SEED = 12345 + RUN_RNG_SEED

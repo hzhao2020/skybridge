@@ -11,7 +11,7 @@ Baseline deployment policies for comparison with Sky (CVaR–MILP).
   samples per link; maximise Σ w_i μ_i subject to deterministic **mean** cost &
   latency ≤ each query’s SLO (linear program, no CVaR slacks).
 
-Run from the ``simulation/`` directory (``python baseline.py``).
+From ``simulation/``: ``python -m workflow1.baseline``.
 """
 
 from __future__ import annotations
@@ -28,8 +28,8 @@ from sim_env.execution_latency import llm_decode_duration_sec, segment_split_bou
 from sim_env.network import LinkCategory, classify_link, reset_link_counters, sample_link
 from sim_env.utility import PhysicalNode, QueryProfile, physical_node_utility
 
-import sky as sky_mod
-import utils as wf_utils
+from . import sky as sky_mod
+from . import utils as wf_utils
 
 OPS = sky_mod.OPS_ORDER
 PROVIDERS_SINGLE_CLOUD = ("GCP", "AWS", "Aliyun")
@@ -472,9 +472,8 @@ def run_all_baselines(
 
 
 if __name__ == "__main__":  # pragma: no cover
-    import utils as wf_utils
-
-    from evaluation import evaluate_deployment_empirical, print_metrics_report
+    from . import utils as wf_utils
+    from .evaluation import evaluate_deployment_empirical, print_metrics_report
 
     n_q = 5
     qs = wf_utils.generate_realistic_queries(n_q, seed=7)

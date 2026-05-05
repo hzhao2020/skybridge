@@ -1,10 +1,10 @@
 """
 Sky 消融实验：独立变量 × 三种变体，记录求解时间、迭代次数、峰值内存与目标值。
 
-在 ``simulation/`` 目录下执行::
+在包含 ``workflow1`` 与 ``sim_env`` 的 ``simulation/`` 目录下执行::
 
-    python sky_ablation_experiment.py --out results/sky_ablation.csv
-    python sky_ablation_experiment.py --s-list 10,20,30 --q-fixed 50 --q-list 10,30,50 --s-fixed 50
+    python -m workflow1.sky_ablation_experiment --out workflow1/results/sky_ablation.csv
+    python -m workflow1.sky_ablation_experiment --s-list 10,20,30 --q-fixed 50 --q-list 10,30,50 --s-fixed 50
 
 每次实验在 **独立子进程** 中运行，以便 ``resource.getrusage`` 反映该次求解的峰值驻留内存
 （Linux: ru_maxrss 为 KB）。
@@ -16,7 +16,7 @@ Sky 消融实验：独立变量 × 三种变体，记录求解时间、迭代次
 
 单点消融（例如 Q=50、S=50）::
 
-    python sky_ablation_experiment.py --only-q 50 --only-s 50 --out results/q50s50.csv
+    python -m workflow1.sky_ablation_experiment --only-q 50 --only-s 50 --out workflow1/results/q50s50.csv
 """
 
 from __future__ import annotations
@@ -54,8 +54,8 @@ def run_sky_single_in_process(payload: dict[str, Any]) -> dict[str, Any]:
     """
     在当前进程执行一次 ``run_sky_deployment``，用于子进程入口或单元测试。
     """
-    import sky as sky_runner
-    from utils import generate_realistic_queries
+    from . import sky as sky_runner
+    from .utils import generate_realistic_queries
 
     variant: VariantName = payload["variant"]
     num_queries = int(payload["num_queries"])
@@ -129,13 +129,23 @@ def _worker_main() -> None:
     sys.exit(0 if out.get("ok") else 1)
 
 
+def _simulation_root() -> Path:
+    """``simulation/``：上一级目录，内含 ``workflow1/`` 与 ``sim_env/``。"""
+    return Path(__file__).resolve().parent.parent
+
+
 def run_isolated_subprocess(
     payload: dict[str, Any],
     *,
     timeout_sec: float | None,
 ) -> dict[str, Any]:
     """新解释器进程中运行单次实验，峰值内存为该子进程生命周期内最大值。"""
-    cmd = [sys.executable, str(Path(__file__).resolve()), "--worker"]
+    cmd = [
+        sys.executable,
+        "-m",
+        "workflow1.sky_ablation_experiment",
+        "--worker",
+    ]
     inp = json.dumps(payload).encode("utf-8")
     try:
         proc = subprocess.run(
@@ -143,7 +153,8 @@ def run_isolated_subprocess(
             input=inp,
             capture_output=True,
             timeout=timeout_sec,
-            cwd=str(Path(__file__).resolve().parent),
+            cwd=str(_simulation_root()),
+            text=False,
         )
     except subprocess.TimeoutExpired:
         return {

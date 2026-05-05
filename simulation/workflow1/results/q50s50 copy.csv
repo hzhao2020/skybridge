@@ -1,0 +1,4 @@
+sweep    , fixed_dimension, fixed_value, Q , S , variant      , batch_k, wall_clock_sec    , master_iterations, peak_memory_bytes, objective_value    , pulp_status, error
+fixed_Q_S, Q_S            , "50,50"    , 50, 50, full         ,       8, 503.3987330070231 ,                64,        1973141504, -3.7099177727178065, Optimal    , 
+fixed_Q_S, Q_S            , "50,50"    , 50, 50, no_warm_start,       8, 791.1727762930095 ,                73,        1973141504, -4.5323874426856126, Optimal    , 
+fixed_Q_S, Q_S            , "50,50"    , 50, 50, direct_milp  ,       8,  48.83062543699634,                  ,        2494812160, -3.7309090900429207, Optimal    , 
