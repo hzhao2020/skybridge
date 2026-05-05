@@ -137,16 +137,20 @@ def _segment_exec_seconds(
     segment_exe_sec: float | None,
     *,
     rng: random.Random | None = None,
+    node: PhysicalNode | None = None,
+    execution_scale_scope: str | None = None,
+    execution_scale_seed: int | None = None,
 ) -> float:
     if segment_exe_sec is not None:
         return float(segment_exe_sec)
-    try:
-        from sim_env.execution_latency import sample_segment_execute_sec
-
-        duration_sec = max(segment_video_minutes * 60.0, 1e-6)
-        return sample_segment_execute_sec(duration_sec, rng=rng)
-    except Exception:
-        return float(segment_video_minutes * 60.0) * 0.02
+    duration_sec = max(segment_video_minutes * 60.0, 1e-6)
+    return sample_segment_execute_sec(
+        duration_sec,
+        rng=rng,
+        node=node,
+        execution_scale_scope=execution_scale_scope,
+        execution_scale_seed=execution_scale_seed,
+    )
 
 
 def _split_exec_seconds(
@@ -154,16 +158,20 @@ def _split_exec_seconds(
     split_exe_sec: float | None,
     *,
     rng: random.Random | None = None,
+    node: PhysicalNode | None = None,
+    execution_scale_scope: str | None = None,
+    execution_scale_seed: int | None = None,
 ) -> float:
     if split_exe_sec is not None:
         return float(split_exe_sec)
-    try:
-        from sim_env.execution_latency import sample_split_execute_sec
-
-        duration_sec = max(segment_video_minutes * 60.0, 1e-6)
-        return sample_split_execute_sec(duration_sec, rng=rng)
-    except Exception:
-        return 30.0
+    duration_sec = max(segment_video_minutes * 60.0, 1e-6)
+    return sample_split_execute_sec(
+        duration_sec,
+        rng=rng,
+        node=node,
+        execution_scale_scope=execution_scale_scope,
+        execution_scale_seed=execution_scale_seed,
+    )
 
 
 def end_to_end_cost(
@@ -229,6 +237,8 @@ def end_to_end_latency(
     network_samples: tuple[NetworkSample, NetworkSample, NetworkSample] | None = None,
     llm_token_rng_seed: int | None = 42,
     env_rng: random.Random | None = None,
+    execution_scale_scope: str | None = None,
+    execution_scale_seed: int | None = None,
 ) -> float:
     """
     Paper-style end-to-end latency for a linear DAG = single path (max over paths = path sum):
@@ -236,6 +246,10 @@ def end_to_end_latency(
       Σ T_k^exe + Σ ( S_i ρ_i / B + RTT/2 )
 
     Same-endpoint links use zero network penalty (``sample_link`` / infinite B, 0 RTT).
+
+    ``execution_scale_scope`` + ``execution_scale_seed``: deterministic segment/split factors
+    ``k`` via ``node_execution_scale_k`` (omit seed to use RNG+cache path inside ``sample_*``).
+
     Execution times default to sampled segment/split and LLM decode from token counts.
     """
     for i, n in enumerate(nodes):
@@ -246,8 +260,22 @@ def end_to_end_latency(
     seg_min = _segment_video_minutes(s_in[0])
 
     te = t_exe if t_exe is not None else (None, None, None, None)
-    t0 = _segment_exec_seconds(seg_min, te[0], rng=env_rng)
-    t1 = _split_exec_seconds(seg_min, te[1], rng=env_rng)
+    t0 = _segment_exec_seconds(
+        seg_min,
+        te[0],
+        rng=env_rng,
+        node=nodes[0],
+        execution_scale_scope=execution_scale_scope,
+        execution_scale_seed=execution_scale_seed,
+    )
+    t1 = _split_exec_seconds(
+        seg_min,
+        te[1],
+        rng=env_rng,
+        node=nodes[1],
+        execution_scale_scope=execution_scale_scope,
+        execution_scale_seed=execution_scale_seed,
+    )
 
     if caption_output_tokens is not None and query_output_tokens is not None:
         cap_out = float(caption_output_tokens)
@@ -266,8 +294,16 @@ def end_to_end_latency(
     q_model = nodes[3].model
     if not cap_model or not q_model:
         raise ValueError("caption and query nodes require model names")
-    t2 = te[2] if te[2] is not None else llm_decode_duration_sec(cap_model, cap_out)
-    t3 = te[3] if te[3] is not None else llm_decode_duration_sec(q_model, q_out)
+    t2 = (
+        te[2]
+        if te[2] is not None
+        else llm_decode_duration_sec(cap_model, cap_out, rng=env_rng)
+    )
+    t3 = (
+        te[3]
+        if te[3] is not None
+        else llm_decode_duration_sec(q_model, q_out, rng=env_rng)
+    )
 
     lat = t0 + t1 + t2 + t3
 
@@ -302,17 +338,26 @@ def end_to_end_cost_and_latency(
     rho: tuple[float, float, float, float],
     *,
     workflow_rng: random.Random,
+    execution_scale_scope: str | None = None,
+    execution_scale_seed: int | None = None,
 ) -> tuple[float, float]:
     """
     One Monte Carlo draw: shared ρ, LLM tokens, segment/split noise, and network draws.
 
-    Cost and latency use the same token counts and execution/network samples so repeated
-    evaluations with the same ``workflow_rng`` state advance match pairwise draws.
+    ``execution_scale_scope``: optional string mixed into deterministic ``k`` (with
+    ``execution_scale_seed``). When omitted, uses ``str(llm_seed)`` per draw.
+
+    ``execution_scale_seed``: integer master seed for reproducible node scale factors ``k``;
+    when omitted, defaults to ``llm_seed`` for this draw so end-to-end runs stay repeatable.
     """
     s_in, transfer_gb = _propagate_sizes_gb(s_src_gb, rho)
     seg_min = _segment_video_minutes(s_in[0])
     dur_sec = max(seg_min * 60.0, 1e-6)
     llm_seed = workflow_rng.randrange(0, 2**31)
+    trial_scope = execution_scale_scope if execution_scale_scope is not None else str(llm_seed)
+    trial_exec_scale_seed = (
+        execution_scale_seed if execution_scale_seed is not None else llm_seed
+    )
     (cap_in, cap_out), (q_in, q_out) = _resolve_llm_tokens(
         seg_min,
         caption_tokens=None,
@@ -327,8 +372,20 @@ def end_to_end_cost_and_latency(
         query_tokens=(q_in, q_out),
         llm_token_rng_seed=llm_seed,
     )
-    seg_exe = sample_segment_execute_sec(dur_sec, rng=workflow_rng)
-    spl_exe = sample_split_execute_sec(dur_sec, rng=workflow_rng)
+    seg_exe = sample_segment_execute_sec(
+        dur_sec,
+        rng=workflow_rng,
+        node=nodes[0],
+        execution_scale_scope=trial_scope,
+        execution_scale_seed=trial_exec_scale_seed,
+    )
+    spl_exe = sample_split_execute_sec(
+        dur_sec,
+        rng=workflow_rng,
+        node=nodes[1],
+        execution_scale_scope=trial_scope,
+        execution_scale_seed=trial_exec_scale_seed,
+    )
     reset_link_counters(None)
     samples = tuple(
         sample_link(
@@ -347,6 +404,9 @@ def end_to_end_cost_and_latency(
         query_output_tokens=q_out,
         network_samples=samples,
         llm_token_rng_seed=llm_seed,
+        env_rng=workflow_rng,
+        execution_scale_scope=trial_scope,
+        execution_scale_seed=trial_exec_scale_seed,
     )
     return c, ell
 

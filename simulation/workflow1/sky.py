@@ -134,11 +134,15 @@ def coef_local_cost_latency(
     spl_exe_sec: float,
     cap_pair: tuple[float, float],
     q_pair: tuple[float, float],
+    llm_latency_rng: random.Random | None = None,
 ) -> tuple[float, float]:
     """Node-local exe + storage (USD), and execution-only latency (seconds).
 
-    Per joint scenario ω, segment/split times and LLM tokens are shared across all
-    candidates so coefficients reflect one realized environment, not per-candidate draws.
+    Per joint scenario ω, segment time is drawn per **segment** candidate, split time
+    per **split** candidate; LLM tokens are still shared across candidates.
+
+    ``llm_latency_rng``: if given for caption/query layers, TTFT and throughput use
+    independent ±30% jitter per draw (same as execution envelope half-width constant).
     """
     rho_i = float(rho[i])
     stor = storage_cost_usd(
@@ -159,12 +163,12 @@ def coef_local_cost_latency(
     if op == "caption":
         mm = node.model or ""
         exe = llm_token_cost_usd(node.provider, node.region, mm, cin, cout)
-        t_exe = llm_decode_duration_sec(mm, cout)
+        t_exe = llm_decode_duration_sec(mm, cout, rng=llm_latency_rng)
         return exe + stor, t_exe
 
     mm = node.model or ""
     exe = llm_token_cost_usd(node.provider, node.region, mm, qin, qout)
-    t_exe = llm_decode_duration_sec(mm, qout)
+    t_exe = llm_decode_duration_sec(mm, qout, rng=llm_latency_rng)
     return exe + stor, t_exe
 
 
@@ -208,8 +212,28 @@ def prepare_coefficients(
         seg_min = _segment_minutes(sn[0])
         dur_sec = max(seg_min * 60.0, 1e-6)
         rng_env = random.Random(seed)
-        seg_exe = sample_segment_execute_sec(dur_sec, rng=rng_env)
-        spl_exe = sample_split_execute_sec(dur_sec, rng=rng_env)
+        nseg = len(cands[0])
+        nspl = len(cands[1])
+        seg_exes = [
+            sample_segment_execute_sec(
+                dur_sec,
+                rng=wf_utils.det_rng(seed, "sky_seg_cand", ki),
+                node=cands[0][ki],
+                execution_scale_scope=str(seed),
+                execution_scale_seed=seed,
+            )
+            for ki in range(nseg)
+        ]
+        spl_exes = [
+            sample_split_execute_sec(
+                dur_sec,
+                rng=wf_utils.det_rng(seed, "sky_spl_cand", kj),
+                node=cands[1][kj],
+                execution_scale_scope=str(seed),
+                execution_scale_seed=seed,
+            )
+            for kj in range(nspl)
+        ]
         cap_pair, q_pair = wf_utils._resolve_llm_tokens(
             seg_min,
             caption_tokens=None,
@@ -223,16 +247,22 @@ def prepare_coefficients(
             row_c = []
             row_l = []
             for ki, node in enumerate(cands[i]):
+                llm_latency_rng = None
+                if i in (2, 3):
+                    llm_latency_rng = wf_utils.det_rng(
+                        seed, "sky_llm_jit", i, ki, node.provider, node.region, node.model
+                    )
                 c_ij, lat_ij = coef_local_cost_latency(
                     i,
                     node,
                     sn,
                     rho,
                     seg_min,
-                    seg_exe_sec=seg_exe,
-                    spl_exe_sec=spl_exe,
+                    seg_exe_sec=seg_exes[ki] if i == 0 else 0.0,
+                    spl_exe_sec=spl_exes[ki] if i == 1 else 0.0,
                     cap_pair=cap_pair,
                     q_pair=q_pair,
+                    llm_latency_rng=llm_latency_rng,
                 )
                 row_c.append(c_ij)
                 row_l.append(lat_ij)
@@ -652,9 +682,23 @@ def prefix_aggregate_ct(
     sn, xfer = wf_utils._propagate_sizes_gb(src_gb, rho)
     seg_min = _segment_minutes(sn[0])
     dur_sec = max(seg_min * 60.0, 1e-6)
-    rng_env = random.Random(seed)
-    seg_exe = sample_segment_execute_sec(dur_sec, rng=rng_env)
-    spl_exe = sample_split_execute_sec(dur_sec, rng=rng_env)
+    seg_exe = sample_segment_execute_sec(
+        dur_sec,
+        rng=wf_utils.det_rng(seed, "pfx_seg"),
+        node=nodes_prefix[0],
+        execution_scale_scope=str(seed),
+        execution_scale_seed=seed,
+    )
+    if len(nodes_prefix) > 1:
+        spl_exe = sample_split_execute_sec(
+            dur_sec,
+            rng=wf_utils.det_rng(seed, "pfx_spl"),
+            node=nodes_prefix[1],
+            execution_scale_scope=str(seed),
+            execution_scale_seed=seed,
+        )
+    else:
+        spl_exe = 0.0
     cap_pair, q_pair = wf_utils._resolve_llm_tokens(
         seg_min,
         caption_tokens=None,
@@ -664,9 +708,15 @@ def prefix_aggregate_ct(
     c_tot = 0.0
     t_tot = 0.0
     for i in range(len(nodes_prefix)):
+        node_i = nodes_prefix[i]
+        llm_latency_rng = None
+        if i in (2, 3):
+            llm_latency_rng = wf_utils.det_rng(
+                seed, "pfx_llm_jit", i, node_i.provider, node_i.region, node_i.model
+            )
         cc, lt = coef_local_cost_latency(
             i,
-            nodes_prefix[i],
+            node_i,
             sn,
             rho,
             seg_min,
@@ -674,6 +724,7 @@ def prefix_aggregate_ct(
             spl_exe_sec=spl_exe,
             cap_pair=cap_pair,
             q_pair=q_pair,
+            llm_latency_rng=llm_latency_rng,
         )
         c_tot += cc
         t_tot += lt

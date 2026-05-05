@@ -132,9 +132,11 @@ VIDEO_SERVICE_USD_PER_MINUTE: dict[str, dict[str, dict[str, float]]] = {
         },
     },
     "Aliyun": {
-        # Doc only lists segment for cn-shanghai; other services left undefined.
         "cn-shanghai": {
             "segment": 0.029,
+            "speech_transcription": 0.0029,
+            "ocr": 0.0073,
+            "label_detection": 0.018,
         },
     },
 }

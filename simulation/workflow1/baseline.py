@@ -24,7 +24,12 @@ import pulp as pl
 from sim_env import config as cfg
 from sim_env.llm import caption_visual_input_tokens, sample_caption_output_tokens, sample_query_output_tokens
 from sim_env.cost import egress_cost_usd, llm_token_cost_usd, split_cost_usd, storage_cost_usd, video_service_cost_usd
-from sim_env.execution_latency import llm_decode_duration_sec, segment_split_bounds_at
+from sim_env.execution_latency import (
+    llm_decode_duration_sec,
+    node_segment_execute_bounds_at,
+    node_split_execute_bounds_at,
+    sample_execution_scale,
+)
 from sim_env.network import LinkCategory, classify_link, reset_link_counters, sample_link
 from sim_env.utility import PhysicalNode, QueryProfile, physical_node_utility
 
@@ -160,6 +165,8 @@ def _deterministic_local_cost_latency(
     *,
     cap_pair: tuple[float, float],
     q_pair: tuple[float, float],
+    exec_scale_rng: random.Random,
+    llm_latency_rng: random.Random | None = None,
 ) -> tuple[float, float]:
     rho_i = float(rho[i])
     stor = storage_cost_usd(
@@ -167,16 +174,19 @@ def _deterministic_local_cost_latency(
     )
     op = OPS[i]
     dur_sec = max(seg_minutes * 60.0, 1e-6)
-    bd = segment_split_bounds_at(dur_sec)
 
     if op == "segment":
         exe = video_service_cost_usd(node.provider, node.region, "segment", seg_minutes)
-        t_exe = 0.5 * (bd.segment_min_sec + bd.segment_max_sec)
+        lo, hi = node_segment_execute_bounds_at(dur_sec, node.provider, node.region)
+        k = sample_execution_scale(exec_scale_rng)
+        t_exe = 0.5 * (lo * k + hi * k)
         return exe + stor, t_exe
 
     if op == "split":
         exe = split_cost_usd(node.provider, node.region, minutes=1.0)
-        t_exe = 0.5 * (bd.split_min_sec + bd.split_max_sec)
+        lo, hi = node_split_execute_bounds_at(dur_sec, node.provider, node.region)
+        k = sample_execution_scale(exec_scale_rng)
+        t_exe = 0.5 * (lo * k + hi * k)
         return exe + stor, t_exe
 
     cin, cout = cap_pair
@@ -185,12 +195,12 @@ def _deterministic_local_cost_latency(
     if op == "caption":
         mm = node.model or ""
         exe = llm_token_cost_usd(node.provider, node.region, mm, cin, cout)
-        t_exe = llm_decode_duration_sec(mm, cout)
+        t_exe = llm_decode_duration_sec(mm, cout, rng=llm_latency_rng)
         return exe + stor, t_exe
 
     mm = node.model or ""
     exe = llm_token_cost_usd(node.provider, node.region, mm, qin, qout)
-    t_exe = llm_decode_duration_sec(mm, qout)
+    t_exe = llm_decode_duration_sec(mm, qout, rng=llm_latency_rng)
     return exe + stor, t_exe
 
 
@@ -229,8 +239,32 @@ def _prepare_deterministic_coefficients(
         for i in range(4):
             rc, rl = [], []
             for ki, node in enumerate(cands[i]):
+                exec_scale_rng = wf_utils.det_rng(
+                    token_seed, "do_exec_scale", q_idx, i, ki,
+                    node.provider, node.region,
+                )
+                llm_latency_rng = None
+                if i in (2, 3):
+                    llm_latency_rng = wf_utils.det_rng(
+                        token_seed,
+                        "do_llm_jit",
+                        q_idx,
+                        i,
+                        ki,
+                        node.provider,
+                        node.region,
+                        node.model,
+                    )
                 c_ij, lat_ij = _deterministic_local_cost_latency(
-                    i, node, sn, mean_rho, seg_min, cap_pair=cap_pair, q_pair=q_pair
+                    i,
+                    node,
+                    sn,
+                    mean_rho,
+                    seg_min,
+                    cap_pair=cap_pair,
+                    q_pair=q_pair,
+                    exec_scale_rng=exec_scale_rng,
+                    llm_latency_rng=llm_latency_rng,
                 )
                 rc.append(c_ij)
                 rl.append(lat_ij)
