@@ -1,0 +1,41 @@
+TimeoutError: Operation did not complete within the designated timeout of 900 seconds.
+Traceback (most recent call last):
+  File "/home/heng/video_label_ocr_speech/.venv/lib/python3.11/site-packages/google/api_core/retry/retry_unary.py", line 147, in retry_target
+    result = target()
+             ^^^^^^^^
+  File "/home/heng/video_label_ocr_speech/.venv/lib/python3.11/site-packages/google/api_core/future/polling.py", line 120, in _done_or_raise
+    raise _OperationNotComplete()
+google.api_core.future.polling._OperationNotComplete
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/heng/video_label_ocr_speech/.venv/lib/python3.11/site-packages/google/api_core/future/polling.py", line 137, in _blocking_poll
+    polling(self._done_or_raise)(retry=retry)
+  File "/home/heng/video_label_ocr_speech/.venv/lib/python3.11/site-packages/google/api_core/retry/retry_unary.py", line 294, in retry_wrapped_func
+    return retry_target(
+           ^^^^^^^^^^^^^
+  File "/home/heng/video_label_ocr_speech/.venv/lib/python3.11/site-packages/google/api_core/retry/retry_unary.py", line 156, in retry_target
+    next_sleep = _retry_error_helper(
+                 ^^^^^^^^^^^^^^^^^^^^
+  File "/home/heng/video_label_ocr_speech/.venv/lib/python3.11/site-packages/google/api_core/retry/retry_base.py", line 231, in _retry_error_helper
+    raise final_exc from source_exc
+google.api_core.exceptions.RetryError: Timeout of 900.0s exceeded, last exception: 
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/heng/video_label_ocr_speech/batch_sweep_measurements.py", line 185, in main
+    record = run(
+             ^^^^
+  File "/home/heng/video_label_ocr_speech/run_measurement.py", line 204, in run
+    ocr_result = ocr_op.execute(gcs_uri, **common_kw)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/heng/video_label_ocr_speech/ops/impl/google_ops.py", line 798, in execute
+    result = operation.result()
+             ^^^^^^^^^^^^^^^^^^
+  File "/home/heng/video_label_ocr_speech/.venv/lib/python3.11/site-packages/google/api_core/future/polling.py", line 256, in result
+    self._blocking_poll(timeout=timeout, retry=retry, polling=polling)
+  File "/home/heng/video_label_ocr_speech/.venv/lib/python3.11/site-packages/google/api_core/future/polling.py", line 139, in _blocking_poll
+    raise concurrent.futures.TimeoutError(
+TimeoutError: Operation did not complete within the designated timeout of 900 seconds.

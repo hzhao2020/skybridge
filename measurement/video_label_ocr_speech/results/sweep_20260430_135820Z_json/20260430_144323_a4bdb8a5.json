@@ -1,0 +1,53 @@
+{
+  "meta": {
+    "run_id": "20260430_144323_a4bdb8a5",
+    "video_source": "/home/heng/video_label_ocr_speech/video/merged.mp4",
+    "duration_requested_sec": 240.0,
+    "label_pid": "vi_label_google_us",
+    "ocr_pid": "vi_ocr_google_us",
+    "speech_pid": "vi_speech_google_us",
+    "speech_language_code": "en-US",
+    "bucket": "sky_bucket_us_west1",
+    "upload_prefix": "video_label_ocr_speech_sweep/20260430_135820Z/d240s_t8/20260430_144323_a4bdb8a5",
+    "gcs_uri": "gs://sky_bucket_us_west1/video_label_ocr_speech_sweep/20260430_135820Z/d240s_t8/20260430_144323_a4bdb8a5/sb_vi_measure_20260430_144323_a4bdb8a5_merged_trunc_240s.mp4",
+    "reencode": false,
+    "annotate_timeout_sec": null,
+    "timing_semantics": {
+      "vi_operation_wait": "测量 VM 上 annotate_video 调用结束至 operation.result() 返回的墙钟时间；为 VI LRO 在客户端可观测的完成耗时（含排队与远端处理），非 Google 另行公布的内部 CPU 秒。",
+      "prep": "发起 VI 前准备：含 smart_move（对象就位/跨桶搬运）与请求组装。"
+    },
+    "utc_iso": "2026-04-30T14:45:49.643599+00:00"
+  },
+  "timings_sec": {
+    "truncate": 0.130577,
+    "upload": 0.934109,
+    "label_prep_sec": 4.2e-05,
+    "label_vi_operation_wait_sec": 9.072113,
+    "ocr_prep_sec": 3.8e-05,
+    "ocr_vi_operation_wait_sec": 52.507437,
+    "speech_prep_sec": 7.7e-05,
+    "speech_vi_operation_wait_sec": 83.897876
+  },
+  "label_detection": {
+    "region": "us-west1",
+    "feature": "LABEL_DETECTION",
+    "source_used": "gs://sky_bucket_us_west1/video_label_ocr_speech_sweep/20260430_135820Z/d240s_t8/20260430_144323_a4bdb8a5/sb_vi_measure_20260430_144323_a4bdb8a5_merged_trunc_240s.mp4",
+    "result_location": "gs://sky_bucket_us_west1/results/vi_label_detection/sb_vi_measure_20260430_144323_a4bdb8a5_merged_trunc_240s/annotations.json",
+    "segment_label_count": 2,
+    "shot_label_count": 10
+  },
+  "ocr": {
+    "region": "us-west1",
+    "feature": "TEXT_DETECTION",
+    "source_used": "gs://sky_bucket_us_west1/video_label_ocr_speech_sweep/20260430_135820Z/d240s_t8/20260430_144323_a4bdb8a5/sb_vi_measure_20260430_144323_a4bdb8a5_merged_trunc_240s.mp4",
+    "result_location": "gs://sky_bucket_us_west1/results/vi_text_detection/sb_vi_measure_20260430_144323_a4bdb8a5_merged_trunc_240s/annotations.json",
+    "text_annotation_count": 19
+  },
+  "speech_transcription": {
+    "region": "us-west1",
+    "feature": "SPEECH_TRANSCRIPTION",
+    "source_used": "gs://sky_bucket_us_west1/video_label_ocr_speech_sweep/20260430_135820Z/d240s_t8/20260430_144323_a4bdb8a5/sb_vi_measure_20260430_144323_a4bdb8a5_merged_trunc_240s.mp4",
+    "result_location": "gs://sky_bucket_us_west1/results/vi_speech_transcription/sb_vi_measure_20260430_144323_a4bdb8a5_merged_trunc_240s/annotations.json",
+    "speech_transcription_count": 0
+  }
+}

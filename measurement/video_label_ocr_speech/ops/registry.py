@@ -54,8 +54,7 @@ def get_operation(pid: str) -> Operation:
 
 
 BUCKETS = {
-    "gcp_us": "video_us",
-    "gcp_tw": "video_tw",
+    "gcp_us": "sky_bucket_us_west1",
 }
 
 

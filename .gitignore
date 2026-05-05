@@ -80,7 +80,5 @@ service-account-key.json
 tmp.ipynb
 
 # Configuration file with sensitive information
-config.py
-segment_split_measurement/config.py
 
 test/
