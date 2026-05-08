@@ -8,13 +8,13 @@ Caption (vision) input:
 
 Caption (text) output length is modeled as **log-t**: let Y ~ StudentT(ν, loc=μ, scale=σ)
 on the **log scale** (ln tokens), then output tokens = exp(Y) (floored at 1). With clip
-length T (seconds)::
+length T (seconds), SkyAPI Evaluation doc::
 
-  μ(T) = a·ln(T) + b
-  σ(T) = max(ε, c·ln(T) + d)
-  ν(T) = max(2.1, ν_base − k·ln(T))
+  μ_cap(T) = 2·ln(T) − 1.6
+  σ_cap = 0.8   (constant)
+  ν_cap = 3.5   (constant)
 
-Query output uses the same log-t shape with **fixed** μ=5, σ=0.6, ν=10.
+Query output uses the same log-t shape with **fixed** μ=4.2, σ=0.6, ν=3.5.
 
 Requires **numpy** for Student-t draws (`numpy.random.Generator.standard_t`).
 """
@@ -32,27 +32,16 @@ import numpy as np
 DEFAULT_CAPTION_SAMPLE_FPS = 1.0
 DEFAULT_TOKENS_PER_FRAME = 256
 
-# ---------------------------------------------------------------------------
-# Caption output: log-t parameters vs. video length T (seconds)
-# Tune a,b,c,d,ν_base,k to your data; defaults are placeholders.
-# ---------------------------------------------------------------------------
-CAPTION_LOGT_MU_A = 0.35
-CAPTION_LOGT_MU_B = 2.8
-CAPTION_LOGT_SIGMA_C = 0.08
-CAPTION_LOGT_SIGMA_D = 0.45
-CAPTION_LOGT_NU_BASE = 12.0
-CAPTION_LOGT_NU_K = 0.5
-
 MIN_LN_DURATION_SEC = 1.0
-MIN_SIGMA_SCALE = 1e-6
-MIN_NU = 2.1
 
-# ---------------------------------------------------------------------------
+# Caption output: μ_cap(T) = 2·ln(T) − 1.6; σ_cap, ν_cap constant (SkyAPI Evaluation.md).
+CAPTION_LOGT_SIGMA = 0.8
+CAPTION_LOGT_NU = 3.5
+
 # Query output: fixed log-t (μ, σ, ν on ln-token scale)
-# ---------------------------------------------------------------------------
-QUERY_OUTPUT_LOG_MU = 5.0
+QUERY_OUTPUT_LOG_MU = 4.2
 QUERY_OUTPUT_LOG_SIGMA = 0.6
-QUERY_OUTPUT_LOG_NU = 10.0
+QUERY_OUTPUT_LOG_NU = 3.5
 
 Rng: TypeAlias = int | np.random.Generator | None
 
@@ -88,15 +77,13 @@ def caption_visual_input_tokens(
 def caption_output_log_t_params(duration_sec: float) -> tuple[float, float, float]:
     """
     Return (μ, σ, ν) for caption output on **ln(token)** scale, with T = max(duration_sec, 1).
+
+    μ_cap(T) = 2·ln(T) − 1.6; σ and ν fixed per evaluation doc.
     """
     t = max(float(duration_sec), MIN_LN_DURATION_SEC)
     ln_t = math.log(t)
-    mu = CAPTION_LOGT_MU_A * ln_t + CAPTION_LOGT_MU_B
-    sigma = CAPTION_LOGT_SIGMA_C * ln_t + CAPTION_LOGT_SIGMA_D
-    sigma = max(MIN_SIGMA_SCALE, sigma)
-    nu = CAPTION_LOGT_NU_BASE - CAPTION_LOGT_NU_K * ln_t
-    nu = max(MIN_NU, nu)
-    return mu, sigma, nu
+    mu = 2.0 * ln_t - 1.6
+    return mu, CAPTION_LOGT_SIGMA, CAPTION_LOGT_NU
 
 
 def sample_caption_output_tokens(

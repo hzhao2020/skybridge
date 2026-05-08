@@ -2,7 +2,9 @@
 Baseline deployment policies for comparison with Sky (CVaR–MILP).
 
 * **SC (Single-Cloud):** all four logical ops use endpoints from one cloud provider;
-  within that silo, each layer picks the candidate with maximum utility μ.
+  within that silo, each layer picks argmax μ。若在调用时传入 ``queries``（及 MC 参数），
+  则在可行提供商之间 **优先最小化** 与 ``evaluation.evaluate_deployment_empirical``
+  一致的蒙特卡洛 SLO 违规计数（费用违规 + 时延违规），再以 closed-form utility 为高者优先。
 * **LO (Logical-Optimal):** each layer independently picks argmax μ (ignores cost,
   latency, cross-edge effects) — utility upper bound for the linear μ model.
 * **DO (Deterministic-Optimal):** replace stochastic ξ with plug-in means of ρ via
@@ -16,7 +18,7 @@ From ``simulation/``: ``python -m workflow1.baseline``.
 
 from __future__ import annotations
 
-from typing import NamedTuple
+from typing import NamedTuple, Sequence
 
 import random
 import pulp as pl
@@ -37,6 +39,7 @@ from . import sky as sky_mod
 from . import utils as wf_utils
 
 OPS = sky_mod.OPS_ORDER
+_OPS_MC = ("segment", "split", "caption", "query")
 PROVIDERS_SINGLE_CLOUD = ("GCP", "AWS", "Aliyun")
 
 # Empirical network mean: samples per directed edge (coefficient build).
@@ -328,15 +331,55 @@ def logical_optimal_baseline(
     )
 
 
+def mc_violation_counts_wf1(
+    nodes: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode],
+    queries: Sequence[QueryProfile],
+    *,
+    samples_per_query: int,
+    violation_eval_seed: int,
+    cost_tol_abs: float = 1e-9,
+    latency_tol_abs: float = 1e-9,
+) -> tuple[int, int]:
+    """与 ``evaluation.evaluate_deployment_empirical`` 相同 RNG 标签与判定，返回 (viol_cost, viol_lat)。"""
+    viol_cost = 0
+    viol_lat = 0
+    ql = list(queries)
+    for q_idx, qprof in enumerate(ql):
+        for s_idx in range(samples_per_query):
+            rho_rng = wf_utils.det_rng(violation_eval_seed, "eval_rho", q_idx, s_idx)
+            wf_rng = wf_utils.det_rng(violation_eval_seed, "eval_mc", q_idx, s_idx)
+            rho = tuple(cfg.sample_data_conversion_ratio(op, rho_rng) for op in _OPS_MC)
+            c, ell = wf_utils.end_to_end_cost_and_latency(
+                nodes, qprof.s_src_gb, rho, workflow_rng=wf_rng
+            )
+            if c > qprof.theta_cost + cost_tol_abs:
+                viol_cost += 1
+            if ell > qprof.theta_latency_sec + latency_tol_abs:
+                viol_lat += 1
+    return viol_cost, viol_lat
+
+
 def single_cloud_baseline(
     cands: tuple[tuple[PhysicalNode, ...], tuple[PhysicalNode, ...], tuple[PhysicalNode, ...], tuple[PhysicalNode, ...]],
     weights: tuple[float, float, float, float] = (0.25, 0.25, 0.25, 0.25),
+    *,
+    queries: Sequence[QueryProfile] | None = None,
+    samples_per_query: int = 50,
+    violation_eval_seed: int = 137,
 ) -> BaselineResult:
     """
     SC: choose cloud provider P such that all four layers admit candidates on P,
-    then per-layer argmax μ within U_i ∩ {P}.
+    then per-layer argmax μ within U_i ∩ {P}。
+
+    若 ``queries`` 非空：在可行 P 上先最小化 MC 违规计数
+    ``viol_cost + viol_latency``（与 empirical evaluation 一致），再最大化 closed-form utility。
     """
+    ql = list(queries) if queries is not None else []
+    use_viol = len(ql) > 0
+
     best: BaselineResult | None = None
+    best_rank: tuple[int, float, str] | None = None  # (viol_sum, -utility, prov) 用于最小化
+
     for prov in PROVIDERS_SINGLE_CLOUD:
         filt: list[tuple[PhysicalNode, ...]] = []
         ok = True
@@ -355,8 +398,20 @@ def single_cloud_baseline(
             tuple(filt[3]),
         )
         res = logical_optimal_baseline(ft, weights=weights)
-        if best is None or res.total_utility > best.total_utility:
-            best = BaselineResult("Single-Cloud", res.nodes, res.total_utility, None)
+        if use_viol:
+            vc, vl = mc_violation_counts_wf1(
+                res.nodes,
+                ql,
+                samples_per_query=samples_per_query,
+                violation_eval_seed=violation_eval_seed,
+            )
+            rank = (vc + vl, -res.total_utility, prov)
+            if best is None or rank < best_rank:  # type: ignore[operator]
+                best_rank = rank
+                best = BaselineResult("Single-Cloud", res.nodes, res.total_utility, None)
+        else:
+            if best is None or res.total_utility > best.total_utility:
+                best = BaselineResult("Single-Cloud", res.nodes, res.total_utility, None)
 
     if best is None:
         raise RuntimeError(
@@ -494,10 +549,18 @@ def run_all_baselines(
     *,
     weights: tuple[float, float, float, float] = (0.25, 0.25, 0.25, 0.25),
     do_token_seed: int = 0,
+    sc_samples_per_query: int = 50,
+    sc_violation_eval_seed: int = 137,
 ) -> tuple[BaselineResult, BaselineResult, BaselineResult]:
     """Enumerate candidates once; return SC, LO, DO results."""
     cands = sky_mod.enumerate_candidates()
-    sc = single_cloud_baseline(cands, weights=weights)
+    sc = single_cloud_baseline(
+        cands,
+        weights=weights,
+        queries=queries,
+        samples_per_query=sc_samples_per_query,
+        violation_eval_seed=sc_violation_eval_seed,
+    )
     lo = logical_optimal_baseline(cands, weights=weights)
     do = deterministic_optimal_baseline(
         queries, cands, weights=weights, token_seed=do_token_seed
@@ -518,7 +581,13 @@ if __name__ == "__main__":  # pragma: no cover
 
     print("Candidates per layer:", [len(c) for c in cands])
     lo = logical_optimal_baseline(cands, weights=WEIGHTS)
-    sc = single_cloud_baseline(cands, weights=WEIGHTS)
+    sc = single_cloud_baseline(
+        cands,
+        weights=WEIGHTS,
+        queries=qs,
+        samples_per_query=EVAL_SQ,
+        violation_eval_seed=EVAL_SEED,
+    )
     print(lo.name, "closed-form U=", lo.total_utility)
     print(sc.name, "providers", {n.provider for n in sc.nodes}, "closed-form U=", sc.total_utility)
 

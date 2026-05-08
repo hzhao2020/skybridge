@@ -53,14 +53,13 @@ LATENCY_RANDOM_HALF_WIDTH = 0.3
 
 
 LLM_LATENCY_SPECS: dict[str, tuple[float, float]] = {
-    "Gemini 2.5 Pro": (2.64, 72.0),
-    "Gemini 2.5 Flash": (0.90, 64.0),
-    "Claude 3.5 Sonnet": (0.99, 30.5),
-    "Claude 3.5 Haiku": (0.68, 32.50),
-    "Qwen3-VL-Plus": (0.69, 39.44),
-    "Qwen3-VL-Flash": (0.76, 45.90),
-    "Qwen3.5-Plus": (2.32, 94.0),
-    "Qwen3.5-Flash": (0.50, 84.0),
+    # Nominals from SkyAPI Evaluation.md (TTFT s, output tokens/s); jitter ±30% elsewhere.
+    "Gemini 2.5 Pro": (2.64, 86.0),
+    "Gemini 2.5 Flash": (0.67, 77.0),
+    "Amazon Nova Pro": (0.43, 34.50),
+    "Amazon Nova Lite": (0.46, 51.50),
+    "Qwen3-VL-Plus": (1.29, 54.0),
+    "Qwen3-VL-Flash": (0.54, 87.0),
 }
 
 

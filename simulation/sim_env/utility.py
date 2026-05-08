@@ -3,8 +3,8 @@ utility.py
 Task utility (quality) coefficients for segment / split / caption / query nodes.
 
 Workflow order: segment -> split -> caption -> query. Split utility is always 1.0.
-Values follow the user's benchmark table; segment entries marked * in the table
-are still stored as 0.90 / 0.85 here.
+Benchmark values from SkyAPI Evaluation.md (table percentages scaled to [0, 1]).
+Caption vs query LLM utilities differ where the doc gives separate columns.
 """
 
 from __future__ import annotations
@@ -18,21 +18,27 @@ OperationName = Literal["segment", "split", "caption", "query"]
 # Tables (provider for segment; model name for caption / query — matches config.py)
 # ---------------------------------------------------------------------------
 SEGMENT_UTILITY_BY_PROVIDER: dict[str, float] = {
-    "GCP": 0.90,
-    "AWS": 0.90,
-    "Aliyun": 0.85,
+    "GCP": 0.95,
+    "AWS": 0.95,
+    "Aliyun": 0.95,
 }
 
-# Shared Gemini / Claude / Qwen utilities for vision (caption) and text (query) where applicable.
-LLM_UTILITY_BY_MODEL: dict[str, float] = {
-    "Gemini 2.5 Pro": 0.78,
-    "Gemini 2.5 Flash": 0.72,
-    "Claude 3.5 Sonnet": 0.60,
-    "Claude 3.5 Haiku": 0.55,
-    "Qwen3-VL-Plus": 0.76,
-    "Qwen3-VL-Flash": 0.70,
-    "Qwen3.5-Plus": 0.87,
-    "Qwen3.5-Flash": 0.83,
+LLM_CAPTION_UTILITY_BY_MODEL: dict[str, float] = {
+    "Gemini 2.5 Pro": 0.713,
+    "Gemini 2.5 Flash": 0.652,
+    "Amazon Nova Pro": 0.778,
+    "Amazon Nova Lite": 0.778,
+    "Qwen3-VL-Plus": 0.713,
+    "Qwen3-VL-Flash": 0.652,
+}
+
+LLM_QUERY_UTILITY_BY_MODEL: dict[str, float] = {
+    "Gemini 2.5 Pro": 0.690,
+    "Gemini 2.5 Flash": 0.622,
+    "Amazon Nova Pro": 0.416,
+    "Amazon Nova Lite": 0.404,
+    "Qwen3-VL-Plus": 0.677,
+    "Qwen3-VL-Flash": 0.625,
 }
 
 SPLIT_UTILITY = 1.0
@@ -69,14 +75,23 @@ def physical_node_utility(node: PhysicalNode) -> float:
             raise KeyError(
                 f"No segment utility for provider={node.provider!r}"
             ) from e
-    if op in ("caption", "query"):
+    if op == "caption":
         if not node.model:
-            raise ValueError(f"{op} node requires a model name")
+            raise ValueError("caption node requires a model name")
         try:
-            return LLM_UTILITY_BY_MODEL[node.model]
+            return LLM_CAPTION_UTILITY_BY_MODEL[node.model]
         except KeyError as e:
             raise KeyError(
-                f"No LLM utility for model={node.model!r} (operation={op!r})"
+                f"No caption utility for model={node.model!r}"
+            ) from e
+    if op == "query":
+        if not node.model:
+            raise ValueError("query node requires a model name")
+        try:
+            return LLM_QUERY_UTILITY_BY_MODEL[node.model]
+        except KeyError as e:
+            raise KeyError(
+                f"No query utility for model={node.model!r}"
             ) from e
     raise ValueError(f"Unknown operation: {op!r}")
 

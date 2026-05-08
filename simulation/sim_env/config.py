@@ -102,8 +102,8 @@ WORKFLOW_OPERATIONS = {
         "AWS": {
             "supported_regions": REGIONS["AWS"],
             "models": [
-                "Claude 3.5 Sonnet", 
-                "Claude 3.5 Haiku"
+                "Amazon Nova Pro",
+                "Amazon Nova Lite",
             ]
         },
         "Aliyun": {
@@ -130,16 +130,16 @@ WORKFLOW_OPERATIONS = {
         "AWS": {
             "supported_regions": REGIONS["AWS"],
             "models": [
-                "Claude 3.5 Sonnet", 
-                "Claude 3.5 Haiku"
+                "Amazon Nova Pro",
+                "Amazon Nova Lite",
             ]
         },
         "Aliyun": {
             # Note: LLM pricing table lists Beijing, US West 1, and AP Southeast 1 for Bailian
             "supported_regions": ["cn-beijing", "us-west-1", "ap-southeast-1"],
             "models": [
-                "Qwen3.5-Plus", 
-                "Qwen3.5-Flash"
+                "Qwen3-VL-Plus",
+                "Qwen3-VL-Flash",
             ]
         }
     }

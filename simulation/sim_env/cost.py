@@ -37,40 +37,34 @@ LLM_TOKEN_PRICE_PER_MILLION: dict[str, dict[str, dict[str, tuple[float, float]]]
     },
     "AWS": {
         "us-west-2": {
-            "Claude 3.5 Sonnet": (3.00, 15.00),
-            "Claude 3.5 Haiku": (0.80, 4.00),
+            "Amazon Nova Pro": (0.80, 3.20),
+            "Amazon Nova Lite": (0.06, 0.24),
         },
         "us-east-2": {
-            "Claude 3.5 Sonnet": (3.00, 15.00),
-            "Claude 3.5 Haiku": (0.80, 4.00),
+            "Amazon Nova Pro": (0.80, 3.20),
+            "Amazon Nova Lite": (0.06, 0.24),
         },
         "ap-southeast-1": {
-            "Claude 3.5 Sonnet": (3.00, 15.00),
-            "Claude 3.5 Haiku": (1.00, 5.00),
+            "Amazon Nova Pro": (1.08, 4.32),
+            "Amazon Nova Lite": (0.081, 0.324),
         },
         "eu-central-1": {
-            "Claude 3.5 Sonnet": (3.00, 15.00),
-            "Claude 3.5 Haiku": (1.00, 5.00),
+            "Amazon Nova Pro": (1.05, 4.20),
+            "Amazon Nova Lite": (0.078, 0.312),
         },
     },
     "Aliyun": {
         "cn-beijing": {
             "Qwen3-VL-Plus": (0.144, 1.434),
             "Qwen3-VL-Flash": (0.022, 0.215),
-            "Qwen3.5-Plus": (0.115, 0.688),
-            "Qwen3.5-Flash": (0.029, 0.287),
         },
         "us-west-1": {
             "Qwen3-VL-Plus": (0.144, 1.434),
             "Qwen3-VL-Flash": (0.022, 0.215),
-            "Qwen3.5-Plus": (0.115, 0.688),
-            "Qwen3.5-Flash": (0.029, 0.287),
         },
         "ap-southeast-1": {
             "Qwen3-VL-Plus": (0.2, 1.6),
             "Qwen3-VL-Flash": (0.05, 0.4),
-            "Qwen3.5-Plus": (0.4, 2.4),
-            "Qwen3.5-Flash": (0.1, 0.4),
         },
     },
 }
