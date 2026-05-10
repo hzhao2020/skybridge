@@ -20,7 +20,15 @@ import random
 from dataclasses import dataclass
 from typing import Literal, NamedTuple, Sequence
 
-from sim_env.cost import egress_cost_usd, llm_token_cost_usd, split_cost_usd, storage_cost_usd, video_service_cost_usd
+from sim_env.cost import (
+    database_instance_cost_usd,
+    database_storage_cost_usd,
+    egress_cost_usd,
+    llm_token_cost_usd,
+    split_cost_usd,
+    storage_cost_usd,
+    video_service_cost_usd,
+)
 from sim_env.execution_latency import (
     llm_decode_duration_sec,
     sample_label_detection_execute_sec,
@@ -76,9 +84,11 @@ def coef_local_cost_latency_wf2(
 ) -> tuple[float, float]:
     """节点本地 exe+storage 费用与 **执行** 时延（不含出边网络）。"""
     rho_i = float(rho[idx])
-    stor = storage_cost_usd(
-        node.provider, node.region, float(s_in[idx]) * (1.0 + rho_i), days=1.0
-    )
+    gb_local = float(s_in[idx]) * (1.0 + rho_i)
+    if logical_op == "database":
+        stor = database_storage_cost_usd(node.provider, node.region, gb_local, days=1.0)
+    else:
+        stor = storage_cost_usd(node.provider, node.region, gb_local, days=1.0)
     p, r = node.provider, node.region
     cin, cout = cap_pair
     _, qout = q_pair
@@ -103,7 +113,8 @@ def coef_local_cost_latency_wf2(
         exe = video_service_cost_usd(p, r, "speech_transcription", seg_min_source)
         return exe + stor, vi_exe_sec
     if logical_op == "database":
-        return wf2_utils.WF2_PLACEHOLDER_DB_FIXED_COST_USD + stor, wf2_utils.WF2_PLACEHOLDER_DB_LATENCY_SEC
+        exe_inst = database_instance_cost_usd(p, r, days=1.0)
+        return exe_inst + stor, wf2_utils.WF2_PLACEHOLDER_DB_LATENCY_SEC
     if logical_op == "qa":
         return wf2_utils.WF2_PLACEHOLDER_QA_FIXED_COST_USD + stor, wf2_utils.WF2_PLACEHOLDER_QA_LATENCY_SEC
     if logical_op == "answer":

@@ -17,7 +17,15 @@ from typing import NamedTuple, Sequence
 
 import pulp as pl
 
-from sim_env.cost import egress_cost_usd, llm_token_cost_usd, split_cost_usd, storage_cost_usd, video_service_cost_usd
+from sim_env.cost import (
+    database_instance_cost_usd,
+    database_storage_cost_usd,
+    egress_cost_usd,
+    llm_token_cost_usd,
+    split_cost_usd,
+    storage_cost_usd,
+    video_service_cost_usd,
+)
 from sim_env.execution_latency import (
     llm_decode_duration_sec,
     node_label_detection_execute_bounds_at,
@@ -159,9 +167,11 @@ def _deterministic_local_cost_latency_wf2(
     llm_latency_rng: random.Random | None = None,
 ) -> tuple[float, float]:
     rho_i = float(rho[idx])
-    stor = storage_cost_usd(
-        node.provider, node.region, float(s_in[idx]) * (1.0 + rho_i), days=1.0
-    )
+    gb_local = float(s_in[idx]) * (1.0 + rho_i)
+    if logical_op == "database":
+        stor = database_storage_cost_usd(node.provider, node.region, gb_local, days=1.0)
+    else:
+        stor = storage_cost_usd(node.provider, node.region, gb_local, days=1.0)
     p, r = node.provider, node.region
     dur_sec = max(seg_minutes * 60.0, 1e-6)
     cin, cout = cap_pair
@@ -205,7 +215,8 @@ def _deterministic_local_cost_latency_wf2(
         return exe + stor, t_exe
 
     if logical_op == "database":
-        return wf2_utils.WF2_PLACEHOLDER_DB_FIXED_COST_USD + stor, wf2_utils.WF2_PLACEHOLDER_DB_LATENCY_SEC
+        exe_inst = database_instance_cost_usd(p, r, days=1.0)
+        return exe_inst + stor, wf2_utils.WF2_PLACEHOLDER_DB_LATENCY_SEC
 
     if logical_op == "qa":
         return wf2_utils.WF2_PLACEHOLDER_QA_FIXED_COST_USD + stor, wf2_utils.WF2_PLACEHOLDER_QA_LATENCY_SEC

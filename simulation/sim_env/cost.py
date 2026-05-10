@@ -187,6 +187,53 @@ STORAGE_USD_PER_GB_MONTH: dict[str, dict[str, float]] = {
 }
 
 # ---------------------------------------------------------------------------
+# Managed database storage: USD per GB-month (AlloyDB Standard / Aurora
+# I/O-Optimized / PolarDB PostgreSQL); prorated like object storage.
+# ---------------------------------------------------------------------------
+DATABASE_STORAGE_USD_PER_GB_MONTH: dict[str, dict[str, float]] = {
+    "GCP": {
+        "us-west1": 0.299957,
+        "us-east1": 0.338939,
+        "europe-west1": 0.32996,
+        "asia-east1": 0.347918,
+    },
+    "AWS": {
+        "us-west-2": 0.10,
+        "us-east-2": 0.10,
+        "ap-southeast-1": 0.11,
+        "eu-central-1": 0.119,
+    },
+    "Aliyun": {
+        "cn-shanghai": 0.26,
+        "cn-beijing": 0.26,
+        "us-west-1": 0.29,
+        "ap-southeast-1": 0.29,
+    },
+}
+
+# Managed database instance: USD per month (reference cluster / tier).
+DATABASE_INSTANCE_USD_PER_MONTH: dict[str, dict[str, float]] = {
+    "GCP": {
+        "us-west1": 163.52,
+        "us-east1": 184.7776,
+        "europe-west1": 179.872,
+        "asia-east1": 189.6832,
+    },
+    "AWS": {
+        "us-west-2": 172.8,
+        "us-east-2": 172.8,
+        "ap-southeast-1": 288.0,
+        "eu-central-1": 201.6,
+    },
+    "Aliyun": {
+        "cn-shanghai": 36.76,
+        "cn-beijing": 36.76,
+        "us-west-1": 42.05,
+        "ap-southeast-1": 64.40,
+    },
+}
+
+# ---------------------------------------------------------------------------
 # Internet / cross-region egress: USD per GB (source row -> destination column)
 # Order: GCP×4, AWS×4, Aliyun×4, Local
 # ---------------------------------------------------------------------------
@@ -292,6 +339,38 @@ def storage_cost_usd(provider: str, region: str, gigabytes: float, days: float =
         ) from e
     per_gb_day = per_gb_month / STORAGE_DAYS_PER_MONTH
     return per_gb_day * gigabytes * billable_days
+
+
+def database_storage_cost_usd(
+    provider: str, region: str, gigabytes: float, days: float = 1.0
+) -> float:
+    """Managed DB storage charge for ``gigabytes`` over ``days`` (same proration as object storage)."""
+    if days <= 0 or gigabytes <= 0:
+        return 0.0
+    billable_days = math.ceil(days)
+    try:
+        per_gb_month = DATABASE_STORAGE_USD_PER_GB_MONTH[provider][region]
+    except KeyError as e:
+        raise KeyError(
+            f"No managed DB storage price for provider={provider!r} region={region!r}"
+        ) from e
+    per_gb_day = per_gb_month / STORAGE_DAYS_PER_MONTH
+    return per_gb_day * gigabytes * billable_days
+
+
+def database_instance_cost_usd(provider: str, region: str, days: float = 1.0) -> float:
+    """Managed DB instance charge prorated from monthly list price (whole billable days)."""
+    if days <= 0:
+        return 0.0
+    billable_days = math.ceil(days)
+    try:
+        per_month = DATABASE_INSTANCE_USD_PER_MONTH[provider][region]
+    except KeyError as e:
+        raise KeyError(
+            f"No managed DB instance price for provider={provider!r} region={region!r}"
+        ) from e
+    per_day = per_month / STORAGE_DAYS_PER_MONTH
+    return per_day * billable_days
 
 
 def egress_rate_usd_per_gb(src: ProviderRegion, dst: ProviderRegion) -> float:
