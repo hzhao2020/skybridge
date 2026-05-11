@@ -336,8 +336,8 @@ def storage_cost_usd(provider: str, region: str, gigabytes: float, hours: float 
         raise KeyError(
             f"No storage price for provider={provider!r} region={region!r}"
         ) from e
-    per_gb_day = per_gb_month / STORAGE_DAYS_PER_MONTH
-    return per_gb_day * gigabytes * billable_days
+    per_gb_hour = per_gb_month / STORAGE_HOURS_PER_MONTH
+    return per_gb_hour * gigabytes * hours
 
 
 def database_storage_cost_usd(

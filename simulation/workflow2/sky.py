@@ -89,10 +89,10 @@ def coef_local_cost_latency_wf2(
     if logical_op == "database":
         stor = database_storage_cost_usd(node.provider, node.region, gb_local, days=1.0)
     else:
-        stor = storage_cost_usd(node.provider, node.region, gb_local, days=1.0)
+        stor = storage_cost_usd(node.provider, node.region, gb_local, hours=1.0)
     p, r = node.provider, node.region
     cin, cout = cap_pair
-    _, qout = q_pair
+    qin, qout = q_pair
 
     if logical_op == "video_segment":
         exe = video_service_cost_usd(p, r, "segment", seg_min_source)
@@ -121,7 +121,7 @@ def coef_local_cost_latency_wf2(
     if logical_op == "answer":
         mm = node.model or ""
         exe = llm_token_cost_usd(
-            p, r, mm, wf2_utils.WF2_PLACEHOLDER_ANSWER_INPUT_TOKENS, qout
+            p, r, mm, qin, qout
         )
         return exe + stor, llm_decode_duration_sec(mm, qout, rng=llm_latency_rng)
     raise ValueError(f"unknown logical_op: {logical_op!r}")
@@ -241,12 +241,7 @@ def prepare_coefficients_wf2(
         sn, xfer = propagate_path_sizes(s_src, rho)
         seg_min = _segment_minutes_src(s_src)
         dur_sec = max(seg_min * 60.0, 1e-6)
-        cap_pair, q_pair = wf1_utils._resolve_llm_tokens(
-            seg_min,
-            caption_tokens=None,
-            query_tokens=None,
-            rng_seed=seed,
-        )
+        cap_pair, q_pair = wf2_utils.wf2_llm_token_bundle(path_id, s_src, rho)
 
         ac: list[list[float]] = []
         al: list[list[float]] = []
@@ -279,6 +274,28 @@ def prepare_coefficients_wf2(
                     q_pair=q_pair,
                     llm_latency_rng=llm_latency_rng,
                 )
+                if i == 0 and op == "video_segment":
+                    uc, ul = wf1_utils.local_edge_cost_latency(
+                        (node.provider, node.region),
+                        float(sn[0]),
+                        direction="upload",
+                        rng=wf1_utils.det_rng(
+                            seed, "wf2_sky_loc_up", ki, node.provider, node.region
+                        ),
+                    )
+                    c_ij += uc
+                    lat_ij += ul
+                if i == L - 1 and op == "answer":
+                    dc, dl = wf1_utils.local_edge_cost_latency(
+                        (node.provider, node.region),
+                        float(xfer[i]),
+                        direction="download",
+                        rng=wf1_utils.det_rng(
+                            seed, "wf2_sky_loc_dn", ki, node.provider, node.region
+                        ),
+                    )
+                    c_ij += dc
+                    lat_ij += dl
                 row_c.append(c_ij)
                 row_l.append(lat_ij)
             ac.append(row_c)
@@ -348,13 +365,12 @@ def build_joint_scenarios_wf2(
     s_per_query: int,
     rng: random.Random | None,
 ) -> list[JointScenarioWf2]:
-    ops = path_logical_ops(path_id)
     r = rng or random.Random()
     out: list[JointScenarioWf2] = []
     oid = 0
     for q_idx in range(len(queries)):
         for _si in range(s_per_query):
-            rho = tuple(wf2_utils.sample_wf2_logical_ratio(op, r) for op in ops)
+            rho = wf2_utils.sample_wf2_path_rho(path_id, r, queries[q_idx].s_src_gb)
             out.append(JointScenarioWf2(oid, q_idx, _si, r.randint(1, 2**30), rho))
             oid += 1
     return out
@@ -696,15 +712,21 @@ def prefix_aggregate_ct_wf2(
     sn, xfer = propagate_path_sizes(src_gb, rho_prefix)
     seg_min = _segment_minutes_src(src_gb)
     dur_sec = max(seg_min * 60.0, 1e-6)
-    cap_pair, q_pair = wf1_utils._resolve_llm_tokens(
-        seg_min,
-        caption_tokens=None,
-        query_tokens=None,
-        rng_seed=seed,
-    )
+    cap_pair, q_pair = wf2_utils.wf2_llm_token_bundle(path_id, src_gb, rho_prefix)
+
+    ops_full = path_logical_ops(path_id)
 
     c_tot = 0.0
     t_tot = 0.0
+    if nodes_prefix:
+        uc, ul = wf1_utils.local_edge_cost_latency(
+            (nodes_prefix[0].provider, nodes_prefix[0].region),
+            float(sn[0]),
+            direction="upload",
+            rng=wf1_utils.det_rng(seed, "wf2_pfx_loc_up"),
+        )
+        c_tot += uc
+        t_tot += ul
     for i in range(Lp):
         op = ops[i]
         node_i = nodes_prefix[i]
@@ -738,6 +760,16 @@ def prefix_aggregate_ct_wf2(
         )
         c_tot += ec
         t_tot += et
+
+    if Lp == len(ops_full) and ops_full[-1] == "answer":
+        dc, dl = wf1_utils.local_edge_cost_latency(
+            (nodes_prefix[-1].provider, nodes_prefix[-1].region),
+            float(xfer[Lp - 1]),
+            direction="download",
+            rng=wf1_utils.det_rng(seed, "wf2_pfx_loc_dn"),
+        )
+        c_tot += dc
+        t_tot += dl
 
     return c_tot, t_tot
 

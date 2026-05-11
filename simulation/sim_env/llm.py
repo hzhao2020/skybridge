@@ -6,17 +6,11 @@ Caption (vision) input:
   InputTokens = duration_sec × sample_fps × tokens_per_frame
   (default 1 FPS, 256 tokens/frame — ViT-L/14 style.)
 
-Caption (text) output length is modeled as **log-t**: let Y ~ StudentT(ν, loc=μ, scale=σ)
-on the **log scale** (ln tokens), then output tokens = exp(Y) (floored at 1). With clip
-length T (seconds), SkyAPI Evaluation doc::
+Caption text output / query I/O in the **simulator** use a fixed text packing rule
+``1 KiB ≈ TOKENS_PER_KILOBYTE_TEXT`` on the logical data payload (GB → bytes on 1e9 scale).
 
-  μ_cap(T) = 2·ln(T) − 1.6
-  σ_cap = 0.8   (constant)
-  ν_cap = 3.5   (constant)
-
-Query output uses the same log-t shape with **fixed** μ=4.2, σ=0.6, ν=3.5.
-
-Requires **numpy** for Student-t draws (`numpy.random.Generator.standard_t`).
+Optional legacy draw: caption **output** can still be sampled as **log-t** via
+``sample_caption_output_tokens`` for experiments; the main workflows use payload-based tokens.
 """
 
 from __future__ import annotations
@@ -34,11 +28,14 @@ DEFAULT_TOKENS_PER_FRAME = 256
 
 MIN_LN_DURATION_SEC = 1.0
 
+# Text-side token heuristic: 1 KB (1024 B) of payload ≈ this many tokens.
+TOKENS_PER_KILOBYTE_TEXT = 250.0
+
 # Caption output: μ_cap(T) = 2·ln(T) − 1.6; σ_cap, ν_cap constant (SkyAPI Evaluation.md).
 CAPTION_LOGT_SIGMA = 0.8
 CAPTION_LOGT_NU = 3.5
 
-# Query output: fixed log-t (μ, σ, ν on ln-token scale)
+# Query output (legacy log-t helper; workflows default to ``llm_tokens_from_data_payload_gb``).
 QUERY_OUTPUT_LOG_MU = 4.2
 QUERY_OUTPUT_LOG_SIGMA = 0.6
 QUERY_OUTPUT_LOG_NU = 3.5
@@ -72,6 +69,19 @@ def caption_visual_input_tokens(
     if tokens_per_frame < 0:
         raise ValueError("tokens_per_frame must be non-negative")
     return float(duration_sec) * float(sample_fps) * float(tokens_per_frame)
+
+
+def llm_tokens_from_text_payload_bytes(payload_bytes: float) -> float:
+    """Billable text token estimate: ``max(1, (bytes/1024) * TOKENS_PER_KILOBYTE_TEXT)``."""
+    if payload_bytes <= 0:
+        return 1.0
+    kb = float(payload_bytes) / 1024.0
+    return max(1.0, kb * TOKENS_PER_KILOBYTE_TEXT)
+
+
+def llm_tokens_from_data_payload_gb(payload_gb: float) -> float:
+    """SI ``payload_gb`` (1 GB = 1e9 bytes) → token estimate via ``llm_tokens_from_text_payload_bytes``."""
+    return llm_tokens_from_text_payload_bytes(float(payload_gb) * 1_000_000_000.0)
 
 
 def caption_output_log_t_params(duration_sec: float) -> tuple[float, float, float]:

@@ -239,6 +239,8 @@ def prepare_coefficients(
             caption_tokens=None,
             query_tokens=None,
             rng_seed=seed,
+            caption_output_payload_gb=float(sn[2]) * float(rho[2]),
+            query_output_payload_gb=float(sn[3]) * float(rho[3]),
         )
 
         ac: list[list[float]] = []
@@ -264,6 +266,24 @@ def prepare_coefficients(
                     q_pair=q_pair,
                     llm_latency_rng=llm_latency_rng,
                 )
+                if i == 0:
+                    uc, ul = wf_utils.local_edge_cost_latency(
+                        _endpoint(node),
+                        float(sn[0]),
+                        direction="upload",
+                        rng=wf_utils.det_rng(seed, "sky_local_up", ki, node.provider, node.region),
+                    )
+                    c_ij += uc
+                    lat_ij += ul
+                elif i == 3:
+                    dc, dl = wf_utils.local_edge_cost_latency(
+                        _endpoint(node),
+                        float(xfer[3]),
+                        direction="download",
+                        rng=wf_utils.det_rng(seed, "sky_local_dn", ki, node.provider, node.region),
+                    )
+                    c_ij += dc
+                    lat_ij += dl
                 row_c.append(c_ij)
                 row_l.append(lat_ij)
             ac.append(row_c)
@@ -699,14 +719,27 @@ def prefix_aggregate_ct(
         )
     else:
         spl_exe = 0.0
+    cap_gb = float(sn[2]) * float(rho[2]) if len(sn) > 2 else 0.0
+    q_out_gb = float(sn[3]) * float(rho[3]) if len(sn) > 3 else 0.0
     cap_pair, q_pair = wf_utils._resolve_llm_tokens(
         seg_min,
         caption_tokens=None,
         query_tokens=None,
         rng_seed=seed,
+        caption_output_payload_gb=cap_gb,
+        query_output_payload_gb=q_out_gb,
     )
     c_tot = 0.0
     t_tot = 0.0
+    if nodes_prefix:
+        uc, ul = wf_utils.local_edge_cost_latency(
+            _endpoint(nodes_prefix[0]),
+            float(sn[0]),
+            direction="upload",
+            rng=wf_utils.det_rng(seed, "pfx_local_up"),
+        )
+        c_tot += uc
+        t_tot += ul
     for i in range(len(nodes_prefix)):
         node_i = nodes_prefix[i]
         llm_latency_rng = None
@@ -737,6 +770,15 @@ def prefix_aggregate_ct(
         )
         c_tot += ec
         t_tot += et
+    if len(nodes_prefix) >= 4:
+        dc, dl = wf_utils.local_edge_cost_latency(
+            _endpoint(nodes_prefix[3]),
+            float(xfer[3]),
+            direction="download",
+            rng=wf_utils.det_rng(seed, "pfx_local_dn"),
+        )
+        c_tot += dc
+        t_tot += dl
     return c_tot, t_tot
 
 

@@ -40,14 +40,53 @@ VIDEO_MEGABYTES_PER_MINUTE = 120.0
 # ==========================================
 # 3. DATA CONVERSION RATIO (output size / input size)
 # ==========================================
-# R ~ LogNormal(μ, σ²) in the usual stats sense: ln(R) ~ N(μ, σ²).
-# Use for predicting downstream data volume from an upstream node’s output.
-DATA_CONVERSION_RATIO_LOGNORMAL: dict[str, tuple[float, float]] = {
-    "segment": (0.00, 0.001),
-    "split": (0.00, 0.005),
-    "caption": (-11.86, 0.83),
-    "query": (-1.72, 0.47),
+# R ~ LogNormal on the original scale: ln(R) ~ N(μ, σ²).
+# Table rows give **population mean m** and **population std v** of R; we convert to
+# (μ, σ) on the log scale. ``database`` uses a uniform file size (see below), not LogNormal.
+# ---------------------------------------------------------------------------
+DATABASE_OUTPUT_FILE_BYTES_MIN = 4096
+DATABASE_OUTPUT_FILE_BYTES_MAX = 6144
+
+
+def _ratio_mean_std_to_lognormal_params(mean: float, std: float) -> tuple[float, float]:
+    """Map target E[R]=mean, Std[R]=std to LogNormal (μ, σ) with ln(R)~N(μ, σ²)."""
+    if mean <= 0:
+        raise ValueError("ratio mean must be positive")
+    if std < 0:
+        raise ValueError("ratio std must be non-negative")
+    if std == 0.0:
+        return (math.log(mean), 0.0)
+    var = std * std
+    sigma_sq = math.log(1.0 + var / (mean * mean))
+    sigma = math.sqrt(sigma_sq)
+    mu = math.log(mean) - 0.5 * sigma_sq
+    return (mu, sigma)
+
+
+# Keys: workflow1 (segment/split/caption/query) + workflow2-specific ops.
+# Video Split / Shot Detection → mean 1, std 0 (degenerate lognormal / deterministic).
+_RATIO_TABLE_MEAN_STD: dict[str, tuple[float, float]] = {
+    "segment": (1.0, 0.0),
+    "split": (1.0, 0.0),
+    "shot_detection": (1.0, 0.0),
+    "caption": (6.62846139e-04, 0.0006772164768231058),
+    "speech_transcription": (1.315495e-05, 1.782099e-05),
+    "ocr": (4.911324e-03, 2.880235e-03),
+    "label_detection": (1.877817e-04, 4.854159e-05),
+    "query": (0.1, 0.05),
+    "qa": (0.1, 0.05),
+    "answer": (0.1, 0.05),
 }
+
+DATA_CONVERSION_RATIO_LOGNORMAL: dict[str, tuple[float, float]] = {
+    k: _ratio_mean_std_to_lognormal_params(m, s) for k, (m, s) in _RATIO_TABLE_MEAN_STD.items()
+}
+
+
+def sample_database_output_file_bytes(rng: random.Random) -> float:
+    """Uniform database row payload in [DATABASE_OUTPUT_FILE_BYTES_MIN, MAX] bytes."""
+    return float(rng.uniform(float(DATABASE_OUTPUT_FILE_BYTES_MIN), float(DATABASE_OUTPUT_FILE_BYTES_MAX)))
+
 
 # ==========================================
 # 4. OPERATION CAPABILITIES MATRIX
@@ -217,9 +256,11 @@ def sample_data_conversion_ratio(
     operation_name: str,
     rng: random.Random | None = None,
 ) -> float:
-    """One sample: R = exp(μ + σ·Z) with Z ~ N(0,1)."""
+    """One sample: R = exp(μ + σ·Z) with Z ~ N(0,1); σ=0 yields R ≡ exp(μ)."""
     mu, sigma = data_conversion_ratio_lognormal_params(operation_name)
     rnd = rng or random.Random()
+    if sigma == 0.0:
+        return math.exp(mu)
     z = rnd.gauss(0.0, 1.0)
     return math.exp(mu + sigma * z)
 

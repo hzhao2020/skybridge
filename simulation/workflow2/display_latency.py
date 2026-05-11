@@ -17,6 +17,7 @@ from .utils import (
     end_to_end_latency_parallel_shot_modalities,
     path_logical_ops,
     sample_wf2_logical_ratio,
+    sample_wf2_path_rho,
     validate_exclusive_path_nodes,
 )
 
@@ -120,12 +121,10 @@ def workflow_display_latency_max_fork(
         sp_cands = candidates_for_logical_op("speech_transcription")
         node_sp = _pick_same_region(sp_cands, prov, reg)
         speech_nodes = (vid, node_sp, db, qa, ans)
-        rho_speech = tuple(
-            sample_wf2_logical_ratio(
-                op,
-                wf1_utils.det_rng(llm_seed, "disp_rho_speech", i),
-            )
-            for i, op in enumerate(path_logical_ops("speech"))
+        rho_speech = sample_wf2_path_rho(
+            "speech",
+            wf1_utils.det_rng(llm_seed, "disp_rho_speech_chain"),
+            s_src_gb,
         )
         sp_llm = wf1_utils.det_rng(llm_seed, "disp_sp_llm").randrange(0, 2**31)
         lat_speech = end_to_end_latency_exclusive_path(

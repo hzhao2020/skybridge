@@ -16,7 +16,7 @@ from __future__ import annotations
 import hashlib
 import math
 import random
-from typing import Sequence, Tuple
+from typing import Literal, Sequence, Tuple
 
 from sim_env import config as cfg
 from sim_env.config import video_duration_sec_from_megabytes
@@ -26,8 +26,14 @@ from sim_env.execution_latency import (
     sample_segment_execute_sec,
     sample_split_execute_sec,
 )
-from sim_env.llm import caption_visual_input_tokens, sample_caption_output_tokens, sample_query_output_tokens
-from sim_env.network import NetworkSample, reset_link_counters, sample_link
+from sim_env.llm import caption_visual_input_tokens, llm_tokens_from_data_payload_gb
+from sim_env.network import (
+    LOCAL_PROVIDER,
+    LOCAL_REGION,
+    NetworkSample,
+    reset_link_counters,
+    sample_link,
+)
 from sim_env.utility import OperationName, PhysicalNode, QueryProfile, physical_node_utility
 
 _OPS_ORDER: tuple[OperationName, OperationName, OperationName, OperationName] = (
@@ -55,6 +61,31 @@ def det_rng(master: int, *parts: int | str) -> random.Random:
 
 def _endpoint(node: PhysicalNode) -> ProviderRegion:
     return (node.provider, node.region)
+
+
+_LOCAL_ENDPOINT: ProviderRegion = (LOCAL_PROVIDER, LOCAL_REGION)
+
+
+def local_edge_cost_latency(
+    cloud_endpoint: ProviderRegion,
+    payload_gb: float,
+    *,
+    direction: Literal["upload", "download"],
+    rng: random.Random | None = None,
+) -> tuple[float, float]:
+    """
+    本地与云上首/末跳：``upload`` = Local→cloud，``download`` = cloud→Local。
+    返回 (出口流量费 USD, 传输+RTT/2 秒)。
+    """
+    if direction == "upload":
+        ep_s, ep_d = _LOCAL_ENDPOINT, cloud_endpoint
+    else:
+        ep_s, ep_d = cloud_endpoint, _LOCAL_ENDPOINT
+    cents = egress_cost_usd(ep_s, ep_d, payload_gb)
+    reset_link_counters([(ep_s, ep_d)])
+    sm = sample_link(ep_s, ep_d, rng=rng)
+    lat = _transfer_seconds(payload_gb, sm) + 0.5 * (sm.rtt_ms / 1000.0)
+    return cents, lat
 
 
 def _propagate_sizes_gb(
@@ -102,32 +133,35 @@ def _resolve_llm_tokens(
     caption_tokens: tuple[float, float] | None,
     query_tokens: tuple[float, float] | None,
     rng_seed: int | None,
+    caption_output_payload_gb: float | None = None,
+    query_output_payload_gb: float | None = None,
 ) -> tuple[tuple[float, float], tuple[float, float]]:
     duration_sec = max(segment_video_minutes * 60.0, 1e-6)
 
     if caption_tokens is not None:
         ct = caption_tokens
     else:
-        rng = rng_seed
+        if caption_output_payload_gb is None:
+            raise ValueError(
+                "caption_output_payload_gb is required when caption_tokens is omitted"
+            )
         cin = caption_visual_input_tokens(duration_sec)
-        cout = sample_caption_output_tokens(duration_sec, rng=rng)
+        cout = llm_tokens_from_data_payload_gb(caption_output_payload_gb)
         ct = (cin, cout)
 
     if query_tokens is not None:
         qt = query_tokens
     else:
-        import numpy as np
-
-        # Separate caption/query streams strongly (avoid +1 correlation across draws).
-        if rng_seed is None:
-            g = np.random.default_rng()
+        if query_output_payload_gb is None:
+            raise ValueError(
+                "query_output_payload_gb is required when query_tokens is omitted"
+            )
+        if caption_output_payload_gb is not None:
+            qin = llm_tokens_from_data_payload_gb(caption_output_payload_gb)
         else:
-            h = hashlib.sha256(str(int(rng_seed)).encode())
-            h.update(b"|wf_utils_resolve_llm_query_tokens_v1|")
-            sub_seed = int.from_bytes(h.digest()[:8], "big") % (2**63)
-            g = np.random.default_rng(sub_seed)
-        qout = sample_query_output_tokens(rng=g)
-        qt = (ct[1], qout)
+            qin = ct[1]
+        qout = llm_tokens_from_data_payload_gb(query_output_payload_gb)
+        qt = (qin, qout)
 
     return ct, qt
 
@@ -184,10 +218,11 @@ def end_to_end_cost(
     llm_token_rng_seed: int | None = 42,
 ) -> float:
     """
-    Paper-style total cost: Σ execution + Σ storage(S_i + S_i ρ_i) + Σ egress over edges.
+    Paper-style total cost: Σ execution + Σ storage(S_i + S_i ρ_i) + Σ egress over edges,
+    plus **Local→首云** 上传与 **末云→Local** 回传最终输出。
 
-    Uses cloud price tables in ``sim_env.cost``; LLM billable tokens default to
-    ``sim_env.llm`` estimators when ``caption_tokens`` / ``query_tokens`` are omitted.
+    Uses cloud price tables in ``sim_env.cost``. When tokenizer overrides are omitted,
+    caption/query text tokens follow ``llm_tokens_from_data_payload_gb`` from chain payloads.
     """
     for i, n in enumerate(nodes):
         if n.operation != _OPS_ORDER[i]:
@@ -195,11 +230,15 @@ def end_to_end_cost(
 
     s_in, transfer_gb = _propagate_sizes_gb(s_src_gb, rho)
     seg_min = _segment_video_minutes(s_in[0])
+    cap_gb = float(s_in[2]) * float(rho[2])
+    q_out_gb = float(s_in[3]) * float(rho[3])
     (cap_in, cap_out), (q_in, q_out) = _resolve_llm_tokens(
         seg_min,
         caption_tokens=caption_tokens,
         query_tokens=query_tokens,
         rng_seed=llm_token_rng_seed,
+        caption_output_payload_gb=cap_gb,
+        query_output_payload_gb=q_out_gb,
     )
 
     exe = 0.0
@@ -219,9 +258,11 @@ def end_to_end_cost(
         stor += storage_cost_usd(nodes[i].provider, nodes[i].region, gb, hours=1.0)
 
     net = 0.0
+    net += egress_cost_usd(_LOCAL_ENDPOINT, _endpoint(nodes[0]), float(s_in[0]))
     for i in range(3):
         src, dst = _endpoint(nodes[i]), _endpoint(nodes[i + 1])
         net += egress_cost_usd(src, dst, transfer_gb[i])
+    net += egress_cost_usd(_endpoint(nodes[3]), _LOCAL_ENDPOINT, float(transfer_gb[3]))
 
     return exe + stor + net
 
@@ -281,11 +322,15 @@ def end_to_end_latency(
         cap_out = float(caption_output_tokens)
         q_out = float(query_output_tokens)
     else:
+        cap_gb = float(s_in[2]) * float(rho[2])
+        q_out_gb = float(s_in[3]) * float(rho[3])
         cap_pair, q_pair = _resolve_llm_tokens(
             seg_min,
             caption_tokens=None,
             query_tokens=None,
             rng_seed=llm_token_rng_seed,
+            caption_output_payload_gb=cap_gb,
+            query_output_payload_gb=q_out_gb,
         )
         cap_out = cap_pair[1]
         q_out = q_pair[1]
@@ -305,7 +350,23 @@ def end_to_end_latency(
         else llm_decode_duration_sec(q_model, q_out, rng=env_rng)
     )
 
-    lat = t0 + t1 + t2 + t3
+    up_rng = (
+        det_rng(env_rng.randrange(0, 2**31), "lat_upload")
+        if env_rng is not None
+        else None
+    )
+    dn_rng = (
+        det_rng(env_rng.randrange(0, 2**31), "lat_download")
+        if env_rng is not None
+        else None
+    )
+    _, lat_up = local_edge_cost_latency(
+        _endpoint(nodes[0]), float(s_in[0]), direction="upload", rng=up_rng
+    )
+    _, lat_dn = local_edge_cost_latency(
+        _endpoint(nodes[3]), float(transfer_gb[3]), direction="download", rng=dn_rng
+    )
+    lat = lat_up + t0 + t1 + t2 + t3 + lat_dn
 
     if network_samples is None:
         if env_rng is not None:
@@ -358,11 +419,15 @@ def end_to_end_cost_and_latency(
     trial_exec_scale_seed = (
         execution_scale_seed if execution_scale_seed is not None else llm_seed
     )
+    cap_gb = float(s_in[2]) * float(rho[2])
+    q_out_gb = float(s_in[3]) * float(rho[3])
     (cap_in, cap_out), (q_in, q_out) = _resolve_llm_tokens(
         seg_min,
         caption_tokens=None,
         query_tokens=None,
         rng_seed=llm_seed,
+        caption_output_payload_gb=cap_gb,
+        query_output_payload_gb=q_out_gb,
     )
     c = end_to_end_cost(
         nodes,

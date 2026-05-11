@@ -24,7 +24,6 @@ import random
 import pulp as pl
 
 from sim_env import config as cfg
-from sim_env.llm import caption_visual_input_tokens, sample_caption_output_tokens, sample_query_output_tokens
 from sim_env.cost import egress_cost_usd, llm_token_cost_usd, split_cost_usd, storage_cost_usd, video_service_cost_usd
 from sim_env.execution_latency import (
     llm_decode_duration_sec,
@@ -53,37 +52,6 @@ class BaselineResult(NamedTuple):
     nodes: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode]
     total_utility: float
     pulp_status: str | None
-
-
-def _deterministic_llm_token_means(
-    seg_minutes: float,
-    token_seed: int,
-    n_samples: int,
-) -> tuple[tuple[float, float], tuple[float, float]]:
-    """
-    Empirical mean of caption/query output tokens (plug-in mean-field for DO LP).
-
-    ``qin`` for billing uses the mean caption output (feed-forward plug-in).
-    """
-    import numpy as np
-
-    dur_sec = max(seg_minutes * 60.0, 1e-6)
-    cin = caption_visual_input_tokens(dur_sec)
-    cout_acc = 0.0
-    qout_acc = 0.0
-    for si in range(n_samples):
-        cap_rng_seed = wf_utils.det_rng(token_seed, "do_llm_cap", si).randrange(0, 2**31)
-        cout_i = sample_caption_output_tokens(dur_sec, rng=cap_rng_seed)
-        g = np.random.default_rng(
-            wf_utils.det_rng(token_seed, "do_llm_qry", si).randrange(0, 2**31)
-        )
-        qout_i = sample_query_output_tokens(rng=g)
-        cout_acc += cout_i
-        qout_acc += qout_i
-    cout_m = cout_acc / float(n_samples)
-    qout_m = qout_acc / float(n_samples)
-    qin_m = cout_m
-    return (cin, cout_m), (qin_m, qout_m)
 
 
 def _mean_network_transfer_and_rtt(
@@ -155,6 +123,37 @@ def _edge_mean_cost_latency(
         ei=ei,
         ka=ka,
         kb=kb,
+    )
+    return cents, t_tr + t_rtt
+
+
+def _local_edge_mean_cost_latency(
+    cloud_ep: tuple[str, str],
+    payload_gb: float,
+    *,
+    direction: str,
+    token_seed: int,
+    q_idx: int,
+    ei: int,
+    ka: int,
+) -> tuple[float, float]:
+    from sim_env.network import LOCAL_PROVIDER, LOCAL_REGION
+
+    local_ep = (LOCAL_PROVIDER, LOCAL_REGION)
+    if direction == "upload":
+        ep_s, ep_d = local_ep, cloud_ep
+    else:
+        ep_s, ep_d = cloud_ep, local_ep
+    cents = egress_cost_usd(ep_s, ep_d, payload_gb)
+    t_tr, t_rtt = _mean_network_transfer_and_rtt(
+        ep_s,
+        ep_d,
+        payload_gb,
+        token_seed=token_seed,
+        q_idx=q_idx,
+        ei=ei,
+        ka=ka,
+        kb=0,
     )
     return cents, t_tr + t_rtt
 
@@ -231,10 +230,13 @@ def _prepare_deterministic_coefficients(
         sn, xfer = wf_utils._propagate_sizes_gb(s_src, mean_rho)
         seg_min = sky_mod._segment_minutes(sn[0])
         seed = token_seed + q_idx * 17
-        cap_pair, q_pair = _deterministic_llm_token_means(
+        cap_pair, q_pair = wf_utils._resolve_llm_tokens(
             seg_min,
-            seed,
-            llm_token_mean_samples,
+            caption_tokens=None,
+            query_tokens=None,
+            rng_seed=seed,
+            caption_output_payload_gb=float(sn[2]) * float(mean_rho[2]),
+            query_output_payload_gb=float(sn[3]) * float(mean_rho[3]),
         )
 
         ac: list[list[float]] = []
@@ -269,6 +271,32 @@ def _prepare_deterministic_coefficients(
                     exec_scale_rng=exec_scale_rng,
                     llm_latency_rng=llm_latency_rng,
                 )
+                if i == 0:
+                    lep = sky_mod._endpoint(node)
+                    luc, lul = _local_edge_mean_cost_latency(
+                        lep,
+                        float(s_src),
+                        direction="upload",
+                        token_seed=token_seed,
+                        q_idx=q_idx,
+                        ei=40,
+                        ka=ki,
+                    )
+                    c_ij += luc
+                    lat_ij += lul
+                elif i == 3:
+                    lep = sky_mod._endpoint(node)
+                    duc, dul = _local_edge_mean_cost_latency(
+                        lep,
+                        float(xfer[3]),
+                        direction="download",
+                        token_seed=token_seed,
+                        q_idx=q_idx,
+                        ei=43,
+                        ka=ki,
+                    )
+                    c_ij += duc
+                    lat_ij += dul
                 rc.append(c_ij)
                 rl.append(lat_ij)
             ac.append(rc)

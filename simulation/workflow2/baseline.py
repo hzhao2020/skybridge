@@ -36,7 +36,6 @@ from sim_env.execution_latency import (
     node_split_execute_bounds_at,
     sample_execution_scale,
 )
-from sim_env.llm import caption_visual_input_tokens, sample_caption_output_tokens, sample_query_output_tokens
 from sim_env.network import LinkCategory, classify_link, reset_link_counters, sample_link
 from sim_env.utility import QueryProfile
 
@@ -44,8 +43,7 @@ from workflow1 import utils as wf1_utils
 
 from . import utils as wf2_utils
 from .candidates import enumerate_candidates_wf2
-from .sky import path_logical_ops
-from .utils import WF2PathId, WF2PhysicalNode, wf2_node_utility
+from .utils import WF2PathId, WF2PhysicalNode, path_logical_ops, wf2_node_utility
 
 PROVIDERS_SINGLE_CLOUD = ("GCP", "AWS", "Aliyun")
 
@@ -58,31 +56,6 @@ class BaselineResultWf2(NamedTuple):
     nodes: tuple[WF2PhysicalNode, ...]
     total_utility: float
     pulp_status: str | None
-
-
-def _deterministic_llm_token_means(
-    seg_minutes: float,
-    token_seed: int,
-    n_samples: int,
-) -> tuple[tuple[float, float], tuple[float, float]]:
-    import numpy as np
-
-    dur_sec = max(seg_minutes * 60.0, 1e-6)
-    cin = caption_visual_input_tokens(dur_sec)
-    cout_acc = 0.0
-    qout_acc = 0.0
-    for si in range(n_samples):
-        cap_rng_seed = wf1_utils.det_rng(token_seed, "wf2_do_llm_cap", si).randrange(0, 2**31)
-        cout_i = sample_caption_output_tokens(dur_sec, rng=cap_rng_seed)
-        g = np.random.default_rng(
-            wf1_utils.det_rng(token_seed, "wf2_do_llm_qry", si).randrange(0, 2**31)
-        )
-        qout_i = sample_query_output_tokens(rng=g)
-        cout_acc += cout_i
-        qout_acc += qout_i
-    cout_m = cout_acc / float(n_samples)
-    qout_m = qout_acc / float(n_samples)
-    return (cin, cout_m), (cout_m, qout_m)
 
 
 def _mean_network_transfer_and_rtt_wf2(
@@ -154,6 +127,38 @@ def _edge_mean_cost_latency_wf2(
     return cents, t_tr + t_rtt
 
 
+def _local_edge_mean_cost_latency_wf2(
+    cloud_ep: tuple[str, str],
+    payload_gb: float,
+    *,
+    direction: str,
+    token_seed: int,
+    q_idx: int,
+    ei: int,
+    ka: int,
+) -> tuple[float, float]:
+    from sim_env.network import LOCAL_PROVIDER, LOCAL_REGION
+
+    local_ep = (LOCAL_PROVIDER, LOCAL_REGION)
+    if direction == "upload":
+        ep_s, ep_d = local_ep, cloud_ep
+    else:
+        ep_s, ep_d = cloud_ep, local_ep
+    cents = egress_cost_usd(ep_s, ep_d, payload_gb)
+    t_tr, t_rtt = _mean_network_transfer_and_rtt_wf2(
+        ep_s,
+        ep_d,
+        payload_gb,
+        _NET_MEAN_SAMPLES,
+        token_seed=token_seed,
+        q_idx=q_idx,
+        ei=ei,
+        ka=ka,
+        kb=0,
+    )
+    return cents, t_tr + t_rtt
+
+
 def _deterministic_local_cost_latency_wf2(
     logical_op: str,
     node: WF2PhysicalNode,
@@ -172,11 +177,11 @@ def _deterministic_local_cost_latency_wf2(
     if logical_op == "database":
         stor = database_storage_cost_usd(node.provider, node.region, gb_local, days=1.0)
     else:
-        stor = storage_cost_usd(node.provider, node.region, gb_local, days=1.0)
+        stor = storage_cost_usd(node.provider, node.region, gb_local, hours=1.0)
     p, r = node.provider, node.region
     dur_sec = max(seg_minutes * 60.0, 1e-6)
     cin, cout = cap_pair
-    _, qout = q_pair
+    qin, qout = q_pair
     k = sample_execution_scale(exec_scale_rng)
 
     if logical_op == "video_segment":
@@ -225,7 +230,7 @@ def _deterministic_local_cost_latency_wf2(
     if logical_op == "answer":
         mm = node.model or ""
         exe = llm_token_cost_usd(
-            p, r, mm, wf2_utils.WF2_PLACEHOLDER_ANSWER_INPUT_TOKENS, qout
+            p, r, mm, qin, qout
         )
         t_exe = llm_decode_duration_sec(mm, qout, rng=llm_latency_rng)
         return exe + stor, t_exe
@@ -260,11 +265,7 @@ def _prepare_deterministic_coefficients_wf2(
         sn, xfer = wf2_utils.propagate_path_sizes(s_src, mean_rho)
         seg_min = wf2_utils._segment_video_minutes_from_source(s_src)
         seed = token_seed + q_idx * 17
-        cap_pair, q_pair = _deterministic_llm_token_means(
-            seg_min,
-            seed,
-            llm_token_mean_samples,
-        )
+        cap_pair, q_pair = wf2_utils.wf2_llm_token_bundle(path_id, s_src, mean_rho)
 
         ac: list[list[float]] = []
         al: list[list[float]] = []
@@ -305,6 +306,32 @@ def _prepare_deterministic_coefficients_wf2(
                     exec_scale_rng=exec_scale_rng,
                     llm_latency_rng=llm_latency_rng,
                 )
+                if i == 0 and op == "video_segment":
+                    lep = (node.provider, node.region)
+                    luc, lul = _local_edge_mean_cost_latency_wf2(
+                        lep,
+                        float(s_src),
+                        direction="upload",
+                        token_seed=token_seed,
+                        q_idx=q_idx,
+                        ei=140,
+                        ka=ki,
+                    )
+                    c_ij += luc
+                    lat_ij += lul
+                elif i == L - 1 and op == "answer":
+                    lep = (node.provider, node.region)
+                    duc, dul = _local_edge_mean_cost_latency_wf2(
+                        lep,
+                        float(xfer[i]),
+                        direction="download",
+                        token_seed=token_seed,
+                        q_idx=q_idx,
+                        ei=143,
+                        ka=ki,
+                    )
+                    c_ij += duc
+                    lat_ij += dul
                 rc.append(c_ij)
                 rl.append(lat_ij)
             ac.append(rc)

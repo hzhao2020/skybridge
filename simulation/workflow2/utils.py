@@ -20,12 +20,9 @@ split 计费与分割执行延迟模型（占位语义：镜头检测 / 切分�
 
 from __future__ import annotations
 
-import math
 import random
 from dataclasses import dataclass
 from typing import Literal, Sequence
-
-import numpy as np
 
 from sim_env import config as cfg
 from sim_env.cost import (
@@ -47,13 +44,20 @@ from sim_env.execution_latency import (
     sample_speech_transcription_execute_sec,
     sample_split_execute_sec,
 )
-from sim_env.llm import sample_query_output_tokens
-from sim_env.network import NetworkSample, reset_link_counters, sample_link
+from sim_env.llm import caption_visual_input_tokens, llm_tokens_from_data_payload_gb
+from sim_env.network import (
+    LOCAL_PROVIDER,
+    LOCAL_REGION,
+    NetworkSample,
+    reset_link_counters,
+    sample_link,
+)
 from sim_env.utility import PhysicalNode, QueryProfile, physical_node_utility
 
 from workflow1 import utils as wf1_utils
 
-# ---------------------------------------------------------------------------
+
+_WF2_LOCAL_EP: ProviderRegion = (LOCAL_PROVIDER, LOCAL_REGION)
 # 路径定义（逻辑算子名）
 # ---------------------------------------------------------------------------
 
@@ -122,40 +126,53 @@ def path_logical_ops(path_id: WF2PathId) -> tuple[str, ...]:
 WF2_PLACEHOLDER_QA_FIXED_COST_USD = 0.001
 WF2_PLACEHOLDER_QA_LATENCY_SEC = 0.03
 
-WF2_PLACEHOLDER_ANSWER_INPUT_TOKENS = 12_000.0
+
+def sample_database_conversion_ratio(s_in_gb: float, rng: random.Random) -> float:
+    """Database row: uniform file size in [4 KiB, 6 KiB]; ratio = payload_gb / s_in."""
+    if s_in_gb <= 0:
+        raise ValueError("s_in_gb must be positive")
+    out_b = cfg.sample_database_output_file_bytes(rng)
+    out_gb = float(out_b) / 1_000_000_000.0
+    return out_gb / s_in_gb
 
 
-def _lognormal_variance(mu: float, sigma: float) -> float:
-    """``Var(R)``，其中 ``ln(R) ~ N(mu, sigma^2)``（``sigma`` 为对数尺度标准差）。"""
-    return math.exp(2.0 * mu + sigma * sigma) * (math.exp(sigma * sigma) - 1.0)
+def wf2_llm_token_bundle(
+    path_id: WF2PathId,
+    s_src_gb: float,
+    rho: tuple[float, ...],
+) -> tuple[tuple[float, float], tuple[float, float]]:
+    """
+    Caption **vision** input unchanged; text-side tokens from payload GB via 1 KiB≈250 tok.
+    ``rho`` length may be a prefix of the full path (prefix aggregates).
+    """
+    ops_full = path_logical_ops(path_id)
+    n = len(rho)
+    s_in, _ = propagate_path_sizes(s_src_gb, rho)
+    seg_min = _segment_video_minutes_from_source(s_src_gb)
+    dur = max(seg_min * 60.0, 1e-6)
 
+    if "video_caption" in ops_full:
+        ci = ops_full.index("video_caption")
+        if ci < n:
+            cap_out_gb = float(s_in[ci]) * float(rho[ci])
+            cin = caption_visual_input_tokens(dur)
+            cout = llm_tokens_from_data_payload_gb(cap_out_gb)
+            cap_pair: tuple[float, float] = (cin, cout)
+        else:
+            cap_pair = (0.0, 1.0)
+    else:
+        cap_pair = (0.0, 1.0)
 
-def _lognormal_mu_sigma_from_mean_variance(mean: float, variance: float) -> tuple[float, float]:
-    """由目标均值与方差反推 LogNormal 的 ``(mu, sigma)``（与 ``ln(R)~N(mu,sigma^2)`` 记号一致）。"""
-    if mean <= 0:
-        raise ValueError("mean must be positive")
-    if variance < 0:
-        raise ValueError("variance must be non-negative")
-    sigma_sq = math.log(1.0 + variance / (mean * mean))
-    sigma = math.sqrt(sigma_sq)
-    mu = math.log(mean) - 0.5 * sigma_sq
-    return mu, sigma
+    qa_i = ops_full.index("qa")
+    ans_i = ops_full.index("answer")
+    qa_out_gb = float(s_in[qa_i]) * float(rho[qa_i]) if qa_i < n else 0.0
+    ans_out_gb = float(s_in[ans_i]) * float(rho[ans_i]) if ans_i < n else 0.0
+    q_pair = (
+        llm_tokens_from_data_payload_gb(qa_out_gb),
+        llm_tokens_from_data_payload_gb(ans_out_gb),
+    )
+    return cap_pair, q_pair
 
-
-# database：线性均值 0.2，线性方差与 caption 的 Var(R) 相同（caption 参数取自 ``config``）
-_mu_cap, _sig_cap = cfg.data_conversion_ratio_lognormal_params("caption")
-_CAPTION_RATIO_VARIANCE = _lognormal_variance(_mu_cap, _sig_cap)
-WF2_DATABASE_RATIO_TARGET_MEAN = 0.2
-WF2_DATABASE_RATIO_LOGNORMAL_MU, WF2_DATABASE_RATIO_LOGNORMAL_SIGMA = _lognormal_mu_sigma_from_mean_variance(
-    WF2_DATABASE_RATIO_TARGET_MEAN,
-    _CAPTION_RATIO_VARIANCE,
-)
-
-# ln(R)~N(mu,sigma^2)，用于仍无 config 条目的逻辑算子（qa / answer）
-WF2_PLACEHOLDER_RATIO_LOGNORMAL: dict[str, tuple[float, float]] = {
-    "qa": (-3.0, 0.4),
-    "answer": (-1.72, 0.47),
-}
 
 WF2_PLACEHOLDER_VI_UTILITY = 0.88
 WF2_PLACEHOLDER_DB_UTILITY = 0.82
@@ -174,36 +191,51 @@ def _ratio_model_key(logical_op: str) -> str:
     if logical_op == "video_segment":
         return "segment"
     if logical_op == "shot_detection":
-        return "split"
-    # ocr / label / speech 与 caption 共用同一 LogNormal（``config`` 中 ``caption`` 条目）
-    if logical_op in ("video_caption", "ocr", "label_detection", "speech_transcription"):
+        return "shot_detection"
+    if logical_op == "video_caption":
         return "caption"
-    if logical_op in ("database", "qa", "answer"):
-        return logical_op
+    if logical_op == "speech_transcription":
+        return "speech_transcription"
+    if logical_op == "ocr":
+        return "ocr"
+    if logical_op == "label_detection":
+        return "label_detection"
+    if logical_op == "qa":
+        return "qa"
+    if logical_op == "answer":
+        return "answer"
     raise KeyError(f"unknown logical_op for ratio: {logical_op!r}")
 
 
 def sample_wf2_logical_ratio(logical_op: str, rng: random.Random | None = None) -> float:
-    r = rng or random.Random()
+    """Per-step stochastic ρ (LogNormal families from ``config``). Not valid for ``database``."""
     if logical_op == "database":
-        mu, sigma = WF2_DATABASE_RATIO_LOGNORMAL_MU, WF2_DATABASE_RATIO_LOGNORMAL_SIGMA
-        return math.exp(mu + sigma * r.gauss(0.0, 1.0))
-    key = _ratio_model_key(logical_op)
-    if key in cfg.DATA_CONVERSION_RATIO_LOGNORMAL:
-        return cfg.sample_data_conversion_ratio(key, r)
-    try:
-        mu, sigma = WF2_PLACEHOLDER_RATIO_LOGNORMAL[key]
-    except KeyError as e:
-        raise KeyError(f"No ratio model for logical_op={logical_op!r} (key={key!r})") from e
-    z = r.gauss(0.0, 1.0)
-    return math.exp(mu + sigma * z)
-
-
-def sample_wf2_path_rho(path_id: WF2PathId, rng: random.Random | None = None) -> tuple[float, ...]:
-    """与 ``path_logical_ops`` 等长的 ρ 抽样。"""
+        raise ValueError(
+            "database ρ depends on upstream size; use sample_database_conversion_ratio "
+            "or sample_wf2_path_rho(path_id, rng, s_src_gb)"
+        )
     r = rng or random.Random()
+    key = _ratio_model_key(logical_op)
+    return cfg.sample_data_conversion_ratio(key, r)
+
+
+def sample_wf2_path_rho(
+    path_id: WF2PathId,
+    rng: random.Random,
+    s_src_gb: float,
+) -> tuple[float, ...]:
+    """沿路径顺序抽样；database 步为 4–6 KiB 均匀payload。"""
     ops = path_logical_ops(path_id)
-    return tuple(sample_wf2_logical_ratio(op, r) for op in ops)
+    rhos: list[float] = []
+    s = float(s_src_gb)
+    for op in ops:
+        if op == "database":
+            rho = sample_database_conversion_ratio(s, rng)
+        else:
+            rho = sample_wf2_logical_ratio(op, rng)
+        rhos.append(rho)
+        s *= rho
+    return tuple(rhos)
 
 
 def propagate_path_sizes(
@@ -290,7 +322,7 @@ def _storage_cost_nodes(nodes: Sequence[WF2PhysicalNode], s_in: Sequence[float],
         if n.operation == "database":
             t += database_storage_cost_usd(n.provider, n.region, gb, days=1.0)
         else:
-            t += storage_cost_usd(n.provider, n.region, gb, days=1.0)
+            t += storage_cost_usd(n.provider, n.region, gb, hours=1.0)
     return t
 
 
@@ -315,7 +347,6 @@ def _exe_cost_logical_step(
     seg_minutes_source_video: float,
     llm_tokens_bundle: tuple[tuple[float, float], tuple[float, float]] | None,
     answer_tokens_override: tuple[float, float] | None,
-    database_storage_gb: float | None = None,
 ) -> float:
     """单步执行费（不含存储/网络）。"""
     p, r = node.provider, node.region
@@ -346,9 +377,8 @@ def _exe_cost_logical_step(
             return llm_token_cost_usd(p, r, node.model, ain, aout)
         if llm_tokens_bundle is None:
             raise ValueError("answer needs tokens bundle or answer_tokens_override")
-        _, (_, qout) = llm_tokens_bundle
-        ain = WF2_PLACEHOLDER_ANSWER_INPUT_TOKENS
-        return llm_token_cost_usd(p, r, node.model, ain, qout)
+        qin, qout = llm_tokens_bundle[1]
+        return llm_token_cost_usd(p, r, node.model, qin, qout)
     raise ValueError(f"unknown logical_op: {logical_op!r}")
 
 
@@ -419,34 +449,37 @@ def end_to_end_cost_exclusive_path(
         raise ValueError("rho length must match number of nodes")
 
     seg_min = _segment_video_minutes_from_source(s_src_gb)
-    ops = path_logical_ops(path_id)
-    llm_bundle = wf1_utils._resolve_llm_tokens(
-        seg_min,
-        caption_tokens=None,
-        query_tokens=None,
-        rng_seed=llm_token_rng_seed,
-    )
+    llm_bundle = wf2_llm_token_bundle(path_id, s_src_gb, rho)
+    ans_tok = answer_tokens if answer_tokens is not None else llm_bundle[1]
 
     s_in, xfer = propagate_path_sizes(s_src_gb, rho)
+    ops = path_logical_ops(path_id)
     exe = 0.0
     for i, op in enumerate(ops):
-        db_gb = float(s_in[i]) * (1.0 + float(rho[i])) if op == "database" else None
         exe += _exe_cost_logical_step(
             op,
             nodes[i],
             seg_minutes_source_video=seg_min,
             llm_tokens_bundle=llm_bundle,
-            answer_tokens_override=answer_tokens if op == "answer" else None,
-            database_storage_gb=db_gb,
+            answer_tokens_override=ans_tok if op == "answer" else None,
         )
     stor = _storage_cost_nodes(nodes, s_in, rho)
-    net = 0.0
+    net = egress_cost_usd(
+        _WF2_LOCAL_EP,
+        _endpoint(nodes[0].provider, nodes[0].region),
+        float(s_in[0]),
+    )
     for i in range(len(nodes) - 1):
         net += egress_cost_usd(
             _endpoint(nodes[i].provider, nodes[i].region),
             _endpoint(nodes[i + 1].provider, nodes[i + 1].region),
             xfer[i],
         )
+    net += egress_cost_usd(
+        _endpoint(nodes[-1].provider, nodes[-1].region),
+        _WF2_LOCAL_EP,
+        float(xfer[-1]),
+    )
     return exe + stor + net
 
 
@@ -474,18 +507,20 @@ def end_to_end_latency_exclusive_path(
     dur_sec = max(seg_min * 60.0, 1e-6)
     ops = path_logical_ops(path_id)
 
-    cap_pair, q_pair = wf1_utils._resolve_llm_tokens(
-        seg_min,
-        caption_tokens=None,
-        query_tokens=None,
-        rng_seed=llm_token_rng_seed,
-    )
+    cap_pair, q_pair = wf2_llm_token_bundle(path_id, s_src_gb, rho)
     cap_out = cap_pair[1]
     q_out = float(answer_output_tokens) if answer_output_tokens is not None else q_pair[1]
 
     vo = vi_exe_override or {}
 
-    lat = 0.0
+    s_in, xfer = propagate_path_sizes(s_src_gb, rho)
+    _, lat_up = wf1_utils.local_edge_cost_latency(
+        _endpoint(nodes[0].provider, nodes[0].region),
+        float(s_in[0]),
+        direction="upload",
+        rng=wf1_utils.det_rng(er.randrange(0, 2**31), "wf2_exc_up", path_id),
+    )
+    lat = lat_up
     for i, op in enumerate(ops):
         n = nodes[i]
         if op == "video_segment":
@@ -544,7 +579,6 @@ def end_to_end_latency_exclusive_path(
         else:
             raise RuntimeError(op)
 
-    _, xfer = propagate_path_sizes(s_src_gb, rho)
     if network_samples is None:
         samples = tuple(
             sample_link(
@@ -559,6 +593,14 @@ def end_to_end_latency_exclusive_path(
 
     for i in range(len(nodes) - 1):
         lat += wf1_utils._transfer_seconds(xfer[i], samples[i]) + 0.5 * (samples[i].rtt_ms / 1000.0)
+
+    _, lat_dn = wf1_utils.local_edge_cost_latency(
+        _endpoint(nodes[-1].provider, nodes[-1].region),
+        float(xfer[-1]),
+        direction="download",
+        rng=wf1_utils.det_rng(er.randrange(0, 2**31), "wf2_exc_dn", path_id),
+    )
+    lat += lat_dn
 
     return lat
 
@@ -590,12 +632,12 @@ def end_to_end_cost_parallel_shot_modalities(
         raise ValueError("active_modalities must be non-empty")
 
     seg_min = _segment_video_minutes_from_source(s_src_gb)
-    llm_bundle = wf1_utils._resolve_llm_tokens(
-        seg_min,
-        caption_tokens=None,
-        query_tokens=None,
-        rng_seed=llm_token_rng_seed,
-    )
+
+    s_after_video = s_src_gb * rho_video
+    s_after_shot = s_after_video * rho_shot
+    rho_cap = float(rho_modalities.get("video_caption", 0.0))
+    rho_syn = (rho_video, rho_shot, rho_cap, rho_database, rho_qa, rho_answer)
+    llm_bundle = wf2_llm_token_bundle("caption", s_src_gb, rho_syn)
 
     # --- prefix: video → shot
     exe = _exe_cost_logical_step(
@@ -618,6 +660,11 @@ def end_to_end_cost_parallel_shot_modalities(
     xfer_v_s = s_src_gb * rho_video
 
     net = egress_cost_usd(
+        _WF2_LOCAL_EP,
+        _endpoint(node_video.provider, node_video.region),
+        float(s_src_gb),
+    )
+    net += egress_cost_usd(
         _endpoint(node_video.provider, node_video.region),
         _endpoint(node_shot.provider, node_shot.region),
         xfer_v_s,
@@ -685,7 +732,6 @@ def end_to_end_cost_parallel_shot_modalities(
         seg_minutes_source_video=seg_min,
         llm_tokens_bundle=llm_bundle,
         answer_tokens_override=None,
-        database_storage_gb=s_db_in * (1.0 + rho_database),
     )
     exe += _exe_cost_logical_step(
         "qa",
@@ -699,14 +745,14 @@ def end_to_end_cost_parallel_shot_modalities(
         node_answer,
         seg_minutes_source_video=seg_min,
         llm_tokens_bundle=llm_bundle,
-        answer_tokens_override=answer_tokens,
+        answer_tokens_override=answer_tokens if answer_tokens is not None else llm_bundle[1],
     )
 
     stor += database_storage_cost_usd(
         node_database.provider,
         node_database.region,
         s_db_in * (1.0 + rho_database),
-        hours=1.0,
+        days=1.0,
     )
     s_after_db = s_db_in * rho_database
     xfer_db_q = s_db_in * rho_database
@@ -735,6 +781,13 @@ def end_to_end_cost_parallel_shot_modalities(
         node_answer.region,
         s_after_qa * (1.0 + rho_answer),
         hours=1.0,
+    )
+
+    s_answer_out = float(s_after_qa) * float(rho_answer)
+    net += egress_cost_usd(
+        _endpoint(node_answer.provider, node_answer.region),
+        _WF2_LOCAL_EP,
+        s_answer_out,
     )
 
     return exe + stor + net
@@ -769,14 +822,20 @@ def end_to_end_latency_parallel_shot_modalities(
     er = env_rng or random.Random()
     seg_min = _segment_video_minutes_from_source(s_src_gb)
     dur_sec = max(seg_min * 60.0, 1e-6)
-    cap_pair, q_pair = wf1_utils._resolve_llm_tokens(
-        seg_min,
-        caption_tokens=None,
-        query_tokens=None,
-        rng_seed=llm_token_rng_seed,
-    )
+    s_after_video = s_src_gb * rho_video
+    s_after_shot = s_after_video * rho_shot
+    rho_cap = float(rho_modalities.get("video_caption", 0.0))
+    rho_syn = (rho_video, rho_shot, rho_cap, rho_database, rho_qa, rho_answer)
+    cap_pair, q_pair = wf2_llm_token_bundle("caption", s_src_gb, rho_syn)
     cap_out = cap_pair[1]
     q_out = float(answer_output_tokens) if answer_output_tokens is not None else q_pair[1]
+
+    _, el_up = wf1_utils.local_edge_cost_latency(
+        _endpoint(node_video.provider, node_video.region),
+        float(s_src_gb),
+        direction="upload",
+        rng=wf1_utils.det_rng(er.randrange(0, 2**31), "par_up"),
+    )
 
     t_vid = _sample_vi_execute_sec(
         "video_segment",
@@ -794,12 +853,10 @@ def end_to_end_latency_parallel_shot_modalities(
         execution_scale_scope=execution_scale_scope,
         execution_scale_seed=execution_scale_seed,
     )
-    s_after_video = s_src_gb * rho_video
     xfer_vs = s_src_gb * rho_video
     _, el_vs = _edge_cost_latency(node_video, node_shot, xfer_vs, rng=wf1_utils.det_rng(er.randrange(0, 2**31), "par_vs"))
 
     branch_times: list[float] = []
-    s_after_shot = s_after_video * rho_shot
     for m in sorted(active_modalities):
         mn = modality_nodes[m]
         rho_m = rho_modalities[m]
@@ -845,8 +902,17 @@ def end_to_end_latency_parallel_shot_modalities(
         execution_scale_seed=execution_scale_seed,
     )
 
+    s_answer_out = float(s_after_db) * float(rho_qa) * float(rho_answer)
+    _, el_dn = wf1_utils.local_edge_cost_latency(
+        _endpoint(node_answer.provider, node_answer.region),
+        s_answer_out,
+        direction="download",
+        rng=wf1_utils.det_rng(er.randrange(0, 2**31), "par_dn"),
+    )
+
     return (
-        t_vid
+        el_up
+        + t_vid
         + el_vs
         + t_shot
         + t_parallel
@@ -855,6 +921,7 @@ def end_to_end_latency_parallel_shot_modalities(
         + WF2_PLACEHOLDER_QA_LATENCY_SEC
         + el_qa
         + t_ans
+        + el_dn
     )
 
 
@@ -900,16 +967,18 @@ def plugin_mean_data_conversion_ratios_wf2(
     *,
     n_calibration_samples: int,
     rng: random.Random,
+    s_src_gb_ref: float = 1.0,
 ) -> tuple[float, ...]:
-    """与 ``workflow1.config.plugin_mean_data_conversion_ratios`` 同 spirit 的 plug-in 均值（沿路径各逻辑算子）。"""
+    """Plug-in mean ρ：每次蒙特卡洛抽取整条路径（含 sequential database）再按位取平均。"""
     ops = path_logical_ops(path_id)
     if n_calibration_samples <= 0:
         raise ValueError("n_calibration_samples must be positive")
     sums = [0.0] * len(ops)
     inv = 1.0 / float(n_calibration_samples)
     for _ in range(n_calibration_samples):
-        for i, op in enumerate(ops):
-            sums[i] += sample_wf2_logical_ratio(op, rng)
+        rho = sample_wf2_path_rho(path_id, rng, s_src_gb_ref)
+        for i, r in enumerate(rho):
+            sums[i] += r
     return tuple(s * inv for s in sums)
 
 
@@ -987,10 +1056,10 @@ def exclusive_path_cost_and_latency_mc(
     """单次蒙特卡洛：费用、**算法路径延迟（沿所选路径求和）**、**展示用 workflow 延迟（岔路 max）**。"""
     from .display_latency import workflow_display_latency_max_fork
 
-    rho = sample_wf2_path_rho(path_id, workflow_rng)
+    rho = sample_wf2_path_rho(path_id, workflow_rng, s_src_gb)
     llm_seed = workflow_rng.randrange(0, 2**31)
-    g = np.random.default_rng(wf1_utils.det_rng(llm_seed, "wf2_exc_aout").randrange(0, 2**31))
-    q_out = float(sample_query_output_tokens(rng=g))
+    _cap, q_pair = wf2_llm_token_bundle(path_id, s_src_gb, rho)
+    q_out = float(q_pair[1])
 
     c = end_to_end_cost_exclusive_path(
         path_id,
@@ -998,7 +1067,7 @@ def exclusive_path_cost_and_latency_mc(
         s_src_gb,
         rho,
         llm_token_rng_seed=llm_seed,
-        answer_tokens=(WF2_PLACEHOLDER_ANSWER_INPUT_TOKENS, q_out),
+        answer_tokens=q_pair,
     )
 
     trial_scope = execution_scale_scope if execution_scale_scope is not None else str(llm_seed)
@@ -1035,7 +1104,7 @@ if __name__ == "__main__":  # pragma: no cover
     ri = random.Random(0)
     for pid in ("caption", "ocr", "label", "speech"):
         chain = reference_deployment_exclusive_path(pid)
-        rho = sample_wf2_path_rho(pid, ri)
+        rho = sample_wf2_path_rho(pid, ri, 0.5)
         print(pid, "rho_len", len(rho))
         print(
             "  cost",
@@ -1051,7 +1120,11 @@ if __name__ == "__main__":  # pragma: no cover
         "ocr": WF2PhysicalNode("ocr", "GCP", "us-east1"),
         "label_detection": WF2PhysicalNode("label_detection", "GCP", "us-east1"),
     }
+    rv = sample_wf2_logical_ratio("video_segment", ri)
+    rs = sample_wf2_logical_ratio("shot_detection", ri)
     rho_m = {k: sample_wf2_logical_ratio(k, ri) for k in nodes_mod}
+    s_db_in = sum(0.5 * rv * rs * rho_m[k] for k in sorted(rho_m))
+    rho_db = sample_database_conversion_ratio(s_db_in, ri)
     print(
         "parallel_cost",
         end_to_end_cost_parallel_shot_modalities(
@@ -1063,10 +1136,10 @@ if __name__ == "__main__":  # pragma: no cover
             node_answer=WF2PhysicalNode("answer", "GCP", "us-east1", "Gemini 2.5 Flash"),
             active_modalities=frozenset({"video_caption", "ocr"}),
             s_src_gb=0.5,
-            rho_video=sample_wf2_logical_ratio("video_segment", ri),
-            rho_shot=sample_wf2_logical_ratio("shot_detection", ri),
+            rho_video=rv,
+            rho_shot=rs,
             rho_modalities=rho_m,
-            rho_database=sample_wf2_logical_ratio("database", ri),
+            rho_database=rho_db,
             rho_qa=sample_wf2_logical_ratio("qa", ri),
             rho_answer=sample_wf2_logical_ratio("answer", ri),
             llm_token_rng_seed=11,
