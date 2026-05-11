@@ -30,7 +30,8 @@ import numpy as np
 from sim_env import config as cfg
 from sim_env.cost import (
     ProviderRegion,
-    database_invocation_cost_usd,
+    database_instance_cost_usd,
+    database_storage_cost_usd,
     egress_cost_usd,
     llm_token_cost_usd,
     split_cost_usd,
@@ -117,8 +118,7 @@ def path_logical_ops(path_id: WF2PathId) -> tuple[str, ...]:
     raise ValueError(f"unknown path_id: {path_id!r}")
 
 
-# Placeholder USD / 延迟（qa）；database 使用 ``cost.database_invocation_cost_usd`` 与
-# ``execution_latency.sample_database_query_execute_sec``。
+# Placeholder USD / 延迟（qa）；database 使用 ``sim_env.cost`` 中托管库实例价 + DB 存储单价
 WF2_PLACEHOLDER_QA_FIXED_COST_USD = 0.001
 WF2_PLACEHOLDER_QA_LATENCY_SEC = 0.03
 
@@ -287,7 +287,10 @@ def _storage_cost_nodes(nodes: Sequence[WF2PhysicalNode], s_in: Sequence[float],
     t = 0.0
     for i, n in enumerate(nodes):
         gb = float(s_in[i]) * (1.0 + float(rho[i]))
-        t += storage_cost_usd(n.provider, n.region, gb, hours=1.0)
+        if n.operation == "database":
+            t += database_storage_cost_usd(n.provider, n.region, gb, days=1.0)
+        else:
+            t += storage_cost_usd(n.provider, n.region, gb, days=1.0)
     return t
 
 
@@ -332,8 +335,7 @@ def _exe_cost_logical_step(
     if logical_op == "speech_transcription":
         return video_service_cost_usd(p, r, "speech_transcription", seg_minutes_source_video)
     if logical_op == "database":
-        gb = float(database_storage_gb) if database_storage_gb is not None else 0.0
-        return database_invocation_cost_usd(p, r, gb)
+        return database_instance_cost_usd(p, r, days=1.0)
     if logical_op == "qa":
         return WF2_PLACEHOLDER_QA_FIXED_COST_USD
     if logical_op == "answer":
@@ -700,7 +702,7 @@ def end_to_end_cost_parallel_shot_modalities(
         answer_tokens_override=answer_tokens,
     )
 
-    stor += storage_cost_usd(
+    stor += database_storage_cost_usd(
         node_database.provider,
         node_database.region,
         s_db_in * (1.0 + rho_database),
