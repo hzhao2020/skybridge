@@ -28,9 +28,18 @@ from typing import Literal, Sequence
 import numpy as np
 
 from sim_env import config as cfg
-from sim_env.cost import ProviderRegion, egress_cost_usd, llm_token_cost_usd, split_cost_usd, storage_cost_usd, video_service_cost_usd
+from sim_env.cost import (
+    ProviderRegion,
+    database_invocation_cost_usd,
+    egress_cost_usd,
+    llm_token_cost_usd,
+    split_cost_usd,
+    storage_cost_usd,
+    video_service_cost_usd,
+)
 from sim_env.execution_latency import (
     llm_decode_duration_sec,
+    sample_database_query_execute_sec,
     sample_label_detection_execute_sec,
     sample_ocr_execute_sec,
     sample_segment_execute_sec,
@@ -108,10 +117,9 @@ def path_logical_ops(path_id: WF2PathId) -> tuple[str, ...]:
     raise ValueError(f"unknown path_id: {path_id!r}")
 
 
-# Placeholder USD / 延迟（database / qa）；embedding 已并入 answer 前占位费亦可后续拆分
-WF2_PLACEHOLDER_DB_FIXED_COST_USD = 0.004
+# Placeholder USD / 延迟（qa）；database 使用 ``cost.database_invocation_cost_usd`` 与
+# ``execution_latency.sample_database_query_execute_sec``。
 WF2_PLACEHOLDER_QA_FIXED_COST_USD = 0.001
-WF2_PLACEHOLDER_DB_LATENCY_SEC = 0.08
 WF2_PLACEHOLDER_QA_LATENCY_SEC = 0.03
 
 WF2_PLACEHOLDER_ANSWER_INPUT_TOKENS = 12_000.0
@@ -279,7 +287,7 @@ def _storage_cost_nodes(nodes: Sequence[WF2PhysicalNode], s_in: Sequence[float],
     t = 0.0
     for i, n in enumerate(nodes):
         gb = float(s_in[i]) * (1.0 + float(rho[i]))
-        t += storage_cost_usd(n.provider, n.region, gb, days=1.0)
+        t += storage_cost_usd(n.provider, n.region, gb, hours=1.0)
     return t
 
 
@@ -304,6 +312,7 @@ def _exe_cost_logical_step(
     seg_minutes_source_video: float,
     llm_tokens_bundle: tuple[tuple[float, float], tuple[float, float]] | None,
     answer_tokens_override: tuple[float, float] | None,
+    database_storage_gb: float | None = None,
 ) -> float:
     """单步执行费（不含存储/网络）。"""
     p, r = node.provider, node.region
@@ -323,7 +332,8 @@ def _exe_cost_logical_step(
     if logical_op == "speech_transcription":
         return video_service_cost_usd(p, r, "speech_transcription", seg_minutes_source_video)
     if logical_op == "database":
-        return WF2_PLACEHOLDER_DB_FIXED_COST_USD
+        gb = float(database_storage_gb) if database_storage_gb is not None else 0.0
+        return database_invocation_cost_usd(p, r, gb)
     if logical_op == "qa":
         return WF2_PLACEHOLDER_QA_FIXED_COST_USD
     if logical_op == "answer":
@@ -415,17 +425,18 @@ def end_to_end_cost_exclusive_path(
         rng_seed=llm_token_rng_seed,
     )
 
+    s_in, xfer = propagate_path_sizes(s_src_gb, rho)
     exe = 0.0
     for i, op in enumerate(ops):
+        db_gb = float(s_in[i]) * (1.0 + float(rho[i])) if op == "database" else None
         exe += _exe_cost_logical_step(
             op,
             nodes[i],
             seg_minutes_source_video=seg_min,
             llm_tokens_bundle=llm_bundle,
             answer_tokens_override=answer_tokens if op == "answer" else None,
+            database_storage_gb=db_gb,
         )
-
-    s_in, xfer = propagate_path_sizes(s_src_gb, rho)
     stor = _storage_cost_nodes(nodes, s_in, rho)
     net = 0.0
     for i in range(len(nodes) - 1):
@@ -516,7 +527,12 @@ def end_to_end_latency_exclusive_path(
                 raise ValueError("caption requires model")
             lat += llm_decode_duration_sec(n.model, cap_out, rng=er)
         elif op == "database":
-            lat += WF2_PLACEHOLDER_DB_LATENCY_SEC
+            lat += sample_database_query_execute_sec(
+                rng=er,
+                node=_carrier_segment(n.provider, n.region),
+                execution_scale_scope=execution_scale_scope,
+                execution_scale_seed=execution_scale_seed,
+            )
         elif op == "qa":
             lat += WF2_PLACEHOLDER_QA_LATENCY_SEC
         elif op == "answer":
@@ -609,13 +625,13 @@ def end_to_end_cost_parallel_shot_modalities(
         node_video.provider,
         node_video.region,
         s_src_gb * (1.0 + rho_video),
-        days=1.0,
+        hours=1.0,
     )
     stor += storage_cost_usd(
         node_shot.provider,
         node_shot.region,
         s_after_video * (1.0 + rho_shot),
-        days=1.0,
+        hours=1.0,
     )
 
     branch_outputs_gb: list[float] = []
@@ -646,7 +662,7 @@ def end_to_end_cost_parallel_shot_modalities(
             mn.provider,
             mn.region,
             s_after_shot * (1.0 + rho_m),
-            days=1.0,
+            hours=1.0,
         )
 
     s_db_in = sum(branch_outputs_gb)
@@ -667,6 +683,7 @@ def end_to_end_cost_parallel_shot_modalities(
         seg_minutes_source_video=seg_min,
         llm_tokens_bundle=llm_bundle,
         answer_tokens_override=None,
+        database_storage_gb=s_db_in * (1.0 + rho_database),
     )
     exe += _exe_cost_logical_step(
         "qa",
@@ -687,7 +704,7 @@ def end_to_end_cost_parallel_shot_modalities(
         node_database.provider,
         node_database.region,
         s_db_in * (1.0 + rho_database),
-        days=1.0,
+        hours=1.0,
     )
     s_after_db = s_db_in * rho_database
     xfer_db_q = s_db_in * rho_database
@@ -701,7 +718,7 @@ def end_to_end_cost_parallel_shot_modalities(
         node_qa.provider,
         node_qa.region,
         s_after_db * (1.0 + rho_qa),
-        days=1.0,
+        hours=1.0,
     )
     s_after_qa = s_after_db * rho_qa
     xfer_q_a = s_after_db * rho_qa
@@ -715,7 +732,7 @@ def end_to_end_cost_parallel_shot_modalities(
         node_answer.provider,
         node_answer.region,
         s_after_qa * (1.0 + rho_answer),
-        days=1.0,
+        hours=1.0,
     )
 
     return exe + stor + net
@@ -819,12 +836,19 @@ def end_to_end_latency_parallel_shot_modalities(
         raise ValueError("answer requires model")
     t_ans = llm_decode_duration_sec(node_answer.model, q_out, rng=er)
 
+    t_db = sample_database_query_execute_sec(
+        rng=er,
+        node=_carrier_segment(node_database.provider, node_database.region),
+        execution_scale_scope=execution_scale_scope,
+        execution_scale_seed=execution_scale_seed,
+    )
+
     return (
         t_vid
         + el_vs
         + t_shot
         + t_parallel
-        + WF2_PLACEHOLDER_DB_LATENCY_SEC
+        + t_db
         + el_dq
         + WF2_PLACEHOLDER_QA_LATENCY_SEC
         + el_qa

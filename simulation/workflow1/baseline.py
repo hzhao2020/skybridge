@@ -173,7 +173,7 @@ def _deterministic_local_cost_latency(
 ) -> tuple[float, float]:
     rho_i = float(rho[i])
     stor = storage_cost_usd(
-        node.provider, node.region, float(s_in[i]) * (1.0 + rho_i), days=1.0
+        node.provider, node.region, float(s_in[i]) * (1.0 + rho_i), hours=1.0
     )
     op = OPS[i]
     dur_sec = max(seg_minutes * 60.0, 1e-6)

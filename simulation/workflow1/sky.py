@@ -146,7 +146,7 @@ def coef_local_cost_latency(
     """
     rho_i = float(rho[i])
     stor = storage_cost_usd(
-        node.provider, node.region, float(s_in[i]) * (1.0 + rho_i), days=1.0
+        node.provider, node.region, float(s_in[i]) * (1.0 + rho_i), hours=1.0
     )
     op = OPS_ORDER[i]
     cin, cout = cap_pair

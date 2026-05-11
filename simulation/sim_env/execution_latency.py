@@ -14,6 +14,10 @@ Label / OCR / speech: ``label_ocr_speech_execution_time.csv`` — **same idea**:
 ``sample_ocr_execute_sec``, ``sample_speech_transcription_execute_sec``. Inspect-only combined
 bounds: ``label_ocr_speech_bounds_at``.
 
+Database retrieval (query latency): ``alloydb_latency.csv`` — average latency samples in ms;
+bounds are the file min/max converted to seconds. Sample via ``sample_database_query_execute_sec``
+(uniform inside scaled bounds, same per-node ``k`` as other execution ops).
+
 With a ``PhysicalNode``, scaled latency uses ``k ~ Uniform([1±0.3])`` per endpoint and
 latency operation.
 
@@ -134,6 +138,11 @@ _LABEL_OCR_SPEECH_MEASUREMENT_CSV = (
     / "measurement_data"
     / "label_ocr_speech_execution_time.csv"
 )
+_DATABASE_QUERY_LATENCY_CSV = (
+    Path(__file__).resolve().parent
+    / "measurement_data"
+    / "alloydb_latency.csv"
+)
 
 
 @dataclass(frozen=True)
@@ -200,6 +209,7 @@ LatencyOpKind = Literal[
     "label_detection",
     "ocr",
     "speech_transcription",
+    "database_query",
 ]
 
 
@@ -836,3 +846,81 @@ def sample_speech_transcription_execute_sec(
 def label_ocr_speech_bucket_sizes() -> list[float]:
     """Clip durations (seconds) present in ``label_ocr_speech_execution_time.csv``."""
     return _DEFAULT_LABEL_OCR_SPEECH_MODEL.measured_durations_sec
+
+
+# ---------------------------------------------------------------------------
+# Database retrieval latency (measured AlloyDB avg latencies, ms → seconds)
+# ---------------------------------------------------------------------------
+
+_database_query_latency_bounds_sec: tuple[float, float] | None = None
+
+
+def _ensure_database_query_bounds_loaded() -> tuple[float, float]:
+    global _database_query_latency_bounds_sec
+    if _database_query_latency_bounds_sec is not None:
+        return _database_query_latency_bounds_sec
+    secs: list[float] = []
+    with _DATABASE_QUERY_LATENCY_CSV.open(newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            raw = (row.get("Latency_Avg_ms") or "").strip()
+            if not raw:
+                continue
+            secs.append(float(raw) / 1000.0)
+    if not secs:
+        raise RuntimeError(f"No Latency_Avg_ms rows in {_DATABASE_QUERY_LATENCY_CSV}")
+    lo, hi = _enforce_min_le_max(min(secs), max(secs))
+    _database_query_latency_bounds_sec = (lo, hi)
+    return _database_query_latency_bounds_sec
+
+
+def database_query_latency_bounds_sec() -> tuple[float, float]:
+    """Min/max query latency (seconds) from ``alloydb_latency.csv`` (nominal, before node ``k``)."""
+    return _ensure_database_query_bounds_loaded()
+
+
+def node_database_query_execute_bounds_at(
+    provider: str,
+    region: str,
+) -> tuple[float, float]:
+    """Aggregate (min, max) seconds at the database node; ``provider``/``region`` do not shift the measurement envelope."""
+    _ = provider, region
+    return _ensure_database_query_bounds_loaded()
+
+
+def sample_database_query_execute_sec(
+    rng: random.Random | None = None,
+    *,
+    node: PhysicalNode | None = None,
+    execution_scale_scope: str | None = None,
+    execution_scale_seed: int | None = None,
+) -> float:
+    """
+    One database retrieval latency draw: uniform between scaled min/max from measurement CSV.
+
+    With a ``PhysicalNode``, latency is scaled by the same endpoint ``k`` as segment/VI ops.
+    """
+    r = rng or random.Random()
+    scope = execution_scale_scope if execution_scale_scope is not None else "_global"
+    lo, hi = _ensure_database_query_bounds_loaded()
+    if node is None:
+        k = 1.0
+    else:
+        if execution_scale_seed is not None:
+            k = node_execution_scale_k(
+                execution_scale_seed,
+                scope,
+                node.provider,
+                node.region,
+                "database_query",
+            )
+        else:
+            k = _get_fixed_node_execution_scale(
+                execution_scale_scope=scope,
+                provider=node.provider,
+                region=node.region,
+                latency_op="database_query",
+                rng=r,
+            )
+    lo, hi = lo * k, hi * k
+    lo, hi = _enforce_min_le_max(lo, hi)
+    return r.uniform(lo, hi)

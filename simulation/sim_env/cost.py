@@ -2,12 +2,13 @@
 cost.py
 Public cloud cost tables and helpers for the video workflow simulation.
 Prices follow SkyXXX Simulation.md; region keys align with config.REGIONS.
-All monetary amounts are USD unless noted.
+Managed database invocation (one hour of prorated storage + one hour of compute per step)
+uses provider/region tables for AlloyDB-class / Aurora / PolarDB pricing. All monetary
+amounts are USD unless noted.
 """
 
 from __future__ import annotations
 
-import math
 from typing import Mapping, Tuple
 
 # (provider, region) keys match config.py string literals.
@@ -160,10 +161,11 @@ SPLIT_USD_PER_MINUTE: dict[str, dict[str, float]] = {
 }
 
 # ---------------------------------------------------------------------------
-# Object storage: USD per GB-month (doc); simulator bills in whole days via
-# STORAGE_DAYS_PER_MONTH proration below.
+# Object storage: USD per GB-month (doc); simulator prorates to **hours** via
+# STORAGE_DAYS_PER_MONTH × 24 hours per month (default bill: 1 hour).
 # ---------------------------------------------------------------------------
 STORAGE_DAYS_PER_MONTH = 30.0
+STORAGE_HOURS_PER_MONTH = STORAGE_DAYS_PER_MONTH * 24.0
 
 STORAGE_USD_PER_GB_MONTH: dict[str, dict[str, float]] = {
     "GCP": {
@@ -183,6 +185,53 @@ STORAGE_USD_PER_GB_MONTH: dict[str, dict[str, float]] = {
         "cn-beijing": 0.0173,
         "us-west-1": 0.0160,
         "ap-southeast-1": 0.0170,
+    },
+}
+
+# ---------------------------------------------------------------------------
+# Managed database (AlloyDB / Aurora I/O-Optimized / PolarDB PostgreSQL): monthly storage
+# ($/GB-month) + instance compute ($/hour). Each database step bills **one hour** of
+# prorated storage plus **one hour** of instance time.
+# ---------------------------------------------------------------------------
+DATABASE_STORAGE_USD_PER_GB_MONTH: dict[str, dict[str, float]] = {
+    "GCP": {
+        "us-east1": 0.34,
+        "us-west1": 0.34,
+        "europe-west1": 0.38,
+        "asia-east1": 0.39,
+    },
+    "AWS": {
+        "us-west-2": 0.225,
+        "us-east-2": 0.225,
+        "ap-southeast-1": 0.260,
+        "eu-central-1": 0.268,
+    },
+    "Aliyun": {
+        "cn-shanghai": 0.21,
+        "cn-beijing": 0.21,
+        "us-west-1": 0.25,
+        "ap-southeast-1": 0.28,
+    },
+}
+
+DATABASE_INSTANCE_USD_PER_HOUR: dict[str, dict[str, float]] = {
+    "GCP": {
+        "us-east1": 0.20,
+        "us-west1": 0.20,
+        "europe-west1": 0.23,
+        "asia-east1": 0.25,
+    },
+    "AWS": {
+        "us-west-2": 0.377,
+        "us-east-2": 0.377,
+        "ap-southeast-1": 0.450,
+        "eu-central-1": 0.450,
+    },
+    "Aliyun": {
+        "cn-shanghai": 0.30,
+        "cn-beijing": 0.30,
+        "us-west-1": 0.38,
+        "ap-southeast-1": 0.42,
     },
 }
 
@@ -273,25 +322,42 @@ def split_cost_usd(provider: str, region: str, minutes: float = 1.0) -> float:
         ) from e
 
 
-def storage_cost_usd(provider: str, region: str, gigabytes: float, days: float = 1.0) -> float:
+def storage_cost_usd(provider: str, region: str, gigabytes: float, hours: float = 1.0) -> float:
     """
-    Object storage charge for `gigabytes` over `days` (calendar simulation time).
+    Object storage charge for ``gigabytes`` retained for ``hours`` (simulation clock).
 
-    Table values are per GB-month; cost is prorated with STORAGE_DAYS_PER_MONTH.
-    Billable duration uses whole days only: any positive fraction of a day counts
-    as one full day; zero days yields zero charge.
+    Table values are per GB-month; hourly rate is ``$/GB-month ÷ STORAGE_HOURS_PER_MONTH``.
     """
-    if days <= 0 or gigabytes <= 0:
+    if hours <= 0 or gigabytes <= 0:
         return 0.0
-    billable_days = math.ceil(days)
     try:
         per_gb_month = STORAGE_USD_PER_GB_MONTH[provider][region]
     except KeyError as e:
         raise KeyError(
             f"No storage price for provider={provider!r} region={region!r}"
         ) from e
-    per_gb_day = per_gb_month / STORAGE_DAYS_PER_MONTH
-    return per_gb_day * gigabytes * billable_days
+    per_gb_hour = per_gb_month / STORAGE_HOURS_PER_MONTH
+    return per_gb_hour * gigabytes * float(hours)
+
+
+def database_invocation_cost_usd(provider: str, region: str, storage_gigabytes: float) -> float:
+    """
+    Managed-DB charge for one **database** workflow step: **one hour** each of prorated
+    storage (``$/GB-month`` → hourly) and instance compute (table hourly rate).
+
+    ``storage_gigabytes`` is the billable data footprint (GiB); negative values are rejected.
+    """
+    if storage_gigabytes < 0:
+        raise ValueError("storage_gigabytes must be non-negative")
+    try:
+        per_gb_month = DATABASE_STORAGE_USD_PER_GB_MONTH[provider][region]
+        per_hour = DATABASE_INSTANCE_USD_PER_HOUR[provider][region]
+    except KeyError as e:
+        raise KeyError(
+            f"No managed database price for provider={provider!r} region={region!r}"
+        ) from e
+    per_gb_hour = per_gb_month / STORAGE_HOURS_PER_MONTH
+    return per_gb_hour * float(storage_gigabytes) + per_hour
 
 
 def egress_rate_usd_per_gb(src: ProviderRegion, dst: ProviderRegion) -> float:

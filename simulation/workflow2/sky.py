@@ -20,9 +20,17 @@ import random
 from dataclasses import dataclass
 from typing import Literal, NamedTuple, Sequence
 
-from sim_env.cost import egress_cost_usd, llm_token_cost_usd, split_cost_usd, storage_cost_usd, video_service_cost_usd
+from sim_env.cost import (
+    database_invocation_cost_usd,
+    egress_cost_usd,
+    llm_token_cost_usd,
+    split_cost_usd,
+    storage_cost_usd,
+    video_service_cost_usd,
+)
 from sim_env.execution_latency import (
     llm_decode_duration_sec,
+    sample_database_query_execute_sec,
     sample_label_detection_execute_sec,
     sample_ocr_execute_sec,
     sample_segment_execute_sec,
@@ -77,7 +85,7 @@ def coef_local_cost_latency_wf2(
     """节点本地 exe+storage 费用与 **执行** 时延（不含出边网络）。"""
     rho_i = float(rho[idx])
     stor = storage_cost_usd(
-        node.provider, node.region, float(s_in[idx]) * (1.0 + rho_i), days=1.0
+        node.provider, node.region, float(s_in[idx]) * (1.0 + rho_i), hours=1.0
     )
     p, r = node.provider, node.region
     cin, cout = cap_pair
@@ -103,7 +111,9 @@ def coef_local_cost_latency_wf2(
         exe = video_service_cost_usd(p, r, "speech_transcription", seg_min_source)
         return exe + stor, vi_exe_sec
     if logical_op == "database":
-        return wf2_utils.WF2_PLACEHOLDER_DB_FIXED_COST_USD + stor, wf2_utils.WF2_PLACEHOLDER_DB_LATENCY_SEC
+        db_gb = float(s_in[idx]) * (1.0 + rho_i)
+        exe = database_invocation_cost_usd(p, r, db_gb)
+        return exe + stor, vi_exe_sec
     if logical_op == "qa":
         return wf2_utils.WF2_PLACEHOLDER_QA_FIXED_COST_USD + stor, wf2_utils.WF2_PLACEHOLDER_QA_LATENCY_SEC
     if logical_op == "answer":
@@ -178,6 +188,21 @@ def _sample_vi_exe_wf2(
     if logical_op == "speech_transcription":
         return sample_speech_transcription_execute_sec(
             dur_sec,
+            rng=dr,
+            node=car,
+            execution_scale_scope=scope,
+            execution_scale_seed=seed,
+        )
+    if logical_op == "database":
+        dr = wf1_utils.det_rng(
+            seed,
+            "wf2_sky_db_lat",
+            layer_idx,
+            cand_idx,
+            node.provider,
+            node.region,
+        )
+        return sample_database_query_execute_sec(
             rng=dr,
             node=car,
             execution_scale_scope=scope,

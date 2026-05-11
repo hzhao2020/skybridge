@@ -216,7 +216,7 @@ def end_to_end_cost(
     stor = 0.0
     for i in range(4):
         gb = s_in[i] * (1.0 + float(rho[i]))
-        stor += storage_cost_usd(nodes[i].provider, nodes[i].region, gb, days=1.0)
+        stor += storage_cost_usd(nodes[i].provider, nodes[i].region, gb, hours=1.0)
 
     net = 0.0
     for i in range(3):
