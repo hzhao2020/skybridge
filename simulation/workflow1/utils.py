@@ -45,6 +45,34 @@ _OPS_ORDER: tuple[OperationName, OperationName, OperationName, OperationName] = 
 
 _DEFAULT_WEIGHTS: Tuple[float, float, float, float] = (0.25, 0.25, 0.25, 0.25)
 
+# Single-cloud (SG) reference budgets: same three providers as ``baseline.PROVIDERS_SINGLE_CLOUD``.
+_SINGLE_CLOUD_PROVIDERS: tuple[str, ...] = ("GCP", "AWS", "Aliyun")
+
+
+def _utility_max_single_cloud_chain_wf1(
+    cands: tuple[tuple[PhysicalNode, ...], tuple[PhysicalNode, ...], tuple[PhysicalNode, ...], tuple[PhysicalNode, ...]],
+    provider: str,
+    weights: Tuple[float, float, float, float],
+) -> tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode]:
+    """
+    单云链：每一层只看 ``provider`` 匹配的候选（可含多 region），在该层上按
+    ``weights·μ`` 取 argmax，从而**隐含选定**一个 ``(provider, region[, model])``；
+    各层 region 可不同。规则同 SC 在不做 MC tie-break 时的选法。
+    """
+    picks: list[PhysicalNode] = []
+    for i in range(4):
+        layer = tuple(n for n in cands[i] if n.provider == provider)
+        if not layer:
+            raise ValueError(
+                f"single-cloud budget anchor: no {provider!r} candidate at layer {i}"
+            )
+        j = max(
+            range(len(layer)),
+            key=lambda jj: weights[i] * physical_node_utility(layer[jj]),
+        )
+        picks.append(layer[j])
+    return (picks[0], picks[1], picks[2], picks[3])
+
 
 def det_rng(master: int, *parts: int | str) -> random.Random:
     """
@@ -499,16 +527,17 @@ def end_to_end_utility(
 
 def generate_realistic_queries(num_queries: int, seed: int = 42) -> list[QueryProfile]:
     """
-    Construct per-query cost/latency budgets from a reference deployment and plug-in mean ρ.
-
-    Reference chain uses one GCP region (low cross-edge jitter) so SLO levels are not
-    adversarially anchored on a single unstable cross-ocean link; slack factors are drawn
-    uniformly from a modest band so deterministic mean-field baselines are not knife-edge.
+    Per-query budgets from plug-in mean ρ 与三条单云 (SG) 参考链（GCP / AWS / Aliyun）。
+    每条 SG 在每一层于该云**所有 region 候选**上做 ``weights·μ`` 的 argmax（见
+    ``_utility_max_single_cloud_chain_wf1``）。对当前 ``s_src_gb`` 在三条链上各算端到端
+    cost/latency，**cost 与 latency 分别取三值的中位数**作为 ``ref_cost`` / ``ref_lat``，
+    并直接令 ``theta_* = ref_*``（不再施加额外随机 slack）。
     """
     import random
 
-    from sim_env import config as cfg
-    from sim_env.utility import PhysicalNode, QueryProfile
+    from sim_env.utility import QueryProfile
+
+    from . import sky as sky_mod
 
     rng = random.Random(seed)
     calib_rng = random.Random(seed + 100)
@@ -519,11 +548,11 @@ def generate_realistic_queries(num_queries: int, seed: int = 42) -> list[QueryPr
         operations=("segment", "split", "caption", "query"),
     )
 
-    anchor_nodes = (
-        PhysicalNode("segment", "GCP", "us-east1"),
-        PhysicalNode("split", "GCP", "us-east1"),
-        PhysicalNode("caption", "GCP", "us-east1", "Gemini 2.5 Pro"),
-        PhysicalNode("query", "GCP", "us-east1", "Gemini 2.5 Flash"),
+    cands = sky_mod.enumerate_candidates()
+    weights = _DEFAULT_WEIGHTS
+    sg_chains = tuple(
+        _utility_max_single_cloud_chain_wf1(cands, p, weights)
+        for p in _SINGLE_CLOUD_PROVIDERS
     )
 
     queries: list[QueryProfile] = []
@@ -533,19 +562,23 @@ def generate_realistic_queries(num_queries: int, seed: int = 42) -> list[QueryPr
         s_src_mb = cfg.video_megabytes_from_duration_sec(duration_sec)
         s_src_gb = s_src_mb / 1000.0
 
-        wf = det_rng(seed, "query_budget", q_idx)
-        ref_cost, ref_lat = end_to_end_cost_and_latency(
-            anchor_nodes, s_src_gb, mean_rho, workflow_rng=wf
-        )
-
-        factor_c = rng.uniform(1.05, 1.15)   # 原 1.02-1.15
-        factor_t = rng.uniform(1.30, 1.60)   # 原 1.02-1.15  ← 关键改动
+        costs: list[float] = []
+        lats: list[float] = []
+        for prov, chain in zip(_SINGLE_CLOUD_PROVIDERS, sg_chains, strict=True):
+            wf_sg = det_rng(seed, "query_budget_sg", q_idx, prov)
+            c, ell = end_to_end_cost_and_latency(
+                chain, s_src_gb, mean_rho, workflow_rng=wf_sg
+            )
+            costs.append(c)
+            lats.append(ell)
+        ref_cost = sorted(costs)[1]
+        ref_lat = sorted(lats)[1]
 
         queries.append(
             QueryProfile(
                 s_src_gb=s_src_gb,
-                theta_cost=ref_cost * factor_c,
-                theta_latency_sec=ref_lat * factor_t,
+                theta_cost=ref_cost,
+                theta_latency_sec=ref_lat,
             )
         )
 

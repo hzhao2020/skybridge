@@ -9,6 +9,7 @@ amounts are USD unless noted.
 
 from __future__ import annotations
 
+import math
 from typing import Mapping, Tuple
 
 # (provider, region) keys match config.py string literals.
@@ -252,7 +253,7 @@ _EGRESS_KEYS: list[ProviderRegion] = [
     ("Aliyun", "cn-beijing"),
     ("Aliyun", "us-west-1"),
     ("Aliyun", "ap-southeast-1"),
-    ("Local", "local"),
+    ("Local", "cn-shanghai"),
 ]
 
 _EGRESS_MATRIX_PER_GB: list[list[float]] = [

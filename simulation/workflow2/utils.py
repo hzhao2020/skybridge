@@ -122,9 +122,10 @@ def path_logical_ops(path_id: WF2PathId) -> tuple[str, ...]:
     raise ValueError(f"unknown path_id: {path_id!r}")
 
 
-# Placeholder USD / 延迟（qa）；database 使用 ``sim_env.cost`` 中托管库实例价 + DB 存储单价
+# Placeholder USD / 延迟（qa）；database 使用 ``sim_env.cost`` 中托管库实例价 + DB 存储单价 + 下表占位执行延迟
 WF2_PLACEHOLDER_QA_FIXED_COST_USD = 0.001
 WF2_PLACEHOLDER_QA_LATENCY_SEC = 0.03
+WF2_PLACEHOLDER_DB_LATENCY_SEC = 0.05
 
 
 def sample_database_conversion_ratio(s_in_gb: float, rng: random.Random) -> float:
@@ -990,8 +991,10 @@ def generate_realistic_queries_wf2(
     n_calibration_samples: int = 4096,
 ) -> list[QueryProfile]:
     """
-    参照 ``workflow1.utils.generate_realistic_queries``：锚点部署 + plug-in mean ρ，
-    单次路径费用/时延定预算 Θ_C、Θ_T。
+    与 ``workflow1.utils.generate_realistic_queries`` 对齐：plug-in mean ρ + 三条 SG 链。
+    每层在该 provider 的**全部 region 候选**上对 ``weights·μ`` 取 argmax（各层 region 可不同）。
+    三条链上分别算端到端 cost/latency，**各自取三数中位数**得 ``ref_cost`` / ``ref_lat``，
+    并令 ``Θ_C = ref_cost``、``Θ_T = ref_lat``（无额外均匀 slack）。
     """
     rng = random.Random(seed)
     calib_rng = random.Random(seed + 100)
@@ -1000,8 +1003,35 @@ def generate_realistic_queries_wf2(
         n_calibration_samples=n_calibration_samples,
         rng=calib_rng,
     )
-    anchor = reference_deployment_exclusive_path(path_id)
-    validate_exclusive_path_nodes(path_id, anchor)
+
+    from .candidates import enumerate_candidates_wf2
+
+    cands_full = enumerate_candidates_wf2(path_id)
+    weights = default_weights_for_path(path_id)
+    L = len(cands_full)
+    sc_prov: tuple[str, ...] = ("GCP", "AWS", "Aliyun")
+
+    def _chain_for_provider(prov: str) -> tuple[WF2PhysicalNode, ...]:
+        filt: list[tuple[WF2PhysicalNode, ...]] = []
+        for i in range(L):
+            layer = tuple(n for n in cands_full[i] if n.provider == prov)
+            if not layer:
+                raise ValueError(
+                    f"wf2 budget anchor: no {prov!r} candidate at layer {i} for path {path_id!r}"
+                )
+            filt.append(layer)
+        picks: list[WF2PhysicalNode] = []
+        for i in range(L):
+            j = max(
+                range(len(filt[i])),
+                key=lambda jj: weights[i] * wf2_node_utility(filt[i][jj]),
+            )
+            picks.append(filt[i][j])
+        ch = tuple(picks)
+        validate_exclusive_path_nodes(path_id, ch)
+        return ch
+
+    sg_chains = tuple(_chain_for_provider(p) for p in sc_prov)
 
     queries: list[QueryProfile] = []
     for q_idx in range(num_queries):
@@ -1009,35 +1039,40 @@ def generate_realistic_queries_wf2(
         s_src_mb = cfg.video_megabytes_from_duration_sec(duration_sec)
         s_src_gb = s_src_mb / 1000.0
 
-        wf = wf1_utils.det_rng(seed, "wf2_query_budget", q_idx)
-        llm_seed = wf.randrange(0, 2**31)
-
-        ref_cost = end_to_end_cost_exclusive_path(
-            path_id,
-            anchor,
-            s_src_gb,
-            mean_rho,
-            llm_token_rng_seed=llm_seed,
-        )
-        ref_lat = end_to_end_latency_exclusive_path(
-            path_id,
-            anchor,
-            s_src_gb,
-            mean_rho,
-            llm_token_rng_seed=llm_seed,
-            env_rng=wf,
-            execution_scale_scope=str(llm_seed),
-            execution_scale_seed=llm_seed,
-        )
-
-        factor_c = rng.uniform(1.05, 1.15)
-        factor_t = rng.uniform(1.30, 1.60)
+        costs: list[float] = []
+        lats: list[float] = []
+        for prov, chain in zip(sc_prov, sg_chains, strict=True):
+            wf_sg = wf1_utils.det_rng(seed, "wf2_query_budget_sg", q_idx, prov)
+            llm_seed = wf_sg.randrange(0, 2**31)
+            costs.append(
+                end_to_end_cost_exclusive_path(
+                    path_id,
+                    chain,
+                    s_src_gb,
+                    mean_rho,
+                    llm_token_rng_seed=llm_seed,
+                )
+            )
+            lats.append(
+                end_to_end_latency_exclusive_path(
+                    path_id,
+                    chain,
+                    s_src_gb,
+                    mean_rho,
+                    llm_token_rng_seed=llm_seed,
+                    env_rng=wf_sg,
+                    execution_scale_scope=str(llm_seed),
+                    execution_scale_seed=llm_seed,
+                )
+            )
+        ref_cost = sorted(costs)[1]
+        ref_lat = sorted(lats)[1]
 
         queries.append(
             QueryProfile(
                 s_src_gb=s_src_gb,
-                theta_cost=ref_cost * factor_c,
-                theta_latency_sec=ref_lat * factor_t,
+                theta_cost=ref_cost,
+                theta_latency_sec=ref_lat,
             )
         )
 
