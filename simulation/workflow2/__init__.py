@@ -1,5 +1,9 @@
 """Workflow 2：Database DAG 路径仿真、Sky CVaR–MILP、Baselines 与评估。"""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
 from .baseline import (
     BaselineResultWf2,
     deterministic_optimal_baseline_wf2,
@@ -14,18 +18,6 @@ from .evaluation import (
     evaluate_deployment_empirical_wf2,
     format_metrics_lines_wf2,
     print_metrics_report_wf2,
-)
-from .sky import (
-    DecompositionResultWf2,
-    JointScenarioWf2,
-    MilpSolutionWf2,
-    build_joint_scenarios_wf2,
-    compute_linear_aggregate_wf2,
-    locality_greedy_warm_start_indices_wf2,
-    prepare_coefficients_wf2,
-    run_sky_deployment_wf2,
-    scenario_adaptive_decomposition_wf2,
-    sky_ablation_settings_wf2,
 )
 from .utils import (
     WF2LogicalOp,
@@ -49,6 +41,45 @@ from .utils import (
     validate_exclusive_path_nodes,
     wf2_node_utility,
 )
+
+if TYPE_CHECKING:
+    from .sky import (
+        DecompositionResultWf2,
+        JointScenarioWf2,
+        MilpSolutionWf2,
+        build_joint_scenarios_wf2,
+        compute_linear_aggregate_wf2,
+        locality_greedy_warm_start_indices_wf2,
+        prepare_coefficients_wf2,
+        run_sky_deployment_wf2,
+        scenario_adaptive_decomposition_wf2,
+        sky_ablation_settings_wf2,
+    )
+
+_SKY_EXPORTS: frozenset[str] = frozenset(
+    {
+        "DecompositionResultWf2",
+        "JointScenarioWf2",
+        "MilpSolutionWf2",
+        "build_joint_scenarios_wf2",
+        "compute_linear_aggregate_wf2",
+        "locality_greedy_warm_start_indices_wf2",
+        "prepare_coefficients_wf2",
+        "run_sky_deployment_wf2",
+        "scenario_adaptive_decomposition_wf2",
+        "sky_ablation_settings_wf2",
+    }
+)
+
+
+def __getattr__(name: str) -> Any:
+    """按需加载 ``sky``（依赖 gurobipy），以便 ``python -m workflow2.budget`` 等脚本可运行。"""
+    if name in _SKY_EXPORTS:
+        from . import sky as _sky
+
+        return getattr(_sky, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = [
     "BaselineResultWf2",

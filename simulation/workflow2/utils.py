@@ -269,6 +269,76 @@ class WF2PhysicalNode:
     model: str | None = None
 
 
+# 来自 ``python -m workflow2.budget <path>``（N_QUERIES=100, SEED=42，单云并集枚举，plug-in mean ρ）。
+_BUDGET_REF_CHAINS_WF2_COST: dict[WF2PathId, tuple[WF2PhysicalNode, ...]] = {
+    "caption": (
+        WF2PhysicalNode("video_segment", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("shot_detection", "Aliyun", "cn-beijing", None),
+        WF2PhysicalNode("video_caption", "Aliyun", "cn-beijing", "Qwen3-VL-Flash"),
+        WF2PhysicalNode("database", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("qa", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("answer", "Aliyun", "cn-beijing", "Qwen3-VL-Flash"),
+    ),
+    "ocr": (
+        WF2PhysicalNode("video_segment", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("shot_detection", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("ocr", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("database", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("qa", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("answer", "Aliyun", "cn-beijing", "Qwen3-VL-Flash"),
+    ),
+    "label": (
+        WF2PhysicalNode("video_segment", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("shot_detection", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("label_detection", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("database", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("qa", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("answer", "Aliyun", "cn-beijing", "Qwen3-VL-Flash"),
+    ),
+    "speech": (
+        WF2PhysicalNode("video_segment", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("speech_transcription", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("database", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("qa", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("answer", "Aliyun", "cn-beijing", "Qwen3-VL-Flash"),
+    ),
+}
+
+_BUDGET_REF_CHAINS_WF2_LATENCY: dict[WF2PathId, tuple[WF2PhysicalNode, ...]] = {
+    "caption": (
+        WF2PhysicalNode("video_segment", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("shot_detection", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("video_caption", "Aliyun", "ap-southeast-1", "Qwen3-VL-Flash"),
+        WF2PhysicalNode("database", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("qa", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("answer", "Aliyun", "cn-beijing", "Qwen3-VL-Plus"),
+    ),
+    "ocr": (
+        WF2PhysicalNode("video_segment", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("shot_detection", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("ocr", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("database", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("qa", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("answer", "Aliyun", "ap-southeast-1", "Qwen3-VL-Flash"),
+    ),
+    "label": (
+        WF2PhysicalNode("video_segment", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("shot_detection", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("label_detection", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("database", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("qa", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("answer", "Aliyun", "ap-southeast-1", "Qwen3-VL-Flash"),
+    ),
+    "speech": (
+        WF2PhysicalNode("video_segment", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("speech_transcription", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("database", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("qa", "Aliyun", "cn-shanghai", None),
+        WF2PhysicalNode("answer", "Aliyun", "ap-southeast-1", "Qwen3-VL-Flash"),
+    ),
+}
+
+
 def validate_exclusive_path_nodes(path_id: WF2PathId, nodes: Sequence[WF2PhysicalNode]) -> None:
     ops = path_logical_ops(path_id)
     if len(nodes) != len(ops):
@@ -276,6 +346,11 @@ def validate_exclusive_path_nodes(path_id: WF2PathId, nodes: Sequence[WF2Physica
     for i, (n, op) in enumerate(zip(nodes, ops)):
         if n.operation != op:
             raise ValueError(f"nodes[{i}] must be {op!r}, got {n.operation!r}")
+
+
+for _pid in _BUDGET_REF_CHAINS_WF2_COST:
+    validate_exclusive_path_nodes(_pid, _BUDGET_REF_CHAINS_WF2_COST[_pid])
+    validate_exclusive_path_nodes(_pid, _BUDGET_REF_CHAINS_WF2_LATENCY[_pid])
 
 
 def wf2_node_utility(node: WF2PhysicalNode) -> float:
@@ -991,10 +1066,9 @@ def generate_realistic_queries_wf2(
     n_calibration_samples: int = 4096,
 ) -> list[QueryProfile]:
     """
-    与 ``workflow1.utils.generate_realistic_queries`` 对齐：plug-in mean ρ + 三条 SG 链。
-    每层在该 provider 的**全部 region 候选**上对 ``weights·μ`` 取 argmax（各层 region 可不同）。
-    三条链上分别算端到端 cost/latency，**各自取三数中位数**得 ``ref_cost`` / ``ref_lat``，
-    并令 ``Θ_C = ref_cost``、``Θ_T = ref_lat``（无额外均匀 slack）。
+    各 path 使用 ``python -m workflow2.budget <path>`` 得到的 mean cost / mean latency
+    最优参考链（plug-in mean ρ，与 budget 脚本一致的枚举口径），对当前 ``s_src_gb`` 计算
+    mean-field 端到端 cost 与 latency，再乘以 ``workflow1.utils.QUERY_BUDGET_REFERENCE_MULTIPLIER``。
     """
     rng = random.Random(seed)
     calib_rng = random.Random(seed + 100)
@@ -1004,34 +1078,9 @@ def generate_realistic_queries_wf2(
         rng=calib_rng,
     )
 
-    from .candidates import enumerate_candidates_wf2
-
-    cands_full = enumerate_candidates_wf2(path_id)
-    weights = default_weights_for_path(path_id)
-    L = len(cands_full)
-    sc_prov: tuple[str, ...] = ("GCP", "AWS", "Aliyun")
-
-    def _chain_for_provider(prov: str) -> tuple[WF2PhysicalNode, ...]:
-        filt: list[tuple[WF2PhysicalNode, ...]] = []
-        for i in range(L):
-            layer = tuple(n for n in cands_full[i] if n.provider == prov)
-            if not layer:
-                raise ValueError(
-                    f"wf2 budget anchor: no {prov!r} candidate at layer {i} for path {path_id!r}"
-                )
-            filt.append(layer)
-        picks: list[WF2PhysicalNode] = []
-        for i in range(L):
-            j = max(
-                range(len(filt[i])),
-                key=lambda jj: weights[i] * wf2_node_utility(filt[i][jj]),
-            )
-            picks.append(filt[i][j])
-        ch = tuple(picks)
-        validate_exclusive_path_nodes(path_id, ch)
-        return ch
-
-    sg_chains = tuple(_chain_for_provider(p) for p in sc_prov)
+    chain_c = _BUDGET_REF_CHAINS_WF2_COST[path_id]
+    chain_l = _BUDGET_REF_CHAINS_WF2_LATENCY[path_id]
+    mult = wf1_utils.QUERY_BUDGET_REFERENCE_MULTIPLIER
 
     queries: list[QueryProfile] = []
     for q_idx in range(num_queries):
@@ -1039,40 +1088,33 @@ def generate_realistic_queries_wf2(
         s_src_mb = cfg.video_megabytes_from_duration_sec(duration_sec)
         s_src_gb = s_src_mb / 1000.0
 
-        costs: list[float] = []
-        lats: list[float] = []
-        for prov, chain in zip(sc_prov, sg_chains, strict=True):
-            wf_sg = wf1_utils.det_rng(seed, "wf2_query_budget_sg", q_idx, prov)
-            llm_seed = wf_sg.randrange(0, 2**31)
-            costs.append(
-                end_to_end_cost_exclusive_path(
-                    path_id,
-                    chain,
-                    s_src_gb,
-                    mean_rho,
-                    llm_token_rng_seed=llm_seed,
-                )
-            )
-            lats.append(
-                end_to_end_latency_exclusive_path(
-                    path_id,
-                    chain,
-                    s_src_gb,
-                    mean_rho,
-                    llm_token_rng_seed=llm_seed,
-                    env_rng=wf_sg,
-                    execution_scale_scope=str(llm_seed),
-                    execution_scale_seed=llm_seed,
-                )
-            )
-        ref_cost = sorted(costs)[1]
-        ref_lat = sorted(lats)[1]
+        wf_c = wf1_utils.det_rng(seed, "wf2_query_budget_ref_cost", q_idx)
+        llm_seed_c = wf_c.randrange(0, 2**31)
+        ref_c = end_to_end_cost_exclusive_path(
+            path_id,
+            chain_c,
+            s_src_gb,
+            mean_rho,
+            llm_token_rng_seed=llm_seed_c,
+        )
+        wf_l = wf1_utils.det_rng(seed, "wf2_query_budget_ref_latency", q_idx)
+        llm_seed_l = wf_l.randrange(0, 2**31)
+        ref_l = end_to_end_latency_exclusive_path(
+            path_id,
+            chain_l,
+            s_src_gb,
+            mean_rho,
+            llm_token_rng_seed=llm_seed_l,
+            env_rng=wf_l,
+            execution_scale_scope=str(llm_seed_l),
+            execution_scale_seed=llm_seed_l,
+        )
 
         queries.append(
             QueryProfile(
                 s_src_gb=s_src_gb,
-                theta_cost=ref_cost,
-                theta_latency_sec=ref_lat,
+                theta_cost=ref_c * mult,
+                theta_latency_sec=ref_l * mult,
             )
         )
 
