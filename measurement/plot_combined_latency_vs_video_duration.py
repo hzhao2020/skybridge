@@ -58,8 +58,6 @@ def configure_figure() -> None:
             "axes.titlesize": 16,
             "xtick.labelsize": 14,
             "ytick.labelsize": 14,
-            "xtick.minor.labelsize": 13,
-            "ytick.minor.labelsize": 13,
             "legend.fontsize": 14,
             "legend.title_fontsize": 14,
             "axes.unicode_minus": False,
