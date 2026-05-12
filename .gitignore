@@ -82,3 +82,5 @@ tmp.ipynb
 # Configuration file with sensitive information
 
 test/
+
+config.py
