@@ -29,7 +29,7 @@ TNR: str = "Times New Roman"
 SCRIPT_DIR = Path(__file__).resolve().parent
 
 # Single panel: width/height aligned with paper figure usage in plot_network_24h.py
-FIG_INCHES: tuple[float, float] = (6.5, 4.5)
+FIG_INCHES: tuple[float, float] = (6, 3.5)
 
 LEGEND_LOC: str = "upper left"
 LEGEND_BBOX: tuple[float, float] = (0.01, 0.99)
@@ -252,6 +252,10 @@ def plot_combined(
             label=label,
             alpha=0.92,
         )
+
+
+    ax.set_ylim(0.0, 800.0)
+    ax.set_yticks(np.arange(0.0, 1000.0, 200.0))
 
     ax.set_xlim(0.0, 32.0)
     ax.set_xticks(x_ticks)

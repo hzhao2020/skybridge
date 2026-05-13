@@ -55,7 +55,7 @@ _BUDGET_REF_CHAIN_COST_WF1: tuple[PhysicalNode, PhysicalNode, PhysicalNode, Phys
 )
 _BUDGET_REF_CHAIN_LATENCY_WF1 = _BUDGET_REF_CHAIN_COST_WF1
 # 每条 query 的 Θ 相对参考链上 mean-field 指标放大该倍数（与 budget 脚本口径一致）。
-QUERY_BUDGET_REFERENCE_MULTIPLIER = 1.5
+QUERY_BUDGET_REFERENCE_MULTIPLIER = 1.75
 
 
 def det_rng(master: int, *parts: int | str) -> random.Random:
