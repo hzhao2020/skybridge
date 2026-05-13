@@ -10,7 +10,7 @@ Sky 消融实验：独立变量 × 三种变体，记录求解时间、迭代次
 （Linux: ru_maxrss 为 KB）。
 
 结果写入 ``--out`` CSV：若文件已存在且非空则 **续写**（不写表头）；新文件或空文件则先写表头。
-需要整文件重写时使用 ``--overwrite``。列 ``batch_k`` 与命令行 ``--batch-k`` 一致。
+需要整文件重写时使用 ``--overwrite``。列 ``batch_k`` 与命令行 ``--batch-k`` 一致；列 ``gurobi_status`` 为 Gurobi 求解状态字符串。
 
 对同一网格点 (Q, S, sweep)，三种变体共用同一 ``rng_seed``（**不含 variant**），因而 ``build_joint_scenarios`` 的联合场景、每条 ω 上的 segment/split 执行噪声、LLM token、链路的 ``sample_link`` 旋转均由此种子确定性导出（``sky.prepare_coefficients`` / ``utils.det_rng``），消融对比下随机环境一致。
 
@@ -106,7 +106,7 @@ def run_sky_single_in_process(payload: dict[str, Any]) -> dict[str, Any]:
         "master_iterations": master_iters,
         "peak_memory_bytes": peak_memory_bytes,
         "objective_value": sol.objective_value,
-        "pulp_status": sol.pulp_status,
+        "gurobi_status": sol.gurobi_status,
         "error": "",
     }
 
@@ -122,7 +122,7 @@ def _worker_main() -> None:
             "master_iterations": None,
             "peak_memory_bytes": None,
             "objective_value": None,
-            "pulp_status": "",
+            "gurobi_status": "",
             "error": f"{type(e).__name__}: {e}",
         }
     sys.stdout.write(json.dumps(out))
@@ -163,7 +163,7 @@ def run_isolated_subprocess(
             "master_iterations": None,
             "peak_memory_bytes": None,
             "objective_value": None,
-            "pulp_status": "",
+            "gurobi_status": "",
             "error": f"timeout after {timeout_sec}s",
         }
     out_txt = proc.stdout.decode("utf-8", errors="replace").strip()
@@ -179,7 +179,7 @@ def run_isolated_subprocess(
         "master_iterations": None,
         "peak_memory_bytes": None,
         "objective_value": None,
-        "pulp_status": "",
+        "gurobi_status": "",
         "error": err or f"exit {proc.returncode} (no JSON on stdout)",
     }
 
@@ -395,7 +395,7 @@ def main() -> None:
         "master_iterations",
         "peak_memory_bytes",
         "objective_value",
-        "pulp_status",
+        "gurobi_status",
         "error",
     ]
 
@@ -438,7 +438,7 @@ def main() -> None:
                 "master_iterations": r.get("master_iterations", ""),
                 "peak_memory_bytes": r.get("peak_memory_bytes", ""),
                 "objective_value": r.get("objective_value", ""),
-                "pulp_status": r.get("pulp_status", ""),
+                "gurobi_status": r.get("gurobi_status") or r.get("pulp_status", ""),
                 "error": r.get("error", ""),
             }
             if row["master_iterations"] is None:

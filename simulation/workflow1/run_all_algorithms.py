@@ -147,12 +147,12 @@ def main() -> None:
         queries, cands, weights=weights, token_seed=eval_seed
     )
     print(
-        f"[DO] MILP status={do.pulp_status} MILP_obj_U={do.total_utility} "
+        f"[DO] Gurobi status={do.gurobi_status} MILP_obj_U={do.total_utility} "
         f"time={time.perf_counter() - t0:.2f}s"
     )
     print(f"[DO] deployment tuple: {do.nodes}")
-    extra_do = f"MILP={do.pulp_status}"
-    if do.pulp_status == "Optimal":
+    extra_do = f"gurobi_status={do.gurobi_status}"
+    if do.gurobi_status == "Optimal":
         extra_do += f" MILP_U={do.total_utility:.6g}"
     m_do = _evaluate_and_print(
         "Deterministic-Optimal (DO)",
@@ -193,14 +193,14 @@ def main() -> None:
                 f"decomposition iters={rep.iterations} "
                 f"active_scenarios={len(rep.active_indices)} "
                 f"elapsed_solver={elapsed_sky:.2f}s "
-                f"pulp_obj={sol.objective_value}"
+                f"gurobi_obj={sol.objective_value}"
             )
         else:
             sol = rep
-            extra_sky = f"full_MILP elapsed={elapsed_sky:.2f}s pulp_obj={sol.objective_value}"
+            extra_sky = f"full_MILP elapsed={elapsed_sky:.2f}s gurobi_obj={sol.objective_value}"
 
         print(f"[Sky] {extra_sky}")
-        print(f"[Sky] pulp_status={sol.pulp_status}")
+        print(f"[Sky] gurobi_status={sol.gurobi_status}")
         print(f"[Sky] deployment: {sol.nodes}")
         print()
 

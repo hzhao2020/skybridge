@@ -2,9 +2,9 @@
 cost.py
 Public cloud cost tables and helpers for the video workflow simulation.
 Prices follow SkyXXX Simulation.md; region keys align with config.REGIONS.
-Managed database invocation (one hour of prorated storage + one hour of compute per step)
-uses provider/region tables for AlloyDB-class / Aurora / PolarDB pricing. All monetary
-amounts are USD unless noted.
+Object and managed-database **storage** default to **one billable day** each (monthly table
+rates prorated by ``STORAGE_DAYS_PER_MONTH``). Managed DB **instance** charges use the
+monthly price prorated the same way. All monetary amounts are USD unless noted.
 """
 
 from __future__ import annotations
@@ -60,7 +60,7 @@ LLM_TOKEN_PRICE_PER_MILLION: dict[str, dict[str, dict[str, tuple[float, float]]]
             "Qwen3-VL-Plus": (0.144, 1.434),
             "Qwen3-VL-Flash": (0.022, 0.215),
         },
-        "us-west-1": {
+        "us-east-1": {
             "Qwen3-VL-Plus": (0.144, 1.434),
             "Qwen3-VL-Flash": (0.022, 0.215),
         },
@@ -156,17 +156,16 @@ SPLIT_USD_PER_MINUTE: dict[str, dict[str, float]] = {
     "Aliyun": {
         "cn-shanghai": 0.0011,
         "cn-beijing": 0.0011,
-        "us-west-1": 0.0011,
+        "us-east-1": 0.0011,
         "ap-southeast-1": 0.0011,
     },
 }
 
 # ---------------------------------------------------------------------------
-# Object storage: USD per GB-month (doc); simulator prorates to **hours** via
-# STORAGE_DAYS_PER_MONTH × 24 hours per month (default bill: 1 hour).
+# Object storage: USD per GB-month (doc); simulator prorates to **days** via
+# ``STORAGE_DAYS_PER_MONTH`` (default bill: 1 day, same ceiling rule as managed DB disk).
 # ---------------------------------------------------------------------------
 STORAGE_DAYS_PER_MONTH = 30.0
-STORAGE_HOURS_PER_MONTH = STORAGE_DAYS_PER_MONTH * 24.0
 
 STORAGE_USD_PER_GB_MONTH: dict[str, dict[str, float]] = {
     "GCP": {
@@ -184,7 +183,7 @@ STORAGE_USD_PER_GB_MONTH: dict[str, dict[str, float]] = {
     "Aliyun": {
         "cn-shanghai": 0.0173,
         "cn-beijing": 0.0173,
-        "us-west-1": 0.0160,
+        "us-east-1": 0.0160,
         "ap-southeast-1": 0.0170,
     },
 }
@@ -209,7 +208,7 @@ DATABASE_STORAGE_USD_PER_GB_MONTH: dict[str, dict[str, float]] = {
     "Aliyun": {
         "cn-shanghai": 0.26,
         "cn-beijing": 0.26,
-        "us-west-1": 0.29,
+        "us-east-1": 0.29,
         "ap-southeast-1": 0.29,
     },
 }
@@ -231,7 +230,7 @@ DATABASE_INSTANCE_USD_PER_MONTH: dict[str, dict[str, float]] = {
     "Aliyun": {
         "cn-shanghai": 36.76,
         "cn-beijing": 36.76,
-        "us-west-1": 42.05,
+        "us-east-1": 42.05,
         "ap-southeast-1": 64.40,
     },
 }
@@ -251,7 +250,7 @@ _EGRESS_KEYS: list[ProviderRegion] = [
     ("AWS", "eu-central-1"),
     ("Aliyun", "cn-shanghai"),
     ("Aliyun", "cn-beijing"),
-    ("Aliyun", "us-west-1"),
+    ("Aliyun", "us-east-1"),
     ("Aliyun", "ap-southeast-1"),
     ("Local", "cn-shanghai"),
 ]
@@ -323,22 +322,24 @@ def split_cost_usd(provider: str, region: str, minutes: float = 1.0) -> float:
         ) from e
 
 
-def storage_cost_usd(provider: str, region: str, gigabytes: float, hours: float = 1.0) -> float:
+def storage_cost_usd(provider: str, region: str, gigabytes: float, days: float = 1.0) -> float:
     """
-    Object storage charge for ``gigabytes`` retained for ``hours`` (simulation clock).
+    Object storage charge for ``gigabytes`` retained for ``days`` (simulation clock).
 
-    Table values are per GB-month; hourly rate is ``$/GB-month ÷ STORAGE_HOURS_PER_MONTH``.
+    Table values are per GB-month; daily rate is ``$/GB-month ÷ STORAGE_DAYS_PER_MONTH``.
+    Billable duration uses ``ceil(days)`` (whole days), matching ``database_storage_cost_usd``.
     """
-    if hours <= 0 or gigabytes <= 0:
+    if days <= 0 or gigabytes <= 0:
         return 0.0
+    billable_days = math.ceil(days)
     try:
         per_gb_month = STORAGE_USD_PER_GB_MONTH[provider][region]
     except KeyError as e:
         raise KeyError(
             f"No storage price for provider={provider!r} region={region!r}"
         ) from e
-    per_gb_hour = per_gb_month / STORAGE_HOURS_PER_MONTH
-    return per_gb_hour * gigabytes * hours
+    per_gb_day = per_gb_month / STORAGE_DAYS_PER_MONTH
+    return per_gb_day * gigabytes * billable_days
 
 
 def database_storage_cost_usd(

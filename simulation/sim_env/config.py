@@ -26,7 +26,7 @@ REGIONS = {
     "Aliyun": [
         "cn-shanghai", 
         "cn-beijing", 
-        "us-west-1", 
+        "us-east-1", 
         "ap-southeast-1"
     ]
 }
@@ -146,8 +146,8 @@ WORKFLOW_OPERATIONS = {
             ]
         },
         "Aliyun": {
-            # Note: LLM pricing table lists Beijing, US West 1, and AP Southeast 1 for Bailian
-            "supported_regions": ["cn-beijing", "us-west-1", "ap-southeast-1"],
+            # Note: LLM pricing table lists Beijing, US East 1 (Virginia), and AP Southeast 1 for Bailian
+            "supported_regions": ["cn-beijing", "us-east-1", "ap-southeast-1"],
             "models": [
                 "Qwen3-VL-Plus", 
                 "Qwen3-VL-Flash"
@@ -174,8 +174,8 @@ WORKFLOW_OPERATIONS = {
             ]
         },
         "Aliyun": {
-            # Note: LLM pricing table lists Beijing, US West 1, and AP Southeast 1 for Bailian
-            "supported_regions": ["cn-beijing", "us-west-1", "ap-southeast-1"],
+            # Note: LLM pricing table lists Beijing, US East 1 (Virginia), and AP Southeast 1 for Bailian
+            "supported_regions": ["cn-beijing", "us-east-1", "ap-southeast-1"],
             "models": [
                 "Qwen3-VL-Plus",
                 "Qwen3-VL-Flash",

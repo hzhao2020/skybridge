@@ -1,6 +1,7 @@
 """
 utility.py
-Task utility (quality) coefficients for segment / split / caption / query nodes.
+Task utility (quality) coefficients for segment / split / caption / query nodes,
+and for workflow2 visual-intelligence steps (ocr / label_detection / speech_transcription).
 
 Workflow order: segment -> split -> caption -> query. Split utility is always 1.0.
 Benchmark values from SkyAPI Evaluation.md (table percentages scaled to [0, 1]).
@@ -13,6 +14,8 @@ from dataclasses import dataclass
 from typing import Literal
 
 OperationName = Literal["segment", "split", "caption", "query"]
+
+VisualIntelligenceOperation = Literal["ocr", "label_detection", "speech_transcription"]
 
 # ---------------------------------------------------------------------------
 # Tables (provider for segment; model name for caption / query — matches config.py)
@@ -42,6 +45,42 @@ LLM_QUERY_UTILITY_BY_MODEL: dict[str, float] = {
 }
 
 SPLIT_UTILITY = 1.0
+
+# Workflow 2: Video Intelligence (ocr / label / speech) — provider column in SkyAPI Evaluation.md.
+OCR_UTILITY_BY_PROVIDER: dict[str, float] = {
+    "GCP": 0.958,
+    "AWS": 0.942,
+    "Aliyun": 0.948,
+}
+LABEL_DETECTION_UTILITY_BY_PROVIDER: dict[str, float] = {
+    "GCP": 0.93,
+    "AWS": 0.89,
+    "Aliyun": 0.9316,
+}
+SPEECH_TRANSCRIPTION_UTILITY_BY_PROVIDER: dict[str, float] = {
+    "GCP": 0.973,
+    "AWS": 0.958,
+    "Aliyun": 0.963,
+}
+
+_VI_UTILITY_TABLES: dict[VisualIntelligenceOperation, dict[str, float]] = {
+    "ocr": OCR_UTILITY_BY_PROVIDER,
+    "label_detection": LABEL_DETECTION_UTILITY_BY_PROVIDER,
+    "speech_transcription": SPEECH_TRANSCRIPTION_UTILITY_BY_PROVIDER,
+}
+
+
+def visual_intelligence_utility(
+    provider: str,
+    vi_operation: VisualIntelligenceOperation,
+) -> float:
+    """Quality coefficient for workflow2 VI APIs; keyed by cloud (GCP / AWS / Aliyun)."""
+    try:
+        return _VI_UTILITY_TABLES[vi_operation][provider]
+    except KeyError as e:
+        raise KeyError(
+            f"No VI utility for provider={provider!r} vi_operation={vi_operation!r}"
+        ) from e
 
 
 @dataclass(frozen=True)

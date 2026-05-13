@@ -89,7 +89,7 @@ def coef_local_cost_latency_wf2(
     if logical_op == "database":
         stor = database_storage_cost_usd(node.provider, node.region, gb_local, days=1.0)
     else:
-        stor = storage_cost_usd(node.provider, node.region, gb_local, hours=1.0)
+        stor = storage_cost_usd(node.provider, node.region, gb_local, days=1.0)
     p, r = node.provider, node.region
     cin, cout = cap_pair
     qin, qout = q_pair
@@ -377,6 +377,8 @@ def build_joint_scenarios_wf2(
 
 
 class MilpSolutionWf2(NamedTuple):
+    """Incumbent from one restricted MILP solve (gurobipy)."""
+
     x_choice: tuple[int, ...]
     nodes: tuple[WF2PhysicalNode, ...]
     objective_value: float | None
@@ -384,10 +386,11 @@ class MilpSolutionWf2(NamedTuple):
     alpha_t: float | None
     eps_c: float | None
     eps_t: float | None
-    pulp_status: str
+    gurobi_status: str
 
 
 def _gurobi_status_str(model: gp.Model) -> str:
+    """Map Gurobi ``model.Status`` to short strings for logs/CSV."""
     s = model.Status
     if s == GRB.OPTIMAL:
         return "Optimal"
@@ -453,7 +456,7 @@ def _apply_warm_start_wf2(
                 _safe_set_initial(y_edge[ei][ka][kb], v)
 
 
-def _solve_milp_wf2(
+def _solve_milp_gurobi_wf2(
     path_id: WF2PathId,
     cands: tuple[tuple[WF2PhysicalNode, ...], ...],
     queries: list[QueryProfile],
@@ -598,7 +601,7 @@ def _solve_milp_wf2(
         alpha_t=gv(alpha_t_v),
         eps_c=gv(eps_c),
         eps_t=gv(eps_t),
-        pulp_status=status_str,
+        gurobi_status=status_str,
     )
 
 
@@ -650,7 +653,7 @@ def scenario_adaptive_decomposition_wf2(
                 queries=queries,
                 weights=weights,
             )
-        sol = _solve_milp_wf2(
+        sol = _solve_milp_gurobi_wf2(
             path_id,
             cands,
             queries,
@@ -880,7 +883,7 @@ def run_sky_deployment_wf2(
             weights=w,
         )
     coef_bundle = prepare_coefficients_wf2(path_id, cands, queries, scen)
-    return _solve_milp_wf2(
+    return _solve_milp_gurobi_wf2(
         path_id,
         cands,
         queries,

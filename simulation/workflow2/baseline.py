@@ -5,7 +5,7 @@ SC：单提供商可行时层内 argmax μ；若传入 ``queries`` 与 MC 参数
 **优先最小化** 与 ``evaluation.evaluate_deployment_empirical_wf2`` 一致的 MC SLO 违规数（费用+时延），再以 utility 为高者优先。
 
 DO：plug-in mean ρ（沿路径蒙特卡洛校准）、LLM token 经验均值、链路网络经验均值；
-目标 max Σ w_i μ_i，约束为每条查询在均值场上的费用与时延不超过 Θ。
+目标 max Σ w_i μ_i，约束为每条查询在均值场上的费用与时延不超过 Θ（**gurobipy MILP**）。
 
 运行：``python -m workflow2.baseline``。
 """
@@ -15,7 +15,8 @@ from __future__ import annotations
 import random
 from typing import NamedTuple, Sequence
 
-import pulp as pl
+import gurobipy as gp
+from gurobipy import GRB
 
 from sim_env.cost import (
     database_instance_cost_usd,
@@ -41,6 +42,7 @@ from sim_env.utility import QueryProfile
 
 from workflow1 import utils as wf1_utils
 
+from . import sky as wf2_sky
 from . import utils as wf2_utils
 from .candidates import enumerate_candidates_wf2
 from .utils import WF2PathId, WF2PhysicalNode, path_logical_ops, wf2_node_utility
@@ -55,7 +57,7 @@ class BaselineResultWf2(NamedTuple):
     name: str
     nodes: tuple[WF2PhysicalNode, ...]
     total_utility: float
-    pulp_status: str | None
+    gurobi_status: str | None
 
 
 def _mean_network_transfer_and_rtt_wf2(
@@ -177,7 +179,7 @@ def _deterministic_local_cost_latency_wf2(
     if logical_op == "database":
         stor = database_storage_cost_usd(node.provider, node.region, gb_local, days=1.0)
     else:
-        stor = storage_cost_usd(node.provider, node.region, gb_local, hours=1.0)
+        stor = storage_cost_usd(node.provider, node.region, gb_local, days=1.0)
     p, r = node.provider, node.region
     dur_sec = max(seg_minutes * 60.0, 1e-6)
     cin, cout = cap_pair
@@ -505,17 +507,20 @@ def deterministic_optimal_baseline_wf2(
     L = len(cands)
     dims = tuple(len(cands[i]) for i in range(L))
 
-    prob = pl.LpProblem("baseline_do_wf2_lp", pl.LpMaximize)
+    m = gp.Model("baseline_do_wf2_lp")
+    m.Params.OutputFlag = 0
+    if time_limit_sec is not None:
+        m.Params.TimeLimit = float(time_limit_sec)
 
     x = [
-        [pl.LpVariable(f"wf2_do_x_{i}_{k}", cat=pl.LpBinary) for k in range(dims[i])]
+        [m.addVar(vtype=GRB.BINARY, name=f"wf2_do_x_{i}_{k}") for k in range(dims[i])]
         for i in range(L)
     ]
-    y_edge: list[list[list[pl.LpVariable]]] = []
+    y_edge: list[list[list[gp.Var]]] = []
     for ei in range(L - 1):
         mat = [
             [
-                pl.LpVariable(f"wf2_do_y_{ei}_{ka}_{kb}", lowBound=0, upBound=1)
+                m.addVar(lb=0.0, ub=1.0, vtype=GRB.CONTINUOUS, name=f"wf2_do_y_{ei}_{ka}_{kb}")
                 for kb in range(dims[ei + 1])
             ]
             for ka in range(dims[ei])
@@ -523,50 +528,47 @@ def deterministic_optimal_baseline_wf2(
         y_edge.append(mat)
 
     for i in range(L):
-        prob += pl.lpSum(x[i][kk] for kk in range(dims[i])) == 1
+        m.addConstr(gp.quicksum(x[i][kk] for kk in range(dims[i])) == 1)
 
     for ei in range(L - 1):
         for ka in range(dims[ei]):
             for kb in range(dims[ei + 1]):
                 yv = y_edge[ei][ka][kb]
-                prob += yv <= x[ei][ka]
-                prob += yv <= x[ei + 1][kb]
-                prob += yv >= x[ei][ka] + x[ei + 1][kb] - 1
+                m.addConstr(yv <= x[ei][ka])
+                m.addConstr(yv <= x[ei + 1][kb])
+                m.addConstr(yv >= x[ei][ka] + x[ei + 1][kb] - 1)
 
-    util_terms: list = []
-    for i in range(L):
-        for k in range(dims[i]):
-            util_terms.append(weights[i] * wf2_node_utility(cands[i][k]) * x[i][k])
+    util_expr = gp.quicksum(
+        weights[i] * wf2_node_utility(cands[i][k]) * x[i][k]
+        for i in range(L)
+        for k in range(dims[i])
+    )
 
     nq = len(queries)
     for q_idx in range(nq):
         qprof = queries[q_idx]
-        lc_terms: list = []
-        for i in range(L):
-            for k in range(dims[i]):
-                lc_terms.append(a_cost[q_idx][i][k] * x[i][k])
-        for ei in range(L - 1):
-            for ka in range(dims[ei]):
-                for kb in range(dims[ei + 1]):
-                    lc_terms.append(b_cost[q_idx][ei][ka][kb] * y_edge[ei][ka][kb])
+        lc_expr = gp.quicksum(
+            a_cost[q_idx][i][k] * x[i][k] for i in range(L) for k in range(dims[i])
+        ) + gp.quicksum(
+            b_cost[q_idx][ei][ka][kb] * y_edge[ei][ka][kb]
+            for ei in range(L - 1)
+            for ka in range(dims[ei])
+            for kb in range(dims[ei + 1])
+        )
+        lt_expr = gp.quicksum(
+            a_lat[q_idx][i][k] * x[i][k] for i in range(L) for k in range(dims[i])
+        ) + gp.quicksum(
+            b_lat[q_idx][ei][ka][kb] * y_edge[ei][ka][kb]
+            for ei in range(L - 1)
+            for ka in range(dims[ei])
+            for kb in range(dims[ei + 1])
+        )
+        m.addConstr(lc_expr <= qprof.theta_cost + 1e-9)
+        m.addConstr(lt_expr <= qprof.theta_latency_sec + 1e-9)
 
-        lt_terms: list = []
-        for i in range(L):
-            for k in range(dims[i]):
-                lt_terms.append(a_lat[q_idx][i][k] * x[i][k])
-        for ei in range(L - 1):
-            for ka in range(dims[ei]):
-                for kb in range(dims[ei + 1]):
-                    lt_terms.append(b_lat[q_idx][ei][ka][kb] * y_edge[ei][ka][kb])
-
-        prob += pl.lpSum(lc_terms) <= qprof.theta_cost + 1e-9
-        prob += pl.lpSum(lt_terms) <= qprof.theta_latency_sec + 1e-9
-
-    prob += pl.lpSum(util_terms)
-
-    solver = pl.PULP_CBC_CMD(msg=0, timeLimit=time_limit_sec if time_limit_sec else None)
-    prob.solve(solver)
-    status_str = str(pl.LpStatus[prob.status])
+    m.setObjective(util_expr, GRB.MAXIMIZE)
+    m.optimize()
+    status_str = wf2_sky._gurobi_status_str(m)
 
     if status_str != "Optimal":
         placeholder = tuple(cands[i][0] for i in range(L))
@@ -579,13 +581,12 @@ def deterministic_optimal_baseline_wf2(
 
     picks: list[int] = []
     for i in range(L):
-        vals = [(k, float(pl.value(v) or 0.0)) for k, v in enumerate(x[i])]
+        vals = [(k, wf2_sky._safe_var_x(v)) for k, v in enumerate(x[i])]
         ks = sorted(vals, key=lambda t: t[1], reverse=True)[0][0]
         picks.append(int(ks))
 
     chosen = tuple(cands[i][picks[i]] for i in range(L))
-    util_obj = pl.value(prob.objective)
-    util_val = float(util_obj if util_obj is not None else 0.0)
+    util_val = float(m.ObjVal)
 
     return BaselineResultWf2("Deterministic-Optimal", chosen, util_val, status_str)
 
@@ -650,8 +651,8 @@ if __name__ == "__main__":  # pragma: no cover
         print_metrics_report_wf2(algorithm_label=name_prefix, metrics=m)
 
     do = deterministic_optimal_baseline_wf2(pid, qs, cands, weights=WEIGHTS)
-    print(do.name, do.pulp_status, do.total_utility, do.nodes)
+    print(do.name, do.gurobi_status, do.total_utility, do.nodes)
     md = evaluate_deployment_empirical_wf2(
         pid, do.nodes, qs, weights=WEIGHTS, samples_per_query=30, eval_seed=2026
     )
-    print_metrics_report_wf2(algorithm_label=f"{do.name} | MILP={do.pulp_status}", metrics=md)
+    print_metrics_report_wf2(algorithm_label=f"{do.name} | Gurobi={do.gurobi_status}", metrics=md)

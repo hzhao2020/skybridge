@@ -11,7 +11,7 @@ Baseline deployment policies for comparison with Sky (CVaR–MILP).
   calibration sampling (not closed-form E[·]); midpoint segment/split execution from
   measured bounds, empirical mean LLM output tokens, empirical mean network delay from trace
   samples per link; maximise Σ w_i μ_i subject to deterministic **mean** cost &
-  latency ≤ each query’s SLO (linear program, no CVaR slacks).
+  latency ≤ each query’s SLO (**MILP** via **gurobipy**, no CVaR slacks).
 
 From ``simulation/``: ``python -m workflow1.baseline``.
 """
@@ -21,7 +21,9 @@ from __future__ import annotations
 from typing import NamedTuple, Sequence
 
 import random
-import pulp as pl
+
+import gurobipy as gp
+from gurobipy import GRB
 
 from sim_env import config as cfg
 from sim_env.cost import egress_cost_usd, llm_token_cost_usd, split_cost_usd, storage_cost_usd, video_service_cost_usd
@@ -51,7 +53,7 @@ class BaselineResult(NamedTuple):
     name: str
     nodes: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode]
     total_utility: float
-    pulp_status: str | None
+    gurobi_status: str | None
 
 
 def _mean_network_transfer_and_rtt(
@@ -172,7 +174,7 @@ def _deterministic_local_cost_latency(
 ) -> tuple[float, float]:
     rho_i = float(rho[i])
     stor = storage_cost_usd(
-        node.provider, node.region, float(s_in[i]) * (1.0 + rho_i), hours=1.0
+        node.provider, node.region, float(s_in[i]) * (1.0 + rho_i), days=1.0
     )
     op = OPS[i]
     dur_sec = max(seg_minutes * 60.0, 1e-6)
@@ -460,7 +462,7 @@ def deterministic_optimal_baseline(
     llm_token_mean_samples: int = _LLM_TOKEN_MEAN_SAMPLES,
 ) -> BaselineResult:
     """
-    DO: LP max Σ w_i μ_i x_i s.t. mean cost & mean latency ≤ SLO per query.
+    DO: MILP max Σ w_i μ_i x_i s.t. mean cost & mean latency ≤ SLO per query (gurobipy).
 
     Mean-field ``mean_rho`` is a plug-in average from ``rho_calibration_samples`` i.i.d.
     draws (not closed-form E[·] from hidden lognormal parameters).
@@ -481,17 +483,20 @@ def deterministic_optimal_baseline(
     )
 
     dims = tuple(len(cands[i]) for i in range(4))
-    prob = pl.LpProblem("baseline_do_lp", pl.LpMaximize)
+    m = gp.Model("baseline_do_lp")
+    m.Params.OutputFlag = 0
+    if time_limit_sec is not None:
+        m.Params.TimeLimit = float(time_limit_sec)
 
     x = [
-        [pl.LpVariable(f"do_x_{i}_{k}", cat=pl.LpBinary) for k in range(dims[i])]
+        [m.addVar(vtype=GRB.BINARY, name=f"do_x_{i}_{k}") for k in range(dims[i])]
         for i in range(4)
     ]
-    y_edge: list[list[list[pl.LpVariable]]] = []
+    y_edge: list[list[list[gp.Var]]] = []
     for ei in range(3):
         mat = [
             [
-                pl.LpVariable(f"do_y_{ei}_{ka}_{kb}", lowBound=0, upBound=1)
+                m.addVar(lb=0.0, ub=1.0, vtype=GRB.CONTINUOUS, name=f"do_y_{ei}_{ka}_{kb}")
                 for kb in range(dims[ei + 1])
             ]
             for ka in range(dims[ei])
@@ -499,51 +504,47 @@ def deterministic_optimal_baseline(
         y_edge.append(mat)
 
     for i in range(4):
-        prob += pl.lpSum(x[i][kk] for kk in range(dims[i])) == 1
+        m.addConstr(gp.quicksum(x[i][kk] for kk in range(dims[i])) == 1)
 
     for ei in range(3):
         for ka in range(dims[ei]):
             for kb in range(dims[ei + 1]):
                 yv = y_edge[ei][ka][kb]
-                prob += yv <= x[ei][ka]
-                prob += yv <= x[ei + 1][kb]
-                prob += yv >= x[ei][ka] + x[ei + 1][kb] - 1
+                m.addConstr(yv <= x[ei][ka])
+                m.addConstr(yv <= x[ei + 1][kb])
+                m.addConstr(yv >= x[ei][ka] + x[ei + 1][kb] - 1)
 
-    util_terms: list = []
-    for i in range(4):
-        for k in range(dims[i]):
-            util_terms.append(
-                weights[i] * physical_node_utility(cands[i][k]) * x[i][k]
-            )
+    util_expr = gp.quicksum(
+        weights[i] * physical_node_utility(cands[i][k]) * x[i][k]
+        for i in range(4)
+        for k in range(dims[i])
+    )
 
     nq = len(queries)
     for q_idx in range(nq):
         qprof = queries[q_idx]
-        lc_terms: list = []
-        for i in range(4):
-            for k in range(dims[i]):
-                lc_terms.append(a_cost[q_idx][i][k] * x[i][k])
-        for ei in range(3):
-            for ka in range(dims[ei]):
-                for kb in range(dims[ei + 1]):
-                    lc_terms.append(b_cost[q_idx][ei][ka][kb] * y_edge[ei][ka][kb])
-        lt_terms: list = []
-        for i in range(4):
-            for k in range(dims[i]):
-                lt_terms.append(a_lat[q_idx][i][k] * x[i][k])
-        for ei in range(3):
-            for ka in range(dims[ei]):
-                for kb in range(dims[ei + 1]):
-                    lt_terms.append(b_lat[q_idx][ei][ka][kb] * y_edge[ei][ka][kb])
+        lc_expr = gp.quicksum(
+            a_cost[q_idx][i][k] * x[i][k] for i in range(4) for k in range(dims[i])
+        ) + gp.quicksum(
+            b_cost[q_idx][ei][ka][kb] * y_edge[ei][ka][kb]
+            for ei in range(3)
+            for ka in range(dims[ei])
+            for kb in range(dims[ei + 1])
+        )
+        lt_expr = gp.quicksum(
+            a_lat[q_idx][i][k] * x[i][k] for i in range(4) for k in range(dims[i])
+        ) + gp.quicksum(
+            b_lat[q_idx][ei][ka][kb] * y_edge[ei][ka][kb]
+            for ei in range(3)
+            for ka in range(dims[ei])
+            for kb in range(dims[ei + 1])
+        )
+        m.addConstr(lc_expr <= qprof.theta_cost + 1e-9)
+        m.addConstr(lt_expr <= qprof.theta_latency_sec + 1e-9)
 
-        prob += pl.lpSum(lc_terms) <= qprof.theta_cost + 1e-9
-        prob += pl.lpSum(lt_terms) <= qprof.theta_latency_sec + 1e-9
-
-    prob += pl.lpSum(util_terms)
-
-    solver = pl.PULP_CBC_CMD(msg=0, timeLimit=time_limit_sec if time_limit_sec else None)
-    prob.solve(solver)
-    status_str = str(pl.LpStatus[prob.status])
+    m.setObjective(util_expr, GRB.MAXIMIZE)
+    m.optimize()
+    status_str = sky_mod._gurobi_status_str(m)
 
     if status_str != "Optimal":
         placeholder = tuple(cands[i][0] for i in range(4))
@@ -556,13 +557,12 @@ def deterministic_optimal_baseline(
 
     picks: list[int] = []
     for i in range(4):
-        vals = [(k, float(pl.value(v) or 0.0)) for k, v in enumerate(x[i])]
+        vals = [(k, sky_mod._safe_var_x(v)) for k, v in enumerate(x[i])]
         ks = sorted(vals, key=lambda t: t[1], reverse=True)[0][0]
         picks.append(int(ks))
 
     chosen = tuple(cands[i][picks[i]] for i in range(4))
-    util_obj = pl.value(prob.objective)
-    util_val = float(util_obj if util_obj is not None else 0.0)
+    util_val = float(m.ObjVal)
 
     return BaselineResult(
         "Deterministic-Optimal",
@@ -631,8 +631,8 @@ if __name__ == "__main__":  # pragma: no cover
     do = deterministic_optimal_baseline(qs, cands, weights=WEIGHTS)
     print(
         do.name,
-        "MILP_status",
-        do.pulp_status,
+        "Gurobi_status",
+        do.gurobi_status,
         "MILP_U",
         do.total_utility,
         "nodes",
@@ -641,4 +641,4 @@ if __name__ == "__main__":  # pragma: no cover
     md = evaluate_deployment_empirical(
         do.nodes, qs, weights=WEIGHTS, samples_per_query=EVAL_SQ, eval_seed=EVAL_SEED
     )
-    print_metrics_report(algorithm_label=f"{do.name} | MILP={do.pulp_status}", metrics=md)
+    print_metrics_report(algorithm_label=f"{do.name} | Gurobi={do.gurobi_status}", metrics=md)

@@ -52,7 +52,7 @@ from sim_env.network import (
     reset_link_counters,
     sample_link,
 )
-from sim_env.utility import PhysicalNode, QueryProfile, physical_node_utility
+from sim_env.utility import PhysicalNode, QueryProfile, physical_node_utility, visual_intelligence_utility
 
 from workflow1 import utils as wf1_utils
 
@@ -175,7 +175,6 @@ def wf2_llm_token_bundle(
     return cap_pair, q_pair
 
 
-WF2_PLACEHOLDER_VI_UTILITY = 0.88
 WF2_PLACEHOLDER_DB_UTILITY = 0.82
 
 
@@ -363,8 +362,12 @@ def wf2_node_utility(node: WF2PhysicalNode) -> float:
         if not node.model:
             raise ValueError("video_caption requires model")
         return physical_node_utility(PhysicalNode("caption", node.provider, node.region, node.model))
-    if op in ("ocr", "label_detection", "speech_transcription"):
-        return WF2_PLACEHOLDER_VI_UTILITY
+    if op == "ocr":
+        return visual_intelligence_utility(node.provider, "ocr")
+    if op == "label_detection":
+        return visual_intelligence_utility(node.provider, "label_detection")
+    if op == "speech_transcription":
+        return visual_intelligence_utility(node.provider, "speech_transcription")
     if op in ("database", "qa"):
         return WF2_PLACEHOLDER_DB_UTILITY
     if op == "answer":
@@ -398,7 +401,7 @@ def _storage_cost_nodes(nodes: Sequence[WF2PhysicalNode], s_in: Sequence[float],
         if n.operation == "database":
             t += database_storage_cost_usd(n.provider, n.region, gb, days=1.0)
         else:
-            t += storage_cost_usd(n.provider, n.region, gb, hours=1.0)
+            t += storage_cost_usd(n.provider, n.region, gb, days=1.0)
     return t
 
 
@@ -750,13 +753,13 @@ def end_to_end_cost_parallel_shot_modalities(
         node_video.provider,
         node_video.region,
         s_src_gb * (1.0 + rho_video),
-        hours=1.0,
+        days=1.0,
     )
     stor += storage_cost_usd(
         node_shot.provider,
         node_shot.region,
         s_after_video * (1.0 + rho_shot),
-        hours=1.0,
+        days=1.0,
     )
 
     branch_outputs_gb: list[float] = []
@@ -787,7 +790,7 @@ def end_to_end_cost_parallel_shot_modalities(
             mn.provider,
             mn.region,
             s_after_shot * (1.0 + rho_m),
-            hours=1.0,
+            days=1.0,
         )
 
     s_db_in = sum(branch_outputs_gb)
@@ -842,7 +845,7 @@ def end_to_end_cost_parallel_shot_modalities(
         node_qa.provider,
         node_qa.region,
         s_after_db * (1.0 + rho_qa),
-        hours=1.0,
+        days=1.0,
     )
     s_after_qa = s_after_db * rho_qa
     xfer_q_a = s_after_db * rho_qa
@@ -856,7 +859,7 @@ def end_to_end_cost_parallel_shot_modalities(
         node_answer.provider,
         node_answer.region,
         s_after_qa * (1.0 + rho_answer),
-        hours=1.0,
+        days=1.0,
     )
 
     s_answer_out = float(s_after_qa) * float(rho_answer)

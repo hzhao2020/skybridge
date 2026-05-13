@@ -42,7 +42,7 @@ from . import utils as wf_utils
 # --- Ablation presets (paper): decomposition + greedy warm-start ----------
 # Variant 1 — Full Sky: scenario-adaptive decomposition + locality greedy MIP start.
 SKY_ABLATION_FULL: dict[str, bool] = {"decomposition": True, "use_warm_start": True}
-# Variant 2 — Decomposition only: same outer loop, no warm-start (cold CBC each iter).
+# Variant 2 — Decomposition only: same outer loop, no warm-start (cold Gurobi MILP each iter).
 SKY_ABLATION_NO_WARM_START: dict[str, bool] = {
     "decomposition": True,
     "use_warm_start": False,
@@ -63,7 +63,7 @@ except ImportError as e:  # pragma: no cover
 
 
 def _gurobi_status_str(model: gp.Model) -> str:
-    """Map Gurobi status to strings similar to PuLP ``LpStatus`` for downstream logs/CSV."""
+    """Map Gurobi ``model.Status`` to short strings for logs/CSV (``Optimal``, ``Infeasible``, …)."""
     s = model.Status
     if s == GRB.OPTIMAL:
         return "Optimal"
@@ -146,7 +146,7 @@ def coef_local_cost_latency(
     """
     rho_i = float(rho[i])
     stor = storage_cost_usd(
-        node.provider, node.region, float(s_in[i]) * (1.0 + rho_i), hours=1.0
+        node.provider, node.region, float(s_in[i]) * (1.0 + rho_i), days=1.0
     )
     op = OPS_ORDER[i]
     cin, cout = cap_pair
@@ -366,7 +366,7 @@ def build_joint_scenarios(
 
 
 class MilpSolution(NamedTuple):
-    """Incumbent from one restricted MILP solve."""
+    """Incumbent from one restricted MILP solve (gurobipy)."""
 
     x_choice: tuple[int, int, int, int]
     nodes: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode]
@@ -375,7 +375,7 @@ class MilpSolution(NamedTuple):
     alpha_t: float | None
     eps_c: float | None
     eps_t: float | None
-    pulp_status: str
+    gurobi_status: str
 
 
 def _safe_set_initial(var: gp.Var, val: float) -> None:
@@ -403,7 +403,7 @@ def _apply_warm_start(
                 _safe_set_initial(y_edge[ei][ka][kb], v)
 
 
-def _solve_milp(
+def _solve_milp_gurobi(
     cands: tuple[tuple[PhysicalNode, ...], ...],
     queries: list[QueryProfile],
     scenarios_all: list[JointScenario],
@@ -563,7 +563,7 @@ def _solve_milp(
         alpha_t=alpha_t_sol,
         eps_c=eps_c_sol,
         eps_t=eps_t_sol,
-        pulp_status=status_str,
+        gurobi_status=status_str,
     )
 
 
@@ -609,7 +609,7 @@ def scenario_adaptive_decomposition(
     Terminates when no positive violations remain among withheld scenarios.
 
     ``use_warm_start``: if True (default), each restricted solve is seeded with
-    ``locality_greedy_warm_start_indices``; if False, ``_solve_milp`` is called with
+    ``locality_greedy_warm_start_indices``; if False, ``_solve_milp_gurobi`` is called with
     no MIP start (ablation: decomposition without warm-start).
     """
     r = rng or random.Random()
@@ -636,7 +636,7 @@ def scenario_adaptive_decomposition(
                 queries=queries,
                 weights=weights,
             )
-        sol = _solve_milp(
+        sol = _solve_milp_gurobi(
             cands,
             queries,
             scenarios,
@@ -903,7 +903,7 @@ def run_sky_deployment(
             weights=weights,
         )
     coef_bundle = prepare_coefficients(cands, queries, scen)
-    return _solve_milp(
+    return _solve_milp_gurobi(
         cands,
         queries,
         scen,
@@ -981,7 +981,7 @@ if __name__ == "__main__":  # pragma: no cover
         s = rep
         algo_tag = "Sky (full MILP)"
 
-    print("solver_status", s.pulp_status, "solver_objective", s.objective_value)
+    print("gurobi_status", s.gurobi_status, "solver_objective", s.objective_value)
     print("deployment", s.nodes)
     print(f"elapsed_sec {elapsed:.2f}")
 
