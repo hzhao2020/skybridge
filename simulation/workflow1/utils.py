@@ -54,8 +54,19 @@ _BUDGET_REF_CHAIN_COST_WF1: tuple[PhysicalNode, PhysicalNode, PhysicalNode, Phys
     PhysicalNode("query", "Aliyun", "cn-beijing", "Qwen3-VL-Flash"),
 )
 _BUDGET_REF_CHAIN_LATENCY_WF1 = _BUDGET_REF_CHAIN_COST_WF1
-# 每条 query 的 Θ 相对参考链上 mean-field 指标放大该倍数（与 budget 脚本口径一致）。
+# 每条 query 的 Θ 相对参考链上 mean-field cost / latency 分别放大倍数（与 budget 脚本口径一致）。
 QUERY_BUDGET_REFERENCE_MULTIPLIER = 1.75
+# 预设：相对 plug-in mean 参考链上 mean-field 的 (min_cost, min_latency) 倍率。
+BUDGET_PRESET_MULTIPLIERS_WF1: dict[str, tuple[float, float]] = {
+    "cost_sensitivity": (1.5, 2.0),
+    "latency_sensitivity": (2.0, 1.5),
+    "balanced": (1.75, 1.75),
+}
+BUDGET_PRESET_SUITE_ORDER_WF1: tuple[str, ...] = (
+    "cost_sensitivity",
+    "latency_sensitivity",
+    "balanced",
+)
 
 
 def det_rng(master: int, *parts: int | str) -> random.Random:
@@ -509,11 +520,18 @@ def end_to_end_utility(
     return sum(w[i] * physical_node_utility(ns[i]) for i in range(4))
 
 
-def generate_realistic_queries(num_queries: int, seed: int = 42) -> list[QueryProfile]:
+def generate_realistic_queries(
+    num_queries: int,
+    seed: int = 42,
+    *,
+    budget_cost_multiplier: float | None = None,
+    budget_latency_multiplier: float | None = None,
+) -> list[QueryProfile]:
     """
     每条 query：plug-in mean ρ 下，在 **budget 搜索得到的参考链**上计算 mean-field
     端到端 cost / latency（cost 与 latency 可来自不同参考链），再乘以
-    ``QUERY_BUDGET_REFERENCE_MULTIPLIER`` 得到 ``Θ_C``、``Θ_T``。
+    ``budget_cost_multiplier`` / ``budget_latency_multiplier`` 得到 ``Θ_C``、``Θ_T``。
+    未指定时使用 ``QUERY_BUDGET_REFERENCE_MULTIPLIER``（两轴相同，默认 1.75）。
     """
     import random
 
@@ -530,7 +548,16 @@ def generate_realistic_queries(num_queries: int, seed: int = 42) -> list[QueryPr
 
     chain_c = _BUDGET_REF_CHAIN_COST_WF1
     chain_l = _BUDGET_REF_CHAIN_LATENCY_WF1
-    mult = QUERY_BUDGET_REFERENCE_MULTIPLIER
+    mult_c = (
+        budget_cost_multiplier
+        if budget_cost_multiplier is not None
+        else QUERY_BUDGET_REFERENCE_MULTIPLIER
+    )
+    mult_l = (
+        budget_latency_multiplier
+        if budget_latency_multiplier is not None
+        else QUERY_BUDGET_REFERENCE_MULTIPLIER
+    )
 
     queries: list[QueryProfile] = []
 
@@ -551,8 +578,8 @@ def generate_realistic_queries(num_queries: int, seed: int = 42) -> list[QueryPr
         queries.append(
             QueryProfile(
                 s_src_gb=s_src_gb,
-                theta_cost=ref_c * mult,
-                theta_latency_sec=ref_l * mult,
+                theta_cost=ref_c * mult_c,
+                theta_latency_sec=ref_l * mult_l,
             )
         )
 
