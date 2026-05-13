@@ -595,8 +595,8 @@ def scenario_adaptive_decomposition(
     lamb_c: float,
     lamb_t: float,
     weights: tuple[float, float, float, float],
-    batch_k: int,
-    seed_init_ratio: float = 0.15,
+    batch_add_ratio: float = 0.05,
+    seed_init_ratio: float = 0.10,
     time_limit_sec: int | None = None,
     rng: random.Random | None = None,
     use_warm_start: bool = True,
@@ -605,8 +605,13 @@ def scenario_adaptive_decomposition(
     Joint Scenario-Adaptive Decomposition (Algorithm in paper).
 
     Starts from a random subset of joint scenarios ω=(q,s), solves restricted MILPs,
-    measures violation Δ on withheld ω, grows active set by top-``batch_k``.
-    Terminates when no positive violations remain among withheld scenarios.
+    measures violation Δ on withheld ω, grows active set by the top ``k`` violators
+    where ``k = max(1, ceil(batch_add_ratio * |Ω|))`` (fraction of total scenarios).
+
+    ``seed_init_ratio`` controls cold-start size ``max(1, ceil(seed_init_ratio * |Ω|))``.
+
+    Terminates when no positive violations remain among withheld scenarios (or when the
+    active set cannot grow).
 
     ``use_warm_start``: if True (default), each restricted solve is seeded with
     ``locality_greedy_warm_start_indices``; if False, ``_solve_milp_gurobi`` is called with
@@ -679,7 +684,8 @@ def scenario_adaptive_decomposition(
             return DecompositionResult(sol, sorted(active_set), iters)
 
         violators.sort(reverse=True)
-        adding = violators[: max(1, batch_k)]
+        n_batch = max(1, int(math.ceil(batch_add_ratio * n_tot)))
+        adding = violators[:n_batch]
         changed = False
         for _, oid in adding:
             if oid not in active_set:
@@ -856,7 +862,7 @@ def run_sky_deployment(
     lamb_c: float = 1.0,
     lamb_t: float = 1.0,
     weights: tuple[float, float, float, float] = (0.25, 0.25, 0.25, 0.25),
-    batch_k: int = 8,
+    batch_add_ratio: float = 0.05,
     decomposition: bool = True,
     use_warm_start: bool = True,
     rng_seed: int = 0,
@@ -867,6 +873,11 @@ def run_sky_deployment(
     ``rng_seed`` seeds one ``random.Random`` used for ``build_joint_scenarios``
     and (when ``decomposition=True``) for the initial ``omega_space`` shuffle—same
     seed fixes both the SAA draws and outer-loop randomness.
+
+    When ``decomposition=True``, each iteration activates up to
+    ``max(1, ceil(batch_add_ratio * |Ω|))`` withheld scenarios (by violation rank);
+    the initial active set size is ``max(1, ceil(seed_init_ratio * |Ω|))`` with default
+    ``seed_init_ratio=0.10`` in ``scenario_adaptive_decomposition``.
 
     Ablation (paper):
         - Full: ``decomposition=True``, ``use_warm_start=True`` (see ``SKY_ABLATION_FULL``).
@@ -888,7 +899,7 @@ def run_sky_deployment(
             lamb_c=lamb_c,
             lamb_t=lamb_t,
             weights=weights,
-            batch_k=batch_k,
+            batch_add_ratio=batch_add_ratio,
             rng=r,
             use_warm_start=use_warm_start,
         )
@@ -946,7 +957,7 @@ if __name__ == "__main__":  # pragma: no cover
     QUERY_SEED = 42
     RUN_RNG_SEED = 0
 
-    BATCH_K = 12
+    BATCH_ADD_RATIO = 0.05
     ETA_C = 0.1
     ETA_T = 0.1
 
@@ -962,7 +973,7 @@ if __name__ == "__main__":  # pragma: no cover
         s_per_query=S_PER_QUERY,
         eta_c=ETA_C,
         eta_t=ETA_T,
-        batch_k=BATCH_K,
+        batch_add_ratio=BATCH_ADD_RATIO,
         rng_seed=RUN_RNG_SEED,
         weights=WEIGHTS_KPI,
     )

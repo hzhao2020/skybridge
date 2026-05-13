@@ -10,7 +10,7 @@ Sky 消融实验：独立变量 × 三种变体，记录求解时间、迭代次
 （Linux: ru_maxrss 为 KB）。
 
 结果写入 ``--out`` CSV：若文件已存在且非空则 **续写**（不写表头）；新文件或空文件则先写表头。
-需要整文件重写时使用 ``--overwrite``。列 ``batch_k`` 与命令行 ``--batch-k`` 一致；列 ``gurobi_status`` 为 Gurobi 求解状态字符串。
+需要整文件重写时使用 ``--overwrite``。列 ``batch_add_ratio``（每次迭代新增场景占 ``|Ω|`` 的比例）与命令行 ``--batch-add-ratio`` 一致；列 ``gurobi_status`` 为 Gurobi 求解状态字符串。
 
 对同一网格点 (Q, S, sweep)，三种变体共用同一 ``rng_seed``（**不含 variant**），因而 ``build_joint_scenarios`` 的联合场景、每条 ω 上的 segment/split 执行噪声、LLM token、链路的 ``sample_link`` 旋转均由此种子确定性导出（``sky.prepare_coefficients`` / ``utils.det_rng``），消融对比下随机环境一致。
 
@@ -69,7 +69,7 @@ def run_sky_single_in_process(payload: dict[str, Any]) -> dict[str, Any]:
     weights: tuple[float, float, float, float] = tuple(
         float(x) for x in payload.get("weights", (0.25, 0.25, 0.25, 0.25))
     )
-    batch_k = int(payload.get("batch_k", 8))
+    batch_add_ratio = float(payload.get("batch_add_ratio", 0.05))
 
     dec, warm = sky_runner.sky_ablation_settings(variant)
     queries = generate_realistic_queries(num_queries, seed=query_seed)
@@ -83,7 +83,7 @@ def run_sky_single_in_process(payload: dict[str, Any]) -> dict[str, Any]:
         lamb_c=lamb_c,
         lamb_t=lamb_t,
         weights=weights,
-        batch_k=batch_k,
+        batch_add_ratio=batch_add_ratio,
         decomposition=dec,
         use_warm_start=warm,
         rng_seed=sky_rng_seed,
@@ -228,7 +228,7 @@ def build_jobs(args: argparse.Namespace) -> list[dict[str, Any]]:
                         "lamb_c": args.lamb_c,
                         "lamb_t": args.lamb_t,
                         "weights": list(args.weights),
-                        "batch_k": args.batch_k,
+                        "batch_add_ratio": args.batch_add_ratio,
                     },
                 }
             )
@@ -259,7 +259,7 @@ def build_jobs(args: argparse.Namespace) -> list[dict[str, Any]]:
                         "lamb_c": args.lamb_c,
                         "lamb_t": args.lamb_t,
                         "weights": list(args.weights),
-                        "batch_k": args.batch_k,
+                        "batch_add_ratio": args.batch_add_ratio,
                     },
                 }
             )
@@ -289,7 +289,7 @@ def build_jobs(args: argparse.Namespace) -> list[dict[str, Any]]:
                         "lamb_c": args.lamb_c,
                         "lamb_t": args.lamb_t,
                         "weights": list(args.weights),
-                        "batch_k": args.batch_k,
+                        "batch_add_ratio": args.batch_add_ratio,
                     },
                 }
             )
@@ -347,7 +347,13 @@ def main() -> None:
         default=0,
         help="base for experiment RNG seed (same per Q,S,sweep for all variants; not per-variant)",
     )
-    parser.add_argument("--batch-k", type=int, default=10)
+    parser.add_argument(
+        "--batch-add-ratio",
+        type=float,
+        default=0.05,
+        metavar="R",
+        help="decomposition: each iteration adds max(1, ceil(R * total joint scenarios))",
+    )
     parser.add_argument("--eta-c", type=float, default=0.1)
     parser.add_argument("--eta-t", type=float, default=0.1)
     parser.add_argument("--lamb-c", type=float, default=1.0)
@@ -390,7 +396,7 @@ def main() -> None:
         "Q",
         "S",
         "variant",
-        "batch_k",
+        "batch_add_ratio",
         "wall_clock_sec",
         "master_iterations",
         "peak_memory_bytes",
@@ -433,7 +439,7 @@ def main() -> None:
                 "Q": job["independent_Q"],
                 "S": job["independent_S"],
                 "variant": job["variant"],
-                "batch_k": payload.get("batch_k", ""),
+                "batch_add_ratio": payload.get("batch_add_ratio", ""),
                 "wall_clock_sec": r.get("wall_clock_sec", math.nan),
                 "master_iterations": r.get("master_iterations", ""),
                 "peak_memory_bytes": r.get("peak_memory_bytes", ""),

@@ -64,7 +64,12 @@ def main() -> None:
         help="single RNG seed for empirical KPI evaluation (same MC draws for LO/SC/DO/Sky; alias: --eval-seed-base)",
     )
     parser.add_argument("--sky-s-per-query", type=int, default=50, help="SAA scenarios S per query for Sky")
-    parser.add_argument("--sky-batch-k", type=int, default=10)
+    parser.add_argument(
+        "--sky-batch-ratio",
+        type=float,
+        default=0.05,
+        help="decomposition: each iteration adds max(1, ceil(ratio * total scenarios)) violators",
+    )
     parser.add_argument("--sky-rng", type=int, default=0)
     parser.add_argument("--eta-c", type=float, default=0.1)
     parser.add_argument("--eta-t", type=float, default=0.1)
@@ -180,7 +185,7 @@ def main() -> None:
             lamb_c=5.0,
             lamb_t=0.00125,
             weights=weights,
-            batch_k=args.sky_batch_k,
+            batch_add_ratio=args.sky_batch_ratio,
             decomposition=sky_dec,
             use_warm_start=sky_warm,
             rng_seed=args.sky_rng,

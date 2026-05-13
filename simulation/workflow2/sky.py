@@ -622,12 +622,13 @@ def scenario_adaptive_decomposition_wf2(
     lamb_c: float,
     lamb_t: float,
     weights: Sequence[float],
-    batch_k: int,
-    seed_init_ratio: float = 0.15,
+    batch_add_ratio: float = 0.05,
+    seed_init_ratio: float = 0.10,
     time_limit_sec: int | None = None,
     rng: random.Random | None = None,
     use_warm_start: bool = True,
 ) -> DecompositionResultWf2:
+    """Scenario-adaptive decomposition for WF2 (cold-start ``seed_init_ratio``, per-iter ``batch_add_ratio``)."""
     r = rng or random.Random()
     n_tot = len(scenarios)
     n0 = max(1, int(math.ceil(seed_init_ratio * n_tot)))
@@ -689,7 +690,8 @@ def scenario_adaptive_decomposition_wf2(
             return DecompositionResultWf2(sol, sorted(active_set), iters)
 
         violators.sort(reverse=True)
-        adding = violators[: max(1, batch_k)]
+        n_batch = max(1, int(math.ceil(batch_add_ratio * n_tot)))
+        adding = violators[:n_batch]
         changed = False
         for _, oid in adding:
             if oid not in active_set:
@@ -845,7 +847,7 @@ def run_sky_deployment_wf2(
     lamb_c: float = 1.0,
     lamb_t: float = 1.0,
     weights: Sequence[float] | None = None,
-    batch_k: int = 8,
+    batch_add_ratio: float = 0.05,
     decomposition: bool = True,
     use_warm_start: bool = True,
     rng_seed: int = 0,
@@ -866,7 +868,7 @@ def run_sky_deployment_wf2(
             lamb_c=lamb_c,
             lamb_t=lamb_t,
             weights=w,
-            batch_k=batch_k,
+            batch_add_ratio=batch_add_ratio,
             rng=r,
             use_warm_start=use_warm_start,
         )
