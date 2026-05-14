@@ -1,7 +1,10 @@
 """
 每层逻辑算子的物理候选枚举（与 ``sim_env.config`` / ``sim_env.cost`` 对齐）。
 
-database / qa： footprint 与 segment 一致以控制 MILP 规模。
+database：footprint 与 shot_detection 一致。``qa`` 的 **(provider, region, model)** 与 workflow1
+``query`` 相同枚举规模；终局 LLM 费用/解码时延在仿真中计入 ``qa``（无单独 ``answer`` 算子）。
+
+拓扑：``shot_detection``（镜头检测云服务）→ ``video_split``（切分服务）→ …
 """
 
 from __future__ import annotations
@@ -12,19 +15,8 @@ from sim_env.cost import VIDEO_SERVICE_USD_PER_MINUTE
 from .utils import WF2LogicalOp, WF2PathId, WF2PhysicalNode, path_logical_ops
 
 
-def _segment_like_candidates(op: WF2LogicalOp) -> list[WF2PhysicalNode]:
-    spec = cfg.WORKFLOW_OPERATIONS["segment"]
-    out: list[WF2PhysicalNode] = []
-    for prov, pdata in spec.items():
-        for reg in pdata["supported_regions"]:
-            out.append(WF2PhysicalNode(op, prov, reg))
-    if not out:
-        raise RuntimeError(f"No candidates for {op!r} (segment footprint)")
-    return out
-
-
-def _split_like_candidates() -> list[WF2PhysicalNode]:
-    spec = cfg.WORKFLOW_OPERATIONS["split"]
+def _shot_detection_candidates() -> list[WF2PhysicalNode]:
+    spec = cfg.WORKFLOW_OPERATIONS["shot_detection"]
     out: list[WF2PhysicalNode] = []
     for prov, pdata in spec.items():
         for reg in pdata["supported_regions"]:
@@ -34,8 +26,30 @@ def _split_like_candidates() -> list[WF2PhysicalNode]:
     return out
 
 
+def _video_split_candidates() -> list[WF2PhysicalNode]:
+    spec = cfg.WORKFLOW_OPERATIONS["video_split"]
+    out: list[WF2PhysicalNode] = []
+    for prov, pdata in spec.items():
+        for reg in pdata["supported_regions"]:
+            out.append(WF2PhysicalNode("video_split", prov, reg))
+    if not out:
+        raise RuntimeError("No video_split candidates")
+    return out
+
+
+def _shot_detection_footprint_candidates(op: WF2LogicalOp) -> list[WF2PhysicalNode]:
+    spec = cfg.WORKFLOW_OPERATIONS["shot_detection"]
+    out: list[WF2PhysicalNode] = []
+    for prov, pdata in spec.items():
+        for reg in pdata["supported_regions"]:
+            out.append(WF2PhysicalNode(op, prov, reg))
+    if not out:
+        raise RuntimeError(f"No candidates for {op!r} (shot_detection footprint)")
+    return out
+
+
 def _caption_like_candidates() -> list[WF2PhysicalNode]:
-    spec = cfg.WORKFLOW_OPERATIONS["caption"]
+    spec = cfg.WORKFLOW_OPERATIONS["video_caption"]
     out: list[WF2PhysicalNode] = []
     for prov, pdata in spec.items():
         for reg in pdata["supported_regions"]:
@@ -46,15 +60,15 @@ def _caption_like_candidates() -> list[WF2PhysicalNode]:
     return out
 
 
-def _query_like_candidates() -> list[WF2PhysicalNode]:
+def _qa_like_candidates() -> list[WF2PhysicalNode]:
     spec = cfg.WORKFLOW_OPERATIONS["query"]
     out: list[WF2PhysicalNode] = []
     for prov, pdata in spec.items():
         for reg in pdata["supported_regions"]:
             for m in pdata["models"]:
-                out.append(WF2PhysicalNode("answer", prov, reg, m))
+                out.append(WF2PhysicalNode("qa", prov, reg, m))
     if not out:
-        raise RuntimeError("No answer candidates")
+        raise RuntimeError("No qa candidates")
     return out
 
 
@@ -69,11 +83,18 @@ def _video_intelligence_candidates(service_key: str, op: WF2LogicalOp) -> list[W
     return out
 
 
-def candidates_for_logical_op(op: WF2LogicalOp) -> tuple[WF2PhysicalNode, ...]:
-    if op == "video_segment":
-        return tuple(_segment_like_candidates("video_segment"))
+def candidates_for_logical_op(
+    op: WF2LogicalOp,
+    *,
+    path_ops: tuple[str, ...] | None = None,
+    layer_index: int | None = None,
+) -> tuple[WF2PhysicalNode, ...]:
+    """单上下文候选。``path_ops`` / ``layer_index`` 可为将来扩展预留，当前不参与分派。"""
+    _ = path_ops, layer_index
     if op == "shot_detection":
-        return tuple(_split_like_candidates())
+        return tuple(_shot_detection_candidates())
+    if op == "video_split":
+        return tuple(_video_split_candidates())
     if op == "video_caption":
         return tuple(_caption_like_candidates())
     if op == "ocr":
@@ -83,15 +104,14 @@ def candidates_for_logical_op(op: WF2LogicalOp) -> tuple[WF2PhysicalNode, ...]:
     if op == "speech_transcription":
         return tuple(_video_intelligence_candidates("speech_transcription", "speech_transcription"))
     if op == "database":
-        return tuple(_segment_like_candidates("database"))
+        return tuple(_shot_detection_footprint_candidates("database"))
     if op == "qa":
-        return tuple(_segment_like_candidates("qa"))
-    if op == "answer":
-        return tuple(_query_like_candidates())
+        return tuple(_qa_like_candidates())
     raise ValueError(f"unknown logical op: {op!r}")
 
 
 def enumerate_candidates_wf2(path_id: WF2PathId) -> tuple[tuple[WF2PhysicalNode, ...], ...]:
     """与 ``path_logical_ops(path_id)`` 等长的候选元组。"""
     ops = path_logical_ops(path_id)
-    return tuple(candidates_for_logical_op(op) for op in ops)
+    ot = tuple(ops)
+    return tuple(candidates_for_logical_op(ot[i], path_ops=ot, layer_index=i) for i in range(len(ops)))

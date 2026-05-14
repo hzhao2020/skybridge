@@ -3,13 +3,17 @@
 并对同一批 ``queries`` 调用 ``evaluation.evaluate_deployment_empirical`` 打印 KPI：
 Aggregate Utility / mean Cost / mean Latency / SVR。
 
-默认对三种 budget 预设各跑一次（参见 ``workflow1.utils.BUDGET_PRESET_MULTIPLIERS_WF1``）：
-cost_sensitivity → 1.5×min_cost、2×min_latency；latency_sensitivity → 2×、1.5×；balanced → 1.75× / 1.75×。
+默认对 **四种 budget–α 插值** 各跑一次（``workflow1.utils.BUDGET_ALPHA_SUITE_DEFAULT_WF1``，即 α∈{0.25,0.5,0.75,1}）：
+每条 query 取全链上 mean-field 最小成本 ``C_min`` 与 LO 链成本 ``C_max``，令
+``Θ_C=C_min+α(C_max-C_min)``；时延 ``Θ_T`` 同形（``L_min``、``L_max``）。
+
+可选：``--budget-preset`` 使用旧的参考链倍率（cost_sensitivity / latency_sensitivity / balanced）。
 
 在包含 ``workflow1`` 与 ``sim_env`` 的 ``simulation/`` 目录下执行::
 
     python -m workflow1.run_all_algorithms
     python -m workflow1.run_all_algorithms --num-queries 20
+    python -m workflow1.run_all_algorithms --budget-alpha 0.25 0.5
     python -m workflow1.run_all_algorithms --budget-preset balanced
 
 大规模实验请调大 ``--num-queries`` / ``--sky-s-per-query``（Sky 会非常慢）。
@@ -28,8 +32,8 @@ from . import baseline as baseline_runner
 from . import sky as sky_runner
 from .evaluation import EmpiricalDeploymentMetrics, evaluate_deployment_empirical, print_metrics_report
 from .utils import (
+    BUDGET_ALPHA_SUITE_DEFAULT_WF1,
     BUDGET_PRESET_MULTIPLIERS_WF1,
-    BUDGET_PRESET_SUITE_ORDER_WF1,
     generate_realistic_queries,
 )
 
@@ -148,8 +152,9 @@ def _run_algorithms_for_queries(
             s_per_query=args.sky_s_per_query,
             eta_c=args.eta_c,
             eta_t=args.eta_t,
-            lamb_c=5.0,
-            lamb_t=0.00125,
+            # WF1 (4-layer chain): soft penalties scaled so λ·ε ~ O(U); separate from workflow2.
+            lamb_c=0.35,
+            lamb_t=0.00112,
             weights=weights,
             batch_add_ratio=args.sky_batch_ratio,
             decomposition=sky_dec,
@@ -246,29 +251,52 @@ def main() -> None:
         help="Sky ablation: full (decomposition+warm-start), no_warm_start, or direct_milp (single Q×S MILP)",
     )
     parser.add_argument(
+        "--budget-alpha",
+        type=float,
+        nargs="*",
+        default=None,
+        metavar="A",
+        help=(
+            "预算插值系数 α（可多选）；未写值时默认 0.25 0.5 0.75 1.0。"
+            "与 --budget-preset 互斥。"
+        ),
+    )
+    parser.add_argument(
         "--budget-preset",
         nargs="+",
         default=None,
         choices=list(BUDGET_PRESET_MULTIPLIERS_WF1.keys()),
         metavar="PRESET",
         help=(
-            "one or more budget multiplier presets (%(choices)s); "
-            "default runs the full suite in order: "
-            + ", ".join(BUDGET_PRESET_SUITE_ORDER_WF1)
+            "（旧口径）参考链 mean-field 倍率预设；与 --budget-alpha 互斥。"
         ),
     )
     args = parser.parse_args()
 
     weights = tuple(args.weights)
     eval_seed = int(args.eval_seed)
-    presets = tuple(args.budget_preset) if args.budget_preset else BUDGET_PRESET_SUITE_ORDER_WF1
+
+    balpha = args.budget_alpha
+    if args.budget_preset is not None:
+        if balpha is not None and len(balpha) > 0:
+            parser.error("--budget-preset 与 --budget-alpha 不能同时使用")
+        preset_names: tuple[str, ...] = tuple(args.budget_preset)
+        run_plan: list[tuple[str, float | None]] = [(n, None) for n in preset_names]
+        plan_kind = "preset"
+    else:
+        plan_kind = "alpha"
+        if balpha is not None and len(balpha) > 0:
+            alphas_run = tuple(balpha)
+        else:
+            alphas_run = BUDGET_ALPHA_SUITE_DEFAULT_WF1
+        run_plan = [(f"α={a:g}", a) for a in alphas_run]
 
     print("=" * 70)
     print("run_all_algorithms: shared calibration set + empirical KPIs")
     print("=" * 70)
 
     print(
-        f"[setup] budget_presets={list(presets)} query_seed={args.query_seed} "
+        f"[setup] budget_mode={plan_kind} runs={len(run_plan)} query_seed={args.query_seed} "
         f"num_queries_each={args.num_queries} weights={weights} eval_seed={eval_seed}"
     )
     print()
@@ -277,26 +305,44 @@ def main() -> None:
     print(f"[setup] candidate layer sizes: {[len(c) for c in cands]}")
     print()
 
-    mega: list[tuple[str, float, float, list[tuple[str, EmpiricalDeploymentMetrics | None]]]] = []
+    mega: list[tuple[str, list[tuple[str, EmpiricalDeploymentMetrics | None]]]] = []
 
-    for preset_name in presets:
-        mc, ml = BUDGET_PRESET_MULTIPLIERS_WF1[preset_name]
-        queries = generate_realistic_queries(
-            args.num_queries,
-            seed=args.query_seed,
-            budget_cost_multiplier=mc,
-            budget_latency_multiplier=ml,
-        )
-        print("*" * 70)
-        print(
-            f"[budget preset] {preset_name} "
-            f"(Θ_cost = {mc} × min_meanfield_cost_ref, "
-            f"Θ_latency = {ml} × min_meanfield_latency_ref)"
-        )
-        print("*" * 70)
+    for label, alpha in run_plan:
+        if plan_kind == "preset":
+            assert alpha is None
+            mc, ml = BUDGET_PRESET_MULTIPLIERS_WF1[label]
+            queries = generate_realistic_queries(
+                args.num_queries,
+                seed=args.query_seed,
+                budget_cost_multiplier=mc,
+                budget_latency_multiplier=ml,
+            )
+            print("*" * 70)
+            print(
+                f"[budget preset] {label} "
+                f"(Θ_cost = {mc} × ref_meanfield_cost, "
+                f"Θ_latency = {ml} × ref_meanfield_latency)"
+            )
+            print("*" * 70)
+        else:
+            assert alpha is not None
+            queries = generate_realistic_queries(
+                args.num_queries,
+                seed=args.query_seed,
+                budget_alpha=float(alpha),
+                cands=cands,
+                weights=weights,
+            )
+            print("*" * 70)
+            print(
+                f"[budget α] {label}  "
+                f"Θ_C = C_min + α (C_max - C_min), Θ_T = L_min + α (L_max - L_min) "
+                f"(LO / 全链 min, plug-in mean ρ)"
+            )
+            print("*" * 70)
 
         results = _run_algorithms_for_queries(queries, args, weights=weights, eval_seed=eval_seed, cands=cands)
-        mega.append((preset_name, mc, ml, results))
+        mega.append((label, results))
         _print_summary_table(results)
         print()
 
@@ -304,22 +350,19 @@ def main() -> None:
         print("=" * 70)
         print("ALL PRESETS SUMMARY")
         print("=" * 70)
-        bh = (
-            f"{'budget':<20} {'mc':>5} {'ml':>5} {'algo':<6} "
-            f"{'U':>10} {'mean_C':>11} {'mean_T':>11} {'VR_C':>9} {'VR_T':>9}"
-        )
+        bh = f"{'budget':<26} {'algo':<6} {'U':>10} {'mean_C':>11} {'mean_T':>11} {'VR_C':>9} {'VR_T':>9}"
         print(bh)
         print("-" * len(bh))
-        for preset_name, mc, ml, rs in mega:
+        for budget_label, rs in mega:
             for name, m in rs:
                 if m is None:
                     print(
-                        f"{preset_name:<20} {mc:>5.3g} {ml:>5.3g} {name:<6} "
+                        f"{budget_label:<26} {name:<6} "
                         f"{'(skip)':>10} {'-':>11} {'-':>11} {'-':>9} {'-':>9}"
                     )
                     continue
                 print(
-                    f"{preset_name:<20} {mc:>5.3g} {ml:>5.3g} {name:<6} "
+                    f"{budget_label:<26} {name:<6} "
                     f"{m.aggregate_utility_u:>10.6g} {m.mean_cost_usd:>11.6g} "
                     f"{m.mean_latency_sec:>11.6g} {m.slo_cost_violation_rate:>9.6g} "
                     f"{m.slo_latency_violation_rate:>9.6g}"

@@ -21,7 +21,7 @@ from sim_env.utility import PhysicalNode, QueryProfile
 
 from . import utils as wf_utils
 
-_OPS = ("segment", "split", "caption", "query")
+_OPS = ("shot_detection", "video_split", "video_caption", "query")
 
 
 class EmpiricalDeploymentMetrics:

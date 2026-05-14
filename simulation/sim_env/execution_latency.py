@@ -3,10 +3,10 @@ execution_latency.py
 Execution-time models for measured video/split steps, Video Intelligence (label / OCR /
 speech), and LLMs (TTFT + tokens / throughput).
 
-Segment & split: ``segment_split_execution_time.csv`` bundles two columns for measurement
-convenience only; **segment and split are independent** in the simulator. Interpolated
-min/max per operation; sample only via ``sample_segment_execute_sec`` /
-``sample_split_execute_sec`` (never one draw for both). ``segment_split_bounds_at`` returns
+Shot detection & video split: ``segment_split_execution_time.csv`` bundles two columns for measurement
+convenience only; **shot_detection and video_split are independent** in the simulator. Interpolated
+min/max per operation; sample only via ``sample_shot_detection_execute_sec`` /
+``sample_video_split_execute_sec`` (never one draw for both). ``shot_detection_video_split_bounds_at`` returns
 both envelopes for inspection only.
 
 Label / OCR / speech: ``label_ocr_speech_execution_time.csv`` — **same idea**: one file,
@@ -146,14 +146,14 @@ _DATABASE_QUERY_LATENCY_CSV = (
 
 
 @dataclass(frozen=True)
-class SegmentSplitBounds:
+class ShotDetectionVideoSplitBounds:
     """Interpolated/extrapolated min–max bounds (seconds) at a clip duration."""
 
     duration_sec: float
-    segment_min_sec: float
-    segment_max_sec: float
-    split_min_sec: float
-    split_max_sec: float
+    shot_detection_min_sec: float
+    shot_detection_max_sec: float
+    video_split_min_sec: float
+    video_split_max_sec: float
 
 
 @dataclass(frozen=True)
@@ -200,12 +200,12 @@ NODE_EXECUTION_SCALE_HALF_WIDTH = LATENCY_RANDOM_HALF_WIDTH
 
 _NODE_EXECUTION_SCALE_CACHE: dict[tuple[str, str, str, str], float] = {}
 
-OperationSegSpl = Literal["segment", "split"]
+OperationShotDetectionVideoSplit = Literal["shot_detection", "video_split"]
 OperationLabelOcrSpeech = Literal["label_detection", "ocr", "speech_transcription"]
 
 LatencyOpKind = Literal[
-    "segment",
-    "split",
+    "shot_detection",
+    "video_split",
     "label_detection",
     "ocr",
     "speech_transcription",
@@ -318,11 +318,11 @@ def node_execution_scale_k(
     return sample_execution_scale(r)
 
 
-class SegmentSplitLatencyModel:
+class ShotDetectionVideoSplitLatencyModel:
     """
-    Per measured duration: min/max of segment and of split execution times.
+    Per measured duration: min/max of shot_detection and of video_split execution times.
     Bounds vs. duration are piecewise-linear; draw each operation separately via
-    ``sample_segment_execute_sec`` / ``sample_split_execute_sec``.
+    ``sample_shot_detection_execute_sec`` / ``sample_video_split_execute_sec``.
     """
 
     def __init__(self, csv_path: Path | None = None) -> None:
@@ -370,11 +370,11 @@ class SegmentSplitLatencyModel:
     def node_field_bounds_at(
         self,
         video_duration_sec: float,
-        operation: OperationSegSpl,
+        operation: OperationShotDetectionVideoSplit,
         provider: str,
         region: str,
     ) -> tuple[float, float]:
-        """Aggregate segment/split (min, max) at ``video_duration_sec`` before ``k``."""
+        """Aggregate shot_detection/video_split (min, max) at ``video_duration_sec`` before ``k``."""
 
         _ = provider, region
         self._ensure_loaded()
@@ -388,7 +388,7 @@ class SegmentSplitLatencyModel:
         d_req = float(video_duration_sec)
         if d_req <= 0:
             raise ValueError("video_duration_sec must be positive")
-        if operation == "segment":
+        if operation == "shot_detection":
             lo = _piecewise_linear_eval(self._anchors, self._seg_min, d_req)
             hi = _piecewise_linear_eval(self._anchors, self._seg_max, d_req)
         else:
@@ -402,9 +402,9 @@ class SegmentSplitLatencyModel:
         assert self._anchors is not None
         return list(self._anchors)
 
-    def bounds_at(self, video_duration_sec: float) -> SegmentSplitBounds:
+    def bounds_at(self, video_duration_sec: float) -> ShotDetectionVideoSplitBounds:
         """
-        Min/max envelope for segment and split at `video_duration_sec` (seconds),
+        Min/max envelope for shot_detection and video_split at `video_duration_sec` (seconds),
         from piecewise-linear curves through per-bucket minima/maxima.
         """
         self._ensure_loaded()
@@ -424,40 +424,42 @@ class SegmentSplitLatencyModel:
         px = _piecewise_linear_eval(self._anchors, self._spl_max, d_req)
         sm, sx = _enforce_min_le_max(sm, sx)
         pm, px = _enforce_min_le_max(pm, px)
-        return SegmentSplitBounds(d_req, sm, sx, pm, px)
+        return ShotDetectionVideoSplitBounds(d_req, sm, sx, pm, px)
 
 
-_DEFAULT_SEGMENT_SPLIT_MODEL = SegmentSplitLatencyModel()
+_DEFAULT_SHOT_DETECTION_VIDEO_SPLIT_MODEL = ShotDetectionVideoSplitLatencyModel()
 
 
-def segment_split_bounds_at(video_duration_sec: float) -> SegmentSplitBounds:
-    """Interpolated min/max bounds for segment and split at the given clip length."""
-    return _DEFAULT_SEGMENT_SPLIT_MODEL.bounds_at(video_duration_sec)
+def shot_detection_video_split_bounds_at(
+    video_duration_sec: float,
+) -> ShotDetectionVideoSplitBounds:
+    """Interpolated min/max bounds for shot_detection and video_split at the given clip length."""
+    return _DEFAULT_SHOT_DETECTION_VIDEO_SPLIT_MODEL.bounds_at(video_duration_sec)
 
 
-def node_segment_execute_bounds_at(
+def node_shot_detection_execute_bounds_at(
     video_duration_sec: float,
     provider: str,
     region: str,
 ) -> tuple[float, float]:
-    """Aggregate segment (min, max) in seconds at this clip length; scaled by ``k`` when sampling."""
-    return _DEFAULT_SEGMENT_SPLIT_MODEL.node_field_bounds_at(
-        video_duration_sec, "segment", provider, region
+    """Aggregate shot_detection (min, max) in seconds at this clip length; scaled by ``k`` when sampling."""
+    return _DEFAULT_SHOT_DETECTION_VIDEO_SPLIT_MODEL.node_field_bounds_at(
+        video_duration_sec, "shot_detection", provider, region
     )
 
 
-def node_split_execute_bounds_at(
+def node_video_split_execute_bounds_at(
     video_duration_sec: float,
     provider: str,
     region: str,
 ) -> tuple[float, float]:
-    """Aggregate split (min, max) in seconds at this clip length; scaled by ``k`` when sampling."""
-    return _DEFAULT_SEGMENT_SPLIT_MODEL.node_field_bounds_at(
-        video_duration_sec, "split", provider, region
+    """Aggregate video_split (min, max) in seconds at this clip length; scaled by ``k`` when sampling."""
+    return _DEFAULT_SHOT_DETECTION_VIDEO_SPLIT_MODEL.node_field_bounds_at(
+        video_duration_sec, "video_split", provider, region
     )
 
 
-def sample_segment_execute_sec(
+def sample_shot_detection_execute_sec(
     video_duration_sec: float,
     rng: random.Random | None = None,
     *,
@@ -469,26 +471,26 @@ def sample_segment_execute_sec(
     d_req = float(video_duration_sec)
     scope = execution_scale_scope if execution_scale_scope is not None else "_global"
     if node is None:
-        lo, hi = _DEFAULT_SEGMENT_SPLIT_MODEL.node_field_bounds_at(
-            d_req, "segment", "", ""
+        lo, hi = _DEFAULT_SHOT_DETECTION_VIDEO_SPLIT_MODEL.node_field_bounds_at(
+            d_req, "shot_detection", "", ""
         )
         k = 1.0
     else:
-        lo, hi = node_segment_execute_bounds_at(d_req, node.provider, node.region)
+        lo, hi = node_shot_detection_execute_bounds_at(d_req, node.provider, node.region)
         if execution_scale_seed is not None:
             k = node_execution_scale_k(
                 execution_scale_seed,
                 scope,
                 node.provider,
                 node.region,
-                "segment",
+                "shot_detection",
             )
         else:
             k = _get_fixed_node_execution_scale(
                 execution_scale_scope=scope,
                 provider=node.provider,
                 region=node.region,
-                latency_op="segment",
+                latency_op="shot_detection",
                 rng=r,
             )
     lo, hi = lo * k, hi * k
@@ -496,7 +498,7 @@ def sample_segment_execute_sec(
     return r.uniform(lo, hi)
 
 
-def sample_split_execute_sec(
+def sample_video_split_execute_sec(
     video_duration_sec: float,
     rng: random.Random | None = None,
     *,
@@ -508,26 +510,26 @@ def sample_split_execute_sec(
     d_req = float(video_duration_sec)
     scope = execution_scale_scope if execution_scale_scope is not None else "_global"
     if node is None:
-        lo, hi = _DEFAULT_SEGMENT_SPLIT_MODEL.node_field_bounds_at(
-            d_req, "split", "", ""
+        lo, hi = _DEFAULT_SHOT_DETECTION_VIDEO_SPLIT_MODEL.node_field_bounds_at(
+            d_req, "video_split", "", ""
         )
         k = 1.0
     else:
-        lo, hi = node_split_execute_bounds_at(d_req, node.provider, node.region)
+        lo, hi = node_video_split_execute_bounds_at(d_req, node.provider, node.region)
         if execution_scale_seed is not None:
             k = node_execution_scale_k(
                 execution_scale_seed,
                 scope,
                 node.provider,
                 node.region,
-                "split",
+                "video_split",
             )
         else:
             k = _get_fixed_node_execution_scale(
                 execution_scale_scope=scope,
                 provider=node.provider,
                 region=node.region,
-                latency_op="split",
+                latency_op="video_split",
                 rng=r,
             )
     lo, hi = lo * k, hi * k
@@ -535,9 +537,9 @@ def sample_split_execute_sec(
     return r.uniform(lo, hi)
 
 
-def segment_split_bucket_sizes() -> list[float]:
+def shot_detection_video_split_bucket_sizes() -> list[float]:
     """Clip durations (seconds) that appear in the measurement CSV."""
-    return _DEFAULT_SEGMENT_SPLIT_MODEL.measured_durations_sec
+    return _DEFAULT_SHOT_DETECTION_VIDEO_SPLIT_MODEL.measured_durations_sec
 
 
 # ---------------------------------------------------------------------------
@@ -897,7 +899,7 @@ def sample_database_query_execute_sec(
     """
     One database retrieval latency draw: uniform between scaled min/max from measurement CSV.
 
-    With a ``PhysicalNode``, latency is scaled by the same endpoint ``k`` as segment/VI ops.
+    With a ``PhysicalNode``, latency is scaled by the same endpoint ``k`` as shot_detection/VI ops.
     """
     r = rng or random.Random()
     scope = execution_scale_scope if execution_scale_scope is not None else "_global"

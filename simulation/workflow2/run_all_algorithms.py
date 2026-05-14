@@ -1,10 +1,15 @@
 """
 一键运行 Workflow 2：**LO / SC / DO / Sky**（互斥路径 DAG 上的 CVaR–SAA MILP），并打印蒙特卡洛 KPI。
 
+默认对 **四种 budget–α** 各跑一次（与 workflow1 相同，``workflow1.utils.BUDGET_ALPHA_SUITE_DEFAULT_WF1``）。
+
+可选 ``--budget-preset`` 使用旧参考链倍率。
+
 在 ``simulation/`` 下::
 
     python -m workflow2.run_all_algorithms --path caption --num-queries 20
     python -m workflow2.run_all_algorithms --path speech --skip-sky
+    python -m workflow2.run_all_algorithms --budget-preset balanced
 """
 
 from __future__ import annotations
@@ -13,6 +18,8 @@ import argparse
 import sys
 import time
 from typing import Any
+
+from workflow1.utils import BUDGET_ALPHA_SUITE_DEFAULT_WF1, BUDGET_PRESET_MULTIPLIERS_WF1
 
 from . import baseline as baseline_runner
 from . import sky as sky_runner
@@ -49,74 +56,44 @@ def _evaluate_and_print(
     return m
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Run LO, SC, DO, Sky for workflow2 + KPIs.")
-    parser.add_argument(
-        "--path",
-        choices=["caption", "ocr", "label", "speech"],
-        default="caption",
-        help="exclusive DAG path id",
-    )
-    parser.add_argument("--num-queries", type=int, default=100)
-    parser.add_argument("--query-seed", type=int, default=42)
-    parser.add_argument(
-        "--weights",
-        type=float,
-        nargs="*",
-        default=None,
-        help="per-layer weights (length = path depth); default uniform",
-    )
-    parser.add_argument("--eval-samples-per-query", type=int, default=50)
-    parser.add_argument("--eval-seed", type=int, default=9000)
-    parser.add_argument("--sky-s-per-query", type=int, default=50)
-    parser.add_argument(
-        "--sky-batch-ratio",
-        type=float,
-        default=0.05,
-        help="decomposition: each iteration adds max(1, ceil(ratio * total scenarios)) violators",
-    )
-    parser.add_argument("--sky-rng", type=int, default=0)
-    parser.add_argument("--eta-c", type=float, default=0.1)
-    parser.add_argument("--eta-t", type=float, default=0.1)
-    parser.add_argument("--skip-sky", action="store_true")
-    parser.add_argument(
-        "--sky-variant",
-        choices=["full", "no_warm_start", "direct_milp"],
-        default="full",
-    )
-    args = parser.parse_args()
-
-    path_id = args.path
-    default_w = wf2_utils.default_weights_for_path(path_id)
-    if args.weights is not None:
-        if len(args.weights) != len(default_w):
-            parser.error(
-                f"--weights expects {len(default_w)} values for path {path_id!r}, "
-                f"got {len(args.weights)}"
-            )
-        weights = tuple(args.weights)
-    else:
-        weights = default_w
-
-    eval_seed = int(args.eval_seed)
-
+def _print_summary_table_wf2(results: list[tuple[str, EmpiricalDeploymentMetricsWf2 | None]]) -> None:
+    print()
     print("=" * 70)
-    print(f"workflow2.run_all_algorithms | path={path_id}")
-    print("=" * 70)
-
-    queries = wf2_utils.generate_realistic_queries_wf2(
-        args.num_queries, path_id, seed=args.query_seed
-    )
     print(
-        f"[setup] path={path_id} num_queries={len(queries)} query_seed={args.query_seed} "
-        f"weights={weights} eval_seed={eval_seed}"
+        "SUMMARY (empirical U, mean cost USD, mean latency path-sum s, "
+        "mean display-max latency s, VR_cost, VR_lat on path-sum)"
     )
-    print()
+    print("=" * 70)
+    hdr = (
+        f"{'algo':<6} {'U':>10} {'mean_C':>11} {'mean_TΣ':>11} {'mean_Tmax':>11} "
+        f"{'VR_C':>9} {'VR_TΣ':>9}"
+    )
+    print(hdr)
+    print("-" * len(hdr))
+    for name, m in results:
+        if m is None:
+            print(
+                f"{name:<6} {'(skipped)':>10} {'-':>11} {'-':>11} {'-':>11} {'-':>9} {'-':>9}"
+            )
+            continue
+        print(
+            f"{name:<6} {m.aggregate_utility_u:>10.6g} "
+            f"{m.mean_cost_usd:>11.6g} {m.mean_latency_sec:>11.6g} "
+            f"{m.mean_workflow_display_latency_sec:>11.6g} "
+            f"{m.slo_cost_violation_rate:>9.6g} {m.slo_latency_violation_rate:>9.6g}"
+        )
+    print("=" * 70)
 
-    cands = sky_runner.enumerate_candidates_wf2(path_id)
-    print(f"[setup] candidate layer sizes: {[len(c) for c in cands]}")
-    print()
 
+def _run_algorithms_for_queries_wf2(
+    path_id: sky_runner.WF2PathId,
+    queries: list,
+    args: argparse.Namespace,
+    *,
+    weights: tuple[float, ...],
+    eval_seed: int,
+    cands: tuple[Any, ...],
+) -> list[tuple[str, EmpiricalDeploymentMetricsWf2 | None]]:
     results: list[tuple[str, EmpiricalDeploymentMetricsWf2 | None]] = []
 
     t0 = time.perf_counter()
@@ -208,8 +185,8 @@ def main() -> None:
             s_per_query=args.sky_s_per_query,
             eta_c=args.eta_c,
             eta_t=args.eta_t,
-            lamb_c=5.0,
-            lamb_t=0.00125,
+            lamb_c=0.55,
+            lamb_t=0.00118,
             weights=weights,
             batch_add_ratio=args.sky_batch_ratio,
             decomposition=sky_dec,
@@ -252,32 +229,181 @@ def main() -> None:
         )
         results.append(("Sky", m_sky))
 
-    print()
-    print("=" * 70)
-    print(
-        "SUMMARY (empirical U, mean cost USD, mean latency path-sum s, "
-        "mean display-max latency s, VR_cost, VR_lat on path-sum)"
+    return results
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Run LO, SC, DO, Sky for workflow2 + KPIs.")
+    parser.add_argument(
+        "--path",
+        choices=["video_caption", "ocr", "label_detection", "speech_transcription"],
+        default="video_caption",
+        help="exclusive DAG path id",
     )
-    print("=" * 70)
-    hdr = (
-        f"{'algo':<6} {'U':>10} {'mean_C':>11} {'mean_TΣ':>11} {'mean_Tmax':>11} "
-        f"{'VR_C':>9} {'VR_TΣ':>9}"
+    parser.add_argument("--num-queries", type=int, default=100)
+    parser.add_argument("--query-seed", type=int, default=42)
+    parser.add_argument(
+        "--weights",
+        type=float,
+        nargs="*",
+        default=None,
+        help="per-layer weights (length = path depth); default uniform",
     )
-    print(hdr)
-    print("-" * len(hdr))
-    for name, m in results:
-        if m is None:
-            print(
-                f"{name:<6} {'(skipped)':>10} {'-':>11} {'-':>11} {'-':>11} {'-':>9} {'-':>9}"
+    parser.add_argument("--eval-samples-per-query", type=int, default=50)
+    parser.add_argument("--eval-seed", type=int, default=9000)
+    parser.add_argument("--sky-s-per-query", type=int, default=50)
+    parser.add_argument(
+        "--sky-batch-ratio",
+        type=float,
+        default=0.05,
+        help="decomposition: each iteration adds max(1, ceil(ratio * total scenarios)) violators",
+    )
+    parser.add_argument("--sky-rng", type=int, default=0)
+    parser.add_argument("--eta-c", type=float, default=0.1)
+    parser.add_argument("--eta-t", type=float, default=0.1)
+    parser.add_argument("--skip-sky", action="store_true")
+    parser.add_argument(
+        "--sky-variant",
+        choices=["full", "no_warm_start", "direct_milp"],
+        default="full",
+    )
+    parser.add_argument(
+        "--budget-alpha",
+        type=float,
+        nargs="*",
+        default=None,
+        metavar="A",
+        help="预算插值 α（可多选）；未指定值 → 0.25 0.5 0.75 1.0；与 --budget-preset 互斥。",
+    )
+    parser.add_argument(
+        "--budget-preset",
+        nargs="+",
+        default=None,
+        choices=list(BUDGET_PRESET_MULTIPLIERS_WF1.keys()),
+        metavar="PRESET",
+        help="（旧口径）参考链倍率预设；与 --budget-alpha 互斥。",
+    )
+    args = parser.parse_args()
+
+    path_id = args.path
+    default_w = wf2_utils.default_weights_for_path(path_id)
+    if args.weights is not None:
+        if len(args.weights) != len(default_w):
+            parser.error(
+                f"--weights expects {len(default_w)} values for path {path_id!r}, "
+                f"got {len(args.weights)}"
             )
-            continue
-        print(
-            f"{name:<6} {m.aggregate_utility_u:>10.6g} "
-            f"{m.mean_cost_usd:>11.6g} {m.mean_latency_sec:>11.6g} "
-            f"{m.mean_workflow_display_latency_sec:>11.6g} "
-            f"{m.slo_cost_violation_rate:>9.6g} {m.slo_latency_violation_rate:>9.6g}"
-        )
+        weights = tuple(args.weights)
+    else:
+        weights = default_w
+
+    eval_seed = int(args.eval_seed)
+
+    balpha = args.budget_alpha
+    if args.budget_preset is not None:
+        if balpha is not None and len(balpha) > 0:
+            parser.error("--budget-preset 与 --budget-alpha 不能同时使用")
+        preset_names = tuple(args.budget_preset)
+        run_plan: list[tuple[str, float | None]] = [(n, None) for n in preset_names]
+        plan_kind = "preset"
+    else:
+        plan_kind = "alpha"
+        if balpha is not None and len(balpha) > 0:
+            alphas_run = tuple(balpha)
+        else:
+            alphas_run = BUDGET_ALPHA_SUITE_DEFAULT_WF1
+        run_plan = [(f"α={a:g}", a) for a in alphas_run]
+
     print("=" * 70)
+    print(f"workflow2.run_all_algorithms | path={path_id}")
+    print("=" * 70)
+
+    print(
+        f"[setup] budget_mode={plan_kind} runs={len(run_plan)} query_seed={args.query_seed} "
+        f"num_queries_each={args.num_queries} weights={weights} eval_seed={eval_seed}"
+    )
+    print()
+
+    cands = sky_runner.enumerate_candidates_wf2(path_id)
+    print(f"[setup] candidate layer sizes: {[len(c) for c in cands]}")
+    print()
+
+    mega: list[tuple[str, list[tuple[str, EmpiricalDeploymentMetricsWf2 | None]]]] = []
+
+    for label, alpha in run_plan:
+        if plan_kind == "preset":
+            assert alpha is None
+            mc, ml = BUDGET_PRESET_MULTIPLIERS_WF1[label]
+            queries = wf2_utils.generate_realistic_queries_wf2(
+                args.num_queries,
+                path_id,
+                seed=args.query_seed,
+                budget_cost_multiplier=mc,
+                budget_latency_multiplier=ml,
+            )
+            print("*" * 70)
+            print(
+                f"[budget preset] {label} "
+                f"(Θ_cost = {mc} × ref_meanfield_cost, "
+                f"Θ_latency = {ml} × ref_meanfield_latency)"
+            )
+            print("*" * 70)
+        else:
+            assert alpha is not None
+            queries = wf2_utils.generate_realistic_queries_wf2(
+                args.num_queries,
+                path_id,
+                seed=args.query_seed,
+                budget_alpha=float(alpha),
+                cands=cands,
+                weights=weights,
+            )
+            print("*" * 70)
+            print(
+                f"[budget α] {label}  "
+                f"Θ_C = C_min + α (C_max - C_min), Θ_T = L_min + α (L_max - L_min) "
+                f"(LO / 全链 min)"
+            )
+            print("*" * 70)
+
+        results = _run_algorithms_for_queries_wf2(
+            path_id,
+            queries,
+            args,
+            weights=weights,
+            eval_seed=eval_seed,
+            cands=cands,
+        )
+        mega.append((label, results))
+        _print_summary_table_wf2(results)
+        print()
+
+    if len(mega) > 1:
+        print("=" * 70)
+        print("ALL PRESETS SUMMARY")
+        print("=" * 70)
+        bh = (
+            f"{'budget':<26} {'algo':<6} "
+            f"{'U':>10} {'mean_C':>11} {'mean_TΣ':>11} {'mean_Tmax':>11} "
+            f"{'VR_C':>9} {'VR_TΣ':>9}"
+        )
+        print(bh)
+        print("-" * len(bh))
+        for budget_label, rs in mega:
+            for name, m in rs:
+                if m is None:
+                    print(
+                        f"{budget_label:<26} {name:<6} "
+                        f"{'(skip)':>10} {'-':>11} {'-':>11} {'-':>11} {'-':>9} {'-':>9}"
+                    )
+                    continue
+                print(
+                    f"{budget_label:<26} {name:<6} "
+                    f"{m.aggregate_utility_u:>10.6g} {m.mean_cost_usd:>11.6g} "
+                    f"{m.mean_latency_sec:>11.6g} {m.mean_workflow_display_latency_sec:>11.6g} "
+                    f"{m.slo_cost_violation_rate:>9.6g} {m.slo_latency_violation_rate:>9.6g}"
+                )
+        print("=" * 70)
 
 
 if __name__ == "__main__":

@@ -32,9 +32,9 @@ from sim_env.execution_latency import (
     node_database_query_execute_bounds_at,
     node_label_detection_execute_bounds_at,
     node_ocr_execute_bounds_at,
-    node_segment_execute_bounds_at,
+    node_shot_detection_execute_bounds_at,
     node_speech_transcription_execute_bounds_at,
-    node_split_execute_bounds_at,
+    node_video_split_execute_bounds_at,
     sample_execution_scale,
 )
 from sim_env.network import LinkCategory, classify_link, reset_link_counters, sample_link
@@ -173,6 +173,7 @@ def _deterministic_local_cost_latency_wf2(
     q_pair: tuple[float, float],
     exec_scale_rng: random.Random,
     llm_latency_rng: random.Random | None = None,
+    ops_full: tuple[str, ...],
 ) -> tuple[float, float]:
     rho_i = float(rho[idx])
     gb_local = float(s_in[idx]) * (1.0 + rho_i)
@@ -186,15 +187,15 @@ def _deterministic_local_cost_latency_wf2(
     qin, qout = q_pair
     k = sample_execution_scale(exec_scale_rng)
 
-    if logical_op == "video_segment":
-        exe = video_service_cost_usd(p, r, "segment", seg_minutes)
-        lo, hi = node_segment_execute_bounds_at(dur_sec, p, r)
+    if logical_op == "shot_detection":
+        exe = video_service_cost_usd(p, r, "shot_detection", seg_minutes)
+        lo, hi = node_shot_detection_execute_bounds_at(dur_sec, p, r)
         t_exe = 0.5 * (lo * k + hi * k)
         return exe + stor, t_exe
 
-    if logical_op == "shot_detection":
+    if logical_op == "video_split":
         exe = split_cost_usd(p, r, minutes=1.0)
-        lo, hi = node_split_execute_bounds_at(dur_sec, p, r)
+        lo, hi = node_video_split_execute_bounds_at(dur_sec, p, r)
         t_exe = 0.5 * (lo * k + hi * k)
         return exe + stor, t_exe
 
@@ -224,16 +225,14 @@ def _deterministic_local_cost_latency_wf2(
 
     if logical_op == "database":
         exe_inst = database_instance_cost_usd(p, r, days=1.0)
-        return exe_inst + stor, wf2_utils.WF2_PLACEHOLDER_DB_LATENCY_SEC
+        lo, hi = node_database_query_execute_bounds_at(p, r)
+        k = sample_execution_scale(exec_scale_rng)
+        t_exe = 0.5 * (lo * k + hi * k)
+        return exe_inst + stor, t_exe
 
     if logical_op == "qa":
-        return wf2_utils.WF2_PLACEHOLDER_QA_FIXED_COST_USD + stor, wf2_utils.WF2_PLACEHOLDER_QA_LATENCY_SEC
-
-    if logical_op == "answer":
         mm = node.model or ""
-        exe = llm_token_cost_usd(
-            p, r, mm, qin, qout
-        )
+        exe = llm_token_cost_usd(p, r, mm, qin, qout)
         t_exe = llm_decode_duration_sec(mm, qout, rng=llm_latency_rng)
         return exe + stor, t_exe
 
@@ -256,6 +255,7 @@ def _prepare_deterministic_coefficients_wf2(
 ]:
     ops = path_logical_ops(path_id)
     L = len(ops)
+    ops_t = tuple(ops)
 
     a_c: list[list[list[float]]] = []
     b_c: list[list[list[list[float]]]] = []
@@ -285,7 +285,7 @@ def _prepare_deterministic_coefficients_wf2(
                     node.region,
                 )
                 llm_latency_rng = None
-                if op in ("video_caption", "answer"):
+                if op in ("video_caption", "qa"):
                     llm_latency_rng = wf1_utils.det_rng(
                         seed,
                         "wf2_do_llm_jit",
@@ -307,8 +307,9 @@ def _prepare_deterministic_coefficients_wf2(
                     q_pair=q_pair,
                     exec_scale_rng=exec_scale_rng,
                     llm_latency_rng=llm_latency_rng,
+                    ops_full=ops_t,
                 )
-                if i == 0 and op == "video_segment":
+                if i == 0 and op in ("shot_detection", "speech_transcription"):
                     lep = (node.provider, node.region)
                     luc, lul = _local_edge_mean_cost_latency_wf2(
                         lep,
@@ -321,7 +322,7 @@ def _prepare_deterministic_coefficients_wf2(
                     )
                     c_ij += luc
                     lat_ij += lul
-                elif i == L - 1 and op == "answer":
+                elif i == L - 1 and op == "qa":
                     lep = (node.provider, node.region)
                     duc, dul = _local_edge_mean_cost_latency_wf2(
                         lep,
@@ -379,9 +380,17 @@ def logical_optimal_baseline_wf2(
     cands: tuple[tuple[WF2PhysicalNode, ...], ...],
     weights: Sequence[float],
 ) -> BaselineResultWf2:
+    """LO：独立 argmax μ；均衡权重且写死 LO 在候选内时直接返回 ``WF2_LOGICAL_OPTIMAL_NODES``。"""
     L = len(cands)
     if len(weights) != L:
         raise ValueError("weights length must match layers")
+    w_t = tuple(weights)
+    inv_l = 1.0 / float(L)
+    if all(abs(w_t[i] - inv_l) < 1e-15 for i in range(L)):
+        fixed = wf2_utils.WF2_LOGICAL_OPTIMAL_NODES[path_id]
+        if all(fixed[i] in cands[i] for i in range(L)):
+            u_tot = sum(w_t[i] * wf2_node_utility(fixed[i]) for i in range(L))
+            return BaselineResultWf2("Logical-Optimal", fixed, float(u_tot), None)
     picks: list[WF2PhysicalNode] = []
     u_tot = 0.0
     for i in range(L):
@@ -621,7 +630,7 @@ if __name__ == "__main__":  # pragma: no cover
     from .evaluation import evaluate_deployment_empirical_wf2, print_metrics_report_wf2
 
     n_q = 5
-    pid: WF2PathId = "caption"
+    pid: WF2PathId = "video_caption"
     qs = wf2_utils.generate_realistic_queries_wf2(n_q, pid, seed=7)
     cands = enumerate_candidates_wf2(pid)
     WEIGHTS = wf2_utils.default_weights_for_path(pid)

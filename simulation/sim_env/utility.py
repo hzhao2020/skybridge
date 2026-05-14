@@ -1,10 +1,15 @@
 """
 utility.py
-Task utility (quality) coefficients for segment / split / caption / query nodes,
+Task utility (quality) coefficients for shot_detection / video_split / video_caption / query nodes,
 and for workflow2 visual-intelligence steps (ocr / label_detection / speech_transcription).
 
-Workflow order: segment -> split -> caption -> query. Split utility is always 1.0.
-Benchmark values from SkyAPI Evaluation.md (table percentages scaled to [0, 1]).
+Workflow order (paper): shot_detection -> video_split -> video_caption -> query. Video-split raw quality is constant 1.0.
+
+Returned node utilities are **normalized per operation**: each lookup is divided by the
+maximum value in that operation's table (shot_detection / video_caption / query / VI sub-operation),
+so coefficients lie in ``[0, 1]`` relative to the best tabulated option.
+
+Benchmark raw values from SkyAPI Evaluation.md (table percentages scaled to [0, 1]).
 Caption vs query LLM utilities differ where the doc gives separate columns.
 """
 
@@ -13,14 +18,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-OperationName = Literal["segment", "split", "caption", "query"]
+OperationName = Literal["shot_detection", "video_split", "video_caption", "query"]
 
 VisualIntelligenceOperation = Literal["ocr", "label_detection", "speech_transcription"]
 
 # ---------------------------------------------------------------------------
-# Tables (provider for segment; model name for caption / query — matches config.py)
+# Tables (provider for shot_detection; model name for video_caption / query — matches config.py)
 # ---------------------------------------------------------------------------
-SEGMENT_UTILITY_BY_PROVIDER: dict[str, float] = {
+SHOT_DETECTION_UTILITY_BY_PROVIDER: dict[str, float] = {
+    # SkyAPI Evaluation.md：三云列表值均为 95%（缩放后 0.95）；max 相同 ⇒ 归一化后恒为 1。
     "GCP": 0.95,
     "AWS": 0.95,
     "Aliyun": 0.95,
@@ -44,7 +50,7 @@ LLM_QUERY_UTILITY_BY_MODEL: dict[str, float] = {
     "Qwen3-VL-Flash": 0.625,
 }
 
-SPLIT_UTILITY = 1.0
+VIDEO_SPLIT_UTILITY = 1.0  # Evaluation.md Utility 表无单独 video_split 行，默认可视为 1
 
 # Workflow 2: Video Intelligence (ocr / label / speech) — provider column in SkyAPI Evaluation.md.
 OCR_UTILITY_BY_PROVIDER: dict[str, float] = {
@@ -69,14 +75,23 @@ _VI_UTILITY_TABLES: dict[VisualIntelligenceOperation, dict[str, float]] = {
     "speech_transcription": SPEECH_TRANSCRIPTION_UTILITY_BY_PROVIDER,
 }
 
+_MAX_SHOT_DETECTION_UTILITY = max(SHOT_DETECTION_UTILITY_BY_PROVIDER.values())
+_MAX_CAPTION_UTILITY = max(LLM_CAPTION_UTILITY_BY_MODEL.values())
+_MAX_QUERY_UTILITY = max(LLM_QUERY_UTILITY_BY_MODEL.values())
+_MAX_VIDEO_SPLIT_UTILITY = VIDEO_SPLIT_UTILITY
+_MAX_VI_UTILITY_BY_OP: dict[VisualIntelligenceOperation, float] = {
+    op: max(tbl.values()) for op, tbl in _VI_UTILITY_TABLES.items()
+}
+
 
 def visual_intelligence_utility(
     provider: str,
     vi_operation: VisualIntelligenceOperation,
 ) -> float:
-    """Quality coefficient for workflow2 VI APIs; keyed by cloud (GCP / AWS / Aliyun)."""
+    """Normalized quality in ``[0, 1]`` for workflow2 VI APIs (divide by max in that VI table)."""
     try:
-        return _VI_UTILITY_TABLES[vi_operation][provider]
+        raw = _VI_UTILITY_TABLES[vi_operation][provider]
+        return raw / _MAX_VI_UTILITY_BY_OP[vi_operation]
     except KeyError as e:
         raise KeyError(
             f"No VI utility for provider={provider!r} vi_operation={vi_operation!r}"
@@ -103,22 +118,25 @@ class PhysicalNode:
 
 
 def physical_node_utility(node: PhysicalNode) -> float:
-    """Lookup utility for one node; raises if provider/model is unknown for that operation."""
+    """
+    Normalized utility in ``[0, 1]`` for one node (raw table value divided by max in that operation).
+    Raises if provider/model is unknown for that operation.
+    """
     op = node.operation
-    if op == "split":
-        return SPLIT_UTILITY
-    if op == "segment":
+    if op == "video_split":
+        return VIDEO_SPLIT_UTILITY / _MAX_VIDEO_SPLIT_UTILITY
+    if op == "shot_detection":
         try:
-            return SEGMENT_UTILITY_BY_PROVIDER[node.provider]
+            return SHOT_DETECTION_UTILITY_BY_PROVIDER[node.provider] / _MAX_SHOT_DETECTION_UTILITY
         except KeyError as e:
             raise KeyError(
-                f"No segment utility for provider={node.provider!r}"
+                f"No shot_detection utility for provider={node.provider!r}"
             ) from e
-    if op == "caption":
+    if op == "video_caption":
         if not node.model:
-            raise ValueError("caption node requires a model name")
+            raise ValueError("video_caption node requires a model name")
         try:
-            return LLM_CAPTION_UTILITY_BY_MODEL[node.model]
+            return LLM_CAPTION_UTILITY_BY_MODEL[node.model] / _MAX_CAPTION_UTILITY
         except KeyError as e:
             raise KeyError(
                 f"No caption utility for model={node.model!r}"
@@ -127,7 +145,7 @@ def physical_node_utility(node: PhysicalNode) -> float:
         if not node.model:
             raise ValueError("query node requires a model name")
         try:
-            return LLM_QUERY_UTILITY_BY_MODEL[node.model]
+            return LLM_QUERY_UTILITY_BY_MODEL[node.model] / _MAX_QUERY_UTILITY
         except KeyError as e:
             raise KeyError(
                 f"No query utility for model={node.model!r}"
@@ -137,17 +155,17 @@ def physical_node_utility(node: PhysicalNode) -> float:
 
 def workflow_utility(*nodes: PhysicalNode) -> float:
     """
-    Mean utility over exactly four physical nodes (typically segment, split, caption, query).
+    Mean utility over exactly four physical nodes (typically shot_detection, video_split, video_caption, query).
 
-    Call as ``workflow_utility(seg, spl, cap, qry)`` or ``workflow_utility(*pipeline)``.
+    Call as ``workflow_utility(sd, vs, vc, qry)`` or ``workflow_utility(*pipeline)``.
 
     Example::
 
-        seg = PhysicalNode("segment", "GCP", "us-west1")
-        spl = PhysicalNode("split", "GCP", "us-west1")
-        cap = PhysicalNode("caption", "GCP", "us-west1", "Gemini 2.5 Pro")
+        sd = PhysicalNode("shot_detection", "GCP", "us-west1")
+        vs = PhysicalNode("video_split", "GCP", "us-west1")
+        vc = PhysicalNode("video_caption", "GCP", "us-west1", "Gemini 2.5 Pro")
         qry = PhysicalNode("query", "GCP", "us-east1", "Gemini 2.5 Flash")
-        u = workflow_utility(seg, spl, cap, qry)
+        u = workflow_utility(sd, vs, vc, qry)
     """
     if len(nodes) != 4:
         raise ValueError(f"workflow_utility expects 4 PhysicalNode arguments, got {len(nodes)}")
@@ -155,11 +173,11 @@ def workflow_utility(*nodes: PhysicalNode) -> float:
 
 
 if __name__ == "__main__":
-    # Example: segment & split on GCP us-west1; caption Gemini Pro; query Gemini Flash on another region.
-    node_segment = PhysicalNode("segment", "GCP", "us-west1")
-    node_split = PhysicalNode("split", "GCP", "us-west1")
-    node_caption = PhysicalNode("caption", "GCP", "us-west1", "Gemini 2.5 Pro")
+    # Example: shot_detection & video_split on GCP us-west1; video_caption Gemini Pro; query Gemini Flash on another region.
+    node_shot_detection = PhysicalNode("shot_detection", "GCP", "us-west1")
+    node_video_split = PhysicalNode("video_split", "GCP", "us-west1")
+    node_video_caption = PhysicalNode("video_caption", "GCP", "us-west1", "Gemini 2.5 Pro")
     node_query = PhysicalNode("query", "GCP", "us-east1", "Gemini 2.5 Flash")
 
-    pipeline = (node_segment, node_split, node_caption, node_query)
+    pipeline = (node_shot_detection, node_video_split, node_video_caption, node_query)
     print("mean utility:", workflow_utility(*pipeline))

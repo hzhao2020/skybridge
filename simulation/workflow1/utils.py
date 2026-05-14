@@ -1,6 +1,6 @@
 """
 End-to-end workflow metrics (cost, latency, utility) for four logical operations
-(segment → split → caption → query) with one physical node per step.
+(shot_detection → video_split → video_caption → query) with one physical node per step.
 
 Implements the aggregation in the SkyXXX paper sketch:
   - Cost: execution + storage(S_in + S_out) + Σ edge transfer volume × unit egress
@@ -14,17 +14,18 @@ stochastic ratios ρ_i; S_out,i = S_i · ρ_i, and S_{i+1} = S_out,i for a pipel
 from __future__ import annotations
 
 import hashlib
+import itertools
 import math
 import random
-from typing import Literal, Sequence, Tuple
+from typing import Iterable, Literal, Sequence, Tuple
 
 from sim_env import config as cfg
 from sim_env.config import video_duration_sec_from_megabytes
 from sim_env.cost import ProviderRegion, egress_cost_usd, llm_token_cost_usd, split_cost_usd, storage_cost_usd, video_service_cost_usd
 from sim_env.execution_latency import (
     llm_decode_duration_sec,
-    sample_segment_execute_sec,
-    sample_split_execute_sec,
+    sample_shot_detection_execute_sec,
+    sample_video_split_execute_sec,
 )
 from sim_env.llm import caption_visual_input_tokens, llm_tokens_from_data_payload_gb
 from sim_env.network import (
@@ -37,23 +38,27 @@ from sim_env.network import (
 from sim_env.utility import OperationName, PhysicalNode, QueryProfile, physical_node_utility
 
 _OPS_ORDER: tuple[OperationName, OperationName, OperationName, OperationName] = (
-    "segment",
-    "split",
-    "caption",
+    "shot_detection",
+    "video_split",
+    "video_caption",
     "query",
 )
 
 _DEFAULT_WEIGHTS: Tuple[float, float, float, float] = (0.25, 0.25, 0.25, 0.25)
 
-# 由 ``python -m workflow1.budget`` 得到（N_QUERIES=100, SEED=42，plug-in mean ρ，全链枚举）；
-# mean cost 最小链与 mean latency 最小链在此配置下相同。
+# 由 ``python -m workflow1.budget`` 得到（N_QUERIES=100, SEED=42，plug-in mean ρ，全链枚举）。
 _BUDGET_REF_CHAIN_COST_WF1: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode] = (
-    PhysicalNode("segment", "Aliyun", "cn-shanghai", None),
-    PhysicalNode("split", "Aliyun", "cn-shanghai", None),
-    PhysicalNode("caption", "Aliyun", "cn-beijing", "Qwen3-VL-Flash"),
+    PhysicalNode("shot_detection", "Aliyun", "cn-shanghai", None),
+    PhysicalNode("video_split", "Aliyun", "cn-shanghai", None),
+    PhysicalNode("video_caption", "Aliyun", "cn-beijing", "Qwen3-VL-Flash"),
     PhysicalNode("query", "Aliyun", "cn-beijing", "Qwen3-VL-Flash"),
 )
-_BUDGET_REF_CHAIN_LATENCY_WF1 = _BUDGET_REF_CHAIN_COST_WF1
+_BUDGET_REF_CHAIN_LATENCY_WF1: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode] = (
+    PhysicalNode("shot_detection", "Aliyun", "cn-shanghai", None),
+    PhysicalNode("video_split", "Aliyun", "ap-southeast-1", None),
+    PhysicalNode("video_caption", "Aliyun", "ap-southeast-1", "Qwen3-VL-Flash"),
+    PhysicalNode("query", "Aliyun", "ap-southeast-1", "Qwen3-VL-Flash"),
+)
 # 每条 query 的 Θ 相对参考链上 mean-field cost / latency 分别放大倍数（与 budget 脚本口径一致）。
 QUERY_BUDGET_REFERENCE_MULTIPLIER = 1.75
 # 预设：相对 plug-in mean 参考链上 mean-field 的 (min_cost, min_latency) 倍率。
@@ -66,6 +71,19 @@ BUDGET_PRESET_SUITE_ORDER_WF1: tuple[str, ...] = (
     "cost_sensitivity",
     "latency_sensitivity",
     "balanced",
+)
+# 默认实验：在 C_min 与 LO（效用上限）链成本 C_max 之间插值，Θ_C = C_min + α (C_max - C_min)；
+# Θ_T 同形（L_min、L_max 为各链 plug-in mean ρ + 单次 mean-field 抽样下端到端时延）。
+BUDGET_ALPHA_SUITE_DEFAULT_WF1: tuple[float, ...] = (0.25, 0.5, 0.75, 1.0)
+
+# 各层独立 argmax w_i μ_i 的全局 LO（由 ``WORKFLOW_OPERATIONS`` 枚举，均衡权重 0.25）；
+# 与 ``sky.enumerate_candidates()`` 口径一致，无需每次在线上搜索。
+WF1_DEFAULT_WEIGHTS: Tuple[float, float, float, float] = (0.25, 0.25, 0.25, 0.25)
+WF1_LOGICAL_OPTIMAL_NODES: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode] = (
+    PhysicalNode("shot_detection", "GCP", "us-east1", None),
+    PhysicalNode("video_split", "GCP", "us-east1", None),
+    PhysicalNode("video_caption", "AWS", "us-west-2", "Amazon Nova Pro"),
+    PhysicalNode("query", "GCP", "us-east1", "Gemini 2.5 Pro"),
 )
 
 
@@ -201,7 +219,7 @@ def _segment_exec_seconds(
     if segment_exe_sec is not None:
         return float(segment_exe_sec)
     duration_sec = max(segment_video_minutes * 60.0, 1e-6)
-    return sample_segment_execute_sec(
+    return sample_shot_detection_execute_sec(
         duration_sec,
         rng=rng,
         node=node,
@@ -222,7 +240,7 @@ def _split_exec_seconds(
     if split_exe_sec is not None:
         return float(split_exe_sec)
     duration_sec = max(segment_video_minutes * 60.0, 1e-6)
-    return sample_split_execute_sec(
+    return sample_video_split_execute_sec(
         duration_sec,
         rng=rng,
         node=node,
@@ -265,13 +283,13 @@ def end_to_end_cost(
     )
 
     exe = 0.0
-    exe += video_service_cost_usd(nodes[0].provider, nodes[0].region, "segment", seg_min)
+    exe += video_service_cost_usd(nodes[0].provider, nodes[0].region, "shot_detection", seg_min)
     exe += split_cost_usd(nodes[1].provider, nodes[1].region, minutes=1.0)
 
     cap_model = nodes[2].model
     q_model = nodes[3].model
     if not cap_model or not q_model:
-        raise ValueError("caption and query nodes require model names")
+        raise ValueError("video_caption and query nodes require model names")
     exe += llm_token_cost_usd(nodes[2].provider, nodes[2].region, cap_model, cap_in, cap_out)
     exe += llm_token_cost_usd(nodes[3].provider, nodes[3].region, q_model, q_in, q_out)
 
@@ -361,7 +379,7 @@ def end_to_end_latency(
     cap_model = nodes[2].model
     q_model = nodes[3].model
     if not cap_model or not q_model:
-        raise ValueError("caption and query nodes require model names")
+        raise ValueError("video_caption and query nodes require model names")
     t2 = (
         te[2]
         if te[2] is not None
@@ -460,14 +478,14 @@ def end_to_end_cost_and_latency(
         query_tokens=(q_in, q_out),
         llm_token_rng_seed=llm_seed,
     )
-    seg_exe = sample_segment_execute_sec(
+    seg_exe = sample_shot_detection_execute_sec(
         dur_sec,
         rng=workflow_rng,
         node=nodes[0],
         execution_scale_scope=trial_scope,
         execution_scale_seed=trial_exec_scale_seed,
     )
-    spl_exe = sample_split_execute_sec(
+    spl_exe = sample_video_split_execute_sec(
         dur_sec,
         rng=workflow_rng,
         node=nodes[1],
@@ -499,6 +517,41 @@ def end_to_end_cost_and_latency(
     return c, ell
 
 
+def iter_wf1_deployment_chains(
+    cands: tuple[
+        tuple[PhysicalNode, ...],
+        tuple[PhysicalNode, ...],
+        tuple[PhysicalNode, ...],
+        tuple[PhysicalNode, ...],
+    ],
+) -> Iterable[tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode]]:
+    return itertools.product(cands[0], cands[1], cands[2], cands[3])  # type: ignore[misc]
+
+
+def wf1_logical_optimal_chain(
+    cands: tuple[
+        tuple[PhysicalNode, ...],
+        tuple[PhysicalNode, ...],
+        tuple[PhysicalNode, ...],
+        tuple[PhysicalNode, ...],
+    ],
+    weights: Tuple[float, float, float, float],
+) -> tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode]:
+    """LO：各层独立 argmax w_i μ_i；均衡权重且全量候选包含固定 LO 时直接返回 ``WF1_LOGICAL_OPTIMAL_NODES``。"""
+    if weights == WF1_DEFAULT_WEIGHTS and all(
+        WF1_LOGICAL_OPTIMAL_NODES[i] in cands[i] for i in range(4)
+    ):
+        return WF1_LOGICAL_OPTIMAL_NODES
+    picks: list[PhysicalNode] = []
+    for i in range(4):
+        best_j = max(
+            range(len(cands[i])),
+            key=lambda j: weights[i] * physical_node_utility(cands[i][j]),
+        )
+        picks.append(cands[i][best_j])
+    return (picks[0], picks[1], picks[2], picks[3])
+
+
 def end_to_end_utility(
     nodes: Sequence[PhysicalNode],
     *,
@@ -526,16 +579,47 @@ def generate_realistic_queries(
     *,
     budget_cost_multiplier: float | None = None,
     budget_latency_multiplier: float | None = None,
+    budget_alpha: float | None = None,
+    cands: tuple[
+        tuple[PhysicalNode, ...],
+        tuple[PhysicalNode, ...],
+        tuple[PhysicalNode, ...],
+        tuple[PhysicalNode, ...],
+    ]
+    | None = None,
+    weights: Tuple[float, float, float, float] | None = None,
 ) -> list[QueryProfile]:
     """
-    每条 query：plug-in mean ρ 下，在 **budget 搜索得到的参考链**上计算 mean-field
-    端到端 cost / latency（cost 与 latency 可来自不同参考链），再乘以
-    ``budget_cost_multiplier`` / ``budget_latency_multiplier`` 得到 ``Θ_C``、``Θ_T``。
-    未指定时使用 ``QUERY_BUDGET_REFERENCE_MULTIPLIER``（两轴相同，默认 1.75）。
+    生成校准 query 列表及 chance-constraint 预算 ``(Θ_C, Θ_T)``。
+
+    * **插值模式**（``budget_alpha`` 非空）：对每条 query，在 plug-in mean ρ 下枚举 ``cands`` 全链，
+      用与 ``workflow1.budget`` 相同的单次 mean-field 抽样键 ``det_rng(seed, "budget_combo_eval", q_idx)``
+      计算各链 ``(cost, latency)``，取 ``C_min,L_min``；在 LO 链（各层 argmax ``w_i μ_i``）上取
+      ``C_max,L_max``（抽样键 ``det_rng(seed, "budget_alpha_lo", q_idx)``）。令
+      ``Θ_C = C_min + α (C_max - C_min)``，``Θ_T = L_min + α (L_max - L_min)``。
+      需提供 ``cands`` 与 ``weights``。
+
+    * **参考链乘子模式**（默认）：在 **budget 脚本记录的参考链**上取 mean-field cost / latency，
+      再乘以 ``budget_cost_multiplier`` / ``budget_latency_multiplier``；未指定时使用
+      ``QUERY_BUDGET_REFERENCE_MULTIPLIER``（默认 1.75）。
     """
     import random
 
     from sim_env.utility import QueryProfile
+
+    if budget_alpha is not None and (
+        budget_cost_multiplier is not None or budget_latency_multiplier is not None
+    ):
+        raise ValueError("budget_alpha 与 budget_*_multiplier 不可同时指定")
+
+    if budget_alpha is not None:
+        if cands is None or weights is None:
+            raise ValueError("budget_alpha 模式下必须提供 cands 与 weights")
+        if len(weights) != 4:
+            raise ValueError("weights 长度须为 4")
+        lo_chain = wf1_logical_optimal_chain(cands, weights)
+    else:
+        lo_chain = None  # unused
 
     rng = random.Random(seed)
     calib_rng = random.Random(seed + 100)
@@ -543,7 +627,7 @@ def generate_realistic_queries(
     mean_rho = cfg.plugin_mean_data_conversion_ratios(
         n_calibration_samples=4096,
         rng=calib_rng,
-        operations=("segment", "split", "caption", "query"),
+        operations=("shot_detection", "video_split", "video_caption", "query"),
     )
 
     chain_c = _BUDGET_REF_CHAIN_COST_WF1
@@ -565,6 +649,41 @@ def generate_realistic_queries(
         duration_sec = rng.uniform(60.0, 3600.0)
         s_src_mb = cfg.video_megabytes_from_duration_sec(duration_sec)
         s_src_gb = s_src_mb / 1000.0
+
+        if budget_alpha is not None:
+            assert cands is not None and lo_chain is not None
+            c_min = math.inf
+            l_min = math.inf
+            for chain in iter_wf1_deployment_chains(cands):
+                wf = det_rng(seed, "budget_combo_eval", q_idx)
+                c_i, ell_i = end_to_end_cost_and_latency(
+                    (chain[0], chain[1], chain[2], chain[3]),
+                    s_src_gb,
+                    mean_rho,
+                    workflow_rng=wf,
+                )
+                if math.isfinite(c_i):
+                    c_min = min(c_min, float(c_i))
+                if math.isfinite(ell_i):
+                    l_min = min(l_min, float(ell_i))
+            wf_lo = det_rng(seed, "budget_alpha_lo", q_idx)
+            c_lox, l_lox = end_to_end_cost_and_latency(
+                lo_chain, s_src_gb, mean_rho, workflow_rng=wf_lo
+            )
+            c_lo = float(c_lox)
+            l_lo = float(l_lox)
+            span_c = max(c_lo, c_min) - min(c_lo, c_min)
+            span_l = max(l_lo, l_min) - min(l_lo, l_min)
+            theta_c = min(c_lo, c_min) + float(budget_alpha) * span_c
+            theta_l = min(l_lo, l_min) + float(budget_alpha) * span_l
+            queries.append(
+                QueryProfile(
+                    s_src_gb=s_src_gb,
+                    theta_cost=theta_c,
+                    theta_latency_sec=theta_l,
+                )
+            )
+            continue
 
         wf_c = det_rng(seed, "query_budget_ref_cost", q_idx)
         ref_c, _ = end_to_end_cost_and_latency(

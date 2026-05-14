@@ -8,7 +8,7 @@ Baseline deployment policies for comparison with Sky (CVaR–MILP).
 * **LO (Logical-Optimal):** each layer independently picks argmax μ (ignores cost,
   latency, cross-edge effects) — utility upper bound for the linear μ model.
 * **DO (Deterministic-Optimal):** replace stochastic ξ with plug-in means of ρ via
-  calibration sampling (not closed-form E[·]); midpoint segment/split execution from
+  calibration sampling (not closed-form E[·]); midpoint shot_detection/video_split execution from
   measured bounds, empirical mean LLM output tokens, empirical mean network delay from trace
   samples per link; maximise Σ w_i μ_i subject to deterministic **mean** cost &
   latency ≤ each query’s SLO (**MILP** via **gurobipy**, no CVaR slacks).
@@ -29,8 +29,8 @@ from sim_env import config as cfg
 from sim_env.cost import egress_cost_usd, llm_token_cost_usd, split_cost_usd, storage_cost_usd, video_service_cost_usd
 from sim_env.execution_latency import (
     llm_decode_duration_sec,
-    node_segment_execute_bounds_at,
-    node_split_execute_bounds_at,
+    node_shot_detection_execute_bounds_at,
+    node_video_split_execute_bounds_at,
     sample_execution_scale,
 )
 from sim_env.network import LinkCategory, classify_link, reset_link_counters, sample_link
@@ -40,7 +40,7 @@ from . import sky as sky_mod
 from . import utils as wf_utils
 
 OPS = sky_mod.OPS_ORDER
-_OPS_MC = ("segment", "split", "caption", "query")
+_OPS_MC = ("shot_detection", "video_split", "video_caption", "query")
 PROVIDERS_SINGLE_CLOUD = ("GCP", "AWS", "Aliyun")
 
 # Empirical network mean: samples per directed edge (coefficient build).
@@ -179,16 +179,16 @@ def _deterministic_local_cost_latency(
     op = OPS[i]
     dur_sec = max(seg_minutes * 60.0, 1e-6)
 
-    if op == "segment":
-        exe = video_service_cost_usd(node.provider, node.region, "segment", seg_minutes)
-        lo, hi = node_segment_execute_bounds_at(dur_sec, node.provider, node.region)
+    if op == "shot_detection":
+        exe = video_service_cost_usd(node.provider, node.region, "shot_detection", seg_minutes)
+        lo, hi = node_shot_detection_execute_bounds_at(dur_sec, node.provider, node.region)
         k = sample_execution_scale(exec_scale_rng)
         t_exe = 0.5 * (lo * k + hi * k)
         return exe + stor, t_exe
 
-    if op == "split":
+    if op == "video_split":
         exe = split_cost_usd(node.provider, node.region, minutes=1.0)
-        lo, hi = node_split_execute_bounds_at(dur_sec, node.provider, node.region)
+        lo, hi = node_video_split_execute_bounds_at(dur_sec, node.provider, node.region)
         k = sample_execution_scale(exec_scale_rng)
         t_exe = 0.5 * (lo * k + hi * k)
         return exe + stor, t_exe
@@ -196,7 +196,7 @@ def _deterministic_local_cost_latency(
     cin, cout = cap_pair
     qin, qout = q_pair
 
-    if op == "caption":
+    if op == "video_caption":
         mm = node.model or ""
         exe = llm_token_cost_usd(node.provider, node.region, mm, cin, cout)
         t_exe = llm_decode_duration_sec(mm, cout, rng=llm_latency_rng)
@@ -343,7 +343,18 @@ def logical_optimal_baseline(
     cands: tuple[tuple[PhysicalNode, ...], tuple[PhysicalNode, ...], tuple[PhysicalNode, ...], tuple[PhysicalNode, ...]],
     weights: tuple[float, float, float, float] = (0.25, 0.25, 0.25, 0.25),
 ) -> BaselineResult:
-    """LO: independent argmax μ per layer (within full candidate lists)."""
+    """LO: independent argmax μ per layer（全量候选 + 默认权重时使用写死的 ``WF1_LOGICAL_OPTIMAL_NODES``）。"""
+    if weights == wf_utils.WF1_DEFAULT_WEIGHTS and all(
+        wf_utils.WF1_LOGICAL_OPTIMAL_NODES[i] in cands[i] for i in range(4)
+    ):
+        n = wf_utils.WF1_LOGICAL_OPTIMAL_NODES
+        u_tot = sum(weights[i] * physical_node_utility(n[i]) for i in range(4))
+        return BaselineResult(
+            "Logical-Optimal",
+            n,  # type: ignore[arg-type]
+            float(u_tot),
+            None,
+        )
     picks: list[PhysicalNode] = []
     u_tot = 0.0
     for i in range(4):

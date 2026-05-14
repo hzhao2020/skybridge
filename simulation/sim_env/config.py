@@ -1,7 +1,7 @@
 """
 config.py
 Configuration file for Video Processing Workflow Simulation.
-Logical Workflow: segment -> split -> caption -> query
+Logical Workflow (paper): shot_detection -> video_split -> video_caption -> query
 """
 
 import math
@@ -35,7 +35,7 @@ REGIONS = {
 # 2. VIDEO SIZE (simulation assumption)
 # ==========================================
 # Effective compressed size used to relate clip duration to megabytes (e.g. transfer, storage).
-VIDEO_MEGABYTES_PER_MINUTE = 120.0
+VIDEO_MEGABYTES_PER_MINUTE = 10.0
 
 # ==========================================
 # 3. DATA CONVERSION RATIO (output size / input size)
@@ -63,13 +63,12 @@ def _ratio_mean_std_to_lognormal_params(mean: float, std: float) -> tuple[float,
     return (mu, sigma)
 
 
-# Keys: workflow1 (segment/split/caption/query) + workflow2-specific ops.
-# Video Split / Shot Detection → mean 1, std 0 (degenerate lognormal / deterministic).
+# Keys: workflow1 (shot_detection / video_split / video_caption / query) + workflow2-specific ops.
+# video_split / shot_detection → mean 1, std 0 (degenerate lognormal / deterministic).
 _RATIO_TABLE_MEAN_STD: dict[str, tuple[float, float]] = {
-    "segment": (1.0, 0.0),
-    "split": (1.0, 0.0),
     "shot_detection": (1.0, 0.0),
-    "caption": (6.62846139e-04, 0.0006772164768231058),
+    "video_split": (1.0, 0.0),
+    "video_caption": (6.62846139e-04, 0.0006772164768231058),
     "speech_transcription": (1.315495e-05, 1.782099e-05),
     "ocr": (4.911324e-03, 2.880235e-03),
     "label_detection": (1.877817e-04, 4.854159e-05),
@@ -95,11 +94,11 @@ def sample_database_output_file_bytes(rng: random.Random) -> float:
 # Node ids elsewhere: {operation}_{provider}_{region} or {operation}_{provider}_{region}_{model}.
 
 WORKFLOW_OPERATIONS = {
-    
+
     # ---------------------------------------------------------
-    # OPERATION 1: SEGMENT (Video Service)
+    # OPERATION 1: SHOT DETECTION (Video Service)
     # ---------------------------------------------------------
-    "segment": {
+    "shot_detection": {
         "GCP": {
             "supported_regions": REGIONS["GCP"],
         },
@@ -107,15 +106,15 @@ WORKFLOW_OPERATIONS = {
             "supported_regions": REGIONS["AWS"],
         },
         "Aliyun": {
-            # Note: According to the cost table, Aliyun segment is only listed for cn-shanghai
+            # Note: According to the cost table, Aliyun shot_detection is only listed for cn-shanghai
             "supported_regions": ["cn-shanghai"],
         },
     },
 
     # ---------------------------------------------------------
-    # OPERATION 2: SPLIT (Serverless/Compute)
+    # OPERATION 2: VIDEO SPLIT (Serverless/Compute)
     # ---------------------------------------------------------
-    "split": {
+    "video_split": {
         "GCP": {
             "supported_regions": REGIONS["GCP"],
         },
@@ -128,9 +127,9 @@ WORKFLOW_OPERATIONS = {
     },
 
     # ---------------------------------------------------------
-    # OPERATION 3: CAPTION (Multimodal/Vision LLMs)
+    # OPERATION 3: VIDEO CAPTION (Multimodal/Vision LLMs)
     # ---------------------------------------------------------
-    "caption": {
+    "video_caption": {
         "GCP": {
             "supported_regions": REGIONS["GCP"],
             "models": [
@@ -156,7 +155,7 @@ WORKFLOW_OPERATIONS = {
     },
 
     # ---------------------------------------------------------
-    # OPERATION 4: QUERY (Text LLMs)
+    # OPERATION 4: QUERY / Q&A — workflow1 ``query``; workflow2 final LLM uses ``qa`` candidates here
     # ---------------------------------------------------------
     "query": {
         "GCP": {
@@ -226,9 +225,9 @@ def plugin_mean_data_conversion_ratios(
     n_calibration_samples: int,
     rng: random.Random,
     operations: tuple[str, str, str, str] = (
-        "segment",
-        "split",
-        "caption",
+        "shot_detection",
+        "video_split",
+        "video_caption",
         "query",
     ),
 ) -> tuple[float, float, float, float]:
@@ -279,8 +278,8 @@ def get_supported_regions(operation_name: str, provider: str) -> list:
         return []
 
 def get_supported_models(operation_name: str, provider: str) -> list:
-    """Returns the available LLMs for caption or query operations."""
-    if operation_name not in ["caption", "query"]:
+    """Returns the available LLMs for video_caption or query operations."""
+    if operation_name not in ["video_caption", "query"]:
         return []
     try:
         return WORKFLOW_OPERATIONS[operation_name][provider].get("models", [])

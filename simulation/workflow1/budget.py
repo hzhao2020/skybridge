@@ -43,7 +43,7 @@ def mean_plugin_rho_wf1(*, seed: int) -> tuple[float, float, float, float]:
     return cfg.plugin_mean_data_conversion_ratios(
         n_calibration_samples=N_CALIBRATION_SAMPLES,
         rng=random.Random(seed + 100),
-        operations=("segment", "split", "caption", "query"),
+        operations=("shot_detection", "video_split", "video_caption", "query"),
     )
 
 

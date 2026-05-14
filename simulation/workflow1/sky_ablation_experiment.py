@@ -12,7 +12,7 @@ Sky 消融实验：独立变量 × 三种变体，记录求解时间、迭代次
 结果写入 ``--out`` CSV：若文件已存在且非空则 **续写**（不写表头）；新文件或空文件则先写表头。
 需要整文件重写时使用 ``--overwrite``。列 ``batch_add_ratio``（每次迭代新增场景占 ``|Ω|`` 的比例）与命令行 ``--batch-add-ratio`` 一致；列 ``gurobi_status`` 为 Gurobi 求解状态字符串。
 
-对同一网格点 (Q, S, sweep)，三种变体共用同一 ``rng_seed``（**不含 variant**），因而 ``build_joint_scenarios`` 的联合场景、每条 ω 上的 segment/split 执行噪声、LLM token、链路的 ``sample_link`` 旋转均由此种子确定性导出（``sky.prepare_coefficients`` / ``utils.det_rng``），消融对比下随机环境一致。
+对同一网格点 (Q, S, sweep)，三种变体共用同一 ``rng_seed``（**不含 variant**），因而 ``build_joint_scenarios`` 的联合场景、每条 ω 上的 shot_detection/video_split 执行噪声、LLM token、链路的 ``sample_link`` 旋转均由此种子确定性导出（``sky.prepare_coefficients`` / ``utils.det_rng``），消融对比下随机环境一致。
 
 单点消融（例如 Q=50、S=50）::
 
@@ -64,8 +64,8 @@ def run_sky_single_in_process(payload: dict[str, Any]) -> dict[str, Any]:
     sky_rng_seed = int(payload["sky_rng_seed"])
     eta_c = float(payload.get("eta_c", 0.1))
     eta_t = float(payload.get("eta_t", 0.1))
-    lamb_c = float(payload.get("lamb_c", 1.0))
-    lamb_t = float(payload.get("lamb_t", 1.0))
+    lamb_c = float(payload.get("lamb_c", 0.35))
+    lamb_t = float(payload.get("lamb_t", 0.00112))
     weights: tuple[float, float, float, float] = tuple(
         float(x) for x in payload.get("weights", (0.25, 0.25, 0.25, 0.25))
     )
@@ -356,8 +356,8 @@ def main() -> None:
     )
     parser.add_argument("--eta-c", type=float, default=0.1)
     parser.add_argument("--eta-t", type=float, default=0.1)
-    parser.add_argument("--lamb-c", type=float, default=1.0)
-    parser.add_argument("--lamb-t", type=float, default=1.0)
+    parser.add_argument("--lamb-c", type=float, default=0.35)
+    parser.add_argument("--lamb-t", type=float, default=0.00112)
     parser.add_argument(
         "--weights",
         type=float,

@@ -190,7 +190,7 @@ class GoogleVertexCaptionImpl(VisualCaptioner):
         )
         return url
     
-    def _extract_video_segment(self, video_uri: str, start_time: float, end_time: float, output_path: str) -> str:
+    def _extract_shot_detection(self, video_uri: str, start_time: float, end_time: float, output_path: str) -> str:
         """
         使用 ffmpeg 提取视频片段（优化版：支持直接从云端读取）
         
@@ -338,7 +338,7 @@ class GoogleVertexCaptionImpl(VisualCaptioner):
                 temp_segment_path = temp_segment.name
                 temp_segment.close()
                 
-                self._extract_video_segment(video_uri, start_time, end_time, temp_segment_path)
+                self._extract_shot_detection(video_uri, start_time, end_time, temp_segment_path)
                 
                 # 路径拼接逻辑：避免引入意外的双斜杠
                 segment_filename = f"segment_{int(start_time)}_{int(end_time)}_{os.path.basename(target_uri)}"

@@ -2,7 +2,7 @@
 Chance-constrained deployment optimization (CVaR + SAA MILP, soft slack ε,
 Scenario-Adaptive decomposition, locality-aware greedy warm-start).
 
-Pipeline: segment → split → caption → query.
+Pipeline: shot_detection → video_split → video_caption → query.
 
 Dependencies: ``pip install gurobipy`` (Gurobi Optimizer with valid license).
 
@@ -31,8 +31,8 @@ from sim_env.cost import (
 )
 from sim_env.execution_latency import (
     llm_decode_duration_sec,
-    sample_segment_execute_sec,
-    sample_split_execute_sec,
+    sample_shot_detection_execute_sec,
+    sample_video_split_execute_sec,
 )
 from sim_env.network import reset_link_counters, sample_link
 from sim_env.utility import PhysicalNode, QueryProfile, physical_node_utility
@@ -92,7 +92,7 @@ def _safe_var_x(v: gp.Var) -> float:
         return 0.0
 
 
-OPS_ORDER = ("segment", "split", "caption", "query")
+OPS_ORDER = ("shot_detection", "video_split", "video_caption", "query")
 
 
 def _endpoint(n: PhysicalNode) -> ProviderRegion:
@@ -152,15 +152,15 @@ def coef_local_cost_latency(
     cin, cout = cap_pair
     qin, qout = q_pair
 
-    if op == "segment":
-        exe = video_service_cost_usd(node.provider, node.region, "segment", seg_minutes)
+    if op == "shot_detection":
+        exe = video_service_cost_usd(node.provider, node.region, "shot_detection", seg_minutes)
         return exe + stor, seg_exe_sec
 
-    if op == "split":
+    if op == "video_split":
         exe = split_cost_usd(node.provider, node.region, minutes=1.0)
         return exe + stor, spl_exe_sec
 
-    if op == "caption":
+    if op == "video_caption":
         mm = node.model or ""
         exe = llm_token_cost_usd(node.provider, node.region, mm, cin, cout)
         t_exe = llm_decode_duration_sec(mm, cout, rng=llm_latency_rng)
@@ -215,7 +215,7 @@ def prepare_coefficients(
         nseg = len(cands[0])
         nspl = len(cands[1])
         seg_exes = [
-            sample_segment_execute_sec(
+            sample_shot_detection_execute_sec(
                 dur_sec,
                 rng=wf_utils.det_rng(seed, "sky_seg_cand", ki),
                 node=cands[0][ki],
@@ -225,7 +225,7 @@ def prepare_coefficients(
             for ki in range(nseg)
         ]
         spl_exes = [
-            sample_split_execute_sec(
+            sample_video_split_execute_sec(
                 dur_sec,
                 rng=wf_utils.det_rng(seed, "sky_spl_cand", kj),
                 node=cands[1][kj],
@@ -708,7 +708,7 @@ def prefix_aggregate_ct(
     sn, xfer = wf_utils._propagate_sizes_gb(src_gb, rho)
     seg_min = _segment_minutes(sn[0])
     dur_sec = max(seg_min * 60.0, 1e-6)
-    seg_exe = sample_segment_execute_sec(
+    seg_exe = sample_shot_detection_execute_sec(
         dur_sec,
         rng=wf_utils.det_rng(seed, "pfx_seg"),
         node=nodes_prefix[0],
@@ -716,7 +716,7 @@ def prefix_aggregate_ct(
         execution_scale_seed=seed,
     )
     if len(nodes_prefix) > 1:
-        spl_exe = sample_split_execute_sec(
+        spl_exe = sample_video_split_execute_sec(
             dur_sec,
             rng=wf_utils.det_rng(seed, "pfx_spl"),
             node=nodes_prefix[1],
@@ -859,8 +859,8 @@ def run_sky_deployment(
     s_per_query: int,
     eta_c: float = 0.1,
     eta_t: float = 0.1,
-    lamb_c: float = 1.0,
-    lamb_t: float = 1.0,
+    lamb_c: float = 0.35,
+    lamb_t: float = 0.00112,
     weights: tuple[float, float, float, float] = (0.25, 0.25, 0.25, 0.25),
     batch_add_ratio: float = 0.05,
     decomposition: bool = True,

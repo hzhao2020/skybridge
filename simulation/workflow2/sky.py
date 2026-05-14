@@ -2,7 +2,7 @@
 Workflow 2 — CVaR–SAA MILP + Scenario-Adaptive Decomposition + locality warm-start。
 
 对应论文 Eq.(final MILP) 与 Algorithm (Joint Scenario-Adaptive Decomposition)，
-逻辑拓扑为 **互斥单路径** ``path_id ∈ {caption, ocr, label, speech}`` 的线性 DAG；
+逻辑拓扑为 **互斥单路径** ``path_id ∈ {video_caption, ocr, label_detection, speech_transcription}`` 的线性 DAG；
 MILP / CVaR 中的端到端时延为该路径上的延迟 **求和**（不做岔路 max）。
 完整 DAG 上并行岔路与 speech 支路的 **max** 聚合仅在评估展示（``workflow_display_latency_max_fork``）中使用。
 
@@ -10,7 +10,7 @@ MILP / CVaR 中的端到端时延为该路径上的延迟 **求和**（不做岔
 
 从包含 ``simulation/`` 的目录运行::
 
-    python -m workflow2.run_all_algorithms --path caption --num-queries 20
+    python -m workflow2.run_all_algorithms --path video_caption --num-queries 20
 """
 
 from __future__ import annotations
@@ -34,9 +34,9 @@ from sim_env.execution_latency import (
     sample_database_query_execute_sec,
     sample_label_detection_execute_sec,
     sample_ocr_execute_sec,
-    sample_segment_execute_sec,
+    sample_shot_detection_execute_sec,
     sample_speech_transcription_execute_sec,
-    sample_split_execute_sec,
+    sample_video_split_execute_sec,
 )
 from sim_env.network import reset_link_counters, sample_link
 from sim_env.utility import PhysicalNode, QueryProfile
@@ -66,8 +66,8 @@ def _segment_minutes_src(s_src_gb: float) -> float:
     return wf2_utils._segment_video_minutes_from_source(s_src_gb)
 
 
-def _carrier_seg(node: WF2PhysicalNode) -> PhysicalNode:
-    return PhysicalNode("segment", node.provider, node.region)
+def _carrier_shot_detection(node: WF2PhysicalNode) -> PhysicalNode:
+    return PhysicalNode("shot_detection", node.provider, node.region)
 
 
 def coef_local_cost_latency_wf2(
@@ -82,6 +82,7 @@ def coef_local_cost_latency_wf2(
     cap_pair: tuple[float, float],
     q_pair: tuple[float, float],
     llm_latency_rng: random.Random | None,
+    ops_full: tuple[str, ...],
 ) -> tuple[float, float]:
     """节点本地 exe+storage 费用与 **执行** 时延（不含出边网络）。"""
     rho_i = float(rho[idx])
@@ -94,10 +95,10 @@ def coef_local_cost_latency_wf2(
     cin, cout = cap_pair
     qin, qout = q_pair
 
-    if logical_op == "video_segment":
-        exe = video_service_cost_usd(p, r, "segment", seg_min_source)
-        return exe + stor, vi_exe_sec
     if logical_op == "shot_detection":
+        exe = video_service_cost_usd(p, r, "shot_detection", seg_min_source)
+        return exe + stor, vi_exe_sec
+    if logical_op == "video_split":
         exe = split_cost_usd(p, r, minutes=1.0)
         return exe + stor, vi_exe_sec
     if logical_op == "video_caption":
@@ -115,14 +116,10 @@ def coef_local_cost_latency_wf2(
         return exe + stor, vi_exe_sec
     if logical_op == "database":
         exe_inst = database_instance_cost_usd(p, r, days=1.0)
-        return exe_inst + stor, wf2_utils.WF2_PLACEHOLDER_DB_LATENCY_SEC
+        return exe_inst + stor, vi_exe_sec
     if logical_op == "qa":
-        return wf2_utils.WF2_PLACEHOLDER_QA_FIXED_COST_USD + stor, wf2_utils.WF2_PLACEHOLDER_QA_LATENCY_SEC
-    if logical_op == "answer":
         mm = node.model or ""
-        exe = llm_token_cost_usd(
-            p, r, mm, qin, qout
-        )
+        exe = llm_token_cost_usd(p, r, mm, qin, qout)
         return exe + stor, llm_decode_duration_sec(mm, qout, rng=llm_latency_rng)
     raise ValueError(f"unknown logical_op: {logical_op!r}")
 
@@ -151,23 +148,24 @@ def _sample_vi_exe_wf2(
     seed: int,
     layer_idx: int,
     cand_idx: int,
+    ops_full: tuple[str, ...],
 ) -> float:
     dr = wf1_utils.det_rng(seed, "wf2_sky_vi", layer_idx, cand_idx, node.provider, node.region)
-    car = _carrier_seg(node)
+    car = _carrier_shot_detection(node)
     scope = str(seed)
-    if logical_op == "video_segment":
-        return sample_segment_execute_sec(
+    if logical_op == "shot_detection":
+        return sample_shot_detection_execute_sec(
             dur_sec,
             rng=dr,
             node=car,
             execution_scale_scope=scope,
             execution_scale_seed=seed,
         )
-    if logical_op == "shot_detection":
-        return sample_split_execute_sec(
+    if logical_op == "video_split":
+        return sample_video_split_execute_sec(
             dur_sec,
             rng=dr,
-            node=PhysicalNode("split", node.provider, node.region),
+            node=PhysicalNode("video_split", node.provider, node.region),
             execution_scale_scope=scope,
             execution_scale_seed=seed,
         )
@@ -242,6 +240,7 @@ def prepare_coefficients_wf2(
         seg_min = _segment_minutes_src(s_src)
         dur_sec = max(seg_min * 60.0, 1e-6)
         cap_pair, q_pair = wf2_utils.wf2_llm_token_bundle(path_id, s_src, rho)
+        ops_t = tuple(ops)
 
         ac: list[list[float]] = []
         al: list[list[float]] = []
@@ -250,9 +249,11 @@ def prepare_coefficients_wf2(
             row_c = []
             row_l = []
             for ki, node in enumerate(cands[i]):
-                ve = _sample_vi_exe_wf2(op, node, dur_sec, seed=seed, layer_idx=i, cand_idx=ki)
+                ve = _sample_vi_exe_wf2(
+                    op, node, dur_sec, seed=seed, layer_idx=i, cand_idx=ki, ops_full=ops_t
+                )
                 llm_latency_rng = None
-                if op in ("video_caption", "answer"):
+                if op in ("video_caption", "qa"):
                     llm_latency_rng = wf1_utils.det_rng(
                         seed,
                         "wf2_sky_llm_jit",
@@ -273,8 +274,9 @@ def prepare_coefficients_wf2(
                     cap_pair=cap_pair,
                     q_pair=q_pair,
                     llm_latency_rng=llm_latency_rng,
+                    ops_full=ops_t,
                 )
-                if i == 0 and op == "video_segment":
+                if i == 0 and op in ("shot_detection", "speech_transcription"):
                     uc, ul = wf1_utils.local_edge_cost_latency(
                         (node.provider, node.region),
                         float(sn[0]),
@@ -285,7 +287,7 @@ def prepare_coefficients_wf2(
                     )
                     c_ij += uc
                     lat_ij += ul
-                if i == L - 1 and op == "answer":
+                if i == L - 1 and op == "qa":
                     dc, dl = wf1_utils.local_edge_cost_latency(
                         (node.provider, node.region),
                         float(xfer[i]),
@@ -591,16 +593,21 @@ def _solve_milp_gurobi_wf2(
     except (gp.GurobiError, AttributeError, ValueError):
         obj_val = None
 
+    alpha_c_sol = gv(alpha_c_v)
+    alpha_t_sol = gv(alpha_t_v)
+    eps_c_sol = gv(eps_c)
+    eps_t_sol = gv(eps_t)
+
     m.dispose()
 
     return MilpSolutionWf2(
         x_choice=tuple(picks),
         nodes=chosen,
         objective_value=obj_val,
-        alpha_c=gv(alpha_c_v),
-        alpha_t=gv(alpha_t_v),
-        eps_c=gv(eps_c),
-        eps_t=gv(eps_t),
+        alpha_c=alpha_c_sol,
+        alpha_t=alpha_t_sol,
+        eps_c=eps_c_sol,
+        eps_t=eps_t_sol,
         gurobi_status=status_str,
     )
 
@@ -710,6 +717,7 @@ def prefix_aggregate_ct_wf2(
     seed: int,
 ) -> tuple[float, float]:
     ops = path_logical_ops(path_id)
+    ops_t = tuple(ops)
     Lp = len(nodes_prefix)
     if len(rho_prefix) != Lp:
         raise ValueError("rho_prefix length must match prefix nodes")
@@ -718,8 +726,6 @@ def prefix_aggregate_ct_wf2(
     seg_min = _segment_minutes_src(src_gb)
     dur_sec = max(seg_min * 60.0, 1e-6)
     cap_pair, q_pair = wf2_utils.wf2_llm_token_bundle(path_id, src_gb, rho_prefix)
-
-    ops_full = path_logical_ops(path_id)
 
     c_tot = 0.0
     t_tot = 0.0
@@ -735,9 +741,11 @@ def prefix_aggregate_ct_wf2(
     for i in range(Lp):
         op = ops[i]
         node_i = nodes_prefix[i]
-        ve = _sample_vi_exe_wf2(op, node_i, dur_sec, seed=seed, layer_idx=i, cand_idx=0)
+        ve = _sample_vi_exe_wf2(
+            op, node_i, dur_sec, seed=seed, layer_idx=i, cand_idx=0, ops_full=ops_t
+        )
         llm_latency_rng = None
-        if op in ("video_caption", "answer"):
+        if op in ("video_caption", "qa"):
             llm_latency_rng = wf1_utils.det_rng(
                 seed, "wf2_pfx_llm", i, node_i.provider, node_i.region, node_i.model
             )
@@ -752,6 +760,7 @@ def prefix_aggregate_ct_wf2(
             cap_pair=cap_pair,
             q_pair=q_pair,
             llm_latency_rng=llm_latency_rng,
+            ops_full=ops_t,
         )
         c_tot += cc
         t_tot += lt
@@ -766,7 +775,7 @@ def prefix_aggregate_ct_wf2(
         c_tot += ec
         t_tot += et
 
-    if Lp == len(ops_full) and ops_full[-1] == "answer":
+    if Lp == len(ops_t) and ops_t[-1] == "qa":
         dc, dl = wf1_utils.local_edge_cost_latency(
             (nodes_prefix[-1].provider, nodes_prefix[-1].region),
             float(xfer[Lp - 1]),
@@ -844,8 +853,8 @@ def run_sky_deployment_wf2(
     s_per_query: int,
     eta_c: float = 0.1,
     eta_t: float = 0.1,
-    lamb_c: float = 1.0,
-    lamb_t: float = 1.0,
+    lamb_c: float = 0.55,
+    lamb_t: float = 0.00118,
     weights: Sequence[float] | None = None,
     batch_add_ratio: float = 0.05,
     decomposition: bool = True,

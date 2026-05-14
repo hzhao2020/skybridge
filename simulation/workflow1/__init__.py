@@ -1,1 +1,1 @@
-"""Workflow 1: segment → split → caption → query 仿真与优化入口。"""
+"""Workflow 1：shot_detection → video_split → video_caption → query 仿真与优化入口。"""

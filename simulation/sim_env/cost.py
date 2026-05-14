@@ -77,25 +77,25 @@ LLM_TOKEN_PRICE_PER_MILLION: dict[str, dict[str, dict[str, tuple[float, float]]]
 VIDEO_SERVICE_USD_PER_MINUTE: dict[str, dict[str, dict[str, float]]] = {
     "GCP": {
         "us-east1": {
-            "segment": 0.05,
+            "shot_detection": 0.05,
             "speech_transcription": 0.048,
             "ocr": 0.15,
             "label_detection": 0.10,
         },
         "us-west1": {
-            "segment": 0.05,
+            "shot_detection": 0.05,
             "speech_transcription": 0.048,
             "ocr": 0.15,
             "label_detection": 0.10,
         },
         "europe-west1": {
-            "segment": 0.05,
+            "shot_detection": 0.05,
             "speech_transcription": 0.048,
             "ocr": 0.15,
             "label_detection": 0.10,
         },
         "asia-east1": {
-            "segment": 0.05,
+            "shot_detection": 0.05,
             "speech_transcription": 0.048,
             "ocr": 0.15,
             "label_detection": 0.10,
@@ -103,25 +103,25 @@ VIDEO_SERVICE_USD_PER_MINUTE: dict[str, dict[str, dict[str, float]]] = {
     },
     "AWS": {
         "us-west-2": {
-            "segment": 0.05,
+            "shot_detection": 0.05,
             "ocr": 0.10,
             "label_detection": 0.10,
             "speech_transcription": 0.024,
         },
         "us-east-2": {
-            "segment": 0.05,
+            "shot_detection": 0.05,
             "ocr": 0.10,
             "label_detection": 0.10,
             "speech_transcription": 0.024,
         },
         "ap-southeast-1": {
-            "segment": 0.0675,
+            "shot_detection": 0.0675,
             "ocr": 0.135,
             "label_detection": 0.135,
             "speech_transcription": 0.024,
         },
         "eu-central-1": {
-            "segment": 0.06,
+            "shot_detection": 0.06,
             "ocr": 0.12,
             "label_detection": 0.12,
             "speech_transcription": 0.024,
@@ -129,7 +129,7 @@ VIDEO_SERVICE_USD_PER_MINUTE: dict[str, dict[str, dict[str, float]]] = {
     },
     "Aliyun": {
         "cn-shanghai": {
-            "segment": 0.029,
+            "shot_detection": 0.029,
             "speech_transcription": 0.0029,
             "ocr": 0.0073,
             "label_detection": 0.018,
@@ -302,7 +302,7 @@ def video_service_cost_usd(
     service: str,
     video_minutes: float,
 ) -> float:
-    """Video API cost from duration in minutes. `service`: segment | speech_transcription | ocr | label_detection."""
+    """Video API cost from duration in minutes. `service`: shot_detection | speech_transcription | ocr | label_detection."""
     try:
         rate = VIDEO_SERVICE_USD_PER_MINUTE[provider][region][service]
     except KeyError as e:
