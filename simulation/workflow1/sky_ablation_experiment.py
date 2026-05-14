@@ -23,8 +23,12 @@ from __future__ import annotations
 
 import argparse
 import csv
-import resource
 import subprocess
+
+try:
+    import resource
+except ImportError:
+    resource = None  # Windows: stdlib ``resource`` unavailable
 import sys
 import time
 import json
@@ -104,8 +108,11 @@ def run_sky_single_in_process(payload: dict[str, Any]) -> dict[str, Any]:
     )
     wall_sec = time.perf_counter() - t0
 
-    ru = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    peak_memory_bytes = _ru_maxrss_to_bytes(ru)
+    if resource is not None:
+        ru = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        peak_memory_bytes = _ru_maxrss_to_bytes(ru)
+    else:
+        peak_memory_bytes = None  # no getrusage (e.g. Windows)
 
     if isinstance(rep, sky_runner.DecompositionResult):
         sol = rep.solution
@@ -473,6 +480,8 @@ def main() -> None:
             }
             if row["master_iterations"] is None:
                 row["master_iterations"] = ""
+            if row["peak_memory_bytes"] is None:
+                row["peak_memory_bytes"] = ""
             w.writerow(row)
             f.flush()
 
