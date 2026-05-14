@@ -59,19 +59,6 @@ _BUDGET_REF_CHAIN_LATENCY_WF1: tuple[PhysicalNode, PhysicalNode, PhysicalNode, P
     PhysicalNode("video_caption", "Aliyun", "ap-southeast-1", "Qwen3-VL-Flash"),
     PhysicalNode("query", "Aliyun", "ap-southeast-1", "Qwen3-VL-Flash"),
 )
-# 每条 query 的 Θ 相对参考链上 mean-field cost / latency 分别放大倍数（与 budget 脚本口径一致）。
-QUERY_BUDGET_REFERENCE_MULTIPLIER = 1.75
-# 预设：相对 plug-in mean 参考链上 mean-field 的 (min_cost, min_latency) 倍率。
-BUDGET_PRESET_MULTIPLIERS_WF1: dict[str, tuple[float, float]] = {
-    "cost_sensitivity": (1.5, 2.0),
-    "latency_sensitivity": (2.0, 1.5),
-    "balanced": (1.75, 1.75),
-}
-BUDGET_PRESET_SUITE_ORDER_WF1: tuple[str, ...] = (
-    "cost_sensitivity",
-    "latency_sensitivity",
-    "balanced",
-)
 # 默认实验：在 C_min 与 LO（效用上限）链成本 C_max 之间插值，Θ_C = C_min + α (C_max - C_min)；
 # Θ_T 同形（L_min、L_max 为各链 plug-in mean ρ + 单次 mean-field 抽样下端到端时延）。
 BUDGET_ALPHA_SUITE_DEFAULT_WF1: tuple[float, ...] = (0.25, 0.5, 0.75, 1.0)
@@ -577,49 +564,37 @@ def generate_realistic_queries(
     num_queries: int,
     seed: int = 42,
     *,
-    budget_cost_multiplier: float | None = None,
-    budget_latency_multiplier: float | None = None,
-    budget_alpha: float | None = None,
-    cands: tuple[
-        tuple[PhysicalNode, ...],
-        tuple[PhysicalNode, ...],
-        tuple[PhysicalNode, ...],
-        tuple[PhysicalNode, ...],
-    ]
-    | None = None,
-    weights: Tuple[float, float, float, float] | None = None,
+    budget_alpha: float,
+    lo_chain: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode],
+    min_mean_cost_chain: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode],
+    min_mean_latency_chain: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode],
 ) -> list[QueryProfile]:
     """
     生成校准 query 列表及 chance-constraint 预算 ``(Θ_C, Θ_T)``。
 
-    * **插值模式**（``budget_alpha`` 非空）：对每条 query，在 plug-in mean ρ 下枚举 ``cands`` 全链，
-      用与 ``workflow1.budget`` 相同的单次 mean-field 抽样键 ``det_rng(seed, "budget_combo_eval", q_idx)``
-      计算各链 ``(cost, latency)``，取 ``C_min,L_min``；在 LO 链（各层 argmax ``w_i μ_i``）上取
-      ``C_max,L_max``（抽样键 ``det_rng(seed, "budget_alpha_lo", q_idx)``）。令
-      ``Θ_C = C_min + α (C_max - C_min)``，``Θ_T = L_min + α (L_max - L_min)``。
-      需提供 ``cands`` 与 ``weights``。
+    对每条 query 在 plug-in mean ρ 下分别评估三条锚链（须与 ``workflow1.budget`` 口径一致地预先选出）：
 
-    * **参考链乘子模式**（默认）：在 **budget 脚本记录的参考链**上取 mean-field cost / latency，
-      再乘以 ``budget_cost_multiplier`` / ``budget_latency_multiplier``；未指定时使用
-      ``QUERY_BUDGET_REFERENCE_MULTIPLIER``（默认 1.75）。
+    * ``min_mean_cost_chain``：仅取其 **费用** 作为 ``C_{\\min}^q``；
+    * ``min_mean_latency_chain``：仅取其 **时延** 作为 ``T_{\\min}^q``；
+    * ``lo_chain``：取 ``(C_{LO}^q, T_{LO}^q)``。
+
+    插值（与 budget 脚本相同的 per-query mean-field 键族，见下方 ``det_rng``）::
+
+        Θ_C^q(α) = C_{\\min}^q + α (C_{LO}^q - C_{\\min}^q),
+        Θ_T^q(α) = T_{\\min}^q + α (T_{LO}^q - T_{\\min}^q).
     """
     import random
 
-    from sim_env.utility import QueryProfile
-
-    if budget_alpha is not None and (
-        budget_cost_multiplier is not None or budget_latency_multiplier is not None
+    for label, ch in (
+        ("lo_chain", lo_chain),
+        ("min_mean_cost_chain", min_mean_cost_chain),
+        ("min_mean_latency_chain", min_mean_latency_chain),
     ):
-        raise ValueError("budget_alpha 与 budget_*_multiplier 不可同时指定")
-
-    if budget_alpha is not None:
-        if cands is None or weights is None:
-            raise ValueError("budget_alpha 模式下必须提供 cands 与 weights")
-        if len(weights) != 4:
-            raise ValueError("weights 长度须为 4")
-        lo_chain = wf1_logical_optimal_chain(cands, weights)
-    else:
-        lo_chain = None  # unused
+        if len(ch) != 4:
+            raise ValueError(f"{label} must have length 4")
+        for i, n in enumerate(ch):
+            if n.operation != _OPS_ORDER[i]:
+                raise ValueError(f"{label}[{i}] must be operation {_OPS_ORDER[i]!r}, got {n.operation!r}")
 
     rng = random.Random(seed)
     calib_rng = random.Random(seed + 100)
@@ -630,19 +605,6 @@ def generate_realistic_queries(
         operations=("shot_detection", "video_split", "video_caption", "query"),
     )
 
-    chain_c = _BUDGET_REF_CHAIN_COST_WF1
-    chain_l = _BUDGET_REF_CHAIN_LATENCY_WF1
-    mult_c = (
-        budget_cost_multiplier
-        if budget_cost_multiplier is not None
-        else QUERY_BUDGET_REFERENCE_MULTIPLIER
-    )
-    mult_l = (
-        budget_latency_multiplier
-        if budget_latency_multiplier is not None
-        else QUERY_BUDGET_REFERENCE_MULTIPLIER
-    )
-
     queries: list[QueryProfile] = []
 
     for q_idx in range(num_queries):
@@ -650,55 +612,34 @@ def generate_realistic_queries(
         s_src_mb = cfg.video_megabytes_from_duration_sec(duration_sec)
         s_src_gb = s_src_mb / 1000.0
 
-        if budget_alpha is not None:
-            assert cands is not None and lo_chain is not None
-            c_min = math.inf
-            l_min = math.inf
-            for chain in iter_wf1_deployment_chains(cands):
-                wf = det_rng(seed, "budget_combo_eval", q_idx)
-                c_i, ell_i = end_to_end_cost_and_latency(
-                    (chain[0], chain[1], chain[2], chain[3]),
-                    s_src_gb,
-                    mean_rho,
-                    workflow_rng=wf,
-                )
-                if math.isfinite(c_i):
-                    c_min = min(c_min, float(c_i))
-                if math.isfinite(ell_i):
-                    l_min = min(l_min, float(ell_i))
-            wf_lo = det_rng(seed, "budget_alpha_lo", q_idx)
-            c_lox, l_lox = end_to_end_cost_and_latency(
-                lo_chain, s_src_gb, mean_rho, workflow_rng=wf_lo
-            )
-            c_lo = float(c_lox)
-            l_lo = float(l_lox)
-            span_c = max(c_lo, c_min) - min(c_lo, c_min)
-            span_l = max(l_lo, l_min) - min(l_lo, l_min)
-            theta_c = min(c_lo, c_min) + float(budget_alpha) * span_c
-            theta_l = min(l_lo, l_min) + float(budget_alpha) * span_l
-            queries.append(
-                QueryProfile(
-                    s_src_gb=s_src_gb,
-                    theta_cost=theta_c,
-                    theta_latency_sec=theta_l,
-                )
-            )
-            continue
-
-        wf_c = det_rng(seed, "query_budget_ref_cost", q_idx)
-        ref_c, _ = end_to_end_cost_and_latency(
-            chain_c, s_src_gb, mean_rho, workflow_rng=wf_c
+        wf_mc = det_rng(seed, "grq_anchor_min_cost", q_idx)
+        c_min_x, _ = end_to_end_cost_and_latency(
+            min_mean_cost_chain, s_src_gb, mean_rho, workflow_rng=wf_mc
         )
-        wf_l = det_rng(seed, "query_budget_ref_latency", q_idx)
-        _, ref_l = end_to_end_cost_and_latency(
-            chain_l, s_src_gb, mean_rho, workflow_rng=wf_l
+        wf_mt = det_rng(seed, "grq_anchor_min_lat", q_idx)
+        _, t_min_x = end_to_end_cost_and_latency(
+            min_mean_latency_chain, s_src_gb, mean_rho, workflow_rng=wf_mt
         )
-
+        wf_lo = det_rng(seed, "budget_alpha_lo", q_idx)
+        c_lox, t_lox = end_to_end_cost_and_latency(
+            lo_chain, s_src_gb, mean_rho, workflow_rng=wf_lo
+        )
+        if not all(
+            math.isfinite(x) for x in (c_min_x, t_min_x, c_lox, t_lox)
+        ):
+            raise ValueError("non-finite cost/latency in anchor evaluation")
+        c_min = float(c_min_x)
+        t_min = float(t_min_x)
+        c_lo = float(c_lox)
+        t_lo = float(t_lox)
+        ba = float(budget_alpha)
+        theta_c = c_min + ba * (c_lo - c_min)
+        theta_t = t_min + ba * (t_lo - t_min)
         queries.append(
             QueryProfile(
                 s_src_gb=s_src_gb,
-                theta_cost=ref_c * mult_c,
-                theta_latency_sec=ref_l * mult_l,
+                theta_cost=theta_c,
+                theta_latency_sec=theta_t,
             )
         )
 

@@ -4,17 +4,14 @@
 Aggregate Utility / mean Cost / mean Latency / SVR。
 
 默认对 **四种 budget–α 插值** 各跑一次（``workflow1.utils.BUDGET_ALPHA_SUITE_DEFAULT_WF1``，即 α∈{0.25,0.5,0.75,1}）：
-每条 query 取全链上 mean-field 最小成本 ``C_min`` 与 LO 链成本 ``C_max``，令
-``Θ_C=C_min+α(C_max-C_min)``；时延 ``Θ_T`` 同形（``L_min``、``L_max``）。
-
-可选：``--budget-preset`` 使用旧的参考链倍率（cost_sensitivity / latency_sensitivity / balanced）。
+每条 query 的 ``Θ_C, Θ_T`` 由三条锚链（LO + ``workflow1.budget`` 上 mean 最小的 cost / latency 链）
+按 ``Θ = T_{\\min} + α (T_{LO} - T_{\\min})`` 形式在费用维与时延维分别插值（见 ``generate_realistic_queries``）。
 
 在包含 ``workflow1`` 与 ``sim_env`` 的 ``simulation/`` 目录下执行::
 
     python -m workflow1.run_all_algorithms
     python -m workflow1.run_all_algorithms --num-queries 20
     python -m workflow1.run_all_algorithms --budget-alpha 0.25 0.5
-    python -m workflow1.run_all_algorithms --budget-preset balanced
 
 大规模实验请调大 ``--num-queries`` / ``--sky-s-per-query``（Sky 会非常慢）。
 """
@@ -30,11 +27,12 @@ from sim_env.utility import QueryProfile
 
 from . import baseline as baseline_runner
 from . import sky as sky_runner
+from .budget import wf1_mean_min_anchor_chains
 from .evaluation import EmpiricalDeploymentMetrics, evaluate_deployment_empirical, print_metrics_report
 from .utils import (
     BUDGET_ALPHA_SUITE_DEFAULT_WF1,
-    BUDGET_PRESET_MULTIPLIERS_WF1,
     generate_realistic_queries,
+    wf1_logical_optimal_chain,
 )
 
 
@@ -258,17 +256,6 @@ def main() -> None:
         metavar="A",
         help=(
             "预算插值系数 α（可多选）；未写值时默认 0.25 0.5 0.75 1.0。"
-            "与 --budget-preset 互斥。"
-        ),
-    )
-    parser.add_argument(
-        "--budget-preset",
-        nargs="+",
-        default=None,
-        choices=list(BUDGET_PRESET_MULTIPLIERS_WF1.keys()),
-        metavar="PRESET",
-        help=(
-            "（旧口径）参考链 mean-field 倍率预设；与 --budget-alpha 互斥。"
         ),
     )
     args = parser.parse_args()
@@ -277,69 +264,52 @@ def main() -> None:
     eval_seed = int(args.eval_seed)
 
     balpha = args.budget_alpha
-    if args.budget_preset is not None:
-        if balpha is not None and len(balpha) > 0:
-            parser.error("--budget-preset 与 --budget-alpha 不能同时使用")
-        preset_names: tuple[str, ...] = tuple(args.budget_preset)
-        run_plan: list[tuple[str, float | None]] = [(n, None) for n in preset_names]
-        plan_kind = "preset"
+    if balpha is not None and len(balpha) > 0:
+        alphas_run = tuple(balpha)
     else:
-        plan_kind = "alpha"
-        if balpha is not None and len(balpha) > 0:
-            alphas_run = tuple(balpha)
-        else:
-            alphas_run = BUDGET_ALPHA_SUITE_DEFAULT_WF1
-        run_plan = [(f"α={a:g}", a) for a in alphas_run]
+        alphas_run = BUDGET_ALPHA_SUITE_DEFAULT_WF1
+    run_plan = [(f"α={a:g}", a) for a in alphas_run]
 
     print("=" * 70)
     print("run_all_algorithms: shared calibration set + empirical KPIs")
     print("=" * 70)
 
     print(
-        f"[setup] budget_mode={plan_kind} runs={len(run_plan)} query_seed={args.query_seed} "
+        f"[setup] budget_mode=alpha runs={len(run_plan)} query_seed={args.query_seed} "
         f"num_queries_each={args.num_queries} weights={weights} eval_seed={eval_seed}"
     )
     print()
 
     cands = sky_runner.enumerate_candidates()
     print(f"[setup] candidate layer sizes: {[len(c) for c in cands]}")
+    min_c_ch, min_l_ch = wf1_mean_min_anchor_chains(
+        cands,
+        num_queries=args.num_queries,
+        query_sample_seed=args.query_seed,
+    )
+    lo_ch = wf1_logical_optimal_chain(cands, weights)
+    print("[setup] budget anchors: LO + mean-min-cost chain + mean-min-latency chain (see workflow1.budget)")
     print()
 
     mega: list[tuple[str, list[tuple[str, EmpiricalDeploymentMetrics | None]]]] = []
 
     for label, alpha in run_plan:
-        if plan_kind == "preset":
-            assert alpha is None
-            mc, ml = BUDGET_PRESET_MULTIPLIERS_WF1[label]
-            queries = generate_realistic_queries(
-                args.num_queries,
-                seed=args.query_seed,
-                budget_cost_multiplier=mc,
-                budget_latency_multiplier=ml,
-            )
-            print("*" * 70)
-            print(
-                f"[budget preset] {label} "
-                f"(Θ_cost = {mc} × ref_meanfield_cost, "
-                f"Θ_latency = {ml} × ref_meanfield_latency)"
-            )
-            print("*" * 70)
-        else:
-            assert alpha is not None
-            queries = generate_realistic_queries(
-                args.num_queries,
-                seed=args.query_seed,
-                budget_alpha=float(alpha),
-                cands=cands,
-                weights=weights,
-            )
-            print("*" * 70)
-            print(
-                f"[budget α] {label}  "
-                f"Θ_C = C_min + α (C_max - C_min), Θ_T = L_min + α (L_max - L_min) "
-                f"(LO / 全链 min, plug-in mean ρ)"
-            )
-            print("*" * 70)
+        assert alpha is not None
+        queries = generate_realistic_queries(
+            args.num_queries,
+            seed=args.query_seed,
+            budget_alpha=float(alpha),
+            lo_chain=lo_ch,
+            min_mean_cost_chain=min_c_ch,
+            min_mean_latency_chain=min_l_ch,
+        )
+        print("*" * 70)
+        print(
+            f"[budget α] {label}  "
+            f"Θ_C = C_min + α (C_LO - C_min), Θ_T = T_min + α (T_LO - T_min) "
+            f"(mean-min-cost / mean-min-lat / LO, plug-in mean ρ)"
+        )
+        print("*" * 70)
 
         results = _run_algorithms_for_queries(queries, args, weights=weights, eval_seed=eval_seed, cands=cands)
         mega.append((label, results))

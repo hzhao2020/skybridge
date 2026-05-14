@@ -55,7 +55,8 @@ def run_sky_single_in_process(payload: dict[str, Any]) -> dict[str, Any]:
     在当前进程执行一次 ``run_sky_deployment``，用于子进程入口或单元测试。
     """
     from . import sky as sky_runner
-    from .utils import generate_realistic_queries
+    from .budget import wf1_mean_min_anchor_chains
+    from .utils import generate_realistic_queries, wf1_logical_optimal_chain
 
     variant: VariantName = payload["variant"]
     num_queries = int(payload["num_queries"])
@@ -70,9 +71,22 @@ def run_sky_single_in_process(payload: dict[str, Any]) -> dict[str, Any]:
         float(x) for x in payload.get("weights", (0.25, 0.25, 0.25, 0.25))
     )
     batch_add_ratio = float(payload.get("batch_add_ratio", 0.05))
+    budget_alpha = float(payload.get("budget_alpha", 1.0))
 
     dec, warm = sky_runner.sky_ablation_settings(variant)
-    queries = generate_realistic_queries(num_queries, seed=query_seed)
+    cands = sky_runner.enumerate_candidates()
+    min_c_ch, min_l_ch = wf1_mean_min_anchor_chains(
+        cands, num_queries=num_queries, query_sample_seed=query_seed
+    )
+    lo_ch = wf1_logical_optimal_chain(cands, weights)
+    queries = generate_realistic_queries(
+        num_queries,
+        seed=query_seed,
+        budget_alpha=budget_alpha,
+        lo_chain=lo_ch,
+        min_mean_cost_chain=min_c_ch,
+        min_mean_latency_chain=min_l_ch,
+    )
 
     t0 = time.perf_counter()
     rep = sky_runner.run_sky_deployment(
@@ -229,6 +243,7 @@ def build_jobs(args: argparse.Namespace) -> list[dict[str, Any]]:
                         "lamb_t": args.lamb_t,
                         "weights": list(args.weights),
                         "batch_add_ratio": args.batch_add_ratio,
+                        "budget_alpha": args.budget_alpha,
                     },
                 }
             )
@@ -260,6 +275,7 @@ def build_jobs(args: argparse.Namespace) -> list[dict[str, Any]]:
                         "lamb_t": args.lamb_t,
                         "weights": list(args.weights),
                         "batch_add_ratio": args.batch_add_ratio,
+                        "budget_alpha": args.budget_alpha,
                     },
                 }
             )
@@ -290,6 +306,7 @@ def build_jobs(args: argparse.Namespace) -> list[dict[str, Any]]:
                         "lamb_t": args.lamb_t,
                         "weights": list(args.weights),
                         "batch_add_ratio": args.batch_add_ratio,
+                        "budget_alpha": args.budget_alpha,
                     },
                 }
             )
@@ -353,6 +370,13 @@ def main() -> None:
         default=0.05,
         metavar="R",
         help="decomposition: each iteration adds max(1, ceil(R * total joint scenarios))",
+    )
+    parser.add_argument(
+        "--budget-alpha",
+        type=float,
+        default=1.0,
+        metavar="A",
+        help="query 预算插值 α（传给 generate_realistic_queries）",
     )
     parser.add_argument("--eta-c", type=float, default=0.1)
     parser.add_argument("--eta-t", type=float, default=0.1)

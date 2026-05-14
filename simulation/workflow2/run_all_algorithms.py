@@ -3,13 +3,11 @@
 
 默认对 **四种 budget–α** 各跑一次（与 workflow1 相同，``workflow1.utils.BUDGET_ALPHA_SUITE_DEFAULT_WF1``）。
 
-可选 ``--budget-preset`` 使用旧参考链倍率。
-
 在 ``simulation/`` 下::
 
     python -m workflow2.run_all_algorithms --path caption --num-queries 20
     python -m workflow2.run_all_algorithms --path speech --skip-sky
-    python -m workflow2.run_all_algorithms --budget-preset balanced
+    python -m workflow2.run_all_algorithms --budget-alpha 0.25 0.5
 """
 
 from __future__ import annotations
@@ -19,11 +17,12 @@ import sys
 import time
 from typing import Any
 
-from workflow1.utils import BUDGET_ALPHA_SUITE_DEFAULT_WF1, BUDGET_PRESET_MULTIPLIERS_WF1
+from workflow1.utils import BUDGET_ALPHA_SUITE_DEFAULT_WF1
 
 from . import baseline as baseline_runner
 from . import sky as sky_runner
 from . import utils as wf2_utils
+from .budget import wf2_mean_min_anchor_chains
 from .evaluation import (
     EmpiricalDeploymentMetricsWf2,
     evaluate_deployment_empirical_wf2,
@@ -273,15 +272,7 @@ def main() -> None:
         nargs="*",
         default=None,
         metavar="A",
-        help="预算插值 α（可多选）；未指定值 → 0.25 0.5 0.75 1.0；与 --budget-preset 互斥。",
-    )
-    parser.add_argument(
-        "--budget-preset",
-        nargs="+",
-        default=None,
-        choices=list(BUDGET_PRESET_MULTIPLIERS_WF1.keys()),
-        metavar="PRESET",
-        help="（旧口径）参考链倍率预设；与 --budget-alpha 互斥。",
+        help="预算插值 α（可多选）；未指定值 → 0.25 0.5 0.75 1.0。",
     )
     args = parser.parse_args()
 
@@ -300,71 +291,54 @@ def main() -> None:
     eval_seed = int(args.eval_seed)
 
     balpha = args.budget_alpha
-    if args.budget_preset is not None:
-        if balpha is not None and len(balpha) > 0:
-            parser.error("--budget-preset 与 --budget-alpha 不能同时使用")
-        preset_names = tuple(args.budget_preset)
-        run_plan: list[tuple[str, float | None]] = [(n, None) for n in preset_names]
-        plan_kind = "preset"
+    if balpha is not None and len(balpha) > 0:
+        alphas_run = tuple(balpha)
     else:
-        plan_kind = "alpha"
-        if balpha is not None and len(balpha) > 0:
-            alphas_run = tuple(balpha)
-        else:
-            alphas_run = BUDGET_ALPHA_SUITE_DEFAULT_WF1
-        run_plan = [(f"α={a:g}", a) for a in alphas_run]
+        alphas_run = BUDGET_ALPHA_SUITE_DEFAULT_WF1
+    run_plan = [(f"α={a:g}", a) for a in alphas_run]
 
     print("=" * 70)
     print(f"workflow2.run_all_algorithms | path={path_id}")
     print("=" * 70)
 
     print(
-        f"[setup] budget_mode={plan_kind} runs={len(run_plan)} query_seed={args.query_seed} "
+        f"[setup] budget_mode=alpha runs={len(run_plan)} query_seed={args.query_seed} "
         f"num_queries_each={args.num_queries} weights={weights} eval_seed={eval_seed}"
     )
     print()
 
     cands = sky_runner.enumerate_candidates_wf2(path_id)
     print(f"[setup] candidate layer sizes: {[len(c) for c in cands]}")
+    min_c_ch, min_l_ch = wf2_mean_min_anchor_chains(
+        path_id,
+        cands,
+        num_queries=args.num_queries,
+        query_sample_seed=args.query_seed,
+    )
+    lo_ch = wf2_utils.wf2_logical_optimal_chain(path_id, cands, weights)
+    print("[setup] budget anchors: mean-min-cost + mean-min-lat + LO (workflow2.budget)")
     print()
 
     mega: list[tuple[str, list[tuple[str, EmpiricalDeploymentMetricsWf2 | None]]]] = []
 
     for label, alpha in run_plan:
-        if plan_kind == "preset":
-            assert alpha is None
-            mc, ml = BUDGET_PRESET_MULTIPLIERS_WF1[label]
-            queries = wf2_utils.generate_realistic_queries_wf2(
-                args.num_queries,
-                path_id,
-                seed=args.query_seed,
-                budget_cost_multiplier=mc,
-                budget_latency_multiplier=ml,
-            )
-            print("*" * 70)
-            print(
-                f"[budget preset] {label} "
-                f"(Θ_cost = {mc} × ref_meanfield_cost, "
-                f"Θ_latency = {ml} × ref_meanfield_latency)"
-            )
-            print("*" * 70)
-        else:
-            assert alpha is not None
-            queries = wf2_utils.generate_realistic_queries_wf2(
-                args.num_queries,
-                path_id,
-                seed=args.query_seed,
-                budget_alpha=float(alpha),
-                cands=cands,
-                weights=weights,
-            )
-            print("*" * 70)
-            print(
-                f"[budget α] {label}  "
-                f"Θ_C = C_min + α (C_max - C_min), Θ_T = L_min + α (L_max - L_min) "
-                f"(LO / 全链 min)"
-            )
-            print("*" * 70)
+        assert alpha is not None
+        queries = wf2_utils.generate_realistic_queries_wf2(
+            args.num_queries,
+            path_id,
+            seed=args.query_seed,
+            budget_alpha=float(alpha),
+            lo_chain=lo_ch,
+            min_mean_cost_chain=min_c_ch,
+            min_mean_latency_chain=min_l_ch,
+        )
+        print("*" * 70)
+        print(
+            f"[budget α] {label}  "
+            f"Θ_C = C_min + α (C_LO - C_min), Θ_T = T_min + α (T_LO - T_min) "
+            f"(mean-min-cost / mean-min-lat / LO)"
+        )
+        print("*" * 70)
 
         results = _run_algorithms_for_queries_wf2(
             path_id,

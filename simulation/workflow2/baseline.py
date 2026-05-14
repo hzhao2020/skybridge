@@ -627,13 +627,26 @@ def run_all_baselines_wf2(
 
 
 if __name__ == "__main__":  # pragma: no cover
+    from .budget import wf2_mean_min_anchor_chains
     from .evaluation import evaluate_deployment_empirical_wf2, print_metrics_report_wf2
 
     n_q = 5
     pid: WF2PathId = "video_caption"
-    qs = wf2_utils.generate_realistic_queries_wf2(n_q, pid, seed=7)
     cands = enumerate_candidates_wf2(pid)
     WEIGHTS = wf2_utils.default_weights_for_path(pid)
+    min_c_ch, min_l_ch = wf2_mean_min_anchor_chains(
+        pid, cands, num_queries=n_q, query_sample_seed=7
+    )
+    lo_ch = wf2_utils.wf2_logical_optimal_chain(pid, cands, WEIGHTS)
+    qs = wf2_utils.generate_realistic_queries_wf2(
+        n_q,
+        pid,
+        seed=7,
+        budget_alpha=float(wf1_utils.BUDGET_ALPHA_SUITE_DEFAULT_WF1[-1]),
+        lo_chain=lo_ch,
+        min_mean_cost_chain=min_c_ch,
+        min_mean_latency_chain=min_l_ch,
+    )
 
     print("Candidates per layer:", [len(c) for c in cands])
     lo = logical_optimal_baseline_wf2(pid, cands, weights=WEIGHTS)

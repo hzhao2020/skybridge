@@ -961,13 +961,29 @@ if __name__ == "__main__":  # pragma: no cover
     ETA_C = 0.1
     ETA_T = 0.1
 
+    WEIGHTS_KPI = (0.25, 0.25, 0.25, 0.25)
+    cands_demo = enumerate_candidates()
+    from .budget import wf1_mean_min_anchor_chains
+
+    min_c_ch, min_l_ch = wf1_mean_min_anchor_chains(
+        cands_demo,
+        num_queries=NUM_QUERIES,
+        query_sample_seed=QUERY_SEED,
+    )
+    lo_ch = wf_utils.wf1_logical_optimal_chain(cands_demo, WEIGHTS_KPI)
     t0 = time.perf_counter()
-    queries = wf_utils.generate_realistic_queries(NUM_QUERIES, seed=QUERY_SEED)
+    queries = wf_utils.generate_realistic_queries(
+        NUM_QUERIES,
+        seed=QUERY_SEED,
+        budget_alpha=float(wf_utils.BUDGET_ALPHA_SUITE_DEFAULT_WF1[-1]),
+        lo_chain=lo_ch,
+        min_mean_cost_chain=min_c_ch,
+        min_mean_latency_chain=min_l_ch,
+    )
     print(
         f"Loaded {len(queries)} queries (joint scenarios ≤ {len(queries) * S_PER_QUERY})."
     )
 
-    WEIGHTS_KPI = (0.25, 0.25, 0.25, 0.25)
     rep = run_sky_deployment(
         queries=queries,
         s_per_query=S_PER_QUERY,

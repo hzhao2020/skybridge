@@ -29,7 +29,7 @@ N_CALIBRATION_SAMPLES = 4096
 
 
 def sample_source_sizes_gb(*, num_queries: int, seed: int) -> list[float]:
-    """与 ``generate_realistic_queries`` 相同：时长 U[60,3600]s → ``s_src_gb``。"""
+    """与 ``generate_realistic_queries`` 相同：时长 U[60,3600]s → ``s_src_gb``（不含 Θ 预算；预算由插值 API 单独构造）。"""
     rng = random.Random(seed)
     out: list[float] = []
     for _ in range(num_queries):
@@ -51,6 +51,64 @@ def iter_all_chains(
     cands: tuple[tuple[PhysicalNode, ...], ...],
 ) -> Iterable[tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode]]:
     return itertools.product(cands[0], cands[1], cands[2], cands[3])  # type: ignore[misc]
+
+
+def find_wf1_mean_min_cost_and_latency_chains(
+    cands: tuple[tuple[PhysicalNode, ...], ...],
+    sizes_gb: Sequence[float],
+    mean_rho: tuple[float, float, float, float],
+    *,
+    eval_seed: int,
+) -> tuple[
+    tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode],
+    tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode],
+]:
+    """
+    与 ``run_search`` 相同：在 plug-in mean ρ 与给定源大小队列上枚举 ``cands`` 全链，
+    返回 **样本平均 cost 最小** 与 **样本平均 latency 最小** 的两条部署链（可为不同链）。
+    """
+    best_c_mean = float("inf")
+    best_l_mean = float("inf")
+    best_c_chain: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode] | None = None
+    best_l_chain: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode] | None = None
+    for chain_t in iter_all_chains(cands):
+        chain = tuple(chain_t)
+        m_c, m_l = chain_mean_cost_latency(chain, sizes_gb, mean_rho, eval_seed=eval_seed)
+        if m_c < best_c_mean - 1e-15:
+            best_c_mean = m_c
+            best_c_chain = chain  # type: ignore[assignment]
+        if m_l < best_l_mean - 1e-15:
+            best_l_mean = m_l
+            best_l_chain = chain  # type: ignore[assignment]
+    if best_c_chain is None or best_l_chain is None:
+        raise RuntimeError("failed to find mean-min cost/latency chains (empty candidates?)")
+    return best_c_chain, best_l_chain
+
+
+def wf1_mean_min_anchor_chains(
+    cands: tuple[tuple[PhysicalNode, ...], ...],
+    *,
+    num_queries: int,
+    query_sample_seed: int,
+    n_calibration_samples: int = N_CALIBRATION_SAMPLES,
+    chain_eval_seed: int | None = None,
+) -> tuple[
+    tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode],
+    tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode],
+]:
+    """
+    构造与 ``generate_realistic_queries`` 一致的 plug-in mean ρ（``query_sample_seed+100``），
+    在给定 ``num_queries`` 条随机源大小上枚举全链，返回 (mean-cost-min 链, mean-latency-min 链)。
+    ``chain_eval_seed`` 默认等于 ``query_sample_seed``（与 ``chain_mean_cost_latency`` / budget 脚本口径一致）。
+    """
+    sizes = sample_source_sizes_gb(num_queries=num_queries, seed=query_sample_seed)
+    mean_rho = cfg.plugin_mean_data_conversion_ratios(
+        n_calibration_samples=n_calibration_samples,
+        rng=random.Random(query_sample_seed + 100),
+        operations=("shot_detection", "video_split", "video_caption", "query"),
+    )
+    ev = int(chain_eval_seed) if chain_eval_seed is not None else int(query_sample_seed)
+    return find_wf1_mean_min_cost_and_latency_chains(cands, sizes, mean_rho, eval_seed=ev)
 
 
 def chain_mean_cost_latency(
@@ -117,24 +175,12 @@ def run_search(*, verbose_every: int = 5000) -> None:
     print("workflow1.budget | plug-in mean ρ (calibration samples)", N_CALIBRATION_SAMPLES)
     print(f"  queries={N_QUERIES}  eval_seed={SEED}  chains={n_chains}  layers={layer_sizes}")
 
-    best_c_mean = float("inf")
-    best_l_mean = float("inf")
-    best_c_chain: tuple[PhysicalNode, ...] | None = None
-    best_l_chain: tuple[PhysicalNode, ...] | None = None
-
     t0 = time.perf_counter()
-    for idx, chain_t in enumerate(iter_all_chains(cands), start=1):
-        if verbose_every and idx % verbose_every == 0:
-            elapsed = time.perf_counter() - t0
-            print(f"  ... scanned {idx}/{n_chains} chains ({elapsed:.1f}s)", file=sys.stderr)
-        chain = tuple(chain_t)
-        m_c, m_l = chain_mean_cost_latency(chain, sizes, mean_rho, eval_seed=SEED)
-        if m_c < best_c_mean - 1e-15:
-            best_c_mean = m_c
-            best_c_chain = chain
-        if m_l < best_l_mean - 1e-15:
-            best_l_mean = m_l
-            best_l_chain = chain
+    best_c_chain, best_l_chain = find_wf1_mean_min_cost_and_latency_chains(
+        cands, sizes, mean_rho, eval_seed=SEED
+    )
+    best_c_mean, _ = chain_mean_cost_latency(best_c_chain, sizes, mean_rho, eval_seed=SEED)
+    _, best_l_mean = chain_mean_cost_latency(best_l_chain, sizes, mean_rho, eval_seed=SEED)
 
     elapsed = time.perf_counter() - t0
     print(f"\n=== workflow1：mean cost 最小的部署链（mean ρ，{N_QUERIES} 条随机源大小）===")

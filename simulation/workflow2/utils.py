@@ -1275,8 +1275,15 @@ def wf2_budget_meanfield_cost_latency(
     workflow_rng: random.Random,
 ) -> tuple[float, float]:
     """
-    ``workflow2.budget`` / 校准 query 共用：**非 speech** 路径按完整 DAG（并行支路费用求和、
-    wall-clock≈前缀+max(支路)+db+qa）；``speech_transcription`` 仍为单路径串行。
+    ``workflow2.budget`` / 校准 query 共用：**非 speech** 路径按**整幅并行 DAG** 的 mean-field：
+
+    - **费用** ``end_to_end_cost_parallel_shot_modalities``：**全部**活跃并行模态支路及相关段的费用
+      **求和**（整体 workflow 成本，非单条串行子链）；
+    - **时延** ``end_to_end_latency_parallel_shot_modalities``：**wall-clock**，并行段取各支路
+      贡献的 **max** 与前后缀/db/qa 等组合（最慢并行支路主导，非单链 latency 相加）。
+
+    ``speech_transcription`` 仍为独占路径上的串行 ``end_to_end_cost_exclusive_path`` /
+    ``end_to_end_latency_exclusive_path``。
     """
     ch = tuple(chain)
     if path_id == "speech_transcription":
@@ -1346,38 +1353,32 @@ def generate_realistic_queries_wf2(
     *,
     seed: int = 42,
     n_calibration_samples: int = 4096,
-    budget_cost_multiplier: float | None = None,
-    budget_latency_multiplier: float | None = None,
-    budget_alpha: float | None = None,
-    cands: tuple[tuple[WF2PhysicalNode, ...], ...] | None = None,
-    weights: Sequence[float] | None = None,
-    wf2_enum_full_cross_product: bool = WF2_BUDGET_ENUM_FULL_CROSS_PRODUCT,
+    budget_alpha: float,
+    lo_chain: tuple[WF2PhysicalNode, ...],
+    min_mean_cost_chain: tuple[WF2PhysicalNode, ...],
+    min_mean_latency_chain: tuple[WF2PhysicalNode, ...],
 ) -> list[QueryProfile]:
     """
     生成 workflow2 校准 query 及 ``(Θ_C, Θ_T)``。
 
-    * **插值模式**（``budget_alpha`` 非空）：在 ``iter_chains_wf2`` 枚举的部署链上，以
-      ``det_rng(seed, "wf2_budget_combo_eval", q_idx)`` 与 ``workflow2.budget`` 相同口径计算
-      各链 mean-field cost/latency，取 ``C_min,L_min``；在 LO 链上取 ``C_max,L_max``
-      （``det_rng(seed, "wf2_budget_alpha_lo", q_idx)``），再
-      ``Θ_C=C_min+α(C_max-C_min)``、``Θ_T=L_min+α(L_max-L_min)``。
-      需提供 ``cands`` 与 ``weights``。
+    三条锚链须与 ``workflow2.budget`` / ``wf2_mean_min_anchor_chains`` 口径一致预先选定。
+    对每条 query 在 plug-in mean ρ 下调用 ``wf2_budget_meanfield_cost_latency`` 分别评估三条锚
+    部署元组；**非 speech** 时该函数给出的费用为**并行 DAG 上全部支路费用之和**，时延为
+    **wall-clock（并行段取 max 支路）**，与 budget 搜索及 ``chain_mean_cost_latency_wf2`` 的
+    比较目标一致（整体 workflow，非单链串行子图）。
 
-    * **参考链乘子模式**：使用 ``_BUDGET_REF_CHAINS_WF2_*`` 与乘子（默认 1.75）。
-      video 类 path 上 ``Θ`` 与 ``workflow2.budget`` 相同：**并行多模态费用求和**、
-      wall-clock 时延按 ``max(分支)`` 聚合（见 ``wf2_budget_meanfield_cost_latency``）。
+    ``min_mean_cost_chain`` 仅贡献 ``C_{\\min}^q``，``min_mean_latency_chain`` 仅贡献
+    ``T_{\\min}^q``，``lo_chain`` 贡献 ``(C_{LO}^q,T_{LO}^q)``::
+
+        Θ_C^q(α) = C_{\\min}^q + α (C_{LO}^q - C_{\\min}^q),
+        Θ_T^q(α) = T_{\\min}^q + α (T_{LO}^q - T_{\\min}^q).
     """
-    if budget_alpha is not None and (
-        budget_cost_multiplier is not None or budget_latency_multiplier is not None
+    for label, ch in (
+        ("lo_chain", lo_chain),
+        ("min_mean_cost_chain", min_mean_cost_chain),
+        ("min_mean_latency_chain", min_mean_latency_chain),
     ):
-        raise ValueError("budget_alpha 与 budget_*_multiplier 不可同时指定")
-
-    if budget_alpha is not None:
-        if cands is None or weights is None:
-            raise ValueError("budget_alpha 模式下必须提供 cands 与 weights")
-        lo_chain = wf2_logical_optimal_chain(path_id, cands, weights)
-    else:
-        lo_chain = None
+        validate_exclusive_path_nodes(path_id, ch)
 
     rng = random.Random(seed)
     calib_rng = random.Random(seed + 100)
@@ -1398,107 +1399,56 @@ def generate_realistic_queries_wf2(
             wf1_utils._BUDGET_REF_CHAIN_COST_WF1
         )
 
-    chain_c = _BUDGET_REF_CHAINS_WF2_COST[path_id]
-    chain_l = _BUDGET_REF_CHAINS_WF2_LATENCY[path_id]
-    mult_c = (
-        budget_cost_multiplier
-        if budget_cost_multiplier is not None
-        else wf1_utils.QUERY_BUDGET_REFERENCE_MULTIPLIER
-    )
-    mult_l = (
-        budget_latency_multiplier
-        if budget_latency_multiplier is not None
-        else wf1_utils.QUERY_BUDGET_REFERENCE_MULTIPLIER
-    )
-
     queries: list[QueryProfile] = []
     for q_idx in range(num_queries):
         duration_sec = rng.uniform(60.0, 3600.0)
         s_src_mb = cfg.video_megabytes_from_duration_sec(duration_sec)
         s_src_gb = s_src_mb / 1000.0
 
-        if budget_alpha is not None:
-            assert cands is not None and lo_chain is not None
-            c_min = math.inf
-            l_min = math.inf
-            if path_id == "speech_transcription":
-                chain_iter = iter_chains_wf2(
-                    cands,
-                    path_id=path_id,
-                    full_cross_product=wf2_enum_full_cross_product,
-                )
-            else:
-                from .candidates import enumerate_candidates_wf2 as _enum_vc
-
-                cands_vc = _enum_vc("video_caption")
-                chain_iter = iter_chains_wf2_end_to_end_shot_modalities(
-                    cands_vc,
-                    full_cross_product=wf2_enum_full_cross_product,
-                )
-            for chain in chain_iter:
-                wf = wf1_utils.det_rng(seed, "wf2_budget_combo_eval", q_idx)
-                c_i, ell_i = wf2_budget_meanfield_cost_latency(
-                    path_id,
-                    tuple(chain),
-                    s_src_gb,
-                    mean_rho_exclusive=mean_rho,
-                    parallel_rho=parallel_rho,
-                    modality_nodes=modality_nodes,
-                    workflow_rng=wf,
-                )
-                if math.isfinite(c_i):
-                    c_min = min(c_min, float(c_i))
-                if math.isfinite(ell_i):
-                    l_min = min(l_min, float(ell_i))
-            wf_lo = wf1_utils.det_rng(seed, "wf2_budget_alpha_lo", q_idx)
-            c_lo, l_lo = wf2_budget_meanfield_cost_latency(
-                path_id,
-                lo_chain,
-                s_src_gb,
-                mean_rho_exclusive=mean_rho,
-                parallel_rho=parallel_rho,
-                modality_nodes=modality_nodes,
-                workflow_rng=wf_lo,
-            )
-            span_c = max(c_lo, c_min) - min(c_lo, c_min)
-            span_l = max(l_lo, l_min) - min(l_lo, l_min)
-            theta_c = min(c_lo, c_min) + float(budget_alpha) * span_c
-            theta_l = min(l_lo, l_min) + float(budget_alpha) * span_l
-            queries.append(
-                QueryProfile(
-                    s_src_gb=s_src_gb,
-                    theta_cost=theta_c,
-                    theta_latency_sec=theta_l,
-                )
-            )
-            continue
-
-        wf_c = wf1_utils.det_rng(seed, "wf2_query_budget_ref_cost", q_idx)
-        ref_c, _ = wf2_budget_meanfield_cost_latency(
+        wf_mc = wf1_utils.det_rng(seed, "wf2_grq_anchor_min_cost", q_idx)
+        c_min_x, _ = wf2_budget_meanfield_cost_latency(
             path_id,
-            chain_c,
+            min_mean_cost_chain,
             s_src_gb,
             mean_rho_exclusive=mean_rho,
             parallel_rho=parallel_rho,
             modality_nodes=modality_nodes,
-            workflow_rng=wf_c,
+            workflow_rng=wf_mc,
         )
-        wf_l = wf1_utils.det_rng(seed, "wf2_query_budget_ref_latency", q_idx)
-        _, ref_l = wf2_budget_meanfield_cost_latency(
+        wf_mt = wf1_utils.det_rng(seed, "wf2_grq_anchor_min_lat", q_idx)
+        _, t_min_x = wf2_budget_meanfield_cost_latency(
             path_id,
-            chain_l,
+            min_mean_latency_chain,
             s_src_gb,
             mean_rho_exclusive=mean_rho,
             parallel_rho=parallel_rho,
             modality_nodes=modality_nodes,
-            workflow_rng=wf_l,
+            workflow_rng=wf_mt,
         )
-
+        wf_lo = wf1_utils.det_rng(seed, "wf2_budget_alpha_lo", q_idx)
+        c_lox, t_lox = wf2_budget_meanfield_cost_latency(
+            path_id,
+            lo_chain,
+            s_src_gb,
+            mean_rho_exclusive=mean_rho,
+            parallel_rho=parallel_rho,
+            modality_nodes=modality_nodes,
+            workflow_rng=wf_lo,
+        )
+        if not all(math.isfinite(x) for x in (c_min_x, t_min_x, c_lox, t_lox)):
+            raise ValueError("non-finite cost/latency in WF2 anchor evaluation")
+        c_min = float(c_min_x)
+        t_min = float(t_min_x)
+        c_lo = float(c_lox)
+        t_lo = float(t_lox)
+        ba = float(budget_alpha)
+        theta_c = c_min + ba * (c_lo - c_min)
+        theta_t = t_min + ba * (t_lo - t_min)
         queries.append(
             QueryProfile(
                 s_src_gb=s_src_gb,
-                theta_cost=ref_c * mult_c,
-                theta_latency_sec=ref_l * mult_l,
+                theta_cost=theta_c,
+                theta_latency_sec=theta_t,
             )
         )
 

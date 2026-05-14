@@ -1,12 +1,17 @@
 """
-在 plug-in mean ρ 下，用 N 条随机源大小，枚举部署链集合，对每条链计算 **mean-field** cost / latency
-的样本均值，输出 **mean cost 最小**与 **mean latency 最小** 的链。
+在 plug-in mean ρ 下，用 N 条随机源大小，枚举部署链集合，对每条候选计算 **mean-field** 指标在
+样本上的均值，输出 **平均总费用最小** 与 **平均 wall-clock 时延最小** 的两条主干部署元组。
 
-对 ``video_caption`` / ``ocr`` / ``label_detection`` 主干，费用与 workflow DAG 一致：
-**各并行 multimodal 分支费用相加**；时延为 **shot→split + max(并行支路→db) + db→qa + 下行**
-（见 ``end_to_end_cost_parallel_shot_modalities`` /
-``end_to_end_latency_parallel_shot_modalities``）。并行分支上 ``video_caption`` 的物理节点固定为
-workflow1 budget（mean cost）参考链上的 caption 节点；``ocr``/``label_detection`` 与 WF1 的
+对 ``video_caption`` / ``ocr`` / ``label_detection`` 主干，**费用与 latency 均按整幅并行 DAG**
+定义（与 ``wf2_budget_meanfield_cost_latency`` 一致）：
+
+- **费用**：各并行 multimodal 支路（及前缀/数据库/QA 等）相关费用 **相加**，即包含全部
+  活跃并行 operation 的开销，而非仅某一条串行子链；
+- **时延**：**wall-clock**，并行段为 ``max(各支路贡献)`` 与后续串段组合（见
+  ``end_to_end_latency_parallel_shot_modalities``），**不是**单链时延的简单相加。
+
+并行分支上 ``video_caption`` 等模态的物理节点默认固定为 workflow1 budget 参考 caption 等
+（``wf2_modality_nodes_from_wf1_physical_ref``）；``ocr``/``label_detection`` 与 WF1 的
 ``video_split`` 同 region 对齐。
 
 ``video_caption`` 路径若做「全候选层笛卡尔积」链数约 4e6，在 100 条 query 上全量枚举耗时过长；
@@ -29,7 +34,7 @@ import math
 import random
 import sys
 import time
-from typing import Sequence
+from typing import Iterable, Sequence
 
 from sim_env import config as cfg
 from sim_env.utility import QueryProfile
@@ -78,6 +83,14 @@ def chain_mean_cost_latency_wf2(
     *,
     eval_seed: int,
 ) -> tuple[float, float]:
+    """
+    对 ``sizes_gb`` 上逐条源大小累加 mean-field ``(cost, latency)`` 再取样本均值。
+
+    **非 speech** 路径：每条上的 ``(c, ell)`` 与 ``wf2_budget_meanfield_cost_latency`` 一致——
+    **费用**为并行 DAG 上 **各活跃模态支路及前后缀相关费用之和**（非单条串行链上的子集）；
+    **时延**为 **wall-clock** 口径（``shot→split + max(并行支路→db) + db→qa + …``），即并行段取
+    **最慢支路**主导而非单链时延之和。``speech_transcription`` 仍为独占路径串行度量。
+    """
     ch = tuple(chain)
     tot_c = 0.0
     tot_l = 0.0
@@ -99,6 +112,107 @@ def chain_mean_cost_latency_wf2(
         tot_l += float(ell)
     inv = 1.0 / float(n)
     return tot_c * inv, tot_l * inv
+
+
+def find_wf2_mean_min_cost_and_latency_chains(
+    path_id: WF2PathId,
+    chain_iter: Iterable[tuple[WF2PhysicalNode, ...]],
+    sizes_gb: Sequence[float],
+    mean_rho: tuple[float, ...],
+    parallel_rho: tuple[float, float, dict[str, float], float, float] | None,
+    modality_nodes: dict[str, WF2PhysicalNode] | None,
+    *,
+    eval_seed: int,
+) -> tuple[tuple[WF2PhysicalNode, ...], tuple[WF2PhysicalNode, ...]]:
+    """
+    枚举 ``chain_iter`` 中每条**主干部署元组**（与 ``iter_chains_wf2_end_to_end_shot_modalities`` 一致），
+    用 ``chain_mean_cost_latency_wf2`` 比较：其中的 cost / latency 已是 **整幅并行 DAG** 上的
+    mean-field（费用含全部并行支路运算与传输；时延为并行段 **max** 的 wall-clock），
+    据此分别选出 **平均总费用最小** 与 **平均 wall-clock 时延最小** 的两条元组（可为不同元组）。
+    """
+    best_c_mean = float("inf")
+    best_l_mean = float("inf")
+    best_c_chain: tuple[WF2PhysicalNode, ...] | None = None
+    best_l_chain: tuple[WF2PhysicalNode, ...] | None = None
+    for chain in chain_iter:
+        ch = tuple(chain)
+        m_c, m_l = chain_mean_cost_latency_wf2(
+            path_id,
+            ch,
+            sizes_gb,
+            mean_rho,
+            parallel_rho,
+            modality_nodes,
+            eval_seed=eval_seed,
+        )
+        if m_c < best_c_mean - 1e-15:
+            best_c_mean = m_c
+            best_c_chain = ch
+        if m_l < best_l_mean - 1e-15:
+            best_l_mean = m_l
+            best_l_chain = ch
+    if best_c_chain is None or best_l_chain is None:
+        raise RuntimeError("failed to find WF2 mean-min chains")
+    return best_c_chain, best_l_chain
+
+
+def wf2_mean_min_anchor_chains(
+    path_id: WF2PathId,
+    cands: tuple[tuple[WF2PhysicalNode, ...], ...],
+    *,
+    num_queries: int,
+    query_sample_seed: int,
+    n_calibration_samples: int = N_CALIBRATION_SAMPLES,
+    chain_eval_seed: int | None = None,
+    full_cross: bool = WF2_FULL_CROSS_PRODUCT,
+) -> tuple[tuple[WF2PhysicalNode, ...], tuple[WF2PhysicalNode, ...]]:
+    """
+    与 ``generate_realistic_queries_wf2`` 对齐的 plug-in mean ρ（``query_sample_seed+100``）及
+    （非 speech）并行校准 ``parallel_rho``（``query_sample_seed+101``），在给定随机源大小队列上
+    枚举与 ``workflow2.budget`` 相同的链集合，返回 (mean-cost-min, mean-latency-min)。
+
+    **非 speech**：比较目标为整幅并行 DAG 的 mean-field **总费用**与 **wall-clock 时延**（并行段
+    取各支路 max，而非单条串行链）；并行模态支路上的物理节点仍按本模块说明由 WF1 参考链固定
+    （与 ``wf2_modality_nodes_from_wf1_physical_ref`` 一致）。``cands`` 须与后续 ``lo_chain`` 所用
+    候选一致；枚举本身对 ``video_caption`` 候选表做 shot/split/db/qa 组合（与 budget 脚本相同）。
+    """
+    sizes = sample_source_sizes_gb(num_queries=num_queries, seed=query_sample_seed)
+    mean_rho = plugin_mean_data_conversion_ratios_wf2(
+        path_id,
+        n_calibration_samples=n_calibration_samples,
+        rng=random.Random(query_sample_seed + 100),
+    )
+    ev = int(chain_eval_seed) if chain_eval_seed is not None else int(query_sample_seed)
+    if path_id == "speech_transcription":
+        return find_wf2_mean_min_cost_and_latency_chains(
+            path_id,
+            iter_chains_wf2(cands, path_id=path_id, full_cross_product=full_cross),
+            sizes,
+            mean_rho,
+            None,
+            None,
+            eval_seed=ev,
+        )
+    parallel_rho = wf2_parallel_budget_mean_rhos(
+        n_calibration_samples=n_calibration_samples,
+        rng=random.Random(query_sample_seed + 101),
+    )
+    modality_nodes = wf2_modality_nodes_from_wf1_physical_ref(
+        wf1_utils._BUDGET_REF_CHAIN_COST_WF1
+    )
+    cands_vc = enumerate_candidates_wf2("video_caption")
+    chain_iter = iter_chains_wf2_end_to_end_shot_modalities(
+        cands_vc, full_cross_product=full_cross
+    )
+    return find_wf2_mean_min_cost_and_latency_chains(
+        path_id,
+        chain_iter,
+        sizes,
+        mean_rho,
+        parallel_rho,
+        modality_nodes,
+        eval_seed=ev,
+    )
 
 
 def query_profiles_from_chain_wf2(
@@ -172,38 +286,36 @@ def run_search_shot_modalities_end_to_end(
         f"| distinct (shot,split,db,qa) combos={n_chains}"
     )
 
-    best_c_mean = float("inf")
-    best_l_mean = float("inf")
-    best_c_chain: tuple[WF2PhysicalNode, ...] | None = None
-    best_l_chain: tuple[WF2PhysicalNode, ...] | None = None
-
     t0 = time.perf_counter()
-    for idx, chain in enumerate(
+    best_c_chain, best_l_chain = find_wf2_mean_min_cost_and_latency_chains(
+        path_label,
         iter_chains_wf2_end_to_end_shot_modalities(
             cands_vc, full_cross_product=full_cross
         ),
-        start=1,
-    ):
-        if verbose_every and idx % verbose_every == 0:
-            print(
-                f"  ... scanned {idx}/{n_chains} combos ({time.perf_counter() - t0:.1f}s)",
-                file=sys.stderr,
-            )
-        m_c, m_l = chain_mean_cost_latency_wf2(
-            path_label,
-            chain,
-            sizes,
-            mean_rho,
-            parallel_rho,
-            modality_nodes,
-            eval_seed=SEED,
-        )
-        if m_c < best_c_mean - 1e-15:
-            best_c_mean = m_c
-            best_c_chain = tuple(chain)
-        if m_l < best_l_mean - 1e-15:
-            best_l_mean = m_l
-            best_l_chain = tuple(chain)
+        sizes,
+        mean_rho,
+        parallel_rho,
+        modality_nodes,
+        eval_seed=SEED,
+    )
+    best_c_mean, _ = chain_mean_cost_latency_wf2(
+        path_label,
+        best_c_chain,
+        sizes,
+        mean_rho,
+        parallel_rho,
+        modality_nodes,
+        eval_seed=SEED,
+    )
+    _, best_l_mean = chain_mean_cost_latency_wf2(
+        path_label,
+        best_l_chain,
+        sizes,
+        mean_rho,
+        parallel_rho,
+        modality_nodes,
+        eval_seed=SEED,
+    )
 
     elapsed = time.perf_counter() - t0
     print(f"\n=== workflow2 端到端并行 DAG（path_ref={path_label}）：mean cost 最小的 (shot,split,db,qa) ===")
@@ -268,35 +380,34 @@ def run_search_speech(
         f"| distinct chains={n_chains}"
     )
 
-    best_c_mean = float("inf")
-    best_l_mean = float("inf")
-    best_c_chain: tuple[WF2PhysicalNode, ...] | None = None
-    best_l_chain: tuple[WF2PhysicalNode, ...] | None = None
-
     t0 = time.perf_counter()
-    for idx, chain in enumerate(
-        iter_chains_wf2(cands, path_id=path_id, full_cross_product=full_cross), start=1
-    ):
-        if verbose_every and idx % verbose_every == 0:
-            print(
-                f"  ... scanned {idx}/{n_chains} chains ({time.perf_counter() - t0:.1f}s)",
-                file=sys.stderr,
-            )
-        m_c, m_l = chain_mean_cost_latency_wf2(
-            path_id,
-            chain,
-            sizes,
-            mean_rho,
-            parallel_rho,
-            modality_nodes,
-            eval_seed=SEED,
-        )
-        if m_c < best_c_mean - 1e-15:
-            best_c_mean = m_c
-            best_c_chain = tuple(chain)
-        if m_l < best_l_mean - 1e-15:
-            best_l_mean = m_l
-            best_l_chain = tuple(chain)
+    best_c_chain, best_l_chain = find_wf2_mean_min_cost_and_latency_chains(
+        path_id,
+        iter_chains_wf2(cands, path_id=path_id, full_cross_product=full_cross),
+        sizes,
+        mean_rho,
+        parallel_rho,
+        modality_nodes,
+        eval_seed=SEED,
+    )
+    best_c_mean, _ = chain_mean_cost_latency_wf2(
+        path_id,
+        best_c_chain,
+        sizes,
+        mean_rho,
+        parallel_rho,
+        modality_nodes,
+        eval_seed=SEED,
+    )
+    _, best_l_mean = chain_mean_cost_latency_wf2(
+        path_id,
+        best_l_chain,
+        sizes,
+        mean_rho,
+        parallel_rho,
+        modality_nodes,
+        eval_seed=SEED,
+    )
 
     elapsed = time.perf_counter() - t0
     print(f"\n=== workflow2 ({path_id})：mean cost 最小的部署链 ===")
