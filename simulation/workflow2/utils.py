@@ -446,23 +446,28 @@ WF2_LOGICAL_OPTIMAL_NODES: dict[WF2PathId, tuple[WF2PhysicalNode, ...]] = {
 def iter_chains_wf2_end_to_end_shot_modalities(
     cands_vc: tuple[tuple[WF2PhysicalNode, ...], ...],
     *,
+    path_id: WF2PathId,
     full_cross_product: bool = False,
     mid_layer_index: int = 2,
 ) -> Iterable[tuple[WF2PhysicalNode, ...]]:
     """
     **端到端并行主视频 DAG** 的 budget 枚举：只优化 shot / split / database / qa；
-    中间层用 ``cands_vc[mid_layer_index][0]`` 占位（并行 mean-field 度量不依赖该占位）。
+    中间层用 ``cands_vc[mid_layer_index][0]`` 占位（并行 mean-field 度量主要经 ``modality_nodes``，
+    不依赖该占位细节，但须与 ``path_id`` 的独占路径算子一致以便 ``validate_exclusive_path_nodes``）。
 
-    ``cands_vc`` 须为 ``enumerate_candidates_wf2(\"video_caption\")``（长度 5）。
+    ``cands_vc`` 须为 ``enumerate_candidates_wf2(path_id)``（长度 5），且 ``path_id`` 为
+    ``video_caption`` | ``ocr`` | ``label_detection`` 之一。
     """
+    if path_id == "speech_transcription":
+        raise ValueError("speech path uses iter_chains_wf2, not shot_modalities enumeration")
     if len(cands_vc) != 5:
-        raise ValueError("expected video_caption 5-layer candidates")
+        raise ValueError("expected 5-layer candidates for shot_modalities enumeration")
     mid = cands_vc[mid_layer_index][0]
     layers_four = [list(cands_vc[0]), list(cands_vc[1]), list(cands_vc[3]), list(cands_vc[4])]
     if full_cross_product:
         for a, b, d, q in itertools.product(*layers_four):
             ch = (a, b, mid, d, q)
-            validate_exclusive_path_nodes("video_caption", ch)
+            validate_exclusive_path_nodes(path_id, ch)
             yield ch
         return
 
@@ -481,7 +486,7 @@ def iter_chains_wf2_end_to_end_shot_modalities(
         for tup in itertools.product(*prov_layers):
             seen.add((tup[0], tup[1], mid, tup[2], tup[3]))
     for ch in sorted(seen, key=lambda c: tuple((n.operation, n.provider, n.region, n.model or "") for n in c)):
-        validate_exclusive_path_nodes("video_caption", ch)
+        validate_exclusive_path_nodes(path_id, ch)
         yield ch
 
 
@@ -491,7 +496,7 @@ def count_chains_wf2_end_to_end_shot_modalities(
     full_cross_product: bool = False,
 ) -> int:
     if len(cands_vc) != 5:
-        raise ValueError("expected video_caption 5-layer candidates")
+        raise ValueError("expected 5-layer candidates (shot_modalities budget enumeration)")
     layers_four = [list(cands_vc[0]), list(cands_vc[1]), list(cands_vc[3]), list(cands_vc[4])]
     if full_cross_product:
         return math.prod(len(x) for x in layers_four)
