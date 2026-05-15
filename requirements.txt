@@ -28,6 +28,9 @@ pandas>=2.0.0
 # 进度条工具
 tqdm>=4.65.0
 
+# 进程内存峰值（Windows 无 resource.getrusage；workflow1 消融 CSV 的 peak_memory_bytes）
+psutil>=5.9.0
+
 # 优化求解：simulation 中 MILP（Sky / Deterministic-Optimal baseline）均使用 Gurobi（需许可证）
 gurobipy>=13.0.0
 

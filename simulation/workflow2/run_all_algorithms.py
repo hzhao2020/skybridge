@@ -1,12 +1,15 @@
 """
 一键运行 Workflow 2：**LO / SC / DO / Sky**（互斥路径 DAG 上的 CVaR–SAA MILP），并打印蒙特卡洛 KPI。
 
-默认对 **四种 budget–α** 各跑一次（与 workflow1 相同，``workflow1.utils.BUDGET_ALPHA_SUITE_DEFAULT_WF1``）。
+默认对 **四种 budget–α** 各跑一次（与 workflow1 一致，``workflow1.utils.BUDGET_ALPHA_SUITE_DEFAULT_WF1``）；
+每条 query 的 ``Θ_C,Θ_T`` 由 **GCP/AWS/Aliyun 各一条「按云 SC」锚 + LO** 在 plug-in mean 下 mean-field 端到端
+标量的 min–max 包络上 ``Θ=min+α(max−min)`` 插值得出（见 ``generate_realistic_queries_wf2``）。
 
-在 ``simulation/`` 下::
+在 ``simulation/`` 下（``--path`` 取值须为下列之一：
+``video_caption`` \| ``ocr`` \| ``label_detection`` \| ``speech_transcription``）::
 
-    python -m workflow2.run_all_algorithms --path caption --num-queries 20
-    python -m workflow2.run_all_algorithms --path speech --skip-sky
+    python -m workflow2.run_all_algorithms --path video_caption --num-queries 20
+    python -m workflow2.run_all_algorithms --path speech_transcription --skip-sky
     python -m workflow2.run_all_algorithms --budget-alpha 0.25 0.5
 """
 
@@ -22,7 +25,6 @@ from workflow1.utils import BUDGET_ALPHA_SUITE_DEFAULT_WF1
 from . import baseline as baseline_runner
 from . import sky as sky_runner
 from . import utils as wf2_utils
-from .budget import wf2_mean_min_anchor_chains
 from .evaluation import (
     EmpiricalDeploymentMetricsWf2,
     evaluate_deployment_empirical_wf2,
@@ -120,6 +122,7 @@ def _run_algorithms_for_queries_wf2(
         violation_eval_seed=eval_seed,
     )
     provs = sorted({n.provider for n in sc.nodes})
+    regs = sorted({n.region for n in sc.nodes})
     vc, vl = baseline_runner.mc_violation_counts_wf2(
         path_id,
         sc.nodes,
@@ -129,7 +132,7 @@ def _run_algorithms_for_queries_wf2(
     )
     print(
         f"[SC] selection MC violations cost={vc} latency={vl} total={vc + vl} | "
-        f"closed-form U={sc.total_utility:.6g} providers={provs} "
+        f"closed-form U={sc.total_utility:.6g} providers={provs} regions={regs} "
         f"time={time.perf_counter() - t0:.2f}s"
     )
     m_sc = _evaluate_and_print(
@@ -309,15 +312,8 @@ def main() -> None:
 
     cands = sky_runner.enumerate_candidates_wf2(path_id)
     print(f"[setup] candidate layer sizes: {[len(c) for c in cands]}")
-    min_c_ch, min_l_ch = wf2_mean_min_anchor_chains(
-        path_id,
-        cands,
-        num_queries=args.num_queries,
-        query_sample_seed=args.query_seed,
-    )
     lo_ch = wf2_utils.wf2_logical_optimal_chain(path_id, cands, weights)
-    print("[setup] budget anchors: mean-min-cost + mean-min-lat + LO (workflow2.budget)")
-    print()
+    print("[setup] budget anchors: GCP/AWS/Aliyun 按云 SC + LO")
 
     mega: list[tuple[str, list[tuple[str, EmpiricalDeploymentMetricsWf2 | None]]]] = []
 
@@ -329,14 +325,13 @@ def main() -> None:
             seed=args.query_seed,
             budget_alpha=float(alpha),
             lo_chain=lo_ch,
-            min_mean_cost_chain=min_c_ch,
-            min_mean_latency_chain=min_l_ch,
+            weights=weights,
+            cands=cands,
         )
         print("*" * 70)
         print(
             f"[budget α] {label}  "
-            f"Θ_C = C_min + α (C_LO - C_min), Θ_T = T_min + α (T_LO - T_min) "
-            f"(mean-min-cost / mean-min-lat / LO)"
+            f"Θ=min+α(max−min)（GCP/AWS/Aliyun 按云 SC 锚 + LO；并行 DAG / speech 串行）"
         )
         print("*" * 70)
 

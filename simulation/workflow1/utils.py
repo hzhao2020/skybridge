@@ -46,8 +46,7 @@ _OPS_ORDER: tuple[OperationName, OperationName, OperationName, OperationName] = 
 
 _DEFAULT_WEIGHTS: Tuple[float, float, float, float] = (0.25, 0.25, 0.25, 0.25)
 
-# 由 ``python -m workflow1.budget``（N=100, SEED=42）可得参考链；运行
-# ``generate_realistic_queries(..., regenerate=True)`` 会打印新链，可覆盖下面两变量。
+# workflow2（并行模态对齐等）仍可引用下文别名 ``_BUDGET_REF_CHAIN_*_WF1``；与 WF1 ``generate_realistic_queries`` 的四锚无关。
 WF1_STORED_MIN_MEAN_COST_CHAIN: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode] = (
     PhysicalNode("shot_detection", "Aliyun", "cn-shanghai", None),
     PhysicalNode("video_split", "Aliyun", "cn-shanghai", None),
@@ -63,8 +62,8 @@ WF1_STORED_MIN_MEAN_LATENCY_CHAIN: tuple[PhysicalNode, PhysicalNode, PhysicalNod
 # workflow2 等仍引用旧名；与上面两变量保持同一对象。
 _BUDGET_REF_CHAIN_COST_WF1 = WF1_STORED_MIN_MEAN_COST_CHAIN
 _BUDGET_REF_CHAIN_LATENCY_WF1 = WF1_STORED_MIN_MEAN_LATENCY_CHAIN
-# 默认实验：在 C_min 与 LO（效用上限）链成本 C_max 之间插值，Θ_C = C_min + α (C_max - C_min)；
-# Θ_T 同形（L_min、L_max 为各链 plug-in mean ρ + 单次 mean-field 抽样下端到端时延）。
+# 每条 WF1 query：`Θ_C = min_j C^(j) + α (max_j C^(j) − min_j C^(j)）`，``Θ_T`` 同形；
+# 其中 j 遍历 GCP/AWS/Aliyun 各一条「按.provider 的单云 logical-optimal 锚」与 LO（plug-in mean ρ + 与各锚对齐的 RNG）。
 BUDGET_ALPHA_SUITE_DEFAULT_WF1: tuple[float, ...] = (0.25, 0.5, 0.75, 1.0)
 
 # 各层独立 argmax w_i μ_i 的全局 LO（由 ``WORKFLOW_OPERATIONS`` 枚举，均衡权重 0.25）；
@@ -77,13 +76,7 @@ WF1_LOGICAL_OPTIMAL_NODES: tuple[PhysicalNode, PhysicalNode, PhysicalNode, Physi
     PhysicalNode("query", "GCP", "us-east1", "Gemini 2.5 Pro"),
 )
 
-# ``generate_realistic_queries(..., regenerate=True)``：同进程内相同
-# (num_queries, seed, n_calibration_samples) 只重算并打印一次 ``wf1_mean_min_anchor_chains``。
-_REGEN_WF1_MEMO_KEY: tuple[int, int, int] | None = None
-_REGEN_WF1_MEMO_PAIR: tuple[
-    tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode],
-    tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode],
-] | None = None
+_WF1_PROVIDERS_SINGLE_CLOUD_ORDER: Tuple[str, str, str] = ("GCP", "AWS", "Aliyun")
 
 
 def det_rng(master: int, *parts: int | str) -> random.Random:
@@ -572,26 +565,59 @@ def end_to_end_utility(
     return sum(w[i] * physical_node_utility(ns[i]) for i in range(4))
 
 
-def _print_wf1_stored_anchor_assignment(
-    min_c: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode],
-    min_l: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode],
+def _wf1_assert_four_op_chain(
+    chain: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode],
+    label: str,
 ) -> None:
-    """将 ``wf1_mean_min_anchor_chains`` 的结果打成可粘贴到本模块的赋值语句。"""
+    if len(chain) != 4:
+        raise ValueError(f"{label} must have length 4")
+    for i, n in enumerate(chain):
+        if n.operation != _OPS_ORDER[i]:
+            raise ValueError(
+                f"{label}[{i}] must be operation {_OPS_ORDER[i]!r}, got {n.operation!r}"
+            )
 
-    def line(n: PhysicalNode) -> str:
-        return (
-            f'    PhysicalNode({n.operation!r}, {n.provider!r}, {n.region!r}, {repr(n.model)}),'
-        )
 
-    print("--- wf1_mean_min_anchor_chains（可粘贴覆盖 WF1_STORED_MIN_MEAN_*_CHAIN）---")
-    print("WF1_STORED_MIN_MEAN_COST_CHAIN = (")
-    for n in min_c:
-        print(line(n))
-    print(")")
-    print("WF1_STORED_MIN_MEAN_LATENCY_CHAIN = (")
-    for n in min_l:
-        print(line(n))
-    print(")")
+def wf1_sc_budget_anchor_for_provider(
+    cands: tuple[tuple[PhysicalNode, ...], tuple[PhysicalNode, ...], tuple[PhysicalNode, ...], tuple[PhysicalNode, ...]],
+    weights: Tuple[float, float, float, float],
+    provider: str,
+) -> tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode] | None:
+    """固定 ``provider``：四层均按该云过滤候选后做一次 ``logical_optimal_baseline``（允许同云跨 region）。"""
+    ft = tuple(
+        tuple(n for n in cands[i] if n.provider == provider)
+        for i in range(4)
+    )
+    if any(not x for x in ft):
+        return None
+    from .baseline import logical_optimal_baseline
+
+    return logical_optimal_baseline(ft, weights=weights).nodes
+
+
+def wf1_budget_anchor_specs(
+    cands: tuple[tuple[PhysicalNode, ...], tuple[PhysicalNode, ...], tuple[PhysicalNode, ...], tuple[PhysicalNode, ...]],
+    lo_chain: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode],
+    *,
+    weights: Tuple[float, float, float, float] | None = None,
+) -> tuple[tuple[str, tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode]], ...]:
+    """
+    Budget 校准锚：**固定四条** GCP、AWS、Aliyun 各一条「按 ``provider`` 的单云 logical-optimal 锚」，
+    再追加 ``lo_chain``。（某厂商任一层无候选即失败 — 与 SC baseline 的支撑条件一致。）
+    """
+    w = weights if weights is not None else WF1_DEFAULT_WEIGHTS
+    _wf1_assert_four_op_chain(lo_chain, "lo_chain")
+    specs: list[tuple[str, tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode]]] = []
+    for prov in _WF1_PROVIDERS_SINGLE_CLOUD_ORDER:
+        ch = wf1_sc_budget_anchor_for_provider(cands, w, prov)
+        if ch is None:
+            raise RuntimeError(
+                f"workflow1 WF1: provider {prov!r} lacks endpoint candidates on some layer "
+                f"(cannot form Single-Cloud budget anchor)."
+            )
+        specs.append((f"budget_SC_{prov}", ch))
+    specs.append(("budget_LO", lo_chain))
+    return tuple(specs)
 
 
 def generate_realistic_queries(
@@ -600,70 +626,32 @@ def generate_realistic_queries(
     *,
     budget_alpha: float,
     lo_chain: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode],
-    min_mean_cost_chain: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode] | None = None,
-    min_mean_latency_chain: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode] | None = None,
-    regenerate: bool = False,
+    weights: Tuple[float, float, float, float] = WF1_DEFAULT_WEIGHTS,
+    cands: tuple[
+        tuple[PhysicalNode, ...], tuple[PhysicalNode, ...], tuple[PhysicalNode, ...], tuple[PhysicalNode, ...]
+    ]
+    | None = None,
     n_calibration_samples: int = 4096,
 ) -> list[QueryProfile]:
     """
     生成校准 query 列表及 chance-constraint 预算 ``(Θ_C, Θ_T)``。
 
-    对每条 query 在 plug-in mean ρ 下分别评估三条锚链：
+    锚链 = GCP、AWS、Aliyun 各一条「按云过滤后的 logical-optimal」单云链 + ``lo_chain``（单云内允许跨 region）。
+    对每条 query，在 plug-in mean ρ 下对每条锚用独立确定性 RNG 跑 ``end_to_end_cost_and_latency``，
+    记 ``C^(j)_q,T^(j)_q``，再在 **所有这些锚**上取 min/max：::
 
-    * ``min_mean_cost_chain`` / ``min_mean_latency_chain``：若 ``regenerate=False`` 且两参数均为
-      ``None``，则使用模块变量 ``WF1_STORED_MIN_MEAN_COST_CHAIN`` 与
-      ``WF1_STORED_MIN_MEAN_LATENCY_CHAIN``；若均传入非 ``None``，则仍优先使用参数（兼容旧调用）。
-    * ``regenerate=True``：调用 ``wf1_mean_min_anchor_chains``（同进程内相同
-      ``num_queries``、``seed``、``n_calibration_samples`` 只算一次并打印结果）。
-    * ``lo_chain``：取 ``(C_{LO}^q, T_{LO}^q)``。
+        \\Theta_C = \\min_j C^{(j)} + \\alpha(\\max_j C^{(j)} - \\min_j C^{(j)}),
 
-    插值::
-
-        Θ_C^q(α) = C_{\\min}^q + α (C_{LO}^q - C_{\\min}^q),
-        Θ_T^q(α) = T_{\\min}^q + α (T_{LO}^q - T_{\\min}^q).
+    ``\\Theta_T`` 同上。
     """
     import random
 
-    global _REGEN_WF1_MEMO_KEY, _REGEN_WF1_MEMO_PAIR
+    if cands is None:
+        from .sky import enumerate_candidates
 
-    min_c: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode]
-    min_l: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode]
+        cands = enumerate_candidates()
 
-    if regenerate:
-        memo_k = (int(num_queries), int(seed), int(n_calibration_samples))
-        if _REGEN_WF1_MEMO_KEY == memo_k and _REGEN_WF1_MEMO_PAIR is not None:
-            min_c, min_l = _REGEN_WF1_MEMO_PAIR
-        else:
-            from .budget import wf1_mean_min_anchor_chains
-            from .sky import enumerate_candidates
-
-            cands = enumerate_candidates()
-            min_c, min_l = wf1_mean_min_anchor_chains(
-                cands,
-                num_queries=num_queries,
-                query_sample_seed=seed,
-                n_calibration_samples=n_calibration_samples,
-            )
-            _print_wf1_stored_anchor_assignment(min_c, min_l)
-            _REGEN_WF1_MEMO_KEY = memo_k
-            _REGEN_WF1_MEMO_PAIR = (min_c, min_l)
-    elif min_mean_cost_chain is not None and min_mean_latency_chain is not None:
-        min_c = min_mean_cost_chain
-        min_l = min_mean_latency_chain
-    else:
-        min_c = WF1_STORED_MIN_MEAN_COST_CHAIN
-        min_l = WF1_STORED_MIN_MEAN_LATENCY_CHAIN
-
-    for label, ch in (
-        ("lo_chain", lo_chain),
-        ("min_mean_cost_chain", min_c),
-        ("min_mean_latency_chain", min_l),
-    ):
-        if len(ch) != 4:
-            raise ValueError(f"{label} must have length 4")
-        for i, n in enumerate(ch):
-            if n.operation != _OPS_ORDER[i]:
-                raise ValueError(f"{label}[{i}] must be operation {_OPS_ORDER[i]!r}, got {n.operation!r}")
+    anchor_specs = wf1_budget_anchor_specs(cands, lo_chain, weights=weights)
 
     rng = random.Random(seed)
     calib_rng = random.Random(seed + 100)
@@ -676,34 +664,28 @@ def generate_realistic_queries(
 
     queries: list[QueryProfile] = []
 
+    ba = float(budget_alpha)
     for q_idx in range(num_queries):
         duration_sec = rng.uniform(60.0, 3600.0)
         s_src_mb = cfg.video_megabytes_from_duration_sec(duration_sec)
         s_src_gb = s_src_mb / 1000.0
 
-        wf_mc = det_rng(seed, "grq_anchor_min_cost", q_idx)
-        c_min_x, _ = end_to_end_cost_and_latency(
-            min_c, s_src_gb, mean_rho, workflow_rng=wf_mc
-        )
-        wf_mt = det_rng(seed, "grq_anchor_min_lat", q_idx)
-        _, t_min_x = end_to_end_cost_and_latency(
-            min_l, s_src_gb, mean_rho, workflow_rng=wf_mt
-        )
-        wf_lo = det_rng(seed, "budget_alpha_lo", q_idx)
-        c_lox, t_lox = end_to_end_cost_and_latency(
-            lo_chain, s_src_gb, mean_rho, workflow_rng=wf_lo
-        )
-        if not all(
-            math.isfinite(x) for x in (c_min_x, t_min_x, c_lox, t_lox)
-        ):
+        costs: list[float] = []
+        lats: list[float] = []
+        for anchor_name, chain in anchor_specs:
+            wf_mc = det_rng(seed, anchor_name, q_idx)
+            c_x, ell_x = end_to_end_cost_and_latency(
+                chain, s_src_gb, mean_rho, workflow_rng=wf_mc
+            )
+            costs.append(float(c_x))
+            lats.append(float(ell_x))
+
+        if not all(math.isfinite(x) for x in (*costs, *lats)):
             raise ValueError("non-finite cost/latency in anchor evaluation")
-        c_min = float(c_min_x)
-        t_min = float(t_min_x)
-        c_lo = float(c_lox)
-        t_lo = float(t_lox)
-        ba = float(budget_alpha)
-        theta_c = c_min + ba * (c_lo - c_min)
-        theta_t = t_min + ba * (t_lo - t_min)
+        c_low, c_high = min(costs), max(costs)
+        t_low, t_high = min(lats), max(lats)
+        theta_c = c_low + ba * (c_high - c_low)
+        theta_t = t_low + ba * (t_high - t_low)
         queries.append(
             QueryProfile(
                 s_src_gb=s_src_gb,

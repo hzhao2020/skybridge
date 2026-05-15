@@ -970,7 +970,8 @@ if __name__ == "__main__":  # pragma: no cover
         seed=QUERY_SEED,
         budget_alpha=float(wf_utils.BUDGET_ALPHA_SUITE_DEFAULT_WF1[-1]),
         lo_chain=lo_ch,
-        regenerate=True,
+        weights=WEIGHTS_KPI,
+        cands=cands_demo,
     )
     print(
         f"Loaded {len(queries)} queries (joint scenarios ≤ {len(queries) * S_PER_QUERY})."

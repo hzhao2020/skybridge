@@ -73,7 +73,7 @@ _SKY_EXPORTS: frozenset[str] = frozenset(
 
 
 def __getattr__(name: str) -> Any:
-    """按需加载 ``sky``（依赖 gurobipy），以便 ``python -m workflow2.budget`` 等脚本可运行。"""
+    """按需加载 ``sky``（依赖 gurobipy），避免顶层强依赖。"""
     if name in _SKY_EXPORTS:
         from . import sky as _sky
 

@@ -2,9 +2,9 @@
 Baseline deployment policies for comparison with Sky (CVaR–MILP).
 
 * **SC (Single-Cloud):** all four logical ops use endpoints from one cloud provider;
-  within that silo, each layer picks argmax μ。若在调用时传入 ``queries``（及 MC 参数），
-  则在可行提供商之间 **优先最小化** 与 ``evaluation.evaluate_deployment_empirical``
-  一致的蒙特卡洛 SLO 违规计数（费用违规 + 时延违规），再以 closed-form utility 为高者优先。
+  within that silo, each layer picks argmax μ（按 ``provider`` 过滤候选，**不**强制同 region）。
+  在可行云 P 上 **优先最小化** 与 ``evaluation.evaluate_deployment_empirical`` 一致的蒙特卡洛 SLO 违规计数，
+  再以 closed-form utility 为高者优先（``queries`` 与 MC 参数必给）。
 * **LO (Logical-Optimal):** each layer independently picks argmax μ (ignores cost,
   latency, cross-edge effects) — utility upper bound for the linear μ model.
 * **DO (Deterministic-Optimal):** replace stochastic ξ with plug-in means of ρ via
@@ -404,22 +404,22 @@ def single_cloud_baseline(
     cands: tuple[tuple[PhysicalNode, ...], tuple[PhysicalNode, ...], tuple[PhysicalNode, ...], tuple[PhysicalNode, ...]],
     weights: tuple[float, float, float, float] = (0.25, 0.25, 0.25, 0.25),
     *,
-    queries: Sequence[QueryProfile] | None = None,
+    queries: Sequence[QueryProfile],
     samples_per_query: int = 50,
     violation_eval_seed: int = 137,
 ) -> BaselineResult:
     """
-    SC: choose cloud provider P such that all four layers admit candidates on P,
-    then per-layer argmax μ within U_i ∩ {P}。
+    SC：固定云厂商 P，各层仅在 ``provider==P`` 的候选上做层内 argmax μ（**不**要求同 region）。
 
-    若 ``queries`` 非空：在可行 P 上先最小化 MC 违规计数
-    ``viol_cost + viol_latency``（与 empirical evaluation 一致），再最大化 closed-form utility。
+    在可行 P 上先最小化 MC 违规 ``viol_cost + viol_latency``（与 empirical evaluation 一致），
+    再最大化 closed-form utility；并列用厂商名稳定排序。
     """
-    ql = list(queries) if queries is not None else []
-    use_viol = len(ql) > 0
+    ql = list(queries)
+    if not ql:
+        raise ValueError("single_cloud_baseline requires non-empty queries")
 
     best: BaselineResult | None = None
-    best_rank: tuple[int, float, str] | None = None  # (viol_sum, -utility, prov) 用于最小化
+    best_rank: tuple[int, float, str] | None = None  # (viol, -U, prov)
 
     for prov in PROVIDERS_SINGLE_CLOUD:
         filt: list[tuple[PhysicalNode, ...]] = []
@@ -439,20 +439,16 @@ def single_cloud_baseline(
             tuple(filt[3]),
         )
         res = logical_optimal_baseline(ft, weights=weights)
-        if use_viol:
-            vc, vl = mc_violation_counts_wf1(
-                res.nodes,
-                ql,
-                samples_per_query=samples_per_query,
-                violation_eval_seed=violation_eval_seed,
-            )
-            rank = (vc + vl, -res.total_utility, prov)
-            if best is None or rank < best_rank:  # type: ignore[operator]
-                best_rank = rank
-                best = BaselineResult("Single-Cloud", res.nodes, res.total_utility, None)
-        else:
-            if best is None or res.total_utility > best.total_utility:
-                best = BaselineResult("Single-Cloud", res.nodes, res.total_utility, None)
+        vc, vl = mc_violation_counts_wf1(
+            res.nodes,
+            ql,
+            samples_per_query=samples_per_query,
+            violation_eval_seed=violation_eval_seed,
+        )
+        rank = (vc + vl, -res.total_utility, prov)
+        if best is None or rank < best_rank:  # type: ignore[operator]
+            best_rank = rank
+            best = BaselineResult("Single-Cloud", res.nodes, res.total_utility, None)
 
     if best is None:
         raise RuntimeError(
@@ -621,7 +617,8 @@ if __name__ == "__main__":  # pragma: no cover
         seed=7,
         budget_alpha=float(wf_utils.BUDGET_ALPHA_SUITE_DEFAULT_WF1[-1]),
         lo_chain=lo_ch,
-        regenerate=True,
+        weights=WEIGHTS,
+        cands=cands,
     )
     EVAL_SQ = 30
     EVAL_SEED = 2026

@@ -4,8 +4,9 @@
 Aggregate Utility / mean Cost / mean Latency / SVR。
 
 默认对 **四种 budget–α 插值** 各跑一次（``workflow1.utils.BUDGET_ALPHA_SUITE_DEFAULT_WF1``，即 α∈{0.25,0.5,0.75,1}）：
-每条 query 的 ``Θ_C, Θ_T`` 由三条锚链（LO + ``workflow1.budget`` 上 mean 最小的 cost / latency 链）
-按 ``Θ = T_{\\min} + α (T_{LO} - T_{\\min})`` 形式在费用维与时延维分别插值（见 ``generate_realistic_queries``）。
+每条 query 的 ``Θ_C, Θ_T`` 由 **GCP / AWS / Aliyun 各自一条「按云 SC」logical-optimal 锚链 + LO** 在 plug-in mean ρ
+下的端到端费用/时延 **min/max 包络**按
+``\\Theta = \\min + \\alpha(\\max-\\min)`` 插值得出（见 ``generate_realistic_queries``）。
 每个 α 下 Sky 默认取 ``η_c, η_t`` 为 LO/SC/DO 在同一套经验 KPI 上的 ``VR_C, VR_T`` 各自的最小值（``--sky-eta from_baselines``，可对 0 抬到 ``1e-8`` 以免 SAA 分母为 0）；若需常数 η 则用 ``--sky-eta fixed --eta-c … --eta-t …``。
 
 在包含 ``workflow1`` 与 ``sim_env`` 的 ``simulation/`` 目录下执行::
@@ -111,6 +112,7 @@ def _run_algorithms_for_queries(
         violation_eval_seed=eval_seed,
     )
     provs = sorted({n.provider for n in sc.nodes})
+    regs = sorted({n.region for n in sc.nodes})
     vc, vl = baseline_runner.mc_violation_counts_wf1(
         sc.nodes,
         queries,
@@ -119,7 +121,7 @@ def _run_algorithms_for_queries(
     )
     print(
         f"[SC] selection MC violations cost={vc} latency={vl} total={vc + vl} | "
-        f"closed-form U={sc.total_utility:.6g} providers={provs} "
+        f"closed-form U={sc.total_utility:.6g} providers={provs} regions={regs} "
         f"time={time.perf_counter() - t0:.2f}s"
     )
     m_sc = _evaluate_and_print(
@@ -293,11 +295,6 @@ def main() -> None:
             "预算插值系数 α（可多选）；未写值时默认 0.25 0.5 0.75 1.0。"
         ),
     )
-    parser.add_argument(
-        "--regenerate-query-anchor-chains",
-        action="store_true",
-        help="调用 wf1_mean_min_anchor_chains 并打印链；否则使用 utils.WF1_STORED_MIN_MEAN_*_CHAIN",
-    )
     args = parser.parse_args()
 
     weights = tuple(args.weights)
@@ -323,14 +320,6 @@ def main() -> None:
     cands = sky_runner.enumerate_candidates()
     print(f"[setup] candidate layer sizes: {[len(c) for c in cands]}")
     lo_ch = wf1_logical_optimal_chain(cands, weights)
-    if args.regenerate_query_anchor_chains:
-        print(
-            "[setup] mean-min anchors: regenerate=True（首次 generate_realistic_queries 将打印 WF1_STORED_*）"
-        )
-    else:
-        print(
-            "[setup] mean-min anchors: utils.WF1_STORED_MIN_MEAN_COST_CHAIN / WF1_STORED_MIN_MEAN_LATENCY_CHAIN"
-        )
     print()
 
     mega: list[tuple[str, list[tuple[str, EmpiricalDeploymentMetrics | None]]]] = []
@@ -342,13 +331,13 @@ def main() -> None:
             seed=args.query_seed,
             budget_alpha=float(alpha),
             lo_chain=lo_ch,
-            regenerate=args.regenerate_query_anchor_chains,
+            weights=weights,
+            cands=cands,
         )
         print("*" * 70)
         print(
             f"[budget α] {label}  "
-            f"Θ_C = C_min + α (C_LO - C_min), Θ_T = T_min + α (T_LO - T_min) "
-            f"(mean-min-cost / mean-min-lat / LO, plug-in mean ρ)"
+            f"Θ=min+α(max−min)（GCP/AWS/Aliyun 按云 SC + LO；plug-in mean ρ）"
         )
         print("*" * 70)
 

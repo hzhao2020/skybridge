@@ -1,8 +1,8 @@
 """
 Workflow 2 baselines（对齐 workflow1）：SC / LO / DO。
 
-SC：单提供商可行时层内 argmax μ；若传入 ``queries`` 与 MC 参数，则在提供商间
-**优先最小化** 与 ``evaluation.evaluate_deployment_empirical_wf2`` 一致的 MC SLO 违规数（费用+时延），再以 utility 为高者优先。
+SC：单提供商内各层在 ``provider`` 候选上独立 argmax μ（**不**强制同 region）；``queries`` 与 MC 参数必填；
+在可行云之间 **优先最小化** ``evaluation.evaluate_deployment_empirical_wf2`` 的 MC SLO 违规，再以 utility 为高者优先。
 
 DO：plug-in mean ρ（沿路径蒙特卡洛校准）、LLM token 经验均值、链路网络经验均值；
 目标 max Σ w_i μ_i，约束为每条查询在均值场上的费用与时延不超过 Θ（**gurobipy MILP**）。
@@ -438,13 +438,15 @@ def single_cloud_baseline_wf2(
     cands: tuple[tuple[WF2PhysicalNode, ...], ...],
     weights: Sequence[float],
     *,
-    queries: Sequence[QueryProfile] | None = None,
+    queries: Sequence[QueryProfile],
     samples_per_query: int = 50,
     violation_eval_seed: int = 137,
 ) -> BaselineResultWf2:
+    """SC：按云过滤后层内 argmax μ；云间比较 MC 违规再比效用。"""
     L = len(cands)
-    ql = list(queries) if queries is not None else []
-    use_viol = len(ql) > 0
+    ql = list(queries)
+    if not ql:
+        raise ValueError("single_cloud_baseline_wf2 requires non-empty queries")
 
     best: BaselineResultWf2 | None = None
     best_rank: tuple[int, float, str] | None = None
@@ -462,21 +464,17 @@ def single_cloud_baseline_wf2(
             continue
         ft = tuple(filt_layers)
         res = logical_optimal_baseline_wf2(path_id, ft, weights=weights)
-        if use_viol:
-            vc, vl = mc_violation_counts_wf2(
-                path_id,
-                res.nodes,
-                ql,
-                samples_per_query=samples_per_query,
-                violation_eval_seed=violation_eval_seed,
-            )
-            rank = (vc + vl, -res.total_utility, prov)
-            if best is None or rank < best_rank:  # type: ignore[operator]
-                best_rank = rank
-                best = BaselineResultWf2("Single-Cloud", res.nodes, res.total_utility, None)
-        else:
-            if best is None or res.total_utility > best.total_utility:
-                best = BaselineResultWf2("Single-Cloud", res.nodes, res.total_utility, None)
+        vc, vl = mc_violation_counts_wf2(
+            path_id,
+            res.nodes,
+            ql,
+            samples_per_query=samples_per_query,
+            violation_eval_seed=violation_eval_seed,
+        )
+        rank = (vc + vl, -res.total_utility, prov)
+        if best is None or rank < best_rank:  # type: ignore[operator]
+            best_rank = rank
+            best = BaselineResultWf2("Single-Cloud", res.nodes, res.total_utility, None)
 
     if best is None:
         raise RuntimeError(
@@ -627,16 +625,12 @@ def run_all_baselines_wf2(
 
 
 if __name__ == "__main__":  # pragma: no cover
-    from .budget import wf2_mean_min_anchor_chains
     from .evaluation import evaluate_deployment_empirical_wf2, print_metrics_report_wf2
 
     n_q = 5
     pid: WF2PathId = "video_caption"
     cands = enumerate_candidates_wf2(pid)
     WEIGHTS = wf2_utils.default_weights_for_path(pid)
-    min_c_ch, min_l_ch = wf2_mean_min_anchor_chains(
-        pid, cands, num_queries=n_q, query_sample_seed=7
-    )
     lo_ch = wf2_utils.wf2_logical_optimal_chain(pid, cands, WEIGHTS)
     qs = wf2_utils.generate_realistic_queries_wf2(
         n_q,
@@ -644,8 +638,8 @@ if __name__ == "__main__":  # pragma: no cover
         seed=7,
         budget_alpha=float(wf1_utils.BUDGET_ALPHA_SUITE_DEFAULT_WF1[-1]),
         lo_chain=lo_ch,
-        min_mean_cost_chain=min_c_ch,
-        min_mean_latency_chain=min_l_ch,
+        weights=WEIGHTS,
+        cands=cands,
     )
 
     print("Candidates per layer:", [len(c) for c in cands])

@@ -18,11 +18,10 @@ Workflow 2 — 与论文图一致的 **Database / Q/A** 视频工作流骨架。
 
 from __future__ import annotations
 
-import itertools
 import math
 import random
 from dataclasses import dataclass
-from typing import Iterable, Literal, Sequence
+from typing import Literal, Sequence
 
 from sim_env import config as cfg
 from sim_env.cost import (
@@ -276,7 +275,7 @@ class WF2PhysicalNode:
     model: str | None = None
 
 
-# 来自 ``python -m workflow2.budget``（N_QUERIES=100, SEED=42；shot 路径为端到端并行 DAG 枚举 layer 0,1,3,4）。
+# 历史参考链快照（mean-min 搜索结果）；仅占位文档，与主线 query 预算四锚构造无直接关系。
 _BUDGET_REF_CHAINS_WF2_COST: dict[WF2PathId, tuple[WF2PhysicalNode, ...]] = {
     "video_caption": (
         WF2PhysicalNode("shot_detection", "Aliyun", "cn-shanghai", None),
@@ -351,65 +350,7 @@ for _pid in _BUDGET_REF_CHAINS_WF2_COST:
     validate_exclusive_path_nodes(_pid, _BUDGET_REF_CHAINS_WF2_COST[_pid])
     validate_exclusive_path_nodes(_pid, _BUDGET_REF_CHAINS_WF2_LATENCY[_pid])
 
-# 与 ``workflow2.budget`` 一致的部署链枚举（默认单云并集）；全量笛卡尔积见 ``WF2_BUDGET_ENUM_FULL_CROSS_PRODUCT``。
-WF2_BUDGET_ENUM_FULL_CROSS_PRODUCT = False
-_SINGLE_CLOUD_PROVIDERS_WF2_ENUM = ("GCP", "AWS", "Aliyun")
-
-
-def iter_chains_wf2(
-    cands: tuple[tuple[WF2PhysicalNode, ...], ...],
-    *,
-    path_id: WF2PathId,
-    full_cross_product: bool = False,
-) -> Iterable[tuple[WF2PhysicalNode, ...]]:
-    L = len(cands)
-    layers = [list(cands[i]) for i in range(L)]
-    if full_cross_product:
-        for tup in itertools.product(*layers):
-            yield tuple(tup)
-        return
-
-    seen: set[tuple[WF2PhysicalNode, ...]] = set()
-    for prov in _SINGLE_CLOUD_PROVIDERS_WF2_ENUM:
-        prov_layers: list[list[WF2PhysicalNode]] = []
-        ok = True
-        for i in range(L):
-            layer = [n for n in layers[i] if n.provider == prov]
-            if not layer:
-                ok = False
-                break
-            prov_layers.append(layer)
-        if not ok:
-            continue
-        for tup in itertools.product(*prov_layers):
-            seen.add(tuple(tup))
-    for ch in sorted(seen, key=lambda c: tuple((n.operation, n.provider, n.region, n.model or "") for n in c)):
-        validate_exclusive_path_nodes(path_id, ch)
-        yield ch
-
-
-def count_chains_wf2(
-    cands: tuple[tuple[WF2PhysicalNode, ...], ...], *, full_cross_product: bool = False
-) -> int:
-    if full_cross_product:
-        return math.prod(len(cands[i]) for i in range(len(cands)))
-    L = len(cands)
-    layers = [list(cands[i]) for i in range(L)]
-    seen: set[tuple[WF2PhysicalNode, ...]] = set()
-    for prov in _SINGLE_CLOUD_PROVIDERS_WF2_ENUM:
-        prov_layers: list[list[WF2PhysicalNode]] = []
-        ok = True
-        for i in range(L):
-            layer = [n for n in layers[i] if n.provider == prov]
-            if not layer:
-                ok = False
-                break
-            prov_layers.append(layer)
-        if not ok:
-            continue
-        for tup in itertools.product(*prov_layers):
-            seen.add(tuple(tup))
-    return len(seen)
+# 仅供参考链 / 可视化；与新主线 ``generate_realistic_queries_wf2``（四锚 SC×3+LO）无直接关系。
 
 
 # 均衡权重下各 path 的 LO（由候选枚举独立 argmax，与 ``enumerate_candidates_wf2`` 口径一致）。
@@ -441,80 +382,6 @@ WF2_LOGICAL_OPTIMAL_NODES: dict[WF2PathId, tuple[WF2PhysicalNode, ...]] = {
         WF2PhysicalNode("qa", "GCP", "us-east1", "Gemini 2.5 Pro"),
     ),
 }
-
-
-def iter_chains_wf2_end_to_end_shot_modalities(
-    cands_vc: tuple[tuple[WF2PhysicalNode, ...], ...],
-    *,
-    path_id: WF2PathId,
-    full_cross_product: bool = False,
-    mid_layer_index: int = 2,
-) -> Iterable[tuple[WF2PhysicalNode, ...]]:
-    """
-    **端到端并行主视频 DAG** 的 budget 枚举：只优化 shot / split / database / qa；
-    中间层用 ``cands_vc[mid_layer_index][0]`` 占位（并行 mean-field 度量主要经 ``modality_nodes``，
-    不依赖该占位细节，但须与 ``path_id`` 的独占路径算子一致以便 ``validate_exclusive_path_nodes``）。
-
-    ``cands_vc`` 须为 ``enumerate_candidates_wf2(path_id)``（长度 5），且 ``path_id`` 为
-    ``video_caption`` | ``ocr`` | ``label_detection`` 之一。
-    """
-    if path_id == "speech_transcription":
-        raise ValueError("speech path uses iter_chains_wf2, not shot_modalities enumeration")
-    if len(cands_vc) != 5:
-        raise ValueError("expected 5-layer candidates for shot_modalities enumeration")
-    mid = cands_vc[mid_layer_index][0]
-    layers_four = [list(cands_vc[0]), list(cands_vc[1]), list(cands_vc[3]), list(cands_vc[4])]
-    if full_cross_product:
-        for a, b, d, q in itertools.product(*layers_four):
-            ch = (a, b, mid, d, q)
-            validate_exclusive_path_nodes(path_id, ch)
-            yield ch
-        return
-
-    seen: set[tuple[WF2PhysicalNode, ...]] = set()
-    for prov in _SINGLE_CLOUD_PROVIDERS_WF2_ENUM:
-        prov_layers: list[list[WF2PhysicalNode]] = []
-        ok = True
-        for layer_list in layers_four:
-            layer = [n for n in layer_list if n.provider == prov]
-            if not layer:
-                ok = False
-                break
-            prov_layers.append(layer)
-        if not ok:
-            continue
-        for tup in itertools.product(*prov_layers):
-            seen.add((tup[0], tup[1], mid, tup[2], tup[3]))
-    for ch in sorted(seen, key=lambda c: tuple((n.operation, n.provider, n.region, n.model or "") for n in c)):
-        validate_exclusive_path_nodes(path_id, ch)
-        yield ch
-
-
-def count_chains_wf2_end_to_end_shot_modalities(
-    cands_vc: tuple[tuple[WF2PhysicalNode, ...], ...],
-    *,
-    full_cross_product: bool = False,
-) -> int:
-    if len(cands_vc) != 5:
-        raise ValueError("expected 5-layer candidates (shot_modalities budget enumeration)")
-    layers_four = [list(cands_vc[0]), list(cands_vc[1]), list(cands_vc[3]), list(cands_vc[4])]
-    if full_cross_product:
-        return math.prod(len(x) for x in layers_four)
-    seen: set[tuple[WF2PhysicalNode, ...]] = set()
-    for prov in _SINGLE_CLOUD_PROVIDERS_WF2_ENUM:
-        prov_layers: list[list[WF2PhysicalNode]] = []
-        ok = True
-        for layer_list in layers_four:
-            layer = [n for n in layer_list if n.provider == prov]
-            if not layer:
-                ok = False
-                break
-            prov_layers.append(layer)
-        if not ok:
-            continue
-        for tup in itertools.product(*prov_layers):
-            seen.add(tup)
-    return len(seen)
 
 
 def wf2_node_utility(node: WF2PhysicalNode) -> float:
@@ -1218,8 +1085,8 @@ def wf2_modality_nodes_from_wf1_physical_ref(
     wf1_chain: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode],
 ) -> dict[str, WF2PhysicalNode]:
     """
-    并行 multimodal 段：``video_caption`` 采用 workflow1 budget 的 caption 节点；
-    ``ocr`` / ``label_detection`` 在候选中与 WF1 ``video_split`` 同 region 对齐（与展示 DAG 一致）。
+    并行 multimodal 段：``video_caption`` 采用 ``wf1_chain`` 中的 caption 节点；
+    ``ocr`` / ``label_detection`` 在候选中与 WF1 ``video_split`` 同 provider/region 对齐。
     """
     from .candidates import candidates_for_logical_op
 
@@ -1280,7 +1147,7 @@ def wf2_budget_meanfield_cost_latency(
     workflow_rng: random.Random,
 ) -> tuple[float, float]:
     """
-    ``workflow2.budget`` / 校准 query 共用：**非 speech** 路径按**整幅并行 DAG** 的 mean-field：
+    **校准 query 与 mean-field KPI 共用：** **非 speech** 路径按**整幅并行 DAG** 的 mean-field：
 
     - **费用** ``end_to_end_cost_parallel_shot_modalities``：**全部**活跃并行模态支路及相关段的费用
       **求和**（整体 workflow 成本，非单条串行子链）；
@@ -1352,6 +1219,49 @@ def wf2_budget_meanfield_cost_latency(
     return float(c), float(ell)
 
 
+_WF2_PROVIDERS_SINGLE_CLOUD_BUDGET: tuple[str, str, str] = ("GCP", "AWS", "Aliyun")
+
+
+def wf2_sc_budget_anchor_for_provider(
+    path_id: WF2PathId,
+    cands: tuple[tuple[WF2PhysicalNode, ...], ...],
+    weights: Sequence[float],
+    provider: str,
+) -> tuple[WF2PhysicalNode, ...] | None:
+    """固定 ``provider``：各层按该云过滤后做一次 ``logical_optimal_baseline_wf2``（允许跨 region）。"""
+    L = len(cands)
+    if len(weights) != L:
+        raise ValueError("weights length must match candidate layers")
+    w_t = tuple(float(x) for x in weights)
+    ft = tuple(tuple(n for n in cands[i] if n.provider == provider) for i in range(L))
+    if any(not x for x in ft):
+        return None
+    from .baseline import logical_optimal_baseline_wf2
+
+    return logical_optimal_baseline_wf2(path_id, ft, weights=w_t).nodes
+
+
+def wf2_budget_anchor_specs(
+    path_id: WF2PathId,
+    cands: tuple[tuple[WF2PhysicalNode, ...], ...],
+    lo_chain: tuple[WF2PhysicalNode, ...],
+    *,
+    weights: Sequence[float],
+) -> tuple[tuple[str, tuple[WF2PhysicalNode, ...]], ...]:
+    """Budget 校准锚：GCP/AWS/Aliyun 各一条按 ``provider`` 的单云 logical-optimal 锚 + ``lo_chain``。"""
+    validate_exclusive_path_nodes(path_id, lo_chain)
+    specs: list[tuple[str, tuple[WF2PhysicalNode, ...]]] = []
+    for prov in _WF2_PROVIDERS_SINGLE_CLOUD_BUDGET:
+        ch = wf2_sc_budget_anchor_for_provider(path_id, cands, weights, prov)
+        if ch is None:
+            raise RuntimeError(
+                f"workflow2: provider {prov!r} lacks candidates on some layer for budget anchor on path {path_id!r}"
+            )
+        specs.append((f"wf2_budget_SC_{prov}", ch))
+    specs.append(("wf2_budget_LO", lo_chain))
+    return tuple(specs)
+
+
 def generate_realistic_queries_wf2(
     num_queries: int,
     path_id: WF2PathId,
@@ -1360,30 +1270,26 @@ def generate_realistic_queries_wf2(
     n_calibration_samples: int = 4096,
     budget_alpha: float,
     lo_chain: tuple[WF2PhysicalNode, ...],
-    min_mean_cost_chain: tuple[WF2PhysicalNode, ...],
-    min_mean_latency_chain: tuple[WF2PhysicalNode, ...],
+    weights: Sequence[float] | None = None,
+    cands: tuple[tuple[WF2PhysicalNode, ...], ...] | None = None,
 ) -> list[QueryProfile]:
     """
-    生成 workflow2 校准 query 及 ``(Θ_C, Θ_T)``。
-
-    三条锚链须与 ``workflow2.budget`` / ``wf2_mean_min_anchor_chains`` 口径一致预先选定。
-    对每条 query 在 plug-in mean ρ 下调用 ``wf2_budget_meanfield_cost_latency`` 分别评估三条锚
-    部署元组；**非 speech** 时该函数给出的费用为**并行 DAG 上全部支路费用之和**，时延为
-    **wall-clock（并行段取 max 支路）**，与 budget 搜索及 ``chain_mean_cost_latency_wf2`` 的
-    比较目标一致（整体 workflow，非单链串行子图）。
-
-    ``min_mean_cost_chain`` 仅贡献 ``C_{\\min}^q``，``min_mean_latency_chain`` 仅贡献
-    ``T_{\\min}^q``，``lo_chain`` 贡献 ``(C_{LO}^q,T_{LO}^q)``::
-
-        Θ_C^q(α) = C_{\\min}^q + α (C_{LO}^q - C_{\\min}^q),
-        Θ_T^q(α) = T_{\\min}^q + α (T_{LO}^q - T_{\\min}^q).
+    锚链 = GCP、AWS、Aliyun 各一条按云的单云 logical-optimal 锚 + ``lo_chain``（单云内可不共 region）。
+    plug-in mean ρ、非 speech 时并行 DAG mean-field，
+    ``C^{(j)},T^{(j)}`` 在 **所有收录锚** 上取 ``\\min+\\alpha(\\max-\\min)``。
     """
-    for label, ch in (
-        ("lo_chain", lo_chain),
-        ("min_mean_cost_chain", min_mean_cost_chain),
-        ("min_mean_latency_chain", min_mean_latency_chain),
-    ):
-        validate_exclusive_path_nodes(path_id, ch)
+    if weights is None:
+        weights = default_weights_for_path(path_id)
+    wt = tuple(weights)
+
+    if cands is None:
+        from .candidates import enumerate_candidates_wf2
+
+        cands = enumerate_candidates_wf2(path_id)
+    if len(wt) != len(cands):
+        raise ValueError("weights length must match candidate tuple length")
+
+    anchor_specs = wf2_budget_anchor_specs(path_id, cands, lo_chain, weights=wt)
 
     rng = random.Random(seed)
     calib_rng = random.Random(seed + 100)
@@ -1405,50 +1311,34 @@ def generate_realistic_queries_wf2(
         )
 
     queries: list[QueryProfile] = []
+    ba = float(budget_alpha)
     for q_idx in range(num_queries):
         duration_sec = rng.uniform(60.0, 3600.0)
         s_src_mb = cfg.video_megabytes_from_duration_sec(duration_sec)
         s_src_gb = s_src_mb / 1000.0
 
-        wf_mc = wf1_utils.det_rng(seed, "wf2_grq_anchor_min_cost", q_idx)
-        c_min_x, _ = wf2_budget_meanfield_cost_latency(
-            path_id,
-            min_mean_cost_chain,
-            s_src_gb,
-            mean_rho_exclusive=mean_rho,
-            parallel_rho=parallel_rho,
-            modality_nodes=modality_nodes,
-            workflow_rng=wf_mc,
-        )
-        wf_mt = wf1_utils.det_rng(seed, "wf2_grq_anchor_min_lat", q_idx)
-        _, t_min_x = wf2_budget_meanfield_cost_latency(
-            path_id,
-            min_mean_latency_chain,
-            s_src_gb,
-            mean_rho_exclusive=mean_rho,
-            parallel_rho=parallel_rho,
-            modality_nodes=modality_nodes,
-            workflow_rng=wf_mt,
-        )
-        wf_lo = wf1_utils.det_rng(seed, "wf2_budget_alpha_lo", q_idx)
-        c_lox, t_lox = wf2_budget_meanfield_cost_latency(
-            path_id,
-            lo_chain,
-            s_src_gb,
-            mean_rho_exclusive=mean_rho,
-            parallel_rho=parallel_rho,
-            modality_nodes=modality_nodes,
-            workflow_rng=wf_lo,
-        )
-        if not all(math.isfinite(x) for x in (c_min_x, t_min_x, c_lox, t_lox)):
+        costs: list[float] = []
+        lats: list[float] = []
+        for anchor_name, chain in anchor_specs:
+            wf_mc = wf1_utils.det_rng(seed, anchor_name, q_idx)
+            c_x, ell_x = wf2_budget_meanfield_cost_latency(
+                path_id,
+                chain,
+                s_src_gb,
+                mean_rho_exclusive=mean_rho,
+                parallel_rho=parallel_rho,
+                modality_nodes=modality_nodes,
+                workflow_rng=wf_mc,
+            )
+            costs.append(float(c_x))
+            lats.append(float(ell_x))
+
+        if not all(math.isfinite(x) for x in (*costs, *lats)):
             raise ValueError("non-finite cost/latency in WF2 anchor evaluation")
-        c_min = float(c_min_x)
-        t_min = float(t_min_x)
-        c_lo = float(c_lox)
-        t_lo = float(t_lox)
-        ba = float(budget_alpha)
-        theta_c = c_min + ba * (c_lo - c_min)
-        theta_t = t_min + ba * (t_lo - t_min)
+        c_low, c_high = min(costs), max(costs)
+        t_low, t_high = min(lats), max(lats)
+        theta_c = c_low + ba * (c_high - c_low)
+        theta_t = t_low + ba * (t_high - t_low)
         queries.append(
             QueryProfile(
                 s_src_gb=s_src_gb,

@@ -6,8 +6,9 @@ Sky 消融实验：独立变量 × 三种变体，记录求解时间、迭代次
     python -m workflow1.sky_ablation_experiment --out workflow1/results/sky_ablation.csv
     python -m workflow1.sky_ablation_experiment --s-list 10,20,30 --q-fixed 50 --q-list 10,30,50 --s-fixed 50
 
-每次实验在 **独立子进程** 中运行，以便 ``resource.getrusage`` 反映该次求解的峰值驻留内存
-（Linux: ru_maxrss 为 KB）。
+每次实验在 **独立子进程** 中运行，以便度量该次求解的进程峰值内存：
+Unix/macOS 使用 ``resource.getrusage(RUSAGE_SELF).ru_maxrss``；
+Windows 无 ``resource`` 时使用 ``psutil.Process().memory_full_info().peak_wset``（峰值工作集，字节）。
 
 结果写入 ``--out`` CSV：若文件已存在且非空则 **续写**（不写表头）；新文件或空文件则先写表头。
 需要整文件重写时使用 ``--overwrite``。列 ``batch_add_ratio``（每次迭代新增场景占 ``|Ω|`` 的比例）与命令行 ``--batch-add-ratio`` 一致；列 ``gurobi_status`` 为 Gurobi 求解状态字符串。
@@ -18,9 +19,6 @@ Sky 消融实验：独立变量 × 三种变体，记录求解时间、迭代次
 
     python -m workflow1.sky_ablation_experiment --only-q 50 --only-s 50 --out workflow1/results/q50s50.csv
 
-mean-min 锚链默认使用 ``workflow1.utils.WF1_STORED_MIN_MEAN_*_CHAIN``。若需重算并打印::
-
-    python -m workflow1.sky_ablation_experiment --regenerate-query-anchor-chains ...
 """
 
 from __future__ import annotations
@@ -58,6 +56,31 @@ def _ru_maxrss_to_bytes(rss: int) -> int:
     return int(rss) * 1024
 
 
+def _peak_memory_bytes_self() -> int | None:
+    """
+    当前进程的峰值常驻/工作集内存（字节），尽力而为。
+
+    - Unix/macOS：``resource.getrusage`` 的 ``ru_maxrss``（与原先逻辑一致）。
+    - Windows：``psutil.memory_full_info().peak_wset``；若无 ``peak_wset`` 则退回当前 ``rss``。
+    """
+    if resource is not None:
+        ru = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        return _ru_maxrss_to_bytes(ru)
+    try:
+        import psutil
+    except ImportError:
+        return None
+    try:
+        mi = psutil.Process().memory_full_info()
+    except psutil.Error:
+        return None
+    peak_wset = getattr(mi, "peak_wset", None)
+    if peak_wset is not None:
+        return int(peak_wset)
+    rss = getattr(mi, "rss", None)
+    return int(rss) if rss is not None else None
+
+
 def run_sky_single_in_process(payload: dict[str, Any]) -> dict[str, Any]:
     """
     在当前进程执行一次 ``run_sky_deployment``，用于子进程入口或单元测试。
@@ -79,7 +102,6 @@ def run_sky_single_in_process(payload: dict[str, Any]) -> dict[str, Any]:
     )
     batch_add_ratio = float(payload.get("batch_add_ratio", 0.05))
     budget_alpha = float(payload.get("budget_alpha", 1.0))
-    regen = bool(payload.get("regenerate_query_anchor_chains", False))
 
     dec, warm = sky_runner.sky_ablation_settings(variant)
     cands = sky_runner.enumerate_candidates()
@@ -89,7 +111,8 @@ def run_sky_single_in_process(payload: dict[str, Any]) -> dict[str, Any]:
         seed=query_seed,
         budget_alpha=budget_alpha,
         lo_chain=lo_ch,
-        regenerate=regen,
+        weights=weights,
+        cands=cands,
     )
 
     t0 = time.perf_counter()
@@ -108,11 +131,7 @@ def run_sky_single_in_process(payload: dict[str, Any]) -> dict[str, Any]:
     )
     wall_sec = time.perf_counter() - t0
 
-    if resource is not None:
-        ru = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-        peak_memory_bytes = _ru_maxrss_to_bytes(ru)
-    else:
-        peak_memory_bytes = None  # no getrusage (e.g. Windows)
+    peak_memory_bytes = _peak_memory_bytes_self()
 
     if isinstance(rep, sky_runner.DecompositionResult):
         sol = rep.solution
@@ -141,7 +160,7 @@ def _worker_main() -> None:
             "ok": False,
             "wall_clock_sec": math.nan,
             "master_iterations": None,
-            "peak_memory_bytes": None,
+            "peak_memory_bytes": _peak_memory_bytes_self(),
             "objective_value": None,
             "gurobi_status": "",
             "error": f"{type(e).__name__}: {e}",
@@ -274,7 +293,6 @@ def build_jobs(args: argparse.Namespace) -> list[dict[str, Any]]:
                         "weights": list(args.weights),
                         "batch_add_ratio": args.batch_add_ratio,
                         "budget_alpha": args.budget_alpha,
-                        "regenerate_query_anchor_chains": args.regenerate_query_anchor_chains,
                     },
                 }
             )
@@ -305,7 +323,6 @@ def build_jobs(args: argparse.Namespace) -> list[dict[str, Any]]:
                         "weights": list(args.weights),
                         "batch_add_ratio": args.batch_add_ratio,
                         "budget_alpha": args.budget_alpha,
-                        "regenerate_query_anchor_chains": args.regenerate_query_anchor_chains,
                     },
                 }
             )
@@ -335,7 +352,6 @@ def build_jobs(args: argparse.Namespace) -> list[dict[str, Any]]:
                         "weights": list(args.weights),
                         "batch_add_ratio": args.batch_add_ratio,
                         "budget_alpha": args.budget_alpha,
-                        "regenerate_query_anchor_chains": args.regenerate_query_anchor_chains,
                     },
                 }
             )
@@ -405,7 +421,7 @@ def main() -> None:
         type=float,
         default=1.0,
         metavar="A",
-        help="query 预算插值 α（传给 generate_realistic_queries）",
+        help="query 预算 α：Θ=min+α(max−min)（四锚链 SC×3+LO；见 generate_realistic_queries）",
     )
     parser.add_argument("--eta-c", type=float, default=0.1)
     parser.add_argument("--eta-t", type=float, default=0.1)
@@ -434,11 +450,6 @@ def main() -> None:
         type=float,
         default=None,
         help="per-job time limit for subprocess solve (only with default subprocess mode)",
-    )
-    parser.add_argument(
-        "--regenerate-query-anchor-chains",
-        action="store_true",
-        help="调用 wf1_mean_min_anchor_chains 并打印链；否则使用 utils.WF1_STORED_MIN_MEAN_*_CHAIN",
     )
     args = parser.parse_args()
     args.weights = tuple(args.weights)  # type: ignore[assignment]
