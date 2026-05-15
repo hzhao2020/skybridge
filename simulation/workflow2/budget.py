@@ -125,7 +125,7 @@ def find_wf2_mean_min_cost_and_latency_chains(
     eval_seed: int,
 ) -> tuple[tuple[WF2PhysicalNode, ...], tuple[WF2PhysicalNode, ...]]:
     """
-    枚举 ``chain_iter`` 中每条**主干部署元组**（与 ``iter_chains_wf2_end_to_end_shot_modalities`` 一致），
+    枚举 ``chain_iter`` 中每条**主干部署元组**（与 ``iter_chains_wf2_end_to_end_shot_modalities(..., path_id=…)`` 一致），
     用 ``chain_mean_cost_latency_wf2`` 比较：其中的 cost / latency 已是 **整幅并行 DAG** 上的
     mean-field（费用含全部并行支路运算与传输；时延为并行段 **max** 的 wall-clock），
     据此分别选出 **平均总费用最小** 与 **平均 wall-clock 时延最小** 的两条元组（可为不同元组）。
@@ -174,7 +174,8 @@ def wf2_mean_min_anchor_chains(
     **非 speech**：比较目标为整幅并行 DAG 的 mean-field **总费用**与 **wall-clock 时延**（并行段
     取各支路 max，而非单条串行链）；并行模态支路上的物理节点仍按本模块说明由 WF1 参考链固定
     （与 ``wf2_modality_nodes_from_wf1_physical_ref`` 一致）。``cands`` 须与后续 ``lo_chain`` 所用
-    候选一致；枚举本身对 ``video_caption`` 候选表做 shot/split/db/qa 组合（与 budget 脚本相同）。
+    候选一致；枚举使用 ``enumerate_candidates_wf2(path_id)`` 上的 shot/split/db/qa 组合（与
+    ``run_search_shot_modalities_end_to_end`` 一致）。
     """
     sizes = sample_source_sizes_gb(num_queries=num_queries, seed=query_sample_seed)
     mean_rho = plugin_mean_data_conversion_ratios_wf2(
@@ -200,9 +201,9 @@ def wf2_mean_min_anchor_chains(
     modality_nodes = wf2_modality_nodes_from_wf1_physical_ref(
         wf1_utils._BUDGET_REF_CHAIN_COST_WF1
     )
-    cands_vc = enumerate_candidates_wf2("video_caption")
+    cands_vc = enumerate_candidates_wf2(path_id)
     chain_iter = iter_chains_wf2_end_to_end_shot_modalities(
-        cands_vc, full_cross_product=full_cross
+        cands_vc, path_id=path_id, full_cross_product=full_cross
     )
     return find_wf2_mean_min_cost_and_latency_chains(
         path_id,
@@ -270,7 +271,7 @@ def run_search_shot_modalities_end_to_end(
     modality_nodes = wf2_modality_nodes_from_wf1_physical_ref(
         wf1_utils._BUDGET_REF_CHAIN_COST_WF1
     )
-    cands_vc = enumerate_candidates_wf2("video_caption")
+    cands_vc = enumerate_candidates_wf2(path_label)
     layer_sizes = [len(cands_vc[i]) for i in range(5)]
     full_n = math.prod(len(cands_vc[i]) for i in (0, 1, 3, 4))
     n_chains = count_chains_wf2_end_to_end_shot_modalities(
@@ -290,7 +291,7 @@ def run_search_shot_modalities_end_to_end(
     best_c_chain, best_l_chain = find_wf2_mean_min_cost_and_latency_chains(
         path_label,
         iter_chains_wf2_end_to_end_shot_modalities(
-            cands_vc, full_cross_product=full_cross
+            cands_vc, path_id=path_label, full_cross_product=full_cross
         ),
         sizes,
         mean_rho,
