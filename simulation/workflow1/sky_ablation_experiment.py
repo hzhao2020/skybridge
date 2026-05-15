@@ -17,6 +17,10 @@ Sky 消融实验：独立变量 × 三种变体，记录求解时间、迭代次
 单点消融（例如 Q=50、S=50）::
 
     python -m workflow1.sky_ablation_experiment --only-q 50 --only-s 50 --out workflow1/results/q50s50.csv
+
+mean-min 锚链默认使用 ``workflow1.utils.WF1_STORED_MIN_MEAN_*_CHAIN``。若需重算并打印::
+
+    python -m workflow1.sky_ablation_experiment --regenerate-query-anchor-chains ...
 """
 
 from __future__ import annotations
@@ -59,7 +63,6 @@ def run_sky_single_in_process(payload: dict[str, Any]) -> dict[str, Any]:
     在当前进程执行一次 ``run_sky_deployment``，用于子进程入口或单元测试。
     """
     from . import sky as sky_runner
-    from .budget import wf1_mean_min_anchor_chains
     from .utils import generate_realistic_queries, wf1_logical_optimal_chain
 
     variant: VariantName = payload["variant"]
@@ -76,20 +79,17 @@ def run_sky_single_in_process(payload: dict[str, Any]) -> dict[str, Any]:
     )
     batch_add_ratio = float(payload.get("batch_add_ratio", 0.05))
     budget_alpha = float(payload.get("budget_alpha", 1.0))
+    regen = bool(payload.get("regenerate_query_anchor_chains", False))
 
     dec, warm = sky_runner.sky_ablation_settings(variant)
     cands = sky_runner.enumerate_candidates()
-    min_c_ch, min_l_ch = wf1_mean_min_anchor_chains(
-        cands, num_queries=num_queries, query_sample_seed=query_seed
-    )
     lo_ch = wf1_logical_optimal_chain(cands, weights)
     queries = generate_realistic_queries(
         num_queries,
         seed=query_seed,
         budget_alpha=budget_alpha,
         lo_chain=lo_ch,
-        min_mean_cost_chain=min_c_ch,
-        min_mean_latency_chain=min_l_ch,
+        regenerate=regen,
     )
 
     t0 = time.perf_counter()
@@ -147,12 +147,32 @@ def _worker_main() -> None:
             "error": f"{type(e).__name__}: {e}",
         }
     sys.stdout.write(json.dumps(out))
+    sys.stdout.flush()
     sys.exit(0 if out.get("ok") else 1)
 
 
 def _simulation_root() -> Path:
     """``simulation/``：上一级目录，内含 ``workflow1/`` 与 ``sim_env/``。"""
     return Path(__file__).resolve().parent.parent
+
+
+def _decode_worker_stdout(proc_stdout: bytes) -> dict[str, Any] | None:
+    """
+    解析 worker 写入的 JSON。
+
+    若某依赖在 import 阶段向 stdout 打了日志，整段 stdout 可能不是合法 JSON；此处从最后一行起向前尝试
+    ``json.loads``，并额外接受 ``strip()`` 后的整段文本。
+    """
+    text = proc_stdout.decode("utf-8", errors="replace").strip()
+    if not text:
+        return None
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    for candidate in (*reversed(lines), text):
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+    return None
 
 
 def run_isolated_subprocess(
@@ -163,6 +183,7 @@ def run_isolated_subprocess(
     """新解释器进程中运行单次实验，峰值内存为该子进程生命周期内最大值。"""
     cmd = [
         sys.executable,
+        "-u",
         "-m",
         "workflow1.sky_ablation_experiment",
         "--worker",
@@ -187,13 +208,17 @@ def run_isolated_subprocess(
             "gurobi_status": "",
             "error": f"timeout after {timeout_sec}s",
         }
-    out_txt = proc.stdout.decode("utf-8", errors="replace").strip()
-    if out_txt:
-        try:
-            return json.loads(out_txt)
-        except json.JSONDecodeError:
-            pass
+    parsed = _decode_worker_stdout(proc.stdout)
+    if parsed is not None:
+        return parsed
+    out_preview = proc.stdout.decode("utf-8", errors="replace").strip().replace("\n", "\\n")[:500]
     err = proc.stderr.decode("utf-8", errors="replace")[:2000]
+    detail_parts = [
+        err,
+        f"exit {proc.returncode}",
+        (f"stdout_preview={out_preview!r}" if out_preview else "stdout empty"),
+    ]
+    detail = " | ".join(p for p in detail_parts if p)
     return {
         "ok": False,
         "wall_clock_sec": math.nan,
@@ -201,7 +226,7 @@ def run_isolated_subprocess(
         "peak_memory_bytes": None,
         "objective_value": None,
         "gurobi_status": "",
-        "error": err or f"exit {proc.returncode} (no JSON on stdout)",
+        "error": detail or f"exit {proc.returncode} (no JSON on stdout)",
     }
 
 
@@ -231,8 +256,6 @@ def build_jobs(args: argparse.Namespace) -> list[dict[str, Any]]:
             jobs.append(
                 {
                     "sweep": "fixed_Q_S",
-                    "fixed_dimension": "Q_S",
-                    "fixed_value": f"{q},{s}",
                     "independent_S": s,
                     "independent_Q": q,
                     "variant": variant,
@@ -251,6 +274,7 @@ def build_jobs(args: argparse.Namespace) -> list[dict[str, Any]]:
                         "weights": list(args.weights),
                         "batch_add_ratio": args.batch_add_ratio,
                         "budget_alpha": args.budget_alpha,
+                        "regenerate_query_anchor_chains": args.regenerate_query_anchor_chains,
                     },
                 }
             )
@@ -263,8 +287,6 @@ def build_jobs(args: argparse.Namespace) -> list[dict[str, Any]]:
             jobs.append(
                 {
                     "sweep": "vary_S_fixed_Q",
-                    "fixed_dimension": "Q",
-                    "fixed_value": q,
                     "independent_S": s,
                     "independent_Q": q,
                     "variant": variant,
@@ -283,6 +305,7 @@ def build_jobs(args: argparse.Namespace) -> list[dict[str, Any]]:
                         "weights": list(args.weights),
                         "batch_add_ratio": args.batch_add_ratio,
                         "budget_alpha": args.budget_alpha,
+                        "regenerate_query_anchor_chains": args.regenerate_query_anchor_chains,
                     },
                 }
             )
@@ -294,8 +317,6 @@ def build_jobs(args: argparse.Namespace) -> list[dict[str, Any]]:
             jobs.append(
                 {
                     "sweep": "vary_Q_fixed_S",
-                    "fixed_dimension": "S",
-                    "fixed_value": s,
                     "independent_S": s,
                     "independent_Q": q,
                     "variant": variant,
@@ -314,6 +335,7 @@ def build_jobs(args: argparse.Namespace) -> list[dict[str, Any]]:
                         "weights": list(args.weights),
                         "batch_add_ratio": args.batch_add_ratio,
                         "budget_alpha": args.budget_alpha,
+                        "regenerate_query_anchor_chains": args.regenerate_query_anchor_chains,
                     },
                 }
             )
@@ -413,6 +435,11 @@ def main() -> None:
         default=None,
         help="per-job time limit for subprocess solve (only with default subprocess mode)",
     )
+    parser.add_argument(
+        "--regenerate-query-anchor-chains",
+        action="store_true",
+        help="调用 wf1_mean_min_anchor_chains 并打印链；否则使用 utils.WF1_STORED_MIN_MEAN_*_CHAIN",
+    )
     args = parser.parse_args()
     args.weights = tuple(args.weights)  # type: ignore[assignment]
 
@@ -420,10 +447,9 @@ def main() -> None:
         parser.error("--only-q and --only-s must be used together")
 
     jobs = build_jobs(args)
+
     fieldnames = [
         "sweep",
-        "fixed_dimension",
-        "fixed_value",
         "Q",
         "S",
         "variant",
@@ -465,8 +491,6 @@ def main() -> None:
 
             row = {
                 "sweep": job["sweep"],
-                "fixed_dimension": job["fixed_dimension"],
-                "fixed_value": job["fixed_value"],
                 "Q": job["independent_Q"],
                 "S": job["independent_S"],
                 "variant": job["variant"],
@@ -490,7 +514,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "--worker":
+    # 勿仅用 argv[1]：某些启动器/包装会在模块名前插入额外标志位。
+    if "--worker" in sys.argv:
         _worker_main()
     else:
         main()

@@ -963,13 +963,6 @@ if __name__ == "__main__":  # pragma: no cover
 
     WEIGHTS_KPI = (0.25, 0.25, 0.25, 0.25)
     cands_demo = enumerate_candidates()
-    from .budget import wf1_mean_min_anchor_chains
-
-    min_c_ch, min_l_ch = wf1_mean_min_anchor_chains(
-        cands_demo,
-        num_queries=NUM_QUERIES,
-        query_sample_seed=QUERY_SEED,
-    )
     lo_ch = wf_utils.wf1_logical_optimal_chain(cands_demo, WEIGHTS_KPI)
     t0 = time.perf_counter()
     queries = wf_utils.generate_realistic_queries(
@@ -977,8 +970,7 @@ if __name__ == "__main__":  # pragma: no cover
         seed=QUERY_SEED,
         budget_alpha=float(wf_utils.BUDGET_ALPHA_SUITE_DEFAULT_WF1[-1]),
         lo_chain=lo_ch,
-        min_mean_cost_chain=min_c_ch,
-        min_mean_latency_chain=min_l_ch,
+        regenerate=True,
     )
     print(
         f"Loaded {len(queries)} queries (joint scenarios ≤ {len(queries) * S_PER_QUERY})."

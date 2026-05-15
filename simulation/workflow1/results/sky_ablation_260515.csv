@@ -1,1 +1,1 @@
-sweep,fixed_dimension,fixed_value,Q,S,variant,batch_add_ratio,wall_clock_sec,master_iterations,peak_memory_bytes,objective_value,gurobi_status,error
+sweep,Q,S,variant,batch_add_ratio,wall_clock_sec,master_iterations,peak_memory_bytes,objective_value,gurobi_status,error

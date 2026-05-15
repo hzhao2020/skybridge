@@ -6,6 +6,7 @@ Aggregate Utility / mean Cost / mean Latency / SVR。
 默认对 **四种 budget–α 插值** 各跑一次（``workflow1.utils.BUDGET_ALPHA_SUITE_DEFAULT_WF1``，即 α∈{0.25,0.5,0.75,1}）：
 每条 query 的 ``Θ_C, Θ_T`` 由三条锚链（LO + ``workflow1.budget`` 上 mean 最小的 cost / latency 链）
 按 ``Θ = T_{\\min} + α (T_{LO} - T_{\\min})`` 形式在费用维与时延维分别插值（见 ``generate_realistic_queries``）。
+每个 α 下 Sky 默认取 ``η_c, η_t`` 为 LO/SC/DO 在同一套经验 KPI 上的 ``VR_C, VR_T`` 各自的最小值（``--sky-eta from_baselines``，可对 0 抬到 ``1e-8`` 以免 SAA 分母为 0）；若需常数 η 则用 ``--sky-eta fixed --eta-c … --eta-t …``。
 
 在包含 ``workflow1`` 与 ``sim_env`` 的 ``simulation/`` 目录下执行::
 
@@ -21,19 +22,35 @@ from __future__ import annotations
 import argparse
 import sys
 import time
-from typing import Any
+from typing import Any, Literal
 
 from sim_env.utility import QueryProfile
 
 from . import baseline as baseline_runner
 from . import sky as sky_runner
-from .budget import wf1_mean_min_anchor_chains
 from .evaluation import EmpiricalDeploymentMetrics, evaluate_deployment_empirical, print_metrics_report
 from .utils import (
     BUDGET_ALPHA_SUITE_DEFAULT_WF1,
     generate_realistic_queries,
     wf1_logical_optimal_chain,
 )
+
+
+def _min_baseline_violation_rates(
+    baseline: list[tuple[str, EmpiricalDeploymentMetrics]],
+    *,
+    eta_floor: float = 1e-8,
+) -> tuple[float, float, str]:
+    """η_c / η_t = 对比方法 (LO/SC/DO) 在本轮 KPI 上经验违约率的最小值；避免 η=0 导致 SAA 分母为 0。"""
+    if not baseline:
+        raise ValueError("baseline metrics list is empty")
+    eta_c = min(m.slo_cost_violation_rate for _, m in baseline)
+    eta_t = min(m.slo_latency_violation_rate for _, m in baseline)
+    raw_c, raw_t = eta_c, eta_t
+    eta_c = max(float(eta_c), float(eta_floor))
+    eta_t = max(float(eta_t), float(eta_floor))
+    note = f"min_baseline_VR raw=({raw_c:.6g},{raw_t:.6g}) used=({eta_c:.6g},{eta_t:.6g})"
+    return eta_c, eta_t, note
 
 
 def _evaluate_and_print(
@@ -66,6 +83,7 @@ def _run_algorithms_for_queries(
     weights: tuple[float, float, float, float],
     eval_seed: int,
     cands: tuple[Any, ...],
+    sky_eta_mode: Literal["from_baselines", "fixed"] = "from_baselines",
 ) -> list[tuple[str, EmpiricalDeploymentMetrics | None]]:
     results: list[tuple[str, EmpiricalDeploymentMetrics | None]] = []
 
@@ -143,13 +161,21 @@ def _run_algorithms_for_queries(
         print("[Sky] skipped (--skip-sky)")
         results.append(("Sky", None))
     else:
+        if sky_eta_mode == "from_baselines":
+            eta_c, eta_t, eta_note = _min_baseline_violation_rates(
+                [("LO", m_lo), ("SC", m_sc), ("DO", m_do)],
+            )
+            print(f"[Sky] η from baselines (min VR among LO/SC/DO): {eta_note}")
+        else:
+            eta_c, eta_t = float(args.eta_c), float(args.eta_t)
+            print(f"[Sky] η fixed: η_c={eta_c:g} η_t={eta_t:g}")
         sky_dec, sky_warm = sky_runner.sky_ablation_settings(args.sky_variant)
         t0 = time.perf_counter()
         rep = sky_runner.run_sky_deployment(
             queries=queries,
             s_per_query=args.sky_s_per_query,
-            eta_c=args.eta_c,
-            eta_t=args.eta_t,
+            eta_c=eta_c,
+            eta_t=eta_t,
             # WF1 (4-layer chain): soft penalties scaled so λ·ε ~ O(U); separate from workflow2.
             lamb_c=0.35,
             lamb_t=0.00112,
@@ -239,8 +265,17 @@ def main() -> None:
         help="decomposition: each iteration adds max(1, ceil(ratio * total scenarios)) violators",
     )
     parser.add_argument("--sky-rng", type=int, default=0)
-    parser.add_argument("--eta-c", type=float, default=0.1)
-    parser.add_argument("--eta-t", type=float, default=0.1)
+    parser.add_argument("--eta-c", type=float, default=0.1, help="Sky only when --sky-eta fixed")
+    parser.add_argument("--eta-t", type=float, default=0.1, help="Sky only when --sky-eta fixed")
+    parser.add_argument(
+        "--sky-eta",
+        choices=["from_baselines", "fixed"],
+        default="from_baselines",
+        help=(
+            "from_baselines: 每个 α 下 η_c/η_t 取 LO/SC/DO 经验 VR 的最小值；"
+            "fixed: 使用 --eta-c / --eta-t"
+        ),
+    )
     parser.add_argument("--skip-sky", action="store_true", help="only run baselines (faster)")
     parser.add_argument(
         "--sky-variant",
@@ -257,6 +292,11 @@ def main() -> None:
         help=(
             "预算插值系数 α（可多选）；未写值时默认 0.25 0.5 0.75 1.0。"
         ),
+    )
+    parser.add_argument(
+        "--regenerate-query-anchor-chains",
+        action="store_true",
+        help="调用 wf1_mean_min_anchor_chains 并打印链；否则使用 utils.WF1_STORED_MIN_MEAN_*_CHAIN",
     )
     args = parser.parse_args()
 
@@ -282,13 +322,15 @@ def main() -> None:
 
     cands = sky_runner.enumerate_candidates()
     print(f"[setup] candidate layer sizes: {[len(c) for c in cands]}")
-    min_c_ch, min_l_ch = wf1_mean_min_anchor_chains(
-        cands,
-        num_queries=args.num_queries,
-        query_sample_seed=args.query_seed,
-    )
     lo_ch = wf1_logical_optimal_chain(cands, weights)
-    print("[setup] budget anchors: LO + mean-min-cost chain + mean-min-latency chain (see workflow1.budget)")
+    if args.regenerate_query_anchor_chains:
+        print(
+            "[setup] mean-min anchors: regenerate=True（首次 generate_realistic_queries 将打印 WF1_STORED_*）"
+        )
+    else:
+        print(
+            "[setup] mean-min anchors: utils.WF1_STORED_MIN_MEAN_COST_CHAIN / WF1_STORED_MIN_MEAN_LATENCY_CHAIN"
+        )
     print()
 
     mega: list[tuple[str, list[tuple[str, EmpiricalDeploymentMetrics | None]]]] = []
@@ -300,8 +342,7 @@ def main() -> None:
             seed=args.query_seed,
             budget_alpha=float(alpha),
             lo_chain=lo_ch,
-            min_mean_cost_chain=min_c_ch,
-            min_mean_latency_chain=min_l_ch,
+            regenerate=args.regenerate_query_anchor_chains,
         )
         print("*" * 70)
         print(
@@ -311,7 +352,14 @@ def main() -> None:
         )
         print("*" * 70)
 
-        results = _run_algorithms_for_queries(queries, args, weights=weights, eval_seed=eval_seed, cands=cands)
+        results = _run_algorithms_for_queries(
+            queries,
+            args,
+            weights=weights,
+            eval_seed=eval_seed,
+            cands=cands,
+            sky_eta_mode=args.sky_eta,
+        )
         mega.append((label, results))
         _print_summary_table(results)
         print()

@@ -608,24 +608,20 @@ def run_all_baselines(
 
 
 if __name__ == "__main__":  # pragma: no cover
+    from . import sky as sky_mod
     from . import utils as wf_utils
-    from .budget import wf1_mean_min_anchor_chains
     from .evaluation import evaluate_deployment_empirical, print_metrics_report
 
     n_q = 5
     cands = sky_mod.enumerate_candidates()
     WEIGHTS = (0.25, 0.25, 0.25, 0.25)
-    min_c_ch, min_l_ch = wf1_mean_min_anchor_chains(
-        cands, num_queries=n_q, query_sample_seed=7
-    )
     lo_ch = wf_utils.wf1_logical_optimal_chain(cands, WEIGHTS)
     qs = wf_utils.generate_realistic_queries(
         n_q,
         seed=7,
         budget_alpha=float(wf_utils.BUDGET_ALPHA_SUITE_DEFAULT_WF1[-1]),
         lo_chain=lo_ch,
-        min_mean_cost_chain=min_c_ch,
-        min_mean_latency_chain=min_l_ch,
+        regenerate=True,
     )
     EVAL_SQ = 30
     EVAL_SEED = 2026

@@ -46,19 +46,23 @@ _OPS_ORDER: tuple[OperationName, OperationName, OperationName, OperationName] = 
 
 _DEFAULT_WEIGHTS: Tuple[float, float, float, float] = (0.25, 0.25, 0.25, 0.25)
 
-# 由 ``python -m workflow1.budget`` 得到（N_QUERIES=100, SEED=42，plug-in mean ρ，全链枚举）。
-_BUDGET_REF_CHAIN_COST_WF1: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode] = (
+# 由 ``python -m workflow1.budget``（N=100, SEED=42）可得参考链；运行
+# ``generate_realistic_queries(..., regenerate=True)`` 会打印新链，可覆盖下面两变量。
+WF1_STORED_MIN_MEAN_COST_CHAIN: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode] = (
     PhysicalNode("shot_detection", "Aliyun", "cn-shanghai", None),
     PhysicalNode("video_split", "Aliyun", "cn-shanghai", None),
     PhysicalNode("video_caption", "Aliyun", "cn-beijing", "Qwen3-VL-Flash"),
     PhysicalNode("query", "Aliyun", "cn-beijing", "Qwen3-VL-Flash"),
 )
-_BUDGET_REF_CHAIN_LATENCY_WF1: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode] = (
+WF1_STORED_MIN_MEAN_LATENCY_CHAIN: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode] = (
     PhysicalNode("shot_detection", "Aliyun", "cn-shanghai", None),
     PhysicalNode("video_split", "Aliyun", "ap-southeast-1", None),
     PhysicalNode("video_caption", "Aliyun", "ap-southeast-1", "Qwen3-VL-Flash"),
     PhysicalNode("query", "Aliyun", "ap-southeast-1", "Qwen3-VL-Flash"),
 )
+# workflow2 等仍引用旧名；与上面两变量保持同一对象。
+_BUDGET_REF_CHAIN_COST_WF1 = WF1_STORED_MIN_MEAN_COST_CHAIN
+_BUDGET_REF_CHAIN_LATENCY_WF1 = WF1_STORED_MIN_MEAN_LATENCY_CHAIN
 # 默认实验：在 C_min 与 LO（效用上限）链成本 C_max 之间插值，Θ_C = C_min + α (C_max - C_min)；
 # Θ_T 同形（L_min、L_max 为各链 plug-in mean ρ + 单次 mean-field 抽样下端到端时延）。
 BUDGET_ALPHA_SUITE_DEFAULT_WF1: tuple[float, ...] = (0.25, 0.5, 0.75, 1.0)
@@ -72,6 +76,14 @@ WF1_LOGICAL_OPTIMAL_NODES: tuple[PhysicalNode, PhysicalNode, PhysicalNode, Physi
     PhysicalNode("video_caption", "AWS", "us-west-2", "Amazon Nova Pro"),
     PhysicalNode("query", "GCP", "us-east1", "Gemini 2.5 Pro"),
 )
+
+# ``generate_realistic_queries(..., regenerate=True)``：同进程内相同
+# (num_queries, seed, n_calibration_samples) 只重算并打印一次 ``wf1_mean_min_anchor_chains``。
+_REGEN_WF1_MEMO_KEY: tuple[int, int, int] | None = None
+_REGEN_WF1_MEMO_PAIR: tuple[
+    tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode],
+    tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode],
+] | None = None
 
 
 def det_rng(master: int, *parts: int | str) -> random.Random:
@@ -560,35 +572,92 @@ def end_to_end_utility(
     return sum(w[i] * physical_node_utility(ns[i]) for i in range(4))
 
 
+def _print_wf1_stored_anchor_assignment(
+    min_c: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode],
+    min_l: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode],
+) -> None:
+    """将 ``wf1_mean_min_anchor_chains`` 的结果打成可粘贴到本模块的赋值语句。"""
+
+    def line(n: PhysicalNode) -> str:
+        return (
+            f'    PhysicalNode({n.operation!r}, {n.provider!r}, {n.region!r}, {repr(n.model)}),'
+        )
+
+    print("--- wf1_mean_min_anchor_chains（可粘贴覆盖 WF1_STORED_MIN_MEAN_*_CHAIN）---")
+    print("WF1_STORED_MIN_MEAN_COST_CHAIN = (")
+    for n in min_c:
+        print(line(n))
+    print(")")
+    print("WF1_STORED_MIN_MEAN_LATENCY_CHAIN = (")
+    for n in min_l:
+        print(line(n))
+    print(")")
+
+
 def generate_realistic_queries(
     num_queries: int,
     seed: int = 42,
     *,
     budget_alpha: float,
     lo_chain: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode],
-    min_mean_cost_chain: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode],
-    min_mean_latency_chain: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode],
+    min_mean_cost_chain: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode] | None = None,
+    min_mean_latency_chain: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode] | None = None,
+    regenerate: bool = False,
+    n_calibration_samples: int = 4096,
 ) -> list[QueryProfile]:
     """
     生成校准 query 列表及 chance-constraint 预算 ``(Θ_C, Θ_T)``。
 
-    对每条 query 在 plug-in mean ρ 下分别评估三条锚链（须与 ``workflow1.budget`` 口径一致地预先选出）：
+    对每条 query 在 plug-in mean ρ 下分别评估三条锚链：
 
-    * ``min_mean_cost_chain``：仅取其 **费用** 作为 ``C_{\\min}^q``；
-    * ``min_mean_latency_chain``：仅取其 **时延** 作为 ``T_{\\min}^q``；
+    * ``min_mean_cost_chain`` / ``min_mean_latency_chain``：若 ``regenerate=False`` 且两参数均为
+      ``None``，则使用模块变量 ``WF1_STORED_MIN_MEAN_COST_CHAIN`` 与
+      ``WF1_STORED_MIN_MEAN_LATENCY_CHAIN``；若均传入非 ``None``，则仍优先使用参数（兼容旧调用）。
+    * ``regenerate=True``：调用 ``wf1_mean_min_anchor_chains``（同进程内相同
+      ``num_queries``、``seed``、``n_calibration_samples`` 只算一次并打印结果）。
     * ``lo_chain``：取 ``(C_{LO}^q, T_{LO}^q)``。
 
-    插值（与 budget 脚本相同的 per-query mean-field 键族，见下方 ``det_rng``）::
+    插值::
 
         Θ_C^q(α) = C_{\\min}^q + α (C_{LO}^q - C_{\\min}^q),
         Θ_T^q(α) = T_{\\min}^q + α (T_{LO}^q - T_{\\min}^q).
     """
     import random
 
+    global _REGEN_WF1_MEMO_KEY, _REGEN_WF1_MEMO_PAIR
+
+    min_c: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode]
+    min_l: tuple[PhysicalNode, PhysicalNode, PhysicalNode, PhysicalNode]
+
+    if regenerate:
+        memo_k = (int(num_queries), int(seed), int(n_calibration_samples))
+        if _REGEN_WF1_MEMO_KEY == memo_k and _REGEN_WF1_MEMO_PAIR is not None:
+            min_c, min_l = _REGEN_WF1_MEMO_PAIR
+        else:
+            from .budget import wf1_mean_min_anchor_chains
+            from .sky import enumerate_candidates
+
+            cands = enumerate_candidates()
+            min_c, min_l = wf1_mean_min_anchor_chains(
+                cands,
+                num_queries=num_queries,
+                query_sample_seed=seed,
+                n_calibration_samples=n_calibration_samples,
+            )
+            _print_wf1_stored_anchor_assignment(min_c, min_l)
+            _REGEN_WF1_MEMO_KEY = memo_k
+            _REGEN_WF1_MEMO_PAIR = (min_c, min_l)
+    elif min_mean_cost_chain is not None and min_mean_latency_chain is not None:
+        min_c = min_mean_cost_chain
+        min_l = min_mean_latency_chain
+    else:
+        min_c = WF1_STORED_MIN_MEAN_COST_CHAIN
+        min_l = WF1_STORED_MIN_MEAN_LATENCY_CHAIN
+
     for label, ch in (
         ("lo_chain", lo_chain),
-        ("min_mean_cost_chain", min_mean_cost_chain),
-        ("min_mean_latency_chain", min_mean_latency_chain),
+        ("min_mean_cost_chain", min_c),
+        ("min_mean_latency_chain", min_l),
     ):
         if len(ch) != 4:
             raise ValueError(f"{label} must have length 4")
@@ -600,7 +669,7 @@ def generate_realistic_queries(
     calib_rng = random.Random(seed + 100)
 
     mean_rho = cfg.plugin_mean_data_conversion_ratios(
-        n_calibration_samples=4096,
+        n_calibration_samples=n_calibration_samples,
         rng=calib_rng,
         operations=("shot_detection", "video_split", "video_caption", "query"),
     )
@@ -614,11 +683,11 @@ def generate_realistic_queries(
 
         wf_mc = det_rng(seed, "grq_anchor_min_cost", q_idx)
         c_min_x, _ = end_to_end_cost_and_latency(
-            min_mean_cost_chain, s_src_gb, mean_rho, workflow_rng=wf_mc
+            min_c, s_src_gb, mean_rho, workflow_rng=wf_mc
         )
         wf_mt = det_rng(seed, "grq_anchor_min_lat", q_idx)
         _, t_min_x = end_to_end_cost_and_latency(
-            min_mean_latency_chain, s_src_gb, mean_rho, workflow_rng=wf_mt
+            min_l, s_src_gb, mean_rho, workflow_rng=wf_mt
         )
         wf_lo = det_rng(seed, "budget_alpha_lo", q_idx)
         c_lox, t_lox = end_to_end_cost_and_latency(
