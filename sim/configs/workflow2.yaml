@@ -1,0 +1,32 @@
+name: workflow2
+description: Retrieval-Augmented Video QA
+nodes:
+  - ClientSource
+  - Shot Detection
+  - Video Split & Sample
+  - Video Caption
+  - OCR
+  - Label Detection
+  - Speech Transcription
+  - Database
+  - Q/A
+  - ClientSink
+edges:
+  - [ClientSource, Shot Detection]
+  - [Shot Detection, Video Split & Sample]
+  - [Video Split & Sample, Video Caption]
+  - [Video Caption, Database]
+  - [Video Split & Sample, OCR]
+  - [OCR, Database]
+  - [Video Split & Sample, Label Detection]
+  - [Label Detection, Database]
+  - [ClientSource, Speech Transcription]
+  - [Speech Transcription, Database]
+  - [Database, Q/A]
+  - [Q/A, ClientSink]
+virtual_nodes:
+  - ClientSource
+  - ClientSink
+query_metadata_targets:
+  - Database
+  - Q/A

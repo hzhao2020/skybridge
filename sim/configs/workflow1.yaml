@@ -1,0 +1,20 @@
+name: workflow1
+description: Linear Video QA
+nodes:
+  - ClientSource
+  - Shot Detection
+  - Video Split & Sample
+  - Video Caption
+  - Q/A
+  - ClientSink
+edges:
+  - [ClientSource, Shot Detection]
+  - [Shot Detection, Video Split & Sample]
+  - [Video Split & Sample, Video Caption]
+  - [Video Caption, Q/A]
+  - [Q/A, ClientSink]
+virtual_nodes:
+  - ClientSource
+  - ClientSink
+query_metadata_targets:
+  - Q/A

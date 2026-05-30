@@ -1,0 +1,183 @@
+# Cloud pricing and data-conversion tables (SkyFlow paper / Simulation.md).
+# Monetary amounts are USD unless noted. Storage and DB instance charges assume 1 billable day.
+
+video_mb_per_minute: 10.0
+video_fps: 30
+tokens_per_kb: 250
+storage_days_per_month: 30.0
+mb_per_vision_image: 0.3
+
+# Calibration query workload (paper Query section).
+query:
+  requests_per_quality_level: 100
+  workflow1_workflow2_ratio: [1, 1]
+  video_duration_sec_min: 60
+  video_duration_sec_max: 1800
+
+quality_tiers:
+  Q1: Essential
+  Q2: Standard
+  Q3: Premium
+
+sampling_rates_fps:
+  Q1: 0.2
+  Q2: 0.5
+  Q3: 1.0
+
+quality_models:
+  Q1: Claude Haiku 4.5
+  Q2: Claude Sonnet 4.5
+  Q3: Claude Opus 4.5
+
+# Default Claude list prices ($/1M tokens) when a provider/region has no override.
+llm_default_price_per_million:
+  Claude Haiku 4.5: [1.0, 5.0]
+  Claude Sonnet 4.5: [3.0, 15.0]
+  Claude Opus 4.5: [5.0, 25.0]
+
+# Provider-specific LLM overrides: model -> [input, output] $/1M tokens
+llm_price_per_million:
+  AWS:
+    us-west-2:
+      Claude Haiku 4.5: [1.0, 5.0]
+      Claude Sonnet 4.5: [3.0, 15.0]
+      Claude Opus 4.5: [5.0, 25.0]
+    us-east-2:
+      Claude Haiku 4.5: [1.0, 5.0]
+      Claude Sonnet 4.5: [3.0, 15.0]
+      Claude Opus 4.5: [5.0, 25.0]
+    ap-southeast-1:
+      Claude Haiku 4.5: [1.0, 5.0]
+      Claude Sonnet 4.5: [3.0, 15.0]
+      Claude Opus 4.5: [5.0, 25.0]
+    eu-central-1:
+      Claude Haiku 4.5: [1.0, 5.0]
+      Claude Sonnet 4.5: [3.0, 15.0]
+      Claude Opus 4.5: [5.0, 25.0]
+  GCP:
+    europe-west1:
+      Claude Haiku 4.5: [1.1, 5.5]
+      Claude Sonnet 4.5: [3.3, 16.5]
+      Claude Opus 4.5: [5.5, 27.5]
+    asia-east1:
+      Claude Haiku 4.5: [1.1, 5.5]
+      Claude Sonnet 4.5: [3.3, 16.5]
+      Claude Opus 4.5: [5.5, 27.5]
+    us-east1:
+      Claude Haiku 4.5: [1.1, 5.5]
+    us-west1:
+      Claude Haiku 4.5: [1.1, 5.5]
+  Azure:
+    westus2:
+      Claude Haiku 4.5: [1.0, 5.0]
+      Claude Sonnet 4.5: [3.0, 15.0]
+      Claude Opus 4.5: [5.0, 25.0]
+    eastus:
+      Claude Haiku 4.5: [1.0, 5.0]
+      Claude Sonnet 4.5: [3.0, 15.0]
+      Claude Opus 4.5: [5.0, 25.0]
+    westeurope:
+      Claude Haiku 4.5: [1.0, 5.0]
+      Claude Sonnet 4.5: [3.0, 15.0]
+      Claude Opus 4.5: [5.0, 25.0]
+    southeastasia:
+      Claude Haiku 4.5: [1.0, 5.0]
+      Claude Sonnet 4.5: [3.0, 15.0]
+      Claude Opus 4.5: [5.0, 25.0]
+
+# Shot detection: USD per minute of video
+shot_detection_usd_per_minute:
+  GCP:
+    us-east1: 0.05
+    us-west1: 0.05
+    europe-west1: 0.05
+    asia-east1: 0.05
+  AWS:
+    us-west-2: 0.05
+    us-east-2: 0.05
+    ap-southeast-1: 0.0675
+    eu-central-1: 0.06
+  Aliyun:
+    cn-shanghai: 0.03
+
+# Video split (serverless 1 vCPU + 1 GiB): USD per minute
+video_split_usd_per_minute:
+  GCP:
+    us-east1: 0.0012
+    us-west1: 0.0012
+    europe-west1: 0.0012
+    asia-east1: 0.0012
+  AWS:
+    us-west-2: 0.002
+    us-east-2: 0.002
+    ap-southeast-1: 0.002
+    eu-central-1: 0.002
+  Aliyun:
+    cn-shanghai: 0.0011
+    cn-beijing: 0.0011
+    us-east-1: 0.0011
+    ap-southeast-1: 0.0011
+  Azure:
+    westus2: 0.00156
+    eastus: 0.00156
+    westeurope: 0.00156
+    southeastasia: 0.00222
+
+# OCR / label: USD per image
+ocr_usd_per_image:
+  GCP: {us-east1: 0.0015, us-west1: 0.0015, europe-west1: 0.0015, asia-east1: 0.0015}
+  AWS: {us-west-2: 0.001, us-east-2: 0.001, ap-southeast-1: 0.001, eu-central-1: 0.001}
+  Aliyun: {cn-shanghai: 0.012, cn-beijing: 0.012, us-east-1: 0.012, ap-southeast-1: 0.012}
+  Azure: {westus2: 0.001, eastus: 0.001, westeurope: 0.001, southeastasia: 0.001}
+
+label_detection_usd_per_image:
+  GCP: {us-east1: 0.0015, us-west1: 0.0015, europe-west1: 0.0015, asia-east1: 0.0015}
+  AWS: {us-west-2: 0.001, us-east-2: 0.001, ap-southeast-1: 0.001, eu-central-1: 0.001}
+  Aliyun: {cn-shanghai: 0.00029, cn-beijing: 0.00029, us-east-1: 0.00029, ap-southeast-1: 0.00029}
+  Azure: {westus2: 0.001, eastus: 0.001, westeurope: 0.001, southeastasia: 0.001}
+
+# Speech transcription: USD per minute
+speech_transcription_usd_per_minute:
+  GCP: {us-east1: 0.016, us-west1: 0.016, europe-west1: 0.016, asia-east1: 0.016}
+  AWS: {us-west-2: 0.024, us-east-2: 0.024, ap-southeast-1: 0.024, eu-central-1: 0.024}
+  Aliyun: {cn-shanghai: 0.0061, cn-beijing: 0.0061}
+  Azure: {westus2: 0.013, eastus: 0.013, westeurope: 0.013, southeastasia: 0.013}
+
+# Object storage: USD per GB-month (billed for 1 day in simulator)
+storage_usd_per_gb_month:
+  GCP: {us-east1: 0.020, us-west1: 0.020, europe-west1: 0.020, asia-east1: 0.020}
+  AWS: {us-west-2: 0.023, us-east-2: 0.023, ap-southeast-1: 0.025, eu-central-1: 0.0245}
+  Aliyun: {cn-shanghai: 0.0173, cn-beijing: 0.0173, us-east-1: 0.0160, ap-southeast-1: 0.0170}
+  Azure: {eastus: 0.0184, westus2: 0.0184, southeastasia: 0.0208, westeurope: 0.0208}
+
+database_storage_usd_per_gb_month:
+  GCP: {us-west1: 0.299957, us-east1: 0.338939, europe-west1: 0.32996, asia-east1: 0.347918}
+  AWS: {us-west-2: 0.10, us-east-2: 0.10, ap-southeast-1: 0.11, eu-central-1: 0.119}
+  Aliyun: {cn-shanghai: 0.26, cn-beijing: 0.26, us-east-1: 0.29, ap-southeast-1: 0.29}
+  Azure: {westus2: 0.0, eastus: 0.0, westeurope: 0.0, southeastasia: 0.0}
+
+database_instance_usd_per_month:
+  GCP: {us-west1: 163.52, us-east1: 184.7776, europe-west1: 179.872, asia-east1: 189.6832}
+  AWS: {us-west-2: 172.8, us-east-2: 172.8, ap-southeast-1: 288.0, eu-central-1: 201.6}
+  Aliyun: {cn-shanghai: 36.76, cn-beijing: 36.76, us-east-1: 42.05, ap-southeast-1: 64.40}
+  Azure: {westus2: 73.73, eastus: 73.73, westeurope: 73.73, southeastasia: 73.73}
+
+# Data conversion ratio: population mean m and std v of output/input (LogNormal on R).
+data_conversion_ratio_mean_std:
+  Shot Detection: {tier: null, mean: 1.0, std: 0.0}
+  Video Split & Sample:
+    Essential: {mean: 0.0067, std: 0.0007}
+    Standard: {mean: 0.0167, std: 0.0017}
+    Premium: {mean: 0.0333, std: 0.0033}
+  Video Caption:
+    Essential: {mean: 0.0010, std: 0.0008}
+    Standard: {mean: 0.0025, std: 0.0020}
+    Premium: {mean: 0.0050, std: 0.0050}
+  OCR: {tier: null, mean: 0.001981, std: 0.0004031}
+  Label Detection: {tier: null, mean: 0.00832, std: 0.006262}
+  Speech Transcription: {tier: null, mean: 0.001989, std: 0.0002701}
+  Database: {tier: null, mean: 0.150, std: 0.075}
+  Q/A:
+    Essential: {mean: 0.080, std: 0.060}
+    Standard: {mean: 0.150, std: 0.120}
+    Premium: {mean: 0.250, std: 0.250}

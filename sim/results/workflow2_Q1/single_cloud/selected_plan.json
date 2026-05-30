@@ -1,0 +1,78 @@
+{
+  "workflow": "workflow2",
+  "quality_level": "Q1",
+  "method": "single_cloud",
+  "assignments": [
+    {
+      "logical_node": "Shot Detection",
+      "endpoint_id": "shot_detection_gcp_us-west1_q1",
+      "provider": "GCP",
+      "region": "us-west1",
+      "model_name": null
+    },
+    {
+      "logical_node": "Speech Transcription",
+      "endpoint_id": "speech_transcription_gcp_us-west1_q1",
+      "provider": "GCP",
+      "region": "us-west1",
+      "model_name": null
+    },
+    {
+      "logical_node": "Video Split & Sample",
+      "endpoint_id": "video_split_and_sample_gcp_us-west1_q1",
+      "provider": "GCP",
+      "region": "us-west1",
+      "model_name": null
+    },
+    {
+      "logical_node": "Video Caption",
+      "endpoint_id": "video_caption_gcp_us-west1_q1",
+      "provider": "GCP",
+      "region": "us-west1",
+      "model_name": "Claude Haiku 4.5"
+    },
+    {
+      "logical_node": "OCR",
+      "endpoint_id": "ocr_gcp_us-west1_q1",
+      "provider": "GCP",
+      "region": "us-west1",
+      "model_name": null
+    },
+    {
+      "logical_node": "Label Detection",
+      "endpoint_id": "label_detection_gcp_us-west1_q1",
+      "provider": "GCP",
+      "region": "us-west1",
+      "model_name": null
+    },
+    {
+      "logical_node": "Database",
+      "endpoint_id": "database_gcp_us-west1_q1",
+      "provider": "GCP",
+      "region": "us-west1",
+      "model_name": null
+    },
+    {
+      "logical_node": "Q/A",
+      "endpoint_id": "q_a_gcp_us-west1_q1",
+      "provider": "GCP",
+      "region": "us-west1",
+      "model_name": "Claude Haiku 4.5"
+    }
+  ],
+  "objective_value": 0.332,
+  "metrics": {
+    "workflow": "workflow2",
+    "quality_level": "Q1",
+    "method": "single_cloud",
+    "objective_value": 0.332,
+    "expected_cost": 6.908018936339543,
+    "avg_latency": 84.77356523786317,
+    "p95_latency": 129.74561282866924,
+    "p99_latency": 141.83228756599405,
+    "violation_rate": 0.352,
+    "cvar_value": 17.778924814566967,
+    "solver_runtime_sec": 1.206777959014289,
+    "status": "optimal"
+  }
+}

@@ -1,0 +1,61 @@
+# Paper / experiment hyperparameters (fixed for all runs unless overridden).
+random_seed: 42          # RNG seed for queries, scenarios (ρ), and endpoint latency scaling
+num_scenarios_per_query: 10  # S = 10 stochastic scenarios per query
+eta: 0.05                # η CVaR tail confidence in SAA-CVaR MILP and post-eval CVaR
+
+# all = every region in providers; first = one region per provider; integer = first N regions per provider.
+regions_per_provider: 2
+num_queries_per_quality: 100
+top_k: 10
+initial_active_fraction: 0.20
+active_batch_fraction: 0.05
+violation_tolerance: 1.0e-6
+max_iterations: 100
+gurobi_time_limit_sec: 300
+gurobi_mip_gap: 0.001
+latency_tiebreaker_weight: 1.0e-8
+# Solver used by run_all.py (6 experiments: each workflow × each quality, run separately).
+default_solver_method: decomposition
+
+quality_models:
+  Q1: Claude Haiku 4.5
+  Q2: Claude Sonnet 4.5
+  Q3: Claude Opus 4.5
+
+llm_prices:
+  Q1:
+    input_price: 1
+    output_price: 5
+  Q2:
+    input_price: 3
+    output_price: 15
+  Q3:
+    input_price: 5
+    output_price: 25
+
+sampling_rates:
+  Q1: 0.2
+  Q2: 0.5
+  Q3: 1.0
+
+providers:
+  GCP:
+    - us-east1
+    - us-west1
+    - europe-west1
+    - asia-east1
+  AWS:
+    - us-west-2
+    - us-east-2
+    - ap-southeast-1
+    - eu-central-1
+  Aliyun:
+    - cn-shanghai
+    - cn-beijing
+    - us-east-1
+    - ap-southeast-1
+  Azure:
+    - westus2
+    - eastus
+    - westeurope
+    - southeastasia

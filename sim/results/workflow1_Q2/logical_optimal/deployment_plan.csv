@@ -1,0 +1,5 @@
+workflow,quality_level,logical_node,endpoint_id,provider,region,model_name
+workflow1,Q2,Shot Detection,shot_detection_gcp_us-west1_q2,GCP,us-west1,
+workflow1,Q2,Video Split & Sample,video_split_and_sample_gcp_us-west1_q2,GCP,us-west1,
+workflow1,Q2,Video Caption,video_caption_azure_westus2_q2,Azure,westus2,Claude Sonnet 4.5
+workflow1,Q2,Q/A,q_a_azure_westus2_q2,Azure,westus2,Claude Sonnet 4.5

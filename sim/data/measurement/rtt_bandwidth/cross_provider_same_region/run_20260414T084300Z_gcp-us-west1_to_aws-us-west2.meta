@@ -1,0 +1,11 @@
+start_utc=2026-04-14T08:43:01Z
+peer=18.236.144.157
+topology_label=cross_provider_cross_region
+provider_local=gcp region_local=us-west1
+provider_peer=aws region_peer=us-west2
+interval_sec=300 total_sec=86400
+ping_cmd=ping -n -c 10 -W 2 18.236.144.157
+iperf_cmd=iperf3 -c 18.236.144.157 -p 5201 -t 10 -f m --bidir
+rtt_csv=/home/zzy4399/log/cross_provider_probe/rtt_20260414T084300Z_gcp-us-west1_to_aws-us-west2.csv
+bandwidth_csv=/home/zzy4399/log/cross_provider_probe/bandwidth_20260414T084300Z_gcp-us-west1_to_aws-us-west2.csv
+provenance=/home/zzy4399/log/cross_provider_probe/provenance_20260414T084300Z_gcp-us-west1_to_aws-us-west2.txt
