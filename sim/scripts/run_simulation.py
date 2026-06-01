@@ -32,6 +32,9 @@ else:
 
 
 def _expected_queries_per_run(cfg: dict) -> int:
+    per_workflow = cfg.get("num_queries_per_workflow_quality")
+    if per_workflow is not None:
+        return int(per_workflow)
     qcfg = query_generation_params()
     n_total = int(cfg.get("num_queries_per_quality", qcfg["requests_per_quality_level"]))
     ratio = qcfg.get("workflow1_workflow2_ratio", [1, 1])
@@ -100,7 +103,10 @@ def main() -> None:
     train_scenarios = scenarios
     eval_scenarios = scenarios
     if args.heldout_eval:
-        train_scenarios, eval_scenarios = split_scenarios_by_query(scenarios)
+        train_scenarios, eval_scenarios = split_scenarios_by_query(
+            scenarios,
+            calibration_count=int(cfg.get("num_scenarios_per_query", 10)),
+        )
     logging.info(
         "Experiment %s %s: %d queries, %d scenarios, method=%s",
         args.workflow,

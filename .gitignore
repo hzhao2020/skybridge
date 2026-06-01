@@ -77,6 +77,9 @@ service-account-key.json
 # Results and outputs
 *.json.bak
 
+# Sim generated data (regenerate via scripts/generate_synthetic_data.py; scenarios.csv exceeds GitHub 100MB limit)
+sim/data/synthetic/scenarios.csv
+
 tmp.ipynb
 
 # Configuration file with sensitive information

@@ -11,9 +11,12 @@ from gurobipy import GRB
 
 from src.cost_latency import (
     endpoints_by_operation,
+    execution_cost,
+    execution_latency,
     filter_endpoints,
 )
 from src.data_propagation import output_data_sizes, propagate_data_sizes
+from src.measurement.execution_latency import sampled_execution_latency
 from src.path_utils import enumerate_source_to_sink_paths, path_edges
 from src.schemas import (
     AblationConfig,
@@ -44,6 +47,8 @@ class MilpArtifacts:
     workflow: WorkflowDAG
     config: SolverConfig
     virtual_assignment: dict[str, Endpoint] = field(default_factory=dict)
+    primary_objective: gp.LinExpr | None = None
+    secondary_objective: gp.LinExpr | None = None
 
 
 def build_milp(
@@ -86,6 +91,9 @@ def build_milp(
         active_keys = {(q.query_id, s.scenario_id) for q, s in qs_pairs}
     else:
         active_keys = active_scenario_keys
+    active_qs_pairs = [
+        (q, s) for q, s in qs_pairs if (q.query_id, s.scenario_id) in active_keys
+    ]
 
     network_index = {(l.src_endpoint_id, l.dst_endpoint_id): l for l in _load_network_for_build()}
     paths = enumerate_source_to_sink_paths(workflow)
@@ -94,6 +102,9 @@ def build_milp(
     model.Params.OutputFlag = 0
     model.Params.TimeLimit = config.gurobi_time_limit_sec
     model.Params.MIPGap = config.gurobi_mip_gap
+    model.Params.MIPGapAbs = 1e-12
+    model.Params.Seed = config.random_seed
+    model.Params.Threads = 1
 
     x: dict[tuple[str, str], gp.Var] = {}
     for node, cands in node_candidates.items():
@@ -144,7 +155,7 @@ def build_milp(
 
     alpha = model.addVar(lb=-GRB.INFINITY, name="alpha")
     z: dict[tuple[str, str], gp.Var] = {}
-    for q, s in qs_pairs:
+    for q, s in active_qs_pairs:
         z[q.query_id, s.scenario_id] = model.addVar(lb=0, name=f"z_{q.query_id}_{s.scenario_id}")
 
     cost_expr = _build_cost_expression(
@@ -161,10 +172,13 @@ def build_milp(
             node_candidates,
             virtual_assignment,
             network_index,
-            qs_pairs,
+            active_qs_pairs,
             paths,
             ablation,
         )
+    secondary_objective = None
+    if config.endpoint_tiebreaker_weight > 0:
+        secondary_objective = _build_endpoint_tiebreaker_expression(x, node_candidates)
     model.setObjective(objective, GRB.MINIMIZE)
 
     if ablation.enable_cvar:
@@ -174,16 +188,14 @@ def build_milp(
             name="cvar_constraint",
         )
 
-        for q, s in qs_pairs:
+        for q, s in active_qs_pairs:
             key = (q.query_id, s.scenario_id)
-            if key not in active_keys:
-                continue
             input_sizes = propagate_data_sizes(workflow, q, s)
             output_sizes = output_data_sizes(input_sizes, s, workflow)
             for path in paths:
                 path_expr = _path_latency_expr(
                     path, workflow, x, y, node_candidates, virtual_assignment,
-                    network_index, input_sizes, output_sizes, s, ablation,
+                    network_index, input_sizes, output_sizes, q, s, ablation,
                 )
                 model.addConstr(
                     z[key] >= path_expr - q.sla_sec - alpha,
@@ -205,6 +217,8 @@ def build_milp(
         workflow=workflow,
         config=config,
         virtual_assignment=virtual_assignment,
+        primary_objective=objective,
+        secondary_objective=secondary_objective,
     )
 
 
@@ -244,7 +258,7 @@ def _build_cost_expression(
             inp = input_sizes.get(node, 0.0)
             out = output_sizes.get(node, 0.0)
             for ep in cands:
-                exec_c = ep.fixed_cost + inp * ep.cost_per_mb
+                exec_c = execution_cost(ep, inp, out)
                 stor_c = 0.0
                 if ablation.enable_storage_cost:
                     stor_c = ep.storage_cost_per_mb * (inp + out)
@@ -300,10 +314,23 @@ def _build_latency_tiebreaker_expression(
                 network_index,
                 input_sizes,
                 output_sizes,
+                q,
                 s,
                 ablation,
             )
     return total / denom
+
+
+def _build_endpoint_tiebreaker_expression(
+    x: dict,
+    node_candidates: dict[str, list[Endpoint]],
+) -> gp.LinExpr:
+    expr = gp.LinExpr(0)
+    denom = max(sum(len(cands) for cands in node_candidates.values()), 1)
+    for node in sorted(node_candidates):
+        for rank, ep in enumerate(sorted(node_candidates[node], key=lambda e: e.endpoint_id), start=1):
+            expr += (rank / denom) * x[node, ep.endpoint_id]
+    return expr
 
 
 def _path_latency_expr(
@@ -316,6 +343,7 @@ def _path_latency_expr(
     network_index: dict,
     input_sizes: dict[str, float],
     output_sizes: dict[str, float],
+    query: Query,
     scenario: Scenario,
     ablation: AblationConfig,
 ) -> gp.LinExpr:
@@ -324,9 +352,14 @@ def _path_latency_expr(
         if workflow.is_virtual(node):
             continue
         inp = input_sizes.get(node, 0.0)
+        out = output_sizes.get(node, 0.0)
         for ep in node_candidates[node]:
-            mult = scenario.exec_latency_multiplier.get(ep.endpoint_id, scenario.exec_stress)
-            lat = (ep.base_latency_sec + inp * ep.latency_per_mb) * mult
+            sampled = sampled_execution_latency(ep, query, scenario)
+            if sampled is not None:
+                lat = sampled
+            else:
+                mult = scenario.exec_latency_multiplier.get(ep.endpoint_id, scenario.exec_stress)
+                lat = execution_latency(ep, inp, out, mult)
             expr += lat * x[node, ep.endpoint_id]
 
     for src, dst in path_edges(path):
@@ -360,12 +393,28 @@ def solve_model(artifacts: MilpArtifacts) -> tuple[dict, dict, float, dict, str,
     """Solve and extract incumbent solution."""
     t0 = time.perf_counter()
     artifacts.model.optimize()
-    runtime = time.perf_counter() - t0
     status = _gurobi_status(artifacts.model.Status)
 
     if artifacts.model.SolCount == 0:
+        runtime = time.perf_counter() - t0
         logger.error("Gurobi found no feasible solution (status=%s)", status)
         return {}, {}, 0.0, {}, status, runtime, float("inf")
+
+    if artifacts.secondary_objective is not None and artifacts.primary_objective is not None:
+        primary_opt = artifacts.primary_objective.getValue()
+        artifacts.model.addConstr(
+            artifacts.primary_objective <= primary_opt + 1e-9,
+            name="primary_objective_lock",
+        )
+        artifacts.model.setObjective(artifacts.secondary_objective, GRB.MINIMIZE)
+        artifacts.model.optimize()
+        status = _gurobi_status(artifacts.model.Status)
+        if artifacts.model.SolCount == 0:
+            runtime = time.perf_counter() - t0
+            logger.error("Gurobi found no lexicographic solution (status=%s)", status)
+            return {}, {}, 0.0, {}, status, runtime, float("inf")
+
+    runtime = time.perf_counter() - t0
 
     x_sol: dict[tuple[str, str], float] = {}
     for key, var in artifacts.x.items():
@@ -378,7 +427,11 @@ def solve_model(artifacts: MilpArtifacts) -> tuple[dict, dict, float, dict, str,
 
     alpha_val = artifacts.alpha.X if artifacts.alpha else 0.0
     z_sol = {k: v.X for k, v in artifacts.z.items()}
-    obj = artifacts.model.ObjVal
+    obj = (
+        artifacts.primary_objective.getValue()
+        if artifacts.primary_objective is not None
+        else artifacts.model.ObjVal
+    )
 
     return x_sol, y_sol, alpha_val, z_sol, status, runtime, obj
 

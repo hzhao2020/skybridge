@@ -26,16 +26,16 @@
     },
     {
       "logical_node": "Video Caption",
-      "endpoint_id": "video_caption_azure_westus2_q3",
-      "provider": "Azure",
-      "region": "westus2",
+      "endpoint_id": "video_caption_aws_eu-central-1_q3",
+      "provider": "AWS",
+      "region": "eu-central-1",
       "model_name": "Claude Opus 4.5"
     },
     {
       "logical_node": "OCR",
-      "endpoint_id": "ocr_azure_westus2_q3",
+      "endpoint_id": "ocr_azure_eastus_q3",
       "provider": "Azure",
-      "region": "westus2",
+      "region": "eastus",
       "model_name": null
     },
     {
@@ -47,32 +47,32 @@
     },
     {
       "logical_node": "Database",
-      "endpoint_id": "database_aliyun_cn-shanghai_q3",
-      "provider": "Aliyun",
-      "region": "cn-shanghai",
+      "endpoint_id": "database_aws_ap-southeast-1_q3",
+      "provider": "AWS",
+      "region": "ap-southeast-1",
       "model_name": null
     },
     {
       "logical_node": "Q/A",
-      "endpoint_id": "q_a_azure_westus2_q3",
-      "provider": "Azure",
-      "region": "westus2",
+      "endpoint_id": "q_a_aws_us-west-2_q3",
+      "provider": "AWS",
+      "region": "us-west-2",
       "model_name": "Claude Opus 4.5"
     }
   ],
-  "objective_value": 0.0,
+  "objective_value": 0.002,
   "metrics": {
     "workflow": "workflow2",
     "quality_level": "Q3",
     "method": "greedy",
-    "objective_value": 0.0,
-    "expected_cost": 9.685176412111131,
-    "avg_latency": 45.89947734931163,
-    "p95_latency": 68.0699069550066,
-    "p99_latency": 76.01582216766083,
+    "objective_value": 0.002,
+    "expected_cost": 16.413346227564222,
+    "avg_latency": 38.279934133017946,
+    "p95_latency": 61.63008191766247,
+    "p99_latency": 67.54533780012461,
     "violation_rate": 0.008,
-    "cvar_value": 0.7120608715191808,
-    "solver_runtime_sec": 30.78577637503622,
+    "cvar_value": 0.1279690228563517,
+    "solver_runtime_sec": 367.10992439999245,
     "status": "optimal"
   }
 }

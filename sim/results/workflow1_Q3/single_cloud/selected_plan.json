@@ -5,46 +5,46 @@
   "assignments": [
     {
       "logical_node": "Shot Detection",
-      "endpoint_id": "shot_detection_aws_us-east-2_q3",
-      "provider": "AWS",
-      "region": "us-east-2",
+      "endpoint_id": "shot_detection_gcp_europe-west1_q3",
+      "provider": "GCP",
+      "region": "europe-west1",
       "model_name": null
     },
     {
       "logical_node": "Video Split & Sample",
-      "endpoint_id": "video_split_and_sample_aws_us-east-2_q3",
-      "provider": "AWS",
-      "region": "us-east-2",
+      "endpoint_id": "video_split_and_sample_gcp_europe-west1_q3",
+      "provider": "GCP",
+      "region": "europe-west1",
       "model_name": null
     },
     {
       "logical_node": "Video Caption",
-      "endpoint_id": "video_caption_aws_us-west-2_q3",
-      "provider": "AWS",
-      "region": "us-west-2",
+      "endpoint_id": "video_caption_gcp_europe-west1_q3",
+      "provider": "GCP",
+      "region": "europe-west1",
       "model_name": "Claude Opus 4.5"
     },
     {
       "logical_node": "Q/A",
-      "endpoint_id": "q_a_aws_us-west-2_q3",
-      "provider": "AWS",
-      "region": "us-west-2",
+      "endpoint_id": "q_a_gcp_asia-east1_q3",
+      "provider": "GCP",
+      "region": "asia-east1",
       "model_name": "Claude Opus 4.5"
     }
   ],
-  "objective_value": 0.004,
+  "objective_value": 0.083,
   "metrics": {
     "workflow": "workflow1",
     "quality_level": "Q3",
     "method": "single_cloud",
-    "objective_value": 0.004,
-    "expected_cost": 7.796499779901573,
-    "avg_latency": 45.69321345690815,
-    "p95_latency": 74.3853504015203,
-    "p99_latency": 81.35064337737948,
-    "violation_rate": 0.06,
-    "cvar_value": 4.369013780936443,
-    "solver_runtime_sec": 9.391280750045553,
+    "objective_value": 0.083,
+    "expected_cost": 8.960210951245667,
+    "avg_latency": 50.80048082427451,
+    "p95_latency": 81.60025721672503,
+    "p99_latency": 89.57633380999332,
+    "violation_rate": 0.102,
+    "cvar_value": 9.136170730447711,
+    "solver_runtime_sec": 217.3220857999986,
     "status": "optimal"
   }
 }

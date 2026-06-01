@@ -30,6 +30,8 @@ def solve_decomposition(
     scenarios: list[Scenario],
     quality_level: str,
     config: SolverConfig,
+    *,
+    stop_on_infeasible: bool = False,
 ) -> OptimizationResult:
     """
     Scenario-adaptive decomposition: iteratively add violated scenarios
@@ -65,10 +67,13 @@ def solve_decomposition(
     obj = float("inf")
     status = "UNKNOWN"
     alpha_val = 0.0
+    completed_iterations = 0
 
     network_links = load_network_links()
     network_index = {(l.src_endpoint_id, l.dst_endpoint_id): l for l in network_links}
     endpoint_map = {e.endpoint_id: e for e in endpoints}
+    query_map = {q.query_id: q for q in queries}
+    scenario_map = {s.scenario_id: s for s in scenarios}
     virtual_map = {
         "ClientSource": endpoint_map["client_source"],
         "ClientSink": endpoint_map["client_sink"],
@@ -93,6 +98,7 @@ def solve_decomposition(
 
         x_sol, y_sol, alpha_val, z_sol, status, runtime, obj = solve_model(artifacts)
         total_runtime += runtime
+        completed_iterations = iteration
         if x_sol:
             assignment = extract_deployment(artifacts, x_sol)
             last_feasible_assignment = assignment
@@ -103,6 +109,9 @@ def solve_decomposition(
                 status,
             )
             assignment = last_feasible_assignment
+            if stop_on_infeasible:
+                status = f"{status}_REUSED_LAST_FEASIBLE"
+                break
         else:
             raise RuntimeError(f"Decomposition infeasible at iteration {iteration} (status={status})")
 
@@ -110,8 +119,8 @@ def solve_decomposition(
         violations: list[tuple[tuple[str, str], float]] = []
 
         for key in inactive:
-            q = next(qx for qx in queries if qx.query_id == key[0])
-            s = next(sx for sx in scenarios if sx.scenario_id == key[1])
+            q = query_map[key[0]]
+            s = scenario_map[key[1]]
             assign_full = {**assignment, **virtual_map}
             t_val = critical_path_latency(
                 workflow,
@@ -186,7 +195,7 @@ def solve_decomposition(
         cvar_value=metrics["cvar_value"],
         solver_runtime_sec=total_runtime,
         status=status,
-        num_iterations=len(convergence),
+        num_iterations=completed_iterations,
         active_scenario_count=len(active_keys),
         convergence_history=[c.model_dump() for c in convergence],
         per_query_scenario_metrics=metrics["per_qs"],

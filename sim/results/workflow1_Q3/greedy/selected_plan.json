@@ -19,9 +19,9 @@
     },
     {
       "logical_node": "Video Caption",
-      "endpoint_id": "video_caption_aws_us-west-2_q3",
+      "endpoint_id": "video_caption_aws_eu-central-1_q3",
       "provider": "AWS",
-      "region": "us-west-2",
+      "region": "eu-central-1",
       "model_name": "Claude Opus 4.5"
     },
     {
@@ -38,13 +38,13 @@
     "quality_level": "Q3",
     "method": "greedy",
     "objective_value": 0.0,
-    "expected_cost": 7.467030064262068,
-    "avg_latency": 42.134508590629146,
-    "p95_latency": 65.33135235104443,
-    "p99_latency": 72.42873330704322,
-    "violation_rate": 0.04,
-    "cvar_value": 0.838375018514894,
-    "solver_runtime_sec": 12.280540625040885,
+    "expected_cost": 7.8863725819437205,
+    "avg_latency": 42.438876780102916,
+    "p95_latency": 66.56691053440447,
+    "p99_latency": 73.39982886080655,
+    "violation_rate": 0.006,
+    "cvar_value": 0.2818005724145618,
+    "solver_runtime_sec": 153.49705289991107,
     "status": "optimal"
   }
 }

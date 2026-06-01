@@ -38,13 +38,13 @@
     "quality_level": "Q1",
     "method": "greedy",
     "objective_value": 0.0,
-    "expected_cost": 0.7729091250205746,
-    "avg_latency": 65.17449734391207,
-    "p95_latency": 99.61673416609894,
-    "p99_latency": 107.70926929551948,
-    "violation_rate": 0.052,
-    "cvar_value": 7.33942761990741,
-    "solver_runtime_sec": 14.533412332995795,
+    "expected_cost": 0.7216710838182452,
+    "avg_latency": 63.44093666543509,
+    "p95_latency": 102.2964908072757,
+    "p99_latency": 110.2578712464562,
+    "violation_rate": 0.007,
+    "cvar_value": 0.24557027595265438,
+    "solver_runtime_sec": 168.09717159997672,
     "status": "optimal"
   }
 }

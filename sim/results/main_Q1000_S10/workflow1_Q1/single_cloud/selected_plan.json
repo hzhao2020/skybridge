@@ -1,0 +1,50 @@
+{
+  "workflow": "workflow1",
+  "quality_level": "Q1",
+  "method": "single_cloud",
+  "assignments": [
+    {
+      "logical_node": "Shot Detection",
+      "endpoint_id": "shot_detection_gcp_us-west1_q1",
+      "provider": "GCP",
+      "region": "us-west1",
+      "model_name": null
+    },
+    {
+      "logical_node": "Video Split & Sample",
+      "endpoint_id": "video_split_and_sample_gcp_us-west1_q1",
+      "provider": "GCP",
+      "region": "us-west1",
+      "model_name": null
+    },
+    {
+      "logical_node": "Video Caption",
+      "endpoint_id": "video_caption_gcp_us-west1_q1",
+      "provider": "GCP",
+      "region": "us-west1",
+      "model_name": "Claude Haiku 4.5"
+    },
+    {
+      "logical_node": "Q/A",
+      "endpoint_id": "q_a_gcp_us-west1_q1",
+      "provider": "GCP",
+      "region": "us-west1",
+      "model_name": "Claude Haiku 4.5"
+    }
+  ],
+  "objective_value": 0.0553,
+  "metrics": {
+    "workflow": "workflow1",
+    "quality_level": "Q1",
+    "method": "single_cloud",
+    "objective_value": 0.0553,
+    "expected_cost": 1.0863099752364302,
+    "avg_latency": 74.45521491744383,
+    "p95_latency": 119.73656159341502,
+    "p99_latency": 131.7148730981271,
+    "violation_rate": 0.0841,
+    "cvar_value": 9.344844959075294,
+    "solver_runtime_sec": 7.726355199934915,
+    "status": "optimal"
+  }
+}

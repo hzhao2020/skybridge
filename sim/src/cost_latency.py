@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from src.data_propagation import output_data_sizes, propagate_data_sizes
+from src.measurement.execution_latency import sampled_execution_latency
 from src.path_utils import enumerate_source_to_sink_paths, path_edges
+from src.pricing import is_llm_operation, llm_cost_usd, llm_latency_sec
 from src.schemas import (
     AblationConfig,
     Endpoint,
@@ -43,7 +45,18 @@ def build_network_index(links: list[NetworkLink]) -> dict[tuple[str, str], Netwo
 def execution_cost(
     endpoint: Endpoint,
     input_size_mb: float,
+    output_size_mb: float | None = None,
 ) -> float:
+    if is_llm_operation(endpoint.logical_operation):
+        if endpoint.model_name is None:
+            raise ValueError(f"{endpoint.logical_operation} endpoint requires model_name")
+        return llm_cost_usd(
+            endpoint.provider,
+            endpoint.region,
+            endpoint.model_name,
+            input_size_mb,
+            0.0 if output_size_mb is None else output_size_mb,
+        )
     return endpoint.fixed_cost + input_size_mb * endpoint.cost_per_mb
 
 
@@ -72,8 +85,21 @@ def network_transfer_cost(
 def execution_latency(
     endpoint: Endpoint,
     input_size_mb: float,
+    output_size_mb: float | None = None,
     multiplier: float = 1.0,
 ) -> float:
+    if is_llm_operation(endpoint.logical_operation):
+        if endpoint.model_name is None:
+            raise ValueError(f"{endpoint.logical_operation} endpoint requires model_name")
+        return (
+            llm_latency_sec(
+                endpoint.provider,
+                endpoint.region,
+                endpoint.model_name,
+                0.0 if output_size_mb is None else output_size_mb,
+            )
+            * multiplier
+        )
     return (endpoint.base_latency_sec + input_size_mb * endpoint.latency_per_mb) * multiplier
 
 
@@ -100,6 +126,7 @@ def path_latency(
     input_sizes: dict[str, float],
     output_sizes: dict[str, float],
     scenario: Scenario,
+    query: Query,
     ablation: AblationConfig,
 ) -> float:
     total = 0.0
@@ -109,8 +136,17 @@ def path_latency(
         ep = assignment.get(node)
         if ep is None:
             continue
-        mult = scenario.exec_latency_multiplier.get(ep.endpoint_id, scenario.exec_stress)
-        total += execution_latency(ep, input_sizes.get(node, 0.0), mult)
+        sampled = sampled_execution_latency(ep, query, scenario)
+        if sampled is not None:
+            total += sampled
+        else:
+            mult = scenario.exec_latency_multiplier.get(ep.endpoint_id, scenario.exec_stress)
+            total += execution_latency(
+                ep,
+                input_sizes.get(node, 0.0),
+                output_sizes.get(node, 0.0),
+                mult,
+            )
 
     for src, dst in path_edges(path):
         if not ablation.enable_client_upload_download:
@@ -158,6 +194,7 @@ def critical_path_latency(
             input_sizes,
             output_sizes,
             scenario,
+            query,
             ablation,
         )
         for p in paths
@@ -183,7 +220,7 @@ def total_cost(
             continue
         inp = input_sizes.get(node, 0.0)
         out = output_sizes.get(node, 0.0)
-        cost += execution_cost(ep, inp)
+        cost += execution_cost(ep, inp, out)
         cost += storage_cost(ep, inp, out, ablation.enable_storage_cost)
 
     for edge in workflow.edges:

@@ -1,19 +1,22 @@
 # Paper / experiment hyperparameters (fixed for all runs unless overridden).
 random_seed: 42          # RNG seed for queries, scenarios (ρ), and endpoint latency scaling
-num_scenarios_per_query: 10  # S = 10 stochastic scenarios per query
-eta: 0.05                # η CVaR tail confidence in SAA-CVaR MILP and post-eval CVaR
+num_scenarios_per_query: 50  # S = 50 calibration scenarios per query
+num_heldout_scenarios_per_query: 50  # S = 50 held-out evaluation scenarios per query
+eta: 0.10                # η CVaR tail confidence in SAA-CVaR MILP and post-eval CVaR
 
 # all = every region in providers; first = one region per provider; integer = first N regions per provider.
-regions_per_provider: 2
-num_queries_per_quality: 100
+regions_per_provider: all
+num_queries_per_workflow_quality: 1000
+num_queries_per_quality: 2000
 top_k: 10
 initial_active_fraction: 0.20
 active_batch_fraction: 0.05
 violation_tolerance: 1.0e-6
 max_iterations: 100
 gurobi_time_limit_sec: 300
-gurobi_mip_gap: 0.001
-latency_tiebreaker_weight: 1.0e-8
+gurobi_mip_gap: 1.0e-9
+latency_tiebreaker_weight: 0.0
+endpoint_tiebreaker_weight: 1.0e-6
 # Solver used by run_all.py (6 experiments: each workflow × each quality, run separately).
 default_solver_method: decomposition
 
@@ -59,3 +62,5 @@ providers:
     - eastus
     - westeurope
     - southeastasia
+  Anthropic:
+    - global

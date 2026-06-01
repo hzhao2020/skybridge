@@ -18,6 +18,7 @@ from src.cost_latency import (
     storage_cost,
     total_cost,
 )
+from src.measurement.execution_latency import sampled_execution_latency
 from src.data_propagation import output_data_sizes, propagate_data_sizes
 from src.data_loader import load_endpoints, load_network_links, load_queries, load_scenarios
 from src.milp_decomposition import solve_decomposition
@@ -218,7 +219,7 @@ def validate_cost_formula(report: ValidationReport) -> None:
     manual = 0.0
     for node, ep in assignment.items():
         inp, out = sizes[node], outputs[node]
-        manual += execution_cost(ep, inp) + storage_cost(ep, inp, out, True)
+        manual += execution_cost(ep, inp, out) + storage_cost(ep, inp, out, True)
     for edge in w1.edges:
         src_ep = assign_full.get(edge.src)
         dst_ep = assign_full.get(edge.dst)
@@ -270,8 +271,12 @@ def validate_path_latency_eq(report: ValidationReport) -> None:
         if w1.is_virtual(node):
             continue
         ep = assign_full[node]
-        mult = s.exec_latency_multiplier.get(ep.endpoint_id, s.exec_stress)
-        manual += execution_latency(ep, sizes[node], mult)
+        sampled = sampled_execution_latency(ep, q, s)
+        if sampled is not None:
+            manual += sampled
+        else:
+            mult = s.exec_latency_multiplier.get(ep.endpoint_id, s.exec_stress)
+            manual += execution_latency(ep, sizes[node], outputs[node], mult)
     for src, dst in path_edges(path):
         se = assign_full.get(src) or endpoint_map["client_source"]
         de = assign_full.get(dst) or endpoint_map["client_sink"]
@@ -279,7 +284,7 @@ def validate_path_latency_eq(report: ValidationReport) -> None:
         manual += network_latency(link, outputs[src], s.bw_stress, s.rtt_stress)
 
     computed = path_latency(
-        path, w1, assign_full, endpoint_map, network_index, sizes, outputs, s, cfg.ablation
+        path, w1, assign_full, endpoint_map, network_index, sizes, outputs, s, q, cfg.ablation
     )
     report.add(
         "path latency formula T_pi",
@@ -386,8 +391,12 @@ def validate_saa_cvar_constraints(report: ValidationReport) -> None:
                     continue
                 for ep in artifacts.node_candidates[node]:
                     if x_sol.get((node, ep.endpoint_id), 0) > 0.5:
-                        mult = s.exec_latency_multiplier.get(ep.endpoint_id, s.exec_stress)
-                        lat += (ep.base_latency_sec + sizes[node] * ep.latency_per_mb) * mult
+                        sampled = sampled_execution_latency(ep, q, s)
+                        if sampled is not None:
+                            lat += sampled
+                        else:
+                            mult = s.exec_latency_multiplier.get(ep.endpoint_id, s.exec_stress)
+                            lat += execution_latency(ep, sizes[node], outputs[node], mult)
             for src, dst in path_edges(path):
                 # simplified: use assignment endpoints
                 pass
@@ -767,7 +776,7 @@ def validate_per_path_latency_excess(report: ValidationReport) -> None:
         for path in artifacts.paths:
             t_pi = path_latency(
                 path, w1, assign_full, endpoint_map, network_index,
-                sizes, outputs, s, cfg.ablation,
+                sizes, outputs, s, q, cfg.ablation,
             )
             required_z = t_pi - q.sla_sec - alpha
             if z_sol[key] + tol < required_z:

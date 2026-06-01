@@ -26,9 +26,9 @@
     },
     {
       "logical_node": "OCR",
-      "endpoint_id": "ocr_aws_us-west-2_q2",
-      "provider": "AWS",
-      "region": "us-west-2",
+      "endpoint_id": "ocr_azure_southeastasia_q2",
+      "provider": "Azure",
+      "region": "southeastasia",
       "model_name": null
     },
     {
@@ -47,32 +47,32 @@
     },
     {
       "logical_node": "Database",
-      "endpoint_id": "database_aliyun_cn-beijing_q2",
+      "endpoint_id": "database_aliyun_cn-shanghai_q2",
       "provider": "Aliyun",
-      "region": "cn-beijing",
+      "region": "cn-shanghai",
       "model_name": null
     },
     {
       "logical_node": "Q/A",
-      "endpoint_id": "q_a_azure_westus2_q2",
-      "provider": "Azure",
-      "region": "westus2",
+      "endpoint_id": "q_a_aws_us-west-2_q2",
+      "provider": "AWS",
+      "region": "us-west-2",
       "model_name": "Claude Sonnet 4.5"
     }
   ],
-  "objective_value": 3.772933796598573,
+  "objective_value": 3.9270382381778566,
   "metrics": {
     "workflow": "workflow2",
     "quality_level": "Q2",
     "method": "decomposition",
-    "objective_value": 3.772933796598573,
-    "expected_cost": 3.7779774552178598,
-    "avg_latency": 53.486506272928715,
-    "p95_latency": 81.86639562844337,
-    "p99_latency": 89.47878343959916,
-    "violation_rate": 0.0,
-    "cvar_value": 0.0,
-    "solver_runtime_sec": 0.06463574996450916,
+    "objective_value": 3.9270382381778566,
+    "expected_cost": 3.9286363067024226,
+    "avg_latency": 54.80509502836334,
+    "p95_latency": 85.33427796476845,
+    "p99_latency": 94.5684497631915,
+    "violation_rate": 0.005,
+    "cvar_value": 0.1667845990157265,
+    "solver_runtime_sec": 3.3967025000602007,
     "status": "OPTIMAL"
   }
 }

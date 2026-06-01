@@ -25,7 +25,7 @@ from src.workflow import get_workflow  # noqa: E402
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--factor", type=float, default=1.10)
+    parser.add_argument("--factor", type=float, default=1.0)
     parser.add_argument(
         "--output",
         type=Path,

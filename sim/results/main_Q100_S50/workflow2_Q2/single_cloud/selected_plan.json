@@ -1,0 +1,78 @@
+{
+  "workflow": "workflow2",
+  "quality_level": "Q2",
+  "method": "single_cloud",
+  "assignments": [
+    {
+      "logical_node": "Speech Transcription",
+      "endpoint_id": "speech_transcription_gcp_us-west1_q2",
+      "provider": "GCP",
+      "region": "us-west1",
+      "model_name": null
+    },
+    {
+      "logical_node": "Shot Detection",
+      "endpoint_id": "shot_detection_gcp_us-west1_q2",
+      "provider": "GCP",
+      "region": "us-west1",
+      "model_name": null
+    },
+    {
+      "logical_node": "Video Split & Sample",
+      "endpoint_id": "video_split_and_sample_gcp_us-west1_q2",
+      "provider": "GCP",
+      "region": "us-west1",
+      "model_name": null
+    },
+    {
+      "logical_node": "Video Caption",
+      "endpoint_id": "video_caption_gcp_europe-west1_q2",
+      "provider": "GCP",
+      "region": "europe-west1",
+      "model_name": "Claude Sonnet 4.5"
+    },
+    {
+      "logical_node": "OCR",
+      "endpoint_id": "ocr_gcp_us-west1_q2",
+      "provider": "GCP",
+      "region": "us-west1",
+      "model_name": null
+    },
+    {
+      "logical_node": "Label Detection",
+      "endpoint_id": "label_detection_gcp_us-west1_q2",
+      "provider": "GCP",
+      "region": "us-west1",
+      "model_name": null
+    },
+    {
+      "logical_node": "Database",
+      "endpoint_id": "database_gcp_us-west1_q2",
+      "provider": "GCP",
+      "region": "us-west1",
+      "model_name": null
+    },
+    {
+      "logical_node": "Q/A",
+      "endpoint_id": "q_a_gcp_europe-west1_q2",
+      "provider": "GCP",
+      "region": "europe-west1",
+      "model_name": "Claude Sonnet 4.5"
+    }
+  ],
+  "objective_value": 0.0704,
+  "metrics": {
+    "workflow": "workflow2",
+    "quality_level": "Q2",
+    "method": "single_cloud",
+    "objective_value": 0.0704,
+    "expected_cost": 8.85162187780904,
+    "avg_latency": 67.46849631613352,
+    "p95_latency": 106.54071722202174,
+    "p99_latency": 118.28336816664084,
+    "violation_rate": 0.0838,
+    "cvar_value": 4.2635373728984245,
+    "solver_runtime_sec": 8.11829549993854,
+    "status": "optimal"
+  }
+}

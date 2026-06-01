@@ -108,6 +108,7 @@ class SolverConfig(BaseModel):
     gurobi_time_limit_sec: float = 300.0
     gurobi_mip_gap: float = 0.01
     latency_tiebreaker_weight: float = 0.0
+    endpoint_tiebreaker_weight: float = 1e-6
     ablation: AblationConfig = Field(default_factory=AblationConfig)
 
 

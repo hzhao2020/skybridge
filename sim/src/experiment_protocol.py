@@ -11,6 +11,7 @@ def split_scenarios_by_query(
     scenarios: list[Scenario],
     *,
     calibration_fraction: float = 0.5,
+    calibration_count: int | None = None,
 ) -> tuple[list[Scenario], list[Scenario]]:
     """Split each query's scenario samples into calibration and held-out test sets."""
     by_query: dict[str, list[Scenario]] = defaultdict(list)
@@ -24,7 +25,11 @@ def split_scenarios_by_query(
         if len(group) == 1:
             calibration.extend(group)
             continue
-        n_calib = max(1, min(len(group) - 1, round(len(group) * calibration_fraction)))
+        if calibration_count is None:
+            n_calib = round(len(group) * calibration_fraction)
+        else:
+            n_calib = calibration_count
+        n_calib = max(1, min(len(group) - 1, n_calib))
         calibration.extend(group[:n_calib])
         test.extend(group[n_calib:])
 

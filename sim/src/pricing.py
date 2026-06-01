@@ -114,6 +114,47 @@ def llm_prices_per_million(provider: str, region: str, model: str) -> tuple[floa
         ) from e
 
 
+def llm_performance(provider: str, region: str, model: str) -> tuple[float, float]:
+    """Return (TTFT seconds, output tokens/sec) for a listed LLM endpoint."""
+    cfg = load_pricing_config()
+    try:
+        ttft, throughput = cfg["llm_performance"][provider][region][model]
+        return float(ttft), float(throughput)
+    except KeyError as e:
+        raise KeyError(
+            f"No LLM performance for provider={provider!r} region={region!r} model={model!r}"
+        ) from e
+
+
+def is_llm_operation(logical_operation: str) -> bool:
+    return logical_operation in ("Video Caption", "Q/A")
+
+
+def llm_cost_usd(
+    provider: str,
+    region: str,
+    model: str,
+    input_size_mb: float,
+    output_size_mb: float,
+) -> float:
+    input_price, output_price = llm_prices_per_million(provider, region, model)
+    tpm = tokens_per_mb()
+    input_tokens = input_size_mb * tpm
+    output_tokens = output_size_mb * tpm
+    return (input_tokens * input_price + output_tokens * output_price) / 1_000_000.0
+
+
+def llm_latency_sec(
+    provider: str,
+    region: str,
+    model: str,
+    output_size_mb: float,
+) -> float:
+    ttft, throughput = llm_performance(provider, region, model)
+    output_tokens = output_size_mb * tokens_per_mb()
+    return ttft + output_tokens / max(throughput, 1e-9)
+
+
 def endpoint_cost_fields(
     logical_operation: str,
     provider: str,
@@ -137,6 +178,15 @@ def endpoint_cost_fields(
     storage_per_mb_day = (storage_month / days_per_month) / 1024.0
 
     op = logical_operation
+    if op in ("Video Caption", "Q/A"):
+        if not model_name:
+            raise ValueError(f"{op} requires model_name")
+        inp_p, out_p = llm_prices_per_million(provider, region, model_name)
+        tpm = tokens_per_mb()
+        rho_out = expected_data_conversion_ratio(op, quality_level)
+        cost_per_mb = (tpm / 1_000_000.0) * (inp_p + out_p * rho_out)
+        return 0.0, cost_per_mb, storage_per_mb_day
+
     if op == "Shot Detection":
         rate = _lookup_nested(cfg["shot_detection_usd_per_minute"], provider, region)
         if rate is None:
@@ -178,15 +228,6 @@ def endpoint_cost_fields(
             stor_mb = (db_stor / days_per_month) / 1024.0
         return fixed, 0.0, stor_mb + storage_per_mb_day
 
-    if op in ("Video Caption", "Q/A"):
-        if not model_name:
-            raise ValueError(f"{op} requires model_name")
-        inp_p, out_p = llm_prices_per_million(provider, region, model_name)
-        tpm = tokens_per_mb()
-        rho_out = expected_data_conversion_ratio(op, quality_level)
-        cost_per_mb = (tpm / 1_000_000.0) * (inp_p + out_p * rho_out)
-        return 0.0, cost_per_mb, storage_per_mb_day
-
     raise ValueError(f"Unknown logical operation: {op!r}")
 
 
@@ -202,7 +243,7 @@ def operation_supported(provider: str, region: str, logical_operation: str) -> b
         "Database": "database_instance_usd_per_month",
     }
     if logical_operation in ("Video Caption", "Q/A"):
-        return _lookup_nested(cfg["storage_usd_per_gb_month"], provider, region) is not None
+        return bool(cfg.get("llm_price_per_million", {}).get(provider, {}).get(region))
     table_key = key_map.get(logical_operation)
     if table_key is None:
         return False
@@ -221,6 +262,10 @@ def physical_endpoint_exists(
         return False
     if logical_operation in ("Video Caption", "Q/A"):
         if not model_name:
+            return False
+        try:
+            llm_performance(provider, region, model_name)
+        except KeyError:
             return False
         return llm_model_listed(provider, region, model_name)
     return True

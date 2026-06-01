@@ -1,0 +1,78 @@
+{
+  "workflow": "workflow2",
+  "quality_level": "Q1",
+  "method": "full_milp",
+  "assignments": [
+    {
+      "logical_node": "Shot Detection",
+      "endpoint_id": "shot_detection_aliyun_cn-shanghai_q1",
+      "provider": "Aliyun",
+      "region": "cn-shanghai",
+      "model_name": null
+    },
+    {
+      "logical_node": "Video Split & Sample",
+      "endpoint_id": "video_split_and_sample_aliyun_cn-shanghai_q1",
+      "provider": "Aliyun",
+      "region": "cn-shanghai",
+      "model_name": null
+    },
+    {
+      "logical_node": "Video Caption",
+      "endpoint_id": "video_caption_aws_ap-southeast-1_q1",
+      "provider": "AWS",
+      "region": "ap-southeast-1",
+      "model_name": "Claude Haiku 4.5"
+    },
+    {
+      "logical_node": "OCR",
+      "endpoint_id": "ocr_azure_eastus_q1",
+      "provider": "Azure",
+      "region": "eastus",
+      "model_name": null
+    },
+    {
+      "logical_node": "Label Detection",
+      "endpoint_id": "label_detection_aliyun_cn-shanghai_q1",
+      "provider": "Aliyun",
+      "region": "cn-shanghai",
+      "model_name": null
+    },
+    {
+      "logical_node": "Speech Transcription",
+      "endpoint_id": "speech_transcription_aliyun_cn-shanghai_q1",
+      "provider": "Aliyun",
+      "region": "cn-shanghai",
+      "model_name": null
+    },
+    {
+      "logical_node": "Database",
+      "endpoint_id": "database_aliyun_cn-shanghai_q1",
+      "provider": "Aliyun",
+      "region": "cn-shanghai",
+      "model_name": null
+    },
+    {
+      "logical_node": "Q/A",
+      "endpoint_id": "q_a_aws_eu-central-1_q1",
+      "provider": "AWS",
+      "region": "eu-central-1",
+      "model_name": "Claude Haiku 4.5"
+    }
+  ],
+  "objective_value": 2.0923279372659715,
+  "metrics": {
+    "workflow": "workflow2",
+    "quality_level": "Q1",
+    "method": "full_milp",
+    "objective_value": 2.0923279372659715,
+    "expected_cost": 2.092992347990549,
+    "avg_latency": 64.88513208644503,
+    "p95_latency": 102.63426344273408,
+    "p99_latency": 113.41095806789762,
+    "violation_rate": 0.0053,
+    "cvar_value": 0.22293929477581087,
+    "solver_runtime_sec": 228.92156149994116,
+    "status": "OPTIMAL"
+  }
+}

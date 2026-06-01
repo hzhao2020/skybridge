@@ -20,7 +20,9 @@ EXPERIMENT_RUNS: list[tuple[str, str]] = [
     for quality in ("Q1", "Q2", "Q3")
 ]
 
-BASELINE_METHODS = sorted(BASELINE_SOLVERS)
+BASELINE_METHODS = sorted(
+    method for method in BASELINE_SOLVERS if method != "logical_optimal"
+)
 
 
 def main() -> None:

@@ -19,32 +19,32 @@
     },
     {
       "logical_node": "Video Caption",
-      "endpoint_id": "video_caption_aws_us-east-2_q2",
-      "provider": "AWS",
-      "region": "us-east-2",
+      "endpoint_id": "video_caption_azure_westus2_q2",
+      "provider": "Azure",
+      "region": "westus2",
       "model_name": "Claude Sonnet 4.5"
     },
     {
       "logical_node": "Q/A",
-      "endpoint_id": "q_a_aws_us-east-2_q2",
+      "endpoint_id": "q_a_aws_us-west-2_q2",
       "provider": "AWS",
-      "region": "us-east-2",
+      "region": "us-west-2",
       "model_name": "Claude Sonnet 4.5"
     }
   ],
-  "objective_value": 0.004,
+  "objective_value": 0.0,
   "metrics": {
     "workflow": "workflow1",
     "quality_level": "Q2",
     "method": "greedy",
-    "objective_value": 0.004,
-    "expected_cost": 2.479534460105483,
-    "avg_latency": 54.809527638612664,
-    "p95_latency": 84.05833059344224,
-    "p99_latency": 93.19323584375694,
-    "violation_rate": 0.028,
-    "cvar_value": 0.8986287579093677,
-    "solver_runtime_sec": 12.080881749978289,
+    "objective_value": 0.0,
+    "expected_cost": 2.5477352292897457,
+    "avg_latency": 54.7646337575014,
+    "p95_latency": 86.39561957843364,
+    "p99_latency": 92.79839287118652,
+    "violation_rate": 0.006,
+    "cvar_value": 0.3643031380876022,
+    "solver_runtime_sec": 154.48165480000898,
     "status": "optimal"
   }
 }

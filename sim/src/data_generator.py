@@ -11,10 +11,13 @@ import pandas as pd
 from src.config import CONFIG_DIR, DATA_DIR, load_default_config
 from src.pricing import (
     endpoint_cost_fields,
+    expected_data_conversion_ratio,
+    llm_performance,
     physical_endpoint_exists,
     query_generation_params,
     region_network_values,
     sample_data_conversion_ratio,
+    tokens_per_mb,
     video_mb_per_minute,
 )
 from src.workflow import LOGICAL_OPERATIONS, WORKFLOW_OPERATIONS
@@ -67,7 +70,9 @@ def generate_all(output_dir: Path | None = None, seed: int | None = None) -> Non
     endpoints_df = _generate_endpoints(
         rng, providers, quality_models, regions_mode=regions_mode
     )
-    network_df = _generate_network(endpoints_df)
+    network_seed = seed if seed is not None else cfg.get("random_seed", 42)
+    network_rng = np.random.default_rng(network_seed)
+    network_df = _generate_network(endpoints_df, network_rng)
     queries_df = _generate_queries(rng, cfg)
     scenarios_df = _generate_scenarios(rng, queries_df, cfg)
 
@@ -128,6 +133,11 @@ def _generate_endpoints(
                     quality_factor = {"Q1": 1.2, "Q2": 1.0, "Q3": 0.8}[ql]
                     base_lat *= quality_factor
                     lat_per_mb *= quality_factor
+                    if op in ("Video Caption", "Q/A"):
+                        ttft, throughput = llm_performance(prov, region, model_name)
+                        rho_out = expected_data_conversion_ratio(op, ql)
+                        base_lat = ttft
+                        lat_per_mb = rho_out * tokens_per_mb() / max(throughput, 1e-9)
 
                     rows.append(
                         {
@@ -155,9 +165,12 @@ def _endpoint_region_key(row: pd.Series) -> tuple[str, str]:
     return str(row["provider"]), str(row["region"])
 
 
-def _generate_network(endpoints_df: pd.DataFrame) -> pd.DataFrame:
+def _generate_network(
+    endpoints_df: pd.DataFrame,
+    rng: np.random.Generator,
+) -> pd.DataFrame:
     rows: list[dict] = []
-    category_indices: dict[str, int] = {}
+    link_indices: dict[tuple[str, tuple[str, str], tuple[str, str]], int] = {}
     for _, src_row in endpoints_df.iterrows():
         for _, dst_row in endpoints_df.iterrows():
             src_id = str(src_row["endpoint_id"])
@@ -168,14 +181,16 @@ def _generate_network(endpoints_df: pd.DataFrame) -> pd.DataFrame:
             dst_reg = _endpoint_region_key(dst_row)
             egress, _, _ = region_network_values(src_reg, dst_reg)
             category = classify_link(src_reg, dst_reg)
-            idx_key = category.value
+            idx_key = (category.value, src_reg, dst_reg)
+            if idx_key not in link_indices:
+                link_indices[idx_key] = int(rng.integers(0, 1_000_000))
             measured = sample_link_by_index(
                 src_reg,
                 dst_reg,
-                category_indices.get(idx_key, 0),
+                link_indices[idx_key],
             )
             if category is not LinkCategory.NONE:
-                category_indices[idx_key] = category_indices.get(idx_key, 0) + 1
+                link_indices[idx_key] += 1
             rtt = measured.rtt_sec
             bw = measured.bandwidth_mb_per_sec
             rows.append(
@@ -199,11 +214,16 @@ def _generate_queries(
     Workflow1 : Workflow2 = 1 : 1.
     """
     qcfg = query_generation_params()
-    n_total = int(cfg.get("num_queries_per_quality", qcfg["requests_per_quality_level"]))
-    ratio = qcfg.get("workflow1_workflow2_ratio", [1, 1])
-    r_sum = sum(int(x) for x in ratio)
-    n_wf1 = n_total * int(ratio[0]) // r_sum
-    n_wf2 = n_total - n_wf1
+    per_workflow = cfg.get("num_queries_per_workflow_quality")
+    if per_workflow is not None:
+        n_wf1 = int(per_workflow)
+        n_wf2 = int(per_workflow)
+    else:
+        n_total = int(cfg.get("num_queries_per_quality", qcfg["requests_per_quality_level"]))
+        ratio = qcfg.get("workflow1_workflow2_ratio", [1, 1])
+        r_sum = sum(int(x) for x in ratio)
+        n_wf1 = n_total * int(ratio[0]) // r_sum
+        n_wf2 = n_total - n_wf1
     dur_lo = float(qcfg["video_duration_sec_min"])
     dur_hi = float(qcfg["video_duration_sec_max"])
     fps = float(qcfg["fps"])
@@ -238,8 +258,10 @@ def _generate_scenarios(
     queries_df: pd.DataFrame,
     cfg: dict,
 ) -> pd.DataFrame:
-    """Scenario rows: rho from paper LogNormal means + global stress factors."""
-    n_scenarios = int(cfg.get("num_scenarios_per_query", 20))
+    """Scenario rows: rho from paper LogNormal means."""
+    n_scenarios = int(cfg.get("num_scenarios_per_query", 10)) + int(
+        cfg.get("num_heldout_scenarios_per_query", 0)
+    )
     rows: list[dict] = []
 
     for _, qrow in queries_df.iterrows():
@@ -250,9 +272,9 @@ def _generate_scenarios(
             row: dict = {
                 "query_id": qid,
                 "scenario_id": sid,
-                "exec_stress": float(rng.uniform(0.8, 1.5)),
-                "bw_stress": float(rng.uniform(0.7, 1.3)),
-                "rtt_stress": float(rng.uniform(0.8, 1.2)),
+                "exec_stress": 1.0,
+                "bw_stress": 1.0,
+                "rtt_stress": 1.0,
             }
             for op in LOGICAL_OPERATIONS:
                 key = f"rho_{op.replace(' ', '_').replace('/', '_').replace('&', 'and')}"

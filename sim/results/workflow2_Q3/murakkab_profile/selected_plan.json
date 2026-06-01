@@ -19,30 +19,30 @@
     },
     {
       "logical_node": "Video Caption",
-      "endpoint_id": "video_caption_aws_us-east-2_q3",
+      "endpoint_id": "video_caption_aws_ap-southeast-1_q3",
       "provider": "AWS",
-      "region": "us-east-2",
+      "region": "ap-southeast-1",
       "model_name": "Claude Opus 4.5"
     },
     {
       "logical_node": "OCR",
-      "endpoint_id": "ocr_aws_us-east-2_q3",
+      "endpoint_id": "ocr_aws_ap-southeast-1_q3",
       "provider": "AWS",
-      "region": "us-east-2",
+      "region": "ap-southeast-1",
       "model_name": null
     },
     {
       "logical_node": "Label Detection",
-      "endpoint_id": "label_detection_aliyun_cn-beijing_q3",
+      "endpoint_id": "label_detection_aliyun_ap-southeast-1_q3",
       "provider": "Aliyun",
-      "region": "cn-beijing",
+      "region": "ap-southeast-1",
       "model_name": null
     },
     {
       "logical_node": "Speech Transcription",
-      "endpoint_id": "speech_transcription_aliyun_cn-shanghai_q3",
+      "endpoint_id": "speech_transcription_aliyun_cn-beijing_q3",
       "provider": "Aliyun",
-      "region": "cn-shanghai",
+      "region": "cn-beijing",
       "model_name": null
     },
     {
@@ -54,25 +54,25 @@
     },
     {
       "logical_node": "Q/A",
-      "endpoint_id": "q_a_aws_us-east-2_q3",
-      "provider": "AWS",
-      "region": "us-east-2",
+      "endpoint_id": "q_a_azure_westeurope_q3",
+      "provider": "Azure",
+      "region": "westeurope",
       "model_name": "Claude Opus 4.5"
     }
   ],
-  "objective_value": 0.028,
+  "objective_value": 0.039,
   "metrics": {
     "workflow": "workflow2",
     "quality_level": "Q3",
     "method": "murakkab_profile",
-    "objective_value": 0.028,
-    "expected_cost": 9.685609517729125,
-    "avg_latency": 51.14291215806191,
-    "p95_latency": 73.92666553749781,
-    "p99_latency": 82.41919237956093,
-    "violation_rate": 0.068,
-    "cvar_value": 3.2395048033950897,
-    "solver_runtime_sec": 50.942622374976054,
+    "objective_value": 0.039,
+    "expected_cost": 8.042324587619152,
+    "avg_latency": 47.49030864777314,
+    "p95_latency": 83.93582913998824,
+    "p99_latency": 94.55805491391052,
+    "violation_rate": 0.072,
+    "cvar_value": 3.7705301621443517,
+    "solver_runtime_sec": 703.691748399986,
     "status": "optimal"
   }
 }

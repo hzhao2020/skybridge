@@ -19,16 +19,16 @@
     },
     {
       "logical_node": "Video Caption",
-      "endpoint_id": "video_caption_aws_us-east-2_q1",
+      "endpoint_id": "video_caption_aws_eu-central-1_q1",
       "provider": "AWS",
-      "region": "us-east-2",
+      "region": "eu-central-1",
       "model_name": "Claude Haiku 4.5"
     },
     {
       "logical_node": "OCR",
-      "endpoint_id": "ocr_aws_us-west-2_q1",
+      "endpoint_id": "ocr_aws_us-east-2_q1",
       "provider": "AWS",
-      "region": "us-west-2",
+      "region": "us-east-2",
       "model_name": null
     },
     {
@@ -60,19 +60,19 @@
       "model_name": "Claude Haiku 4.5"
     }
   ],
-  "objective_value": 2.1464864633370095,
+  "objective_value": 2.0482938573801337,
   "metrics": {
     "workflow": "workflow2",
     "quality_level": "Q1",
     "method": "decomposition",
-    "objective_value": 2.1464864633370095,
-    "expected_cost": 2.150797291147287,
-    "avg_latency": 65.30049791890053,
-    "p95_latency": 101.53422666109161,
-    "p99_latency": 109.9586896576151,
-    "violation_rate": 0.008,
-    "cvar_value": 0.32038138025905444,
-    "solver_runtime_sec": 0.07409175002248958,
+    "objective_value": 2.0482938573801337,
+    "expected_cost": 2.0449445678858744,
+    "avg_latency": 61.16294400952765,
+    "p95_latency": 98.23562868813222,
+    "p99_latency": 109.48035000038705,
+    "violation_rate": 0.005,
+    "cvar_value": 0.07839339907027125,
+    "solver_runtime_sec": 2.321145899943076,
     "status": "OPTIMAL"
   }
 }

@@ -37,6 +37,11 @@ llm_default_price_per_million:
 
 # Provider-specific LLM overrides: model -> [input, output] $/1M tokens
 llm_price_per_million:
+  Anthropic:
+    global:
+      Claude Haiku 4.5: [1.0, 5.0]
+      Claude Sonnet 4.5: [3.0, 15.0]
+      Claude Opus 4.5: [5.0, 25.0]
   AWS:
     us-west-2:
       Claude Haiku 4.5: [1.0, 5.0]
@@ -61,12 +66,6 @@ llm_price_per_million:
       Claude Opus 4.5: [5.5, 27.5]
     asia-east1:
       Claude Haiku 4.5: [1.1, 5.5]
-      Claude Sonnet 4.5: [3.3, 16.5]
-      Claude Opus 4.5: [5.5, 27.5]
-    us-east1:
-      Claude Haiku 4.5: [1.1, 5.5]
-    us-west1:
-      Claude Haiku 4.5: [1.1, 5.5]
   Azure:
     westus2:
       Claude Haiku 4.5: [1.0, 5.0]
@@ -84,6 +83,55 @@ llm_price_per_million:
       Claude Haiku 4.5: [1.0, 5.0]
       Claude Sonnet 4.5: [3.0, 15.0]
       Claude Opus 4.5: [5.0, 25.0]
+
+# Provider-specific LLM serving performance: model -> [TTFT seconds, output tokens/sec]
+llm_performance:
+  Anthropic:
+    global:
+      Claude Haiku 4.5: [0.85, 103]
+      Claude Sonnet 4.5: [1.51, 46]
+      Claude Opus 4.5: [1.53, 53]
+  AWS:
+    us-west-2:
+      Claude Haiku 4.5: [1.03, 124]
+      Claude Sonnet 4.5: [1.73, 55]
+      Claude Opus 4.5: [1.73, 56]
+    us-east-2:
+      Claude Haiku 4.5: [1.03, 124]
+      Claude Sonnet 4.5: [1.73, 55]
+      Claude Opus 4.5: [1.73, 56]
+    ap-southeast-1:
+      Claude Haiku 4.5: [1.03, 124]
+      Claude Sonnet 4.5: [1.73, 55]
+      Claude Opus 4.5: [1.73, 56]
+    eu-central-1:
+      Claude Haiku 4.5: [1.03, 124]
+      Claude Sonnet 4.5: [1.73, 55]
+      Claude Opus 4.5: [1.73, 56]
+  GCP:
+    europe-west1:
+      Claude Haiku 4.5: [0.59, 102]
+      Claude Sonnet 4.5: [1.03, 45]
+      Claude Opus 4.5: [0.87, 54]
+    asia-east1:
+      Claude Haiku 4.5: [0.59, 102]
+  Azure:
+    westus2:
+      Claude Haiku 4.5: [1.04, 97]
+      Claude Sonnet 4.5: [1.92, 46]
+      Claude Opus 4.5: [2.04, 52]
+    eastus:
+      Claude Haiku 4.5: [1.04, 97]
+      Claude Sonnet 4.5: [1.92, 46]
+      Claude Opus 4.5: [2.04, 52]
+    westeurope:
+      Claude Haiku 4.5: [1.04, 97]
+      Claude Sonnet 4.5: [1.92, 46]
+      Claude Opus 4.5: [2.04, 52]
+    southeastasia:
+      Claude Haiku 4.5: [1.04, 97]
+      Claude Sonnet 4.5: [1.92, 46]
+      Claude Opus 4.5: [2.04, 52]
 
 # Shot detection: USD per minute of video
 shot_detection_usd_per_minute:
@@ -149,6 +197,7 @@ storage_usd_per_gb_month:
   AWS: {us-west-2: 0.023, us-east-2: 0.023, ap-southeast-1: 0.025, eu-central-1: 0.0245}
   Aliyun: {cn-shanghai: 0.0173, cn-beijing: 0.0173, us-east-1: 0.0160, ap-southeast-1: 0.0170}
   Azure: {eastus: 0.0184, westus2: 0.0184, southeastasia: 0.0208, westeurope: 0.0208}
+  Anthropic: {global: 0.0}
 
 database_storage_usd_per_gb_month:
   GCP: {us-west1: 0.299957, us-east1: 0.338939, europe-west1: 0.32996, asia-east1: 0.347918}

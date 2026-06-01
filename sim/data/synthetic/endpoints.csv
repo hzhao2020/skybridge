@@ -76,38 +76,37 @@ video_split_and_sample_azure_westus2_q3,Video Split & Sample,Azure,westus2,Q3,,3
 video_split_and_sample_azure_eastus_q3,Video Split & Sample,Azure,eastus,Q3,,2.732599256365323,0.031018482714285697,0.0,0.000156,5.989583333333334e-07,False
 video_split_and_sample_azure_westeurope_q3,Video Split & Sample,Azure,westeurope,Q3,,2.884844523486585,0.031018482714285697,0.0,0.000156,6.770833333333333e-07,False
 video_split_and_sample_azure_southeastasia_q3,Video Split & Sample,Azure,southeastasia,Q3,,2.5774510495836394,0.031018482714285697,0.0,0.000222,6.770833333333333e-07,False
-video_caption_gcp_us-east1_q1,Video Caption,GCP,us-east1,Q1,Claude Haiku 4.5,5.061976390649532,0.1087853633586948,0.0,0.283008,6.510416666666666e-07,False
-video_caption_gcp_us-west1_q1,Video Caption,GCP,us-west1,Q1,Claude Haiku 4.5,1.3573450805924985,0.0718359035022173,0.0,0.283008,6.510416666666666e-07,False
-video_caption_gcp_europe-west1_q1,Video Caption,GCP,europe-west1,Q1,Claude Haiku 4.5,1.1863090021313951,0.0846019300482996,0.0,0.283008,6.510416666666666e-07,False
-video_caption_gcp_asia-east1_q1,Video Caption,GCP,asia-east1,Q1,Claude Haiku 4.5,2.1186624327306447,0.0832176445467254,0.0,0.283008,6.510416666666666e-07,False
-video_caption_aws_us-west-2_q1,Video Caption,AWS,us-west-2,Q1,Claude Haiku 4.5,4.525770917149166,0.0950139291271069,0.0,0.2572799999999999,7.486979166666667e-07,False
-video_caption_aws_us-east-2_q1,Video Caption,AWS,us-east-2,Q1,Claude Haiku 4.5,1.1818011081618414,0.1109292792748616,0.0,0.2572799999999999,7.486979166666667e-07,False
-video_caption_aws_ap-southeast-1_q1,Video Caption,AWS,ap-southeast-1,Q1,Claude Haiku 4.5,1.8431555508323565,0.0160405560670274,0.0,0.2572799999999999,8.138020833333334e-07,False
-video_caption_aws_eu-central-1_q1,Video Caption,AWS,eu-central-1,Q1,Claude Haiku 4.5,3.59620333471401,0.0520596066571433,0.0,0.2572799999999999,7.975260416666667e-07,False
-video_caption_azure_westus2_q1,Video Caption,Azure,westus2,Q1,Claude Haiku 4.5,5.080864612915031,0.0992911589829446,0.0,0.2572799999999999,5.989583333333334e-07,False
-video_caption_azure_eastus_q1,Video Caption,Azure,eastus,Q1,Claude Haiku 4.5,2.312550021242662,0.1149131346675324,0.0,0.2572799999999999,5.989583333333334e-07,False
-video_caption_azure_westeurope_q1,Video Caption,Azure,westeurope,Q1,Claude Haiku 4.5,2.17095632595664,0.0676261699570251,0.0,0.2572799999999999,6.770833333333333e-07,False
-video_caption_azure_southeastasia_q1,Video Caption,Azure,southeastasia,Q1,Claude Haiku 4.5,1.9822114890650548,0.113092705565288,0.0,0.2572799999999999,6.770833333333333e-07,False
-video_caption_gcp_europe-west1_q2,Video Caption,GCP,europe-west1,Q2,Claude Sonnet 4.5,1.2407351791190817,0.0140419557453096,0.0,0.8553599999999999,6.510416666666666e-07,False
-video_caption_gcp_asia-east1_q2,Video Caption,GCP,asia-east1,Q2,Claude Sonnet 4.5,2.4579367700136707,0.0993138007650253,0.0,0.8553599999999999,6.510416666666666e-07,False
-video_caption_aws_us-west-2_q2,Video Caption,AWS,us-west-2,Q2,Claude Sonnet 4.5,4.512547698147113,0.0773747217511254,0.0,0.7776000000000001,7.486979166666667e-07,False
-video_caption_aws_us-east-2_q2,Video Caption,AWS,us-east-2,Q2,Claude Sonnet 4.5,4.508566208953362,0.0904101975728077,0.0,0.7776000000000001,7.486979166666667e-07,False
-video_caption_aws_ap-southeast-1_q2,Video Caption,AWS,ap-southeast-1,Q2,Claude Sonnet 4.5,2.834862621739021,0.0384336146647713,0.0,0.7776000000000001,8.138020833333334e-07,False
-video_caption_aws_eu-central-1_q2,Video Caption,AWS,eu-central-1,Q2,Claude Sonnet 4.5,3.974055944499446,0.0695495136850985,0.0,0.7776000000000001,7.975260416666667e-07,False
-video_caption_azure_westus2_q2,Video Caption,Azure,westus2,Q2,Claude Sonnet 4.5,2.1814597799316955,0.0185020001255363,0.0,0.7776000000000001,5.989583333333334e-07,False
-video_caption_azure_eastus_q2,Video Caption,Azure,eastus,Q2,Claude Sonnet 4.5,3.860553251070617,0.0336214464330578,0.0,0.7776000000000001,5.989583333333334e-07,False
-video_caption_azure_westeurope_q2,Video Caption,Azure,westeurope,Q2,Claude Sonnet 4.5,4.7156591774020065,0.0316873517505116,0.0,0.7776000000000001,6.770833333333333e-07,False
-video_caption_azure_southeastasia_q2,Video Caption,Azure,southeastasia,Q2,Claude Sonnet 4.5,1.052410695851687,0.0848001404912415,0.0,0.7776000000000001,6.770833333333333e-07,False
-video_caption_gcp_europe-west1_q3,Video Caption,GCP,europe-west1,Q3,Claude Opus 4.5,0.9518235398481786,0.0209073181873572,0.0,1.4432,6.510416666666666e-07,False
-video_caption_gcp_asia-east1_q3,Video Caption,GCP,asia-east1,Q3,Claude Opus 4.5,2.557778049475037,0.0709684669402974,0.0,1.4432,6.510416666666666e-07,False
-video_caption_aws_us-west-2_q3,Video Caption,AWS,us-west-2,Q3,Claude Opus 4.5,1.1071647965724638,0.0303433044488068,0.0,1.312,7.486979166666667e-07,False
-video_caption_aws_us-east-2_q3,Video Caption,AWS,us-east-2,Q3,Claude Opus 4.5,3.1986574176682394,0.0779715026763896,0.0,1.312,7.486979166666667e-07,False
-video_caption_aws_ap-southeast-1_q3,Video Caption,AWS,ap-southeast-1,Q3,Claude Opus 4.5,2.202668270328432,0.01836062018369,0.0,1.312,8.138020833333334e-07,False
-video_caption_aws_eu-central-1_q3,Video Caption,AWS,eu-central-1,Q3,Claude Opus 4.5,0.4501706357495255,0.0245352341599175,0.0,1.312,7.975260416666667e-07,False
-video_caption_azure_westus2_q3,Video Caption,Azure,westus2,Q3,Claude Opus 4.5,0.8745599840314757,0.0567914245001257,0.0,1.312,5.989583333333334e-07,False
-video_caption_azure_eastus_q3,Video Caption,Azure,eastus,Q3,Claude Opus 4.5,0.8385970166627121,0.0444557550766855,0.0,1.312,5.989583333333334e-07,False
-video_caption_azure_westeurope_q3,Video Caption,Azure,westeurope,Q3,Claude Opus 4.5,2.8993447683143914,0.0498403958639049,0.0,1.312,6.770833333333333e-07,False
-video_caption_azure_southeastasia_q3,Video Caption,Azure,southeastasia,Q3,Claude Opus 4.5,1.1191923459762074,0.0658969658851229,0.0,1.312,6.770833333333333e-07,False
+video_caption_gcp_europe-west1_q1,Video Caption,GCP,europe-west1,Q1,Claude Haiku 4.5,0.59,2.509803921568628,0.0,0.283008,6.510416666666666e-07,False
+video_caption_gcp_asia-east1_q1,Video Caption,GCP,asia-east1,Q1,Claude Haiku 4.5,0.59,2.509803921568628,0.0,0.283008,6.510416666666666e-07,False
+video_caption_aws_us-west-2_q1,Video Caption,AWS,us-west-2,Q1,Claude Haiku 4.5,1.03,2.0645161290322585,0.0,0.2572799999999999,7.486979166666667e-07,False
+video_caption_aws_us-east-2_q1,Video Caption,AWS,us-east-2,Q1,Claude Haiku 4.5,1.03,2.0645161290322585,0.0,0.2572799999999999,7.486979166666667e-07,False
+video_caption_aws_ap-southeast-1_q1,Video Caption,AWS,ap-southeast-1,Q1,Claude Haiku 4.5,1.03,2.0645161290322585,0.0,0.2572799999999999,8.138020833333334e-07,False
+video_caption_aws_eu-central-1_q1,Video Caption,AWS,eu-central-1,Q1,Claude Haiku 4.5,1.03,2.0645161290322585,0.0,0.2572799999999999,7.975260416666667e-07,False
+video_caption_azure_westus2_q1,Video Caption,Azure,westus2,Q1,Claude Haiku 4.5,1.04,2.639175257731959,0.0,0.2572799999999999,5.989583333333334e-07,False
+video_caption_azure_eastus_q1,Video Caption,Azure,eastus,Q1,Claude Haiku 4.5,1.04,2.639175257731959,0.0,0.2572799999999999,5.989583333333334e-07,False
+video_caption_azure_westeurope_q1,Video Caption,Azure,westeurope,Q1,Claude Haiku 4.5,1.04,2.639175257731959,0.0,0.2572799999999999,6.770833333333333e-07,False
+video_caption_azure_southeastasia_q1,Video Caption,Azure,southeastasia,Q1,Claude Haiku 4.5,1.04,2.639175257731959,0.0,0.2572799999999999,6.770833333333333e-07,False
+video_caption_anthropic_global_q1,Video Caption,Anthropic,global,Q1,Claude Haiku 4.5,0.85,2.485436893203884,0.0,0.2572799999999999,0.0,False
+video_caption_gcp_europe-west1_q2,Video Caption,GCP,europe-west1,Q2,Claude Sonnet 4.5,1.03,14.222222222222223,0.0,0.8553599999999999,6.510416666666666e-07,False
+video_caption_aws_us-west-2_q2,Video Caption,AWS,us-west-2,Q2,Claude Sonnet 4.5,1.73,11.636363636363638,0.0,0.7776000000000001,7.486979166666667e-07,False
+video_caption_aws_us-east-2_q2,Video Caption,AWS,us-east-2,Q2,Claude Sonnet 4.5,1.73,11.636363636363638,0.0,0.7776000000000001,7.486979166666667e-07,False
+video_caption_aws_ap-southeast-1_q2,Video Caption,AWS,ap-southeast-1,Q2,Claude Sonnet 4.5,1.73,11.636363636363638,0.0,0.7776000000000001,8.138020833333334e-07,False
+video_caption_aws_eu-central-1_q2,Video Caption,AWS,eu-central-1,Q2,Claude Sonnet 4.5,1.73,11.636363636363638,0.0,0.7776000000000001,7.975260416666667e-07,False
+video_caption_azure_westus2_q2,Video Caption,Azure,westus2,Q2,Claude Sonnet 4.5,1.92,13.913043478260873,0.0,0.7776000000000001,5.989583333333334e-07,False
+video_caption_azure_eastus_q2,Video Caption,Azure,eastus,Q2,Claude Sonnet 4.5,1.92,13.913043478260873,0.0,0.7776000000000001,5.989583333333334e-07,False
+video_caption_azure_westeurope_q2,Video Caption,Azure,westeurope,Q2,Claude Sonnet 4.5,1.92,13.913043478260873,0.0,0.7776000000000001,6.770833333333333e-07,False
+video_caption_azure_southeastasia_q2,Video Caption,Azure,southeastasia,Q2,Claude Sonnet 4.5,1.92,13.913043478260873,0.0,0.7776000000000001,6.770833333333333e-07,False
+video_caption_anthropic_global_q2,Video Caption,Anthropic,global,Q2,Claude Sonnet 4.5,1.51,13.913043478260873,0.0,0.7776000000000001,0.0,False
+video_caption_gcp_europe-west1_q3,Video Caption,GCP,europe-west1,Q3,Claude Opus 4.5,0.87,23.703703703703717,0.0,1.4432,6.510416666666666e-07,False
+video_caption_aws_us-west-2_q3,Video Caption,AWS,us-west-2,Q3,Claude Opus 4.5,1.73,22.857142857142865,0.0,1.312,7.486979166666667e-07,False
+video_caption_aws_us-east-2_q3,Video Caption,AWS,us-east-2,Q3,Claude Opus 4.5,1.73,22.857142857142865,0.0,1.312,7.486979166666667e-07,False
+video_caption_aws_ap-southeast-1_q3,Video Caption,AWS,ap-southeast-1,Q3,Claude Opus 4.5,1.73,22.857142857142865,0.0,1.312,8.138020833333334e-07,False
+video_caption_aws_eu-central-1_q3,Video Caption,AWS,eu-central-1,Q3,Claude Opus 4.5,1.73,22.857142857142865,0.0,1.312,7.975260416666667e-07,False
+video_caption_azure_westus2_q3,Video Caption,Azure,westus2,Q3,Claude Opus 4.5,2.04,24.615384615384624,0.0,1.312,5.989583333333334e-07,False
+video_caption_azure_eastus_q3,Video Caption,Azure,eastus,Q3,Claude Opus 4.5,2.04,24.615384615384624,0.0,1.312,5.989583333333334e-07,False
+video_caption_azure_westeurope_q3,Video Caption,Azure,westeurope,Q3,Claude Opus 4.5,2.04,24.615384615384624,0.0,1.312,6.770833333333333e-07,False
+video_caption_azure_southeastasia_q3,Video Caption,Azure,southeastasia,Q3,Claude Opus 4.5,2.04,24.615384615384624,0.0,1.312,6.770833333333333e-07,False
+video_caption_anthropic_global_q3,Video Caption,Anthropic,global,Q3,Claude Opus 4.5,1.53,24.150943396226424,0.0,1.312,0.0,False
 ocr_gcp_us-east1_q1,OCR,GCP,us-east1,Q1,,0.6201653800146524,0.0,0.0,0.005,6.510416666666666e-07,False
 ocr_gcp_us-west1_q1,OCR,GCP,us-west1,Q1,,0.7064141758928538,0.0,0.0,0.005,6.510416666666666e-07,False
 ocr_gcp_europe-west1_q1,OCR,GCP,europe-west1,Q1,,0.5232737161330644,0.0,0.0,0.005,6.510416666666666e-07,False
@@ -294,35 +293,34 @@ database_azure_westus2_q3,Database,Azure,westus2,Q3,,0.0005265584094577597,0.0,2
 database_azure_eastus_q3,Database,Azure,eastus,Q3,,0.0005198973826382769,0.0,2.457666666666667,0.0,5.989583333333334e-07,False
 database_azure_westeurope_q3,Database,Azure,westeurope,Q3,,0.0006749833417274027,0.0,2.457666666666667,0.0,6.770833333333333e-07,False
 database_azure_southeastasia_q3,Database,Azure,southeastasia,Q3,,0.0005406363829797971,0.0,2.457666666666667,0.0,6.770833333333333e-07,False
-q_a_gcp_us-east1_q1,Q/A,GCP,us-east1,Q1,Claude Haiku 4.5,1.5585355451596243,0.0485964086458373,0.0,0.39424,6.510416666666666e-07,False
-q_a_gcp_us-west1_q1,Q/A,GCP,us-west1,Q1,Claude Haiku 4.5,1.634656252178579,0.0146808982342458,0.0,0.39424,6.510416666666666e-07,False
-q_a_gcp_europe-west1_q1,Q/A,GCP,europe-west1,Q1,Claude Haiku 4.5,5.6082864759217435,0.0604063914517421,0.0,0.39424,6.510416666666666e-07,False
-q_a_gcp_asia-east1_q1,Q/A,GCP,asia-east1,Q1,Claude Haiku 4.5,2.2606893910722454,0.0766355366882355,0.0,0.39424,6.510416666666666e-07,False
-q_a_aws_us-west-2_q1,Q/A,AWS,us-west-2,Q1,Claude Haiku 4.5,0.6394980639822844,0.0420263875128878,0.0,0.3584,7.486979166666667e-07,False
-q_a_aws_us-east-2_q1,Q/A,AWS,us-east-2,Q1,Claude Haiku 4.5,4.396380714774019,0.0804471354914804,0.0,0.3584,7.486979166666667e-07,False
-q_a_aws_ap-southeast-1_q1,Q/A,AWS,ap-southeast-1,Q1,Claude Haiku 4.5,5.901752116729692,0.0789986326430687,0.0,0.3584,8.138020833333334e-07,False
-q_a_aws_eu-central-1_q1,Q/A,AWS,eu-central-1,Q1,Claude Haiku 4.5,3.178531717589757,0.0942347168238728,0.0,0.3584,7.975260416666667e-07,False
-q_a_azure_westus2_q1,Q/A,Azure,westus2,Q1,Claude Haiku 4.5,5.477970508605886,0.0898351622455819,0.0,0.3584,5.989583333333334e-07,False
-q_a_azure_eastus_q1,Q/A,Azure,eastus,Q1,Claude Haiku 4.5,5.80134060716665,0.0964565584397231,0.0,0.3584,5.989583333333334e-07,False
-q_a_azure_westeurope_q1,Q/A,Azure,westeurope,Q1,Claude Haiku 4.5,5.280727766614403,0.0243232396878328,0.0,0.3584,6.770833333333333e-07,False
-q_a_azure_southeastasia_q1,Q/A,Azure,southeastasia,Q1,Claude Haiku 4.5,4.555032916166454,0.0595295795489558,0.0,0.3584,6.770833333333333e-07,False
-q_a_gcp_europe-west1_q2,Q/A,GCP,europe-west1,Q2,Claude Sonnet 4.5,2.9889671108507385,0.0688692168534121,0.0,1.4784000000000002,6.510416666666666e-07,False
-q_a_gcp_asia-east1_q2,Q/A,GCP,asia-east1,Q2,Claude Sonnet 4.5,4.864168025175062,0.0986120273288462,0.0,1.4784000000000002,6.510416666666666e-07,False
-q_a_aws_us-west-2_q2,Q/A,AWS,us-west-2,Q2,Claude Sonnet 4.5,1.7970271046955737,0.0760378147694124,0.0,1.344,7.486979166666667e-07,False
-q_a_aws_us-east-2_q2,Q/A,AWS,us-east-2,Q2,Claude Sonnet 4.5,3.874925920708709,0.0411843575181744,0.0,1.344,7.486979166666667e-07,False
-q_a_aws_ap-southeast-1_q2,Q/A,AWS,ap-southeast-1,Q2,Claude Sonnet 4.5,1.0574139868889945,0.0136852264257147,0.0,1.344,8.138020833333334e-07,False
-q_a_aws_eu-central-1_q2,Q/A,AWS,eu-central-1,Q2,Claude Sonnet 4.5,3.998044073881303,0.0540729767635215,0.0,1.344,7.975260416666667e-07,False
-q_a_azure_westus2_q2,Q/A,Azure,westus2,Q2,Claude Sonnet 4.5,4.934930762727168,0.0518476110574287,0.0,1.344,5.989583333333334e-07,False
-q_a_azure_eastus_q2,Q/A,Azure,eastus,Q2,Claude Sonnet 4.5,4.900626405832281,0.0470418401974653,0.0,1.344,5.989583333333334e-07,False
-q_a_azure_westeurope_q2,Q/A,Azure,westeurope,Q2,Claude Sonnet 4.5,4.071569677519877,0.0176337345080648,0.0,1.344,6.770833333333333e-07,False
-q_a_azure_southeastasia_q2,Q/A,Azure,southeastasia,Q2,Claude Sonnet 4.5,2.9995776956199376,0.0821853808287151,0.0,1.344,6.770833333333333e-07,False
-q_a_gcp_europe-west1_q3,Q/A,GCP,europe-west1,Q3,Claude Opus 4.5,3.7289260019915993,0.0672259825244551,0.0,3.1679999999999997,6.510416666666666e-07,False
-q_a_gcp_asia-east1_q3,Q/A,GCP,asia-east1,Q3,Claude Opus 4.5,0.5330946179242272,0.0348345685740848,0.0,3.1679999999999997,6.510416666666666e-07,False
-q_a_aws_us-west-2_q3,Q/A,AWS,us-west-2,Q3,Claude Opus 4.5,0.5753145003298646,0.0158683249602481,0.0,2.879999999999999,7.486979166666667e-07,False
-q_a_aws_us-east-2_q3,Q/A,AWS,us-east-2,Q3,Claude Opus 4.5,2.831100263202943,0.0593545901344422,0.0,2.879999999999999,7.486979166666667e-07,False
-q_a_aws_ap-southeast-1_q3,Q/A,AWS,ap-southeast-1,Q3,Claude Opus 4.5,3.185394457905855,0.0703128714600077,0.0,2.879999999999999,8.138020833333334e-07,False
-q_a_aws_eu-central-1_q3,Q/A,AWS,eu-central-1,Q3,Claude Opus 4.5,3.0619532865154357,0.0656627546316775,0.0,2.879999999999999,7.975260416666667e-07,False
-q_a_azure_westus2_q3,Q/A,Azure,westus2,Q3,Claude Opus 4.5,0.5762693553638053,0.0248865308317735,0.0,2.879999999999999,5.989583333333334e-07,False
-q_a_azure_eastus_q3,Q/A,Azure,eastus,Q3,Claude Opus 4.5,2.638831984150885,0.0697850219329872,0.0,2.879999999999999,5.989583333333334e-07,False
-q_a_azure_westeurope_q3,Q/A,Azure,westeurope,Q3,Claude Opus 4.5,0.4162004497827729,0.0450533126323771,0.0,2.879999999999999,6.770833333333333e-07,False
-q_a_azure_southeastasia_q3,Q/A,Azure,southeastasia,Q3,Claude Opus 4.5,2.83823463771183,0.0101317248172601,0.0,2.879999999999999,6.770833333333333e-07,False
+q_a_gcp_europe-west1_q1,Q/A,GCP,europe-west1,Q1,Claude Haiku 4.5,0.59,200.78431372549016,0.0,0.39424,6.510416666666666e-07,False
+q_a_gcp_asia-east1_q1,Q/A,GCP,asia-east1,Q1,Claude Haiku 4.5,0.59,200.78431372549016,0.0,0.39424,6.510416666666666e-07,False
+q_a_aws_us-west-2_q1,Q/A,AWS,us-west-2,Q1,Claude Haiku 4.5,1.03,165.1612903225806,0.0,0.3584,7.486979166666667e-07,False
+q_a_aws_us-east-2_q1,Q/A,AWS,us-east-2,Q1,Claude Haiku 4.5,1.03,165.1612903225806,0.0,0.3584,7.486979166666667e-07,False
+q_a_aws_ap-southeast-1_q1,Q/A,AWS,ap-southeast-1,Q1,Claude Haiku 4.5,1.03,165.1612903225806,0.0,0.3584,8.138020833333334e-07,False
+q_a_aws_eu-central-1_q1,Q/A,AWS,eu-central-1,Q1,Claude Haiku 4.5,1.03,165.1612903225806,0.0,0.3584,7.975260416666667e-07,False
+q_a_azure_westus2_q1,Q/A,Azure,westus2,Q1,Claude Haiku 4.5,1.04,211.13402061855663,0.0,0.3584,5.989583333333334e-07,False
+q_a_azure_eastus_q1,Q/A,Azure,eastus,Q1,Claude Haiku 4.5,1.04,211.13402061855663,0.0,0.3584,5.989583333333334e-07,False
+q_a_azure_westeurope_q1,Q/A,Azure,westeurope,Q1,Claude Haiku 4.5,1.04,211.13402061855663,0.0,0.3584,6.770833333333333e-07,False
+q_a_azure_southeastasia_q1,Q/A,Azure,southeastasia,Q1,Claude Haiku 4.5,1.04,211.13402061855663,0.0,0.3584,6.770833333333333e-07,False
+q_a_anthropic_global_q1,Q/A,Anthropic,global,Q1,Claude Haiku 4.5,0.85,198.83495145631065,0.0,0.3584,0.0,False
+q_a_gcp_europe-west1_q2,Q/A,GCP,europe-west1,Q2,Claude Sonnet 4.5,1.03,853.3333333333334,0.0,1.4784000000000002,6.510416666666666e-07,False
+q_a_aws_us-west-2_q2,Q/A,AWS,us-west-2,Q2,Claude Sonnet 4.5,1.73,698.1818181818181,0.0,1.344,7.486979166666667e-07,False
+q_a_aws_us-east-2_q2,Q/A,AWS,us-east-2,Q2,Claude Sonnet 4.5,1.73,698.1818181818181,0.0,1.344,7.486979166666667e-07,False
+q_a_aws_ap-southeast-1_q2,Q/A,AWS,ap-southeast-1,Q2,Claude Sonnet 4.5,1.73,698.1818181818181,0.0,1.344,8.138020833333334e-07,False
+q_a_aws_eu-central-1_q2,Q/A,AWS,eu-central-1,Q2,Claude Sonnet 4.5,1.73,698.1818181818181,0.0,1.344,7.975260416666667e-07,False
+q_a_azure_westus2_q2,Q/A,Azure,westus2,Q2,Claude Sonnet 4.5,1.92,834.7826086956521,0.0,1.344,5.989583333333334e-07,False
+q_a_azure_eastus_q2,Q/A,Azure,eastus,Q2,Claude Sonnet 4.5,1.92,834.7826086956521,0.0,1.344,5.989583333333334e-07,False
+q_a_azure_westeurope_q2,Q/A,Azure,westeurope,Q2,Claude Sonnet 4.5,1.92,834.7826086956521,0.0,1.344,6.770833333333333e-07,False
+q_a_azure_southeastasia_q2,Q/A,Azure,southeastasia,Q2,Claude Sonnet 4.5,1.92,834.7826086956521,0.0,1.344,6.770833333333333e-07,False
+q_a_anthropic_global_q2,Q/A,Anthropic,global,Q2,Claude Sonnet 4.5,1.51,834.7826086956521,0.0,1.344,0.0,False
+q_a_gcp_europe-west1_q3,Q/A,GCP,europe-west1,Q3,Claude Opus 4.5,0.87,1185.185185185185,0.0,3.168,6.510416666666666e-07,False
+q_a_aws_us-west-2_q3,Q/A,AWS,us-west-2,Q3,Claude Opus 4.5,1.73,1142.857142857143,0.0,2.8799999999999994,7.486979166666667e-07,False
+q_a_aws_us-east-2_q3,Q/A,AWS,us-east-2,Q3,Claude Opus 4.5,1.73,1142.857142857143,0.0,2.8799999999999994,7.486979166666667e-07,False
+q_a_aws_ap-southeast-1_q3,Q/A,AWS,ap-southeast-1,Q3,Claude Opus 4.5,1.73,1142.857142857143,0.0,2.8799999999999994,8.138020833333334e-07,False
+q_a_aws_eu-central-1_q3,Q/A,AWS,eu-central-1,Q3,Claude Opus 4.5,1.73,1142.857142857143,0.0,2.8799999999999994,7.975260416666667e-07,False
+q_a_azure_westus2_q3,Q/A,Azure,westus2,Q3,Claude Opus 4.5,2.04,1230.7692307692305,0.0,2.8799999999999994,5.989583333333334e-07,False
+q_a_azure_eastus_q3,Q/A,Azure,eastus,Q3,Claude Opus 4.5,2.04,1230.7692307692305,0.0,2.8799999999999994,5.989583333333334e-07,False
+q_a_azure_westeurope_q3,Q/A,Azure,westeurope,Q3,Claude Opus 4.5,2.04,1230.7692307692305,0.0,2.8799999999999994,6.770833333333333e-07,False
+q_a_azure_southeastasia_q3,Q/A,Azure,southeastasia,Q3,Claude Opus 4.5,2.04,1230.7692307692305,0.0,2.8799999999999994,6.770833333333333e-07,False
+q_a_anthropic_global_q3,Q/A,Anthropic,global,Q3,Claude Opus 4.5,1.53,1207.5471698113204,0.0,2.8799999999999994,0.0,False

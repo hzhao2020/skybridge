@@ -1,0 +1,50 @@
+{
+  "workflow": "workflow1",
+  "quality_level": "Q2",
+  "method": "single_cloud",
+  "assignments": [
+    {
+      "logical_node": "Shot Detection",
+      "endpoint_id": "shot_detection_aws_us-west-2_q2",
+      "provider": "AWS",
+      "region": "us-west-2",
+      "model_name": null
+    },
+    {
+      "logical_node": "Video Split & Sample",
+      "endpoint_id": "video_split_and_sample_aws_us-west-2_q2",
+      "provider": "AWS",
+      "region": "us-west-2",
+      "model_name": null
+    },
+    {
+      "logical_node": "Video Caption",
+      "endpoint_id": "video_caption_aws_us-west-2_q2",
+      "provider": "AWS",
+      "region": "us-west-2",
+      "model_name": "Claude Sonnet 4.5"
+    },
+    {
+      "logical_node": "Q/A",
+      "endpoint_id": "q_a_aws_us-west-2_q2",
+      "provider": "AWS",
+      "region": "us-west-2",
+      "model_name": "Claude Sonnet 4.5"
+    }
+  ],
+  "objective_value": 0.0,
+  "metrics": {
+    "workflow": "workflow1",
+    "quality_level": "Q2",
+    "method": "single_cloud",
+    "objective_value": 0.0,
+    "expected_cost": 2.8489265275314435,
+    "avg_latency": 95.29899488922794,
+    "p95_latency": 188.018797987976,
+    "p99_latency": 257.9599014017516,
+    "violation_rate": 0.0,
+    "cvar_value": 0.0,
+    "solver_runtime_sec": 213.65014289994724,
+    "status": "optimal"
+  }
+}

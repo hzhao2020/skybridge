@@ -7,14 +7,13 @@ import argparse
 import json
 import logging
 import multiprocessing as mp
-import resource
 import sys
 import time
 import traceback
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import pandas as pd
+import psutil
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -24,11 +23,6 @@ from src.data_loader import load_endpoints, load_queries, load_scenarios  # noqa
 from src.milp_decomposition import solve_decomposition  # noqa: E402
 from src.milp_full import solve_full_milp  # noqa: E402
 from src.workflow import get_workflow  # noqa: E402
-
-
-def _maxrss_mb() -> float:
-    rss = float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-    return rss / (1024.0 * 1024.0) if rss > 10_000_000 else rss / 1024.0
 
 
 def _parse_ints(raw: str) -> list[int]:
@@ -45,6 +39,11 @@ def _subset_scenarios(scenarios, query_ids: list[str], sample_count: int):
         group = sorted(by_query.get(query_id, []), key=lambda s: s.scenario_id)
         selected.extend(group[:sample_count])
     return selected
+
+
+def _assignment_signature(result) -> str:
+    pairs = sorted((a.logical_node, a.endpoint_id) for a in result.assignments)
+    return json.dumps(pairs, sort_keys=True)
 
 
 def _worker(
@@ -83,12 +82,18 @@ def _worker(
                 "objective_value": result.objective_value,
                 "solver_runtime_sec": result.solver_runtime_sec,
                 "wall_time_sec": time.perf_counter() - started,
-                "max_rss_mb": _maxrss_mb(),
+                "max_rss_mb": 0.0,
                 "num_iterations": result.num_iterations,
                 "active_scenario_count": result.active_scenario_count,
                 "active_scenario_fraction": (
                     result.active_scenario_count / len(scenarios) if scenarios else 0.0
                 ),
+                "assignment_signature": _assignment_signature(result),
+                "expected_cost": result.expected_cost,
+                "avg_latency": result.avg_latency,
+                "p95_latency": result.p95_latency,
+                "p99_latency": result.p99_latency,
+                "violation_rate": result.violation_rate,
                 "error": "",
             }
         )
@@ -105,10 +110,16 @@ def _worker(
                 "objective_value": float("nan"),
                 "solver_runtime_sec": float("nan"),
                 "wall_time_sec": time.perf_counter() - started,
-                "max_rss_mb": _maxrss_mb(),
+                "max_rss_mb": 0.0,
                 "num_iterations": 0,
                 "active_scenario_count": 0,
                 "active_scenario_fraction": float("nan"),
+                "assignment_signature": "",
+                "expected_cost": float("nan"),
+                "avg_latency": float("nan"),
+                "p95_latency": float("nan"),
+                "p99_latency": float("nan"),
+                "violation_rate": float("nan"),
                 "error": f"{type(exc).__name__}: {exc}\n{traceback.format_exc()}",
             }
         )
@@ -121,6 +132,20 @@ def _run_one(method: str, workflow: str, quality: str, query_count: int, sample_
         args=(method, workflow, quality, query_count, sample_count, queue),
     )
     proc.start()
+    peak_rss_mb = 0.0
+    ps_proc = psutil.Process(proc.pid)
+    while proc.is_alive():
+        try:
+            rss = ps_proc.memory_info().rss
+            rss += sum(
+                child.memory_info().rss
+                for child in ps_proc.children(recursive=True)
+                if child.is_running()
+            )
+            peak_rss_mb = max(peak_rss_mb, rss / (1024.0 * 1024.0))
+        except psutil.Error:
+            pass
+        time.sleep(0.05)
     proc.join()
     if queue.empty():
         row = {
@@ -135,11 +160,69 @@ def _run_one(method: str, workflow: str, quality: str, query_count: int, sample_
         }
     else:
         row = queue.get()
+    row["max_rss_mb"] = max(float(row.get("max_rss_mb", 0.0) or 0.0), peak_rss_mb)
     row["process_exitcode"] = proc.exitcode
     return row
 
 
+def _add_pairwise_comparison(df: pd.DataFrame) -> pd.DataFrame:
+    key_cols = ["workflow", "quality_level", "query_count", "sample_count"]
+    full = df[df["method"] == "full_milp"][key_cols + [
+        "assignment_signature",
+        "objective_value",
+        "expected_cost",
+        "avg_latency",
+        "p95_latency",
+        "status",
+    ]].rename(
+        columns={
+            "assignment_signature": "full_assignment_signature",
+            "objective_value": "full_objective_value",
+            "expected_cost": "full_expected_cost",
+            "avg_latency": "full_avg_latency",
+            "p95_latency": "full_p95_latency",
+            "status": "full_status",
+        }
+    )
+    decomp = df[df["method"] == "decomposition"][key_cols + [
+        "assignment_signature",
+        "objective_value",
+        "expected_cost",
+        "avg_latency",
+        "p95_latency",
+        "status",
+    ]].rename(
+        columns={
+            "assignment_signature": "decomp_assignment_signature",
+            "objective_value": "decomp_objective_value",
+            "expected_cost": "decomp_expected_cost",
+            "avg_latency": "decomp_avg_latency",
+            "p95_latency": "decomp_p95_latency",
+            "status": "decomp_status",
+        }
+    )
+    cmp_df = full.merge(decomp, on=key_cols, how="outer")
+    cmp_df["same_assignment"] = (
+        cmp_df["full_assignment_signature"] == cmp_df["decomp_assignment_signature"]
+    )
+    cmp_df["objective_abs_diff"] = (
+        cmp_df["full_objective_value"] - cmp_df["decomp_objective_value"]
+    ).abs()
+    cmp_df["expected_cost_abs_diff"] = (
+        cmp_df["full_expected_cost"] - cmp_df["decomp_expected_cost"]
+    ).abs()
+    cmp_df["avg_latency_abs_diff"] = (
+        cmp_df["full_avg_latency"] - cmp_df["decomp_avg_latency"]
+    ).abs()
+    cmp_df["p95_latency_abs_diff"] = (
+        cmp_df["full_p95_latency"] - cmp_df["decomp_p95_latency"]
+    ).abs()
+    return cmp_df
+
+
 def _plot_metric(df: pd.DataFrame, metric: str, ylabel: str, output: Path) -> None:
+    import matplotlib.pyplot as plt
+
     fig, axes = plt.subplots(1, 2, figsize=(12, 4.5), sharey=True)
     for ax, workflow in zip(axes, sorted(df["workflow"].unique())):
         sub = df[(df["workflow"] == workflow) & (df["status"].isin(["OPTIMAL", "optimal"]))]
@@ -235,7 +318,9 @@ def main() -> None:
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     df = pd.DataFrame(rows)
+    cmp_df = _add_pairwise_comparison(df)
     df.to_csv(args.output, index=False)
+    cmp_df.to_csv(args.output.with_name(args.output.stem + "_solution_comparison.csv"), index=False)
     with open(args.output.with_suffix(".json"), "w", encoding="utf-8") as f:
         json.dump(rows, f, indent=2)
     outputs = make_plots(args.output, args.plot_dir)

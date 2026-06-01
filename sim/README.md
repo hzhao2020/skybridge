@@ -89,7 +89,7 @@ Runs **6 isolated SkyFlow jobs** (not 12): `workflow1`×`Q1|Q2|Q3` and `workflow
 |--------|--------|-------------|
 | `full_milp` | `src/milp_full.py` | Full SAA-CVaR MILP with latency excess constraints on all query–scenario pairs |
 | `decomposition` | `src/milp_decomposition.py` | Scenario-adaptive constraint generation; final evaluation on all scenarios |
-| `single_cloud` | `src/baselines.py` | **SC:** one cloud provider; min empirical SLA violation (tie: cost); best provider wins |
+| `single_cloud` | `src/baselines.py` | **SC:** one cloud provider; min cost subject to empirical SLA violation threshold |
 | `logical_optimal` | `src/baselines.py` | **LO:** per-node argmax capability μ_k (ignores cross-node effects) |
 | `greedy` | `src/baselines.py` | **Greedy:** topological DAG pass; min violation given fixed predecessors |
 

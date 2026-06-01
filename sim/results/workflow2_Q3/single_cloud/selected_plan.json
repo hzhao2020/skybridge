@@ -60,19 +60,19 @@
       "model_name": "Claude Opus 4.5"
     }
   ],
-  "objective_value": 0.52,
+  "objective_value": 0.216,
   "metrics": {
     "workflow": "workflow2",
     "quality_level": "Q3",
     "method": "single_cloud",
-    "objective_value": 0.52,
-    "expected_cost": 14.908478423911184,
-    "avg_latency": 67.16448352994371,
-    "p95_latency": 103.41316728515743,
-    "p99_latency": 114.5444337221074,
-    "violation_rate": 0.52,
-    "cvar_value": 28.029685328310347,
-    "solver_runtime_sec": 0.5608981670229696,
+    "objective_value": 0.216,
+    "expected_cost": 13.125228347737153,
+    "avg_latency": 49.16729187704538,
+    "p95_latency": 78.58921637543087,
+    "p99_latency": 85.59089344031496,
+    "violation_rate": 0.22,
+    "cvar_value": 7.698088329196119,
+    "solver_runtime_sec": 7.163753499975428,
     "status": "optimal"
   }
 }

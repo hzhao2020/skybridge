@@ -1,0 +1,78 @@
+{
+  "workflow": "workflow2",
+  "quality_level": "Q3",
+  "method": "single_cloud",
+  "assignments": [
+    {
+      "logical_node": "Shot Detection",
+      "endpoint_id": "shot_detection_aws_us-west-2_q3",
+      "provider": "AWS",
+      "region": "us-west-2",
+      "model_name": null
+    },
+    {
+      "logical_node": "Speech Transcription",
+      "endpoint_id": "speech_transcription_aws_us-west-2_q3",
+      "provider": "AWS",
+      "region": "us-west-2",
+      "model_name": null
+    },
+    {
+      "logical_node": "Video Split & Sample",
+      "endpoint_id": "video_split_and_sample_aws_us-west-2_q3",
+      "provider": "AWS",
+      "region": "us-west-2",
+      "model_name": null
+    },
+    {
+      "logical_node": "Video Caption",
+      "endpoint_id": "video_caption_aws_us-west-2_q3",
+      "provider": "AWS",
+      "region": "us-west-2",
+      "model_name": "Claude Opus 4.5"
+    },
+    {
+      "logical_node": "OCR",
+      "endpoint_id": "ocr_aws_us-west-2_q3",
+      "provider": "AWS",
+      "region": "us-west-2",
+      "model_name": null
+    },
+    {
+      "logical_node": "Label Detection",
+      "endpoint_id": "label_detection_aws_us-west-2_q3",
+      "provider": "AWS",
+      "region": "us-west-2",
+      "model_name": null
+    },
+    {
+      "logical_node": "Database",
+      "endpoint_id": "database_aws_us-west-2_q3",
+      "provider": "AWS",
+      "region": "us-west-2",
+      "model_name": null
+    },
+    {
+      "logical_node": "Q/A",
+      "endpoint_id": "q_a_aws_us-west-2_q3",
+      "provider": "AWS",
+      "region": "us-west-2",
+      "model_name": "Claude Opus 4.5"
+    }
+  ],
+  "objective_value": 0.183,
+  "metrics": {
+    "workflow": "workflow2",
+    "quality_level": "Q3",
+    "method": "single_cloud",
+    "objective_value": 0.183,
+    "expected_cost": 13.101731720568804,
+    "avg_latency": 49.380905076412546,
+    "p95_latency": 80.72892945866904,
+    "p99_latency": 89.26967238932592,
+    "violation_rate": 0.1906,
+    "cvar_value": 6.485903304932352,
+    "solver_runtime_sec": 8.224455400020815,
+    "status": "optimal"
+  }
+}
