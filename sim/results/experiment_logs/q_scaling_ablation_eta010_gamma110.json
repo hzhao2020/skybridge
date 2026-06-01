@@ -1062,5 +1062,33 @@
     "error": "",
     "process_exitcode": 0,
     "budget_factor": 1.1
+  },
+  {
+    "workflow": "workflow2",
+    "quality_level": "Q1",
+    "query_count": 900,
+    "calibration_scenarios_per_query": 50,
+    "test_scenarios_per_query": 50,
+    "calibration_scenario_count": 45000,
+    "test_scenario_count": 45000,
+    "method": "decomposition",
+    "status": "INFEASIBLE_REUSED_LAST_FEASIBLE",
+    "reused_last_feasible": true,
+    "objective_value": Infinity,
+    "expected_cost": 2.0898828949766353,
+    "avg_latency": 64.50027489058901,
+    "p95_latency": 104.44048368768875,
+    "p99_latency": 126.86940202762912,
+    "violation_rate": 0.041155555555555556,
+    "solver_runtime_sec": 895.1574452000204,
+    "wall_time_sec": 1690.8120188000612,
+    "max_rss_mb": 15950.6484375,
+    "num_iterations": 3,
+    "active_scenario_count": 12838,
+    "active_scenario_fraction": 0.28528888888888887,
+    "assignment_signature": "[[\"Database\", \"database_aliyun_cn-shanghai_q1\"], [\"Label Detection\", \"label_detection_aliyun_cn-shanghai_q1\"], [\"OCR\", \"ocr_azure_eastus_q1\"], [\"Q/A\", \"q_a_aws_eu-central-1_q1\"], [\"Shot Detection\", \"shot_detection_aliyun_cn-shanghai_q1\"], [\"Speech Transcription\", \"speech_transcription_aliyun_cn-shanghai_q1\"], [\"Video Caption\", \"video_caption_aws_us-east-2_q1\"], [\"Video Split & Sample\", \"video_split_and_sample_aliyun_cn-shanghai_q1\"]]",
+    "error": "",
+    "process_exitcode": 0,
+    "budget_factor": 1.1
   }
 ]

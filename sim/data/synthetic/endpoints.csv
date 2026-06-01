@@ -1,93 +1,93 @@
 endpoint_id,logical_operation,provider,region,quality_level,model_name,base_latency_sec,latency_per_mb,fixed_cost,cost_per_mb,storage_cost_per_mb,is_virtual
 client_source,ClientSource,client,local,Q1,,0.0,0.0,0.0,0.0,0.0,True
 client_sink,ClientSink,client,local,Q1,,0.0,0.0,0.0,0.0,0.0,True
-shot_detection_gcp_us-east1_q1,Shot Detection,GCP,us-east1,Q1,,22.930167891157904,0.11707280207142878,0.0,0.005,6.510416666666666e-07,False
-shot_detection_gcp_us-west1_q1,Shot Detection,GCP,us-west1,Q1,,20.985163859578318,0.11707280207142878,0.0,0.005,6.510416666666666e-07,False
-shot_detection_gcp_europe-west1_q1,Shot Detection,GCP,europe-west1,Q1,,17.71669384904041,0.11707280207142878,0.0,0.005,6.510416666666666e-07,False
-shot_detection_gcp_asia-east1_q1,Shot Detection,GCP,asia-east1,Q1,,23.735770624919326,0.11707280207142878,0.0,0.005,6.510416666666666e-07,False
-shot_detection_aws_us-west-2_q1,Shot Detection,AWS,us-west-2,Q1,,26.24949835502856,0.11707280207142878,0.0,0.005,7.486979166666667e-07,False
-shot_detection_aws_us-east-2_q1,Shot Detection,AWS,us-east-2,Q1,,15.197501163195616,0.11707280207142878,0.0,0.005,7.486979166666667e-07,False
-shot_detection_aws_ap-southeast-1_q1,Shot Detection,AWS,ap-southeast-1,Q1,,24.18820642889736,0.11707280207142878,0.0,0.00675,8.138020833333334e-07,False
-shot_detection_aws_eu-central-1_q1,Shot Detection,AWS,eu-central-1,Q1,,20.805517348952872,0.11707280207142878,0.0,0.006,7.975260416666667e-07,False
-shot_detection_aliyun_cn-shanghai_q1,Shot Detection,Aliyun,cn-shanghai,Q1,,20.98203452155063,0.11707280207142878,0.0,0.003,5.631510416666666e-07,False
-shot_detection_gcp_us-east1_q2,Shot Detection,GCP,us-east1,Q2,,19.108473242631586,0.09756066839285732,0.0,0.005,6.510416666666666e-07,False
-shot_detection_gcp_us-west1_q2,Shot Detection,GCP,us-west1,Q2,,17.4876365496486,0.09756066839285732,0.0,0.005,6.510416666666666e-07,False
-shot_detection_gcp_europe-west1_q2,Shot Detection,GCP,europe-west1,Q2,,14.76391154086701,0.09756066839285732,0.0,0.005,6.510416666666666e-07,False
-shot_detection_gcp_asia-east1_q2,Shot Detection,GCP,asia-east1,Q2,,19.77980885409944,0.09756066839285732,0.0,0.005,6.510416666666666e-07,False
-shot_detection_aws_us-west-2_q2,Shot Detection,AWS,us-west-2,Q2,,21.874581962523802,0.09756066839285732,0.0,0.005,7.486979166666667e-07,False
-shot_detection_aws_us-east-2_q2,Shot Detection,AWS,us-east-2,Q2,,12.664584302663014,0.09756066839285732,0.0,0.005,7.486979166666667e-07,False
-shot_detection_aws_ap-southeast-1_q2,Shot Detection,AWS,ap-southeast-1,Q2,,20.1568386907478,0.09756066839285732,0.0,0.00675,8.138020833333334e-07,False
-shot_detection_aws_eu-central-1_q2,Shot Detection,AWS,eu-central-1,Q2,,17.337931124127394,0.09756066839285732,0.0,0.006,7.975260416666667e-07,False
-shot_detection_aliyun_cn-shanghai_q2,Shot Detection,Aliyun,cn-shanghai,Q2,,17.48502876795886,0.09756066839285732,0.0,0.003,5.631510416666666e-07,False
-shot_detection_gcp_us-east1_q3,Shot Detection,GCP,us-east1,Q3,,15.28677859410527,0.07804853471428586,0.0,0.005,6.510416666666666e-07,False
-shot_detection_gcp_us-west1_q3,Shot Detection,GCP,us-west1,Q3,,13.99010923971888,0.07804853471428586,0.0,0.005,6.510416666666666e-07,False
-shot_detection_gcp_europe-west1_q3,Shot Detection,GCP,europe-west1,Q3,,11.81112923269361,0.07804853471428586,0.0,0.005,6.510416666666666e-07,False
-shot_detection_gcp_asia-east1_q3,Shot Detection,GCP,asia-east1,Q3,,15.823847083279553,0.07804853471428586,0.0,0.005,6.510416666666666e-07,False
-shot_detection_aws_us-west-2_q3,Shot Detection,AWS,us-west-2,Q3,,17.499665570019044,0.07804853471428586,0.0,0.005,7.486979166666667e-07,False
-shot_detection_aws_us-east-2_q3,Shot Detection,AWS,us-east-2,Q3,,10.131667442130412,0.07804853471428586,0.0,0.005,7.486979166666667e-07,False
-shot_detection_aws_ap-southeast-1_q3,Shot Detection,AWS,ap-southeast-1,Q3,,16.125470952598242,0.07804853471428586,0.0,0.00675,8.138020833333334e-07,False
-shot_detection_aws_eu-central-1_q3,Shot Detection,AWS,eu-central-1,Q3,,13.870344899301916,0.07804853471428586,0.0,0.006,7.975260416666667e-07,False
-shot_detection_aliyun_cn-shanghai_q3,Shot Detection,Aliyun,cn-shanghai,Q3,,13.988023014367087,0.07804853471428586,0.0,0.003,5.631510416666666e-07,False
-video_split_and_sample_gcp_us-east1_q1,Video Split & Sample,GCP,us-east1,Q1,,4.385376134416082,0.04652772407142854,0.0,0.0001199999999999,6.510416666666666e-07,False
-video_split_and_sample_gcp_us-west1_q1,Video Split & Sample,GCP,us-west1,Q1,,4.602061765962887,0.04652772407142854,0.0,0.0001199999999999,6.510416666666666e-07,False
-video_split_and_sample_gcp_europe-west1_q1,Video Split & Sample,GCP,europe-west1,Q1,,3.3560176649370015,0.04652772407142854,0.0,0.0001199999999999,6.510416666666666e-07,False
-video_split_and_sample_gcp_asia-east1_q1,Video Split & Sample,GCP,asia-east1,Q1,,3.4264479629861753,0.04652772407142854,0.0,0.0001199999999999,6.510416666666666e-07,False
-video_split_and_sample_aws_us-west-2_q1,Video Split & Sample,AWS,us-west-2,Q1,,2.90766839645518,0.04652772407142854,0.0,0.0002,7.486979166666667e-07,False
-video_split_and_sample_aws_us-east-2_q1,Video Split & Sample,AWS,us-east-2,Q1,,3.6072728648065846,0.04652772407142854,0.0,0.0002,7.486979166666667e-07,False
-video_split_and_sample_aws_ap-southeast-1_q1,Video Split & Sample,AWS,ap-southeast-1,Q1,,3.851319605486192,0.04652772407142854,0.0,0.0002,8.138020833333334e-07,False
-video_split_and_sample_aws_eu-central-1_q1,Video Split & Sample,AWS,eu-central-1,Q1,,4.330734994426394,0.04652772407142854,0.0,0.0002,7.975260416666667e-07,False
-video_split_and_sample_aliyun_cn-shanghai_q1,Video Split & Sample,Aliyun,cn-shanghai,Q1,,2.706546036318969,0.04652772407142854,0.0,0.00011,5.631510416666666e-07,False
-video_split_and_sample_aliyun_cn-beijing_q1,Video Split & Sample,Aliyun,cn-beijing,Q1,,4.347251922512738,0.04652772407142854,0.0,0.00011,5.631510416666666e-07,False
-video_split_and_sample_aliyun_us-east-1_q1,Video Split & Sample,Aliyun,us-east-1,Q1,,2.577016419432776,0.04652772407142854,0.0,0.00011,5.208333333333334e-07,False
-video_split_and_sample_aliyun_ap-southeast-1_q1,Video Split & Sample,Aliyun,ap-southeast-1,Q1,,3.6069418748710596,0.04652772407142854,0.0,0.00011,5.533854166666667e-07,False
-video_split_and_sample_azure_westus2_q1,Video Split & Sample,Azure,westus2,Q1,,4.556257113268717,0.04652772407142854,0.0,0.000156,5.989583333333334e-07,False
-video_split_and_sample_azure_eastus_q1,Video Split & Sample,Azure,eastus,Q1,,4.098898884547984,0.04652772407142854,0.0,0.000156,5.989583333333334e-07,False
-video_split_and_sample_azure_westeurope_q1,Video Split & Sample,Azure,westeurope,Q1,,4.3272667852298765,0.04652772407142854,0.0,0.000156,6.770833333333333e-07,False
-video_split_and_sample_azure_southeastasia_q1,Video Split & Sample,Azure,southeastasia,Q1,,3.8661765743754586,0.04652772407142854,0.0,0.000222,6.770833333333333e-07,False
-video_split_and_sample_gcp_us-east1_q2,Video Split & Sample,GCP,us-east1,Q2,,3.6544801120134016,0.03877310339285712,0.0,0.0001199999999999,6.510416666666666e-07,False
-video_split_and_sample_gcp_us-west1_q2,Video Split & Sample,GCP,us-west1,Q2,,3.835051471635739,0.03877310339285712,0.0,0.0001199999999999,6.510416666666666e-07,False
-video_split_and_sample_gcp_europe-west1_q2,Video Split & Sample,GCP,europe-west1,Q2,,2.796681387447501,0.03877310339285712,0.0,0.0001199999999999,6.510416666666666e-07,False
-video_split_and_sample_gcp_asia-east1_q2,Video Split & Sample,GCP,asia-east1,Q2,,2.8553733024884793,0.03877310339285712,0.0,0.0001199999999999,6.510416666666666e-07,False
-video_split_and_sample_aws_us-west-2_q2,Video Split & Sample,AWS,us-west-2,Q2,,2.4230569970459834,0.03877310339285712,0.0,0.0002,7.486979166666667e-07,False
-video_split_and_sample_aws_us-east-2_q2,Video Split & Sample,AWS,us-east-2,Q2,,3.006060720672154,0.03877310339285712,0.0,0.0002,7.486979166666667e-07,False
-video_split_and_sample_aws_ap-southeast-1_q2,Video Split & Sample,AWS,ap-southeast-1,Q2,,3.2094330045718267,0.03877310339285712,0.0,0.0002,8.138020833333334e-07,False
-video_split_and_sample_aws_eu-central-1_q2,Video Split & Sample,AWS,eu-central-1,Q2,,3.608945828688662,0.03877310339285712,0.0,0.0002,7.975260416666667e-07,False
-video_split_and_sample_aliyun_cn-shanghai_q2,Video Split & Sample,Aliyun,cn-shanghai,Q2,,2.2554550302658076,0.03877310339285712,0.0,0.00011,5.631510416666666e-07,False
-video_split_and_sample_aliyun_cn-beijing_q2,Video Split & Sample,Aliyun,cn-beijing,Q2,,3.6227099354272823,0.03877310339285712,0.0,0.00011,5.631510416666666e-07,False
-video_split_and_sample_aliyun_us-east-1_q2,Video Split & Sample,Aliyun,us-east-1,Q2,,2.1475136828606467,0.03877310339285712,0.0,0.00011,5.208333333333334e-07,False
-video_split_and_sample_aliyun_ap-southeast-1_q2,Video Split & Sample,Aliyun,ap-southeast-1,Q2,,3.005784895725883,0.03877310339285712,0.0,0.00011,5.533854166666667e-07,False
-video_split_and_sample_azure_westus2_q2,Video Split & Sample,Azure,westus2,Q2,,3.7968809277239304,0.03877310339285712,0.0,0.000156,5.989583333333334e-07,False
-video_split_and_sample_azure_eastus_q2,Video Split & Sample,Azure,eastus,Q2,,3.4157490704566538,0.03877310339285712,0.0,0.000156,5.989583333333334e-07,False
-video_split_and_sample_azure_westeurope_q2,Video Split & Sample,Azure,westeurope,Q2,,3.6060556543582307,0.03877310339285712,0.0,0.000156,6.770833333333333e-07,False
-video_split_and_sample_azure_southeastasia_q2,Video Split & Sample,Azure,southeastasia,Q2,,3.221813811979549,0.03877310339285712,0.0,0.000222,6.770833333333333e-07,False
-video_split_and_sample_gcp_us-east1_q3,Video Split & Sample,GCP,us-east1,Q3,,2.9235840896107215,0.031018482714285697,0.0,0.0001199999999999,6.510416666666666e-07,False
-video_split_and_sample_gcp_us-west1_q3,Video Split & Sample,GCP,us-west1,Q3,,3.0680411773085914,0.031018482714285697,0.0,0.0001199999999999,6.510416666666666e-07,False
-video_split_and_sample_gcp_europe-west1_q3,Video Split & Sample,GCP,europe-west1,Q3,,2.237345109958001,0.031018482714285697,0.0,0.0001199999999999,6.510416666666666e-07,False
-video_split_and_sample_gcp_asia-east1_q3,Video Split & Sample,GCP,asia-east1,Q3,,2.2842986419907834,0.031018482714285697,0.0,0.0001199999999999,6.510416666666666e-07,False
-video_split_and_sample_aws_us-west-2_q3,Video Split & Sample,AWS,us-west-2,Q3,,1.938445597636787,0.031018482714285697,0.0,0.0002,7.486979166666667e-07,False
-video_split_and_sample_aws_us-east-2_q3,Video Split & Sample,AWS,us-east-2,Q3,,2.4048485765377237,0.031018482714285697,0.0,0.0002,7.486979166666667e-07,False
-video_split_and_sample_aws_ap-southeast-1_q3,Video Split & Sample,AWS,ap-southeast-1,Q3,,2.5675464036574613,0.031018482714285697,0.0,0.0002,8.138020833333334e-07,False
-video_split_and_sample_aws_eu-central-1_q3,Video Split & Sample,AWS,eu-central-1,Q3,,2.8871566629509298,0.031018482714285697,0.0,0.0002,7.975260416666667e-07,False
-video_split_and_sample_aliyun_cn-shanghai_q3,Video Split & Sample,Aliyun,cn-shanghai,Q3,,1.8043640242126462,0.031018482714285697,0.0,0.00011,5.631510416666666e-07,False
-video_split_and_sample_aliyun_cn-beijing_q3,Video Split & Sample,Aliyun,cn-beijing,Q3,,2.898167948341826,0.031018482714285697,0.0,0.00011,5.631510416666666e-07,False
-video_split_and_sample_aliyun_us-east-1_q3,Video Split & Sample,Aliyun,us-east-1,Q3,,1.7180109462885174,0.031018482714285697,0.0,0.00011,5.208333333333334e-07,False
-video_split_and_sample_aliyun_ap-southeast-1_q3,Video Split & Sample,Aliyun,ap-southeast-1,Q3,,2.4046279165807065,0.031018482714285697,0.0,0.00011,5.533854166666667e-07,False
-video_split_and_sample_azure_westus2_q3,Video Split & Sample,Azure,westus2,Q3,,3.0375047421791446,0.031018482714285697,0.0,0.000156,5.989583333333334e-07,False
-video_split_and_sample_azure_eastus_q3,Video Split & Sample,Azure,eastus,Q3,,2.732599256365323,0.031018482714285697,0.0,0.000156,5.989583333333334e-07,False
-video_split_and_sample_azure_westeurope_q3,Video Split & Sample,Azure,westeurope,Q3,,2.884844523486585,0.031018482714285697,0.0,0.000156,6.770833333333333e-07,False
-video_split_and_sample_azure_southeastasia_q3,Video Split & Sample,Azure,southeastasia,Q3,,2.5774510495836394,0.031018482714285697,0.0,0.000222,6.770833333333333e-07,False
-video_caption_gcp_europe-west1_q1,Video Caption,GCP,europe-west1,Q1,Claude Haiku 4.5,0.59,2.509803921568628,0.0,0.283008,6.510416666666666e-07,False
-video_caption_gcp_asia-east1_q1,Video Caption,GCP,asia-east1,Q1,Claude Haiku 4.5,0.59,2.509803921568628,0.0,0.283008,6.510416666666666e-07,False
-video_caption_aws_us-west-2_q1,Video Caption,AWS,us-west-2,Q1,Claude Haiku 4.5,1.03,2.0645161290322585,0.0,0.2572799999999999,7.486979166666667e-07,False
-video_caption_aws_us-east-2_q1,Video Caption,AWS,us-east-2,Q1,Claude Haiku 4.5,1.03,2.0645161290322585,0.0,0.2572799999999999,7.486979166666667e-07,False
-video_caption_aws_ap-southeast-1_q1,Video Caption,AWS,ap-southeast-1,Q1,Claude Haiku 4.5,1.03,2.0645161290322585,0.0,0.2572799999999999,8.138020833333334e-07,False
-video_caption_aws_eu-central-1_q1,Video Caption,AWS,eu-central-1,Q1,Claude Haiku 4.5,1.03,2.0645161290322585,0.0,0.2572799999999999,7.975260416666667e-07,False
-video_caption_azure_westus2_q1,Video Caption,Azure,westus2,Q1,Claude Haiku 4.5,1.04,2.639175257731959,0.0,0.2572799999999999,5.989583333333334e-07,False
-video_caption_azure_eastus_q1,Video Caption,Azure,eastus,Q1,Claude Haiku 4.5,1.04,2.639175257731959,0.0,0.2572799999999999,5.989583333333334e-07,False
-video_caption_azure_westeurope_q1,Video Caption,Azure,westeurope,Q1,Claude Haiku 4.5,1.04,2.639175257731959,0.0,0.2572799999999999,6.770833333333333e-07,False
-video_caption_azure_southeastasia_q1,Video Caption,Azure,southeastasia,Q1,Claude Haiku 4.5,1.04,2.639175257731959,0.0,0.2572799999999999,6.770833333333333e-07,False
-video_caption_anthropic_global_q1,Video Caption,Anthropic,global,Q1,Claude Haiku 4.5,0.85,2.485436893203884,0.0,0.2572799999999999,0.0,False
-video_caption_gcp_europe-west1_q2,Video Caption,GCP,europe-west1,Q2,Claude Sonnet 4.5,1.03,14.222222222222223,0.0,0.8553599999999999,6.510416666666666e-07,False
+shot_detection_gcp_us-east1_q1,Shot Detection,GCP,us-east1,Q1,,4.779362662202201,0.05939887149322166,0.0,0.005,6.510416666666666e-07,False
+shot_detection_gcp_us-west1_q1,Shot Detection,GCP,us-west1,Q1,,5.236428767521465,0.0873157471384113,0.0,0.005,6.510416666666666e-07,False
+shot_detection_gcp_europe-west1_q1,Shot Detection,GCP,europe-west1,Q1,,1.1085576785933073,0.11736721397676964,0.0,0.005,6.510416666666666e-07,False
+shot_detection_gcp_asia-east1_q1,Shot Detection,GCP,asia-east1,Q1,,4.710154390747906,0.09689494496991101,0.0,0.005,6.510416666666666e-07,False
+shot_detection_aws_us-west-2_q1,Shot Detection,AWS,us-west-2,Q1,,1.2918136164479475,0.06064168129272126,0.0,0.005,7.486979166666667e-07,False
+shot_detection_aws_us-east-2_q1,Shot Detection,AWS,us-east-2,Q1,,2.6023093308559386,0.112090618795649,0.0,0.005,7.486979166666667e-07,False
+shot_detection_aws_ap-southeast-1_q1,Shot Detection,AWS,ap-southeast-1,Q1,,4.0768716484355885,0.10085825423324964,0.0,0.006750000000000001,8.138020833333334e-07,False
+shot_detection_aws_eu-central-1_q1,Shot Detection,AWS,eu-central-1,Q1,,2.9944366736675883,0.036541781952755904,0.0,0.006,7.975260416666667e-07,False
+shot_detection_aliyun_cn-shanghai_q1,Shot Detection,Aliyun,cn-shanghai,Q1,,3.5947578498855077,0.018892263659250938,0.0,0.003,5.631510416666666e-07,False
+shot_detection_gcp_us-east1_q2,Shot Detection,GCP,us-east1,Q2,,4.22434027396662,0.06684979592098585,0.0,0.005,6.510416666666666e-07,False
+shot_detection_gcp_us-west1_q2,Shot Detection,GCP,us-west1,Q2,,3.9113948303841823,0.041907337131688156,0.0,0.005,6.510416666666666e-07,False
+shot_detection_gcp_europe-west1_q2,Shot Detection,GCP,europe-west1,Q2,,4.868141109777064,0.0903809009189978,0.0,0.005,6.510416666666666e-07,False
+shot_detection_gcp_asia-east1_q2,Shot Detection,GCP,asia-east1,Q2,,4.002725736831929,0.027517483706677087,0.0,0.005,6.510416666666666e-07,False
+shot_detection_aws_us-west-2_q2,Shot Detection,AWS,us-west-2,Q2,,2.600244516771654,0.01394233892085059,0.0,0.005,7.486979166666667e-07,False
+shot_detection_aws_us-east-2_q2,Shot Detection,AWS,us-east-2,Q2,,1.1943027143039653,0.07147440579182092,0.0,0.005,7.486979166666667e-07,False
+shot_detection_aws_ap-southeast-1_q2,Shot Detection,AWS,ap-southeast-1,Q2,,3.851429701585177,0.0970758759190789,0.0,0.006750000000000001,8.138020833333334e-07,False
+shot_detection_aws_eu-central-1_q2,Shot Detection,AWS,eu-central-1,Q2,,1.9662141116216838,0.043341373543138204,0.0,0.006,7.975260416666667e-07,False
+shot_detection_aliyun_cn-shanghai_q2,Shot Detection,Aliyun,cn-shanghai,Q2,,2.6130011507411357,0.027052422317585714,0.0,0.003,5.631510416666666e-07,False
+shot_detection_gcp_us-east1_q3,Shot Detection,GCP,us-east1,Q3,,0.867717419207698,0.042250754688267236,0.0,0.005,6.510416666666666e-07,False
+shot_detection_gcp_us-west1_q3,Shot Detection,GCP,us-west1,Q3,,1.216873656583183,0.056226607617140746,0.0,0.005,6.510416666666666e-07,False
+shot_detection_gcp_europe-west1_q3,Shot Detection,GCP,europe-west1,Q3,,1.9737469079403909,0.0679528301161643,0.0,0.005,6.510416666666666e-07,False
+shot_detection_gcp_asia-east1_q3,Shot Detection,GCP,asia-east1,Q3,,2.920954367208097,0.030490398179506963,0.0,0.005,6.510416666666666e-07,False
+shot_detection_aws_us-west-2_q3,Shot Detection,AWS,us-west-2,Q3,,3.3961352850227247,0.06594303373976974,0.0,0.005,7.486979166666667e-07,False
+shot_detection_aws_us-east-2_q3,Shot Detection,AWS,us-east-2,Q3,,1.7949221645086284,0.028759623482977583,0.0,0.005,7.486979166666667e-07,False
+shot_detection_aws_ap-southeast-1_q3,Shot Detection,AWS,ap-southeast-1,Q3,,2.856983814309912,0.018062178819870305,0.0,0.006750000000000001,8.138020833333334e-07,False
+shot_detection_aws_eu-central-1_q3,Shot Detection,AWS,eu-central-1,Q3,,1.11966952891039,0.008530083422072397,0.0,0.006,7.975260416666667e-07,False
+shot_detection_aliyun_cn-shanghai_q3,Shot Detection,Aliyun,cn-shanghai,Q3,,3.2329277590076986,0.05586926167462632,0.0,0.003,5.631510416666666e-07,False
+video_split_and_sample_gcp_us-east1_q1,Video Split & Sample,GCP,us-east1,Q1,,4.4078930445822095,0.09631873535037253,0.0,0.00011999999999999999,6.510416666666666e-07,False
+video_split_and_sample_gcp_us-west1_q1,Video Split & Sample,GCP,us-west1,Q1,,3.078145187907036,0.07342404916291254,0.0,0.00011999999999999999,6.510416666666666e-07,False
+video_split_and_sample_gcp_europe-west1_q1,Video Split & Sample,GCP,europe-west1,Q1,,1.3549037898893501,0.02436924794188513,0.0,0.00011999999999999999,6.510416666666666e-07,False
+video_split_and_sample_gcp_asia-east1_q1,Video Split & Sample,GCP,asia-east1,Q1,,4.209375993668547,0.06287839026345832,0.0,0.00011999999999999999,6.510416666666666e-07,False
+video_split_and_sample_aws_us-west-2_q1,Video Split & Sample,AWS,us-west-2,Q1,,3.6522749749984196,0.09461987660093077,0.0,0.0002,7.486979166666667e-07,False
+video_split_and_sample_aws_us-east-2_q1,Video Split & Sample,AWS,us-east-2,Q1,,4.02747892800319,0.07178657527106355,0.0,0.0002,7.486979166666667e-07,False
+video_split_and_sample_aws_ap-southeast-1_q1,Video Split & Sample,AWS,ap-southeast-1,Q1,,3.6197186680252327,0.044826610590762116,0.0,0.0002,8.138020833333334e-07,False
+video_split_and_sample_aws_eu-central-1_q1,Video Split & Sample,AWS,eu-central-1,Q1,,0.7664163066668729,0.05916547803709514,0.0,0.0002,7.975260416666667e-07,False
+video_split_and_sample_aliyun_cn-shanghai_q1,Video Split & Sample,Aliyun,cn-shanghai,Q1,,1.7587572332254577,0.05612109352226071,0.0,0.00011,5.631510416666666e-07,False
+video_split_and_sample_aliyun_cn-beijing_q1,Video Split & Sample,Aliyun,cn-beijing,Q1,,5.208376595648097,0.03726546447345681,0.0,0.00011,5.631510416666666e-07,False
+video_split_and_sample_aliyun_us-east-1_q1,Video Split & Sample,Aliyun,us-east-1,Q1,,0.9148348051209565,0.04238946033837563,0.0,0.00011,5.208333333333334e-07,False
+video_split_and_sample_aliyun_ap-southeast-1_q1,Video Split & Sample,Aliyun,ap-southeast-1,Q1,,2.1854062919400916,0.08348698359050466,0.0,0.00011,5.533854166666667e-07,False
+video_split_and_sample_azure_westus2_q1,Video Split & Sample,Azure,westus2,Q1,,3.607973622642903,0.09666100658349266,0.0,0.000156,5.989583333333334e-07,False
+video_split_and_sample_azure_eastus_q1,Video Split & Sample,Azure,eastus,Q1,,4.187293117767893,0.05588978103552763,0.0,0.000156,5.989583333333334e-07,False
+video_split_and_sample_azure_westeurope_q1,Video Split & Sample,Azure,westeurope,Q1,,4.995710077196587,0.030033075350032024,0.0,0.000156,6.770833333333333e-07,False
+video_split_and_sample_azure_southeastasia_q1,Video Split & Sample,Azure,southeastasia,Q1,,0.7226451949228466,0.02172516896376931,0.0,0.00022200000000000003,6.770833333333333e-07,False
+video_split_and_sample_gcp_us-east1_q2,Video Split & Sample,GCP,us-east1,Q2,,3.7506170776840264,0.05156895072262487,0.0,0.00011999999999999999,6.510416666666666e-07,False
+video_split_and_sample_gcp_us-west1_q2,Video Split & Sample,GCP,us-west1,Q2,,1.225723005651208,0.05509402975930273,0.0,0.00011999999999999999,6.510416666666666e-07,False
+video_split_and_sample_gcp_europe-west1_q2,Video Split & Sample,GCP,europe-west1,Q2,,1.1854044622092579,0.07266883375699625,0.0,0.00011999999999999999,6.510416666666666e-07,False
+video_split_and_sample_gcp_asia-east1_q2,Video Split & Sample,GCP,asia-east1,Q2,,2.507703240083138,0.044291910348683426,0.0,0.00011999999999999999,6.510416666666666e-07,False
+video_split_and_sample_aws_us-west-2_q2,Video Split & Sample,AWS,us-west-2,Q2,,1.8568044011654443,0.06672543338069997,0.0,0.0002,7.486979166666667e-07,False
+video_split_and_sample_aws_us-east-2_q2,Video Split & Sample,AWS,us-east-2,Q2,,2.128156747490257,0.017888492738449092,0.0,0.0002,7.486979166666667e-07,False
+video_split_and_sample_aws_ap-southeast-1_q2,Video Split & Sample,AWS,ap-southeast-1,Q2,,1.031026559542319,0.09657078980945631,0.0,0.0002,8.138020833333334e-07,False
+video_split_and_sample_aws_eu-central-1_q2,Video Split & Sample,AWS,eu-central-1,Q2,,4.588613108184232,0.07297364204296747,0.0,0.0002,7.975260416666667e-07,False
+video_split_and_sample_aliyun_cn-shanghai_q2,Video Split & Sample,Aliyun,cn-shanghai,Q2,,1.696414826567838,0.09722587396129516,0.0,0.00011,5.631510416666666e-07,False
+video_split_and_sample_aliyun_cn-beijing_q2,Video Split & Sample,Aliyun,cn-beijing,Q2,,4.004379067846076,0.0745201170243096,0.0,0.00011,5.631510416666666e-07,False
+video_split_and_sample_aliyun_us-east-1_q2,Video Split & Sample,Aliyun,us-east-1,Q2,,2.522126759647049,0.034501740566064316,0.0,0.00011,5.208333333333334e-07,False
+video_split_and_sample_aliyun_ap-southeast-1_q2,Video Split & Sample,Aliyun,ap-southeast-1,Q2,,0.9337593296907468,0.09123421568894576,0.0,0.00011,5.533854166666667e-07,False
+video_split_and_sample_azure_westus2_q2,Video Split & Sample,Azure,westus2,Q2,,2.55099330425125,0.028212702831570728,0.0,0.000156,5.989583333333334e-07,False
+video_split_and_sample_azure_eastus_q2,Video Split & Sample,Azure,eastus,Q2,,1.8768048086779363,0.062129761204770644,0.0,0.000156,5.989583333333334e-07,False
+video_split_and_sample_azure_westeurope_q2,Video Split & Sample,Azure,westeurope,Q2,,1.2954775232265427,0.0870952855683138,0.0,0.000156,6.770833333333333e-07,False
+video_split_and_sample_azure_southeastasia_q2,Video Split & Sample,Azure,southeastasia,Q2,,3.9133378842584454,0.07475166603558431,0.0,0.00022200000000000003,6.770833333333333e-07,False
+video_split_and_sample_gcp_us-east1_q3,Video Split & Sample,GCP,us-east1,Q3,,1.9555349431903737,0.05316623653057592,0.0,0.00011999999999999999,6.510416666666666e-07,False
+video_split_and_sample_gcp_us-west1_q3,Video Split & Sample,GCP,us-west1,Q3,,2.5027526880858484,0.054788955311947045,0.0,0.00011999999999999999,6.510416666666666e-07,False
+video_split_and_sample_gcp_europe-west1_q3,Video Split & Sample,GCP,europe-west1,Q3,,0.7039995561036008,0.0379381329562839,0.0,0.00011999999999999999,6.510416666666666e-07,False
+video_split_and_sample_gcp_asia-east1_q3,Video Split & Sample,GCP,asia-east1,Q3,,0.5498110259028129,0.04356733898560537,0.0,0.00011999999999999999,6.510416666666666e-07,False
+video_split_and_sample_aws_us-west-2_q3,Video Split & Sample,AWS,us-west-2,Q3,,1.5875003643980272,0.01840574159835538,0.0,0.0002,7.486979166666667e-07,False
+video_split_and_sample_aws_us-east-2_q3,Video Split & Sample,AWS,us-east-2,Q3,,0.772250683801186,0.050310409196795275,0.0,0.0002,7.486979166666667e-07,False
+video_split_and_sample_aws_ap-southeast-1_q3,Video Split & Sample,AWS,ap-southeast-1,Q3,,1.01413468673279,0.07460864852312941,0.0,0.0002,8.138020833333334e-07,False
+video_split_and_sample_aws_eu-central-1_q3,Video Split & Sample,AWS,eu-central-1,Q3,,2.491820102921422,0.03297462592650827,0.0,0.0002,7.975260416666667e-07,False
+video_split_and_sample_aliyun_cn-shanghai_q3,Video Split & Sample,Aliyun,cn-shanghai,Q3,,2.5272957693331004,0.00964187871413822,0.0,0.00011,5.631510416666666e-07,False
+video_split_and_sample_aliyun_cn-beijing_q3,Video Split & Sample,Aliyun,cn-beijing,Q3,,3.8508131676692035,0.042725847459888826,0.0,0.00011,5.631510416666666e-07,False
+video_split_and_sample_aliyun_us-east-1_q3,Video Split & Sample,Aliyun,us-east-1,Q3,,3.2178468181010302,0.01395655999441558,0.0,0.00011,5.208333333333334e-07,False
+video_split_and_sample_aliyun_ap-southeast-1_q3,Video Split & Sample,Aliyun,ap-southeast-1,Q3,,2.1519699910173773,0.04333090359352551,0.0,0.00011,5.533854166666667e-07,False
+video_split_and_sample_azure_westus2_q3,Video Split & Sample,Azure,westus2,Q3,,3.7761752379099387,0.04916441977107744,0.0,0.000156,5.989583333333334e-07,False
+video_split_and_sample_azure_eastus_q3,Video Split & Sample,Azure,eastus,Q3,,2.1045618438050337,0.02722224774261634,0.0,0.000156,5.989583333333334e-07,False
+video_split_and_sample_azure_westeurope_q3,Video Split & Sample,Azure,westeurope,Q3,,1.593648390433188,0.045488412977950726,0.0,0.000156,6.770833333333333e-07,False
+video_split_and_sample_azure_southeastasia_q3,Video Split & Sample,Azure,southeastasia,Q3,,1.980081257098168,0.009556069751383792,0.0,0.00022200000000000003,6.770833333333333e-07,False
+video_caption_gcp_europe-west1_q1,Video Caption,GCP,europe-west1,Q1,Claude Haiku 4.5,0.59,2.509803921568628,0.0,0.28300800000000004,6.510416666666666e-07,False
+video_caption_gcp_asia-east1_q1,Video Caption,GCP,asia-east1,Q1,Claude Haiku 4.5,0.59,2.509803921568628,0.0,0.28300800000000004,6.510416666666666e-07,False
+video_caption_aws_us-west-2_q1,Video Caption,AWS,us-west-2,Q1,Claude Haiku 4.5,1.03,2.0645161290322585,0.0,0.25727999999999995,7.486979166666667e-07,False
+video_caption_aws_us-east-2_q1,Video Caption,AWS,us-east-2,Q1,Claude Haiku 4.5,1.03,2.0645161290322585,0.0,0.25727999999999995,7.486979166666667e-07,False
+video_caption_aws_ap-southeast-1_q1,Video Caption,AWS,ap-southeast-1,Q1,Claude Haiku 4.5,1.03,2.0645161290322585,0.0,0.25727999999999995,8.138020833333334e-07,False
+video_caption_aws_eu-central-1_q1,Video Caption,AWS,eu-central-1,Q1,Claude Haiku 4.5,1.03,2.0645161290322585,0.0,0.25727999999999995,7.975260416666667e-07,False
+video_caption_azure_westus2_q1,Video Caption,Azure,westus2,Q1,Claude Haiku 4.5,1.04,2.639175257731959,0.0,0.25727999999999995,5.989583333333334e-07,False
+video_caption_azure_eastus_q1,Video Caption,Azure,eastus,Q1,Claude Haiku 4.5,1.04,2.639175257731959,0.0,0.25727999999999995,5.989583333333334e-07,False
+video_caption_azure_westeurope_q1,Video Caption,Azure,westeurope,Q1,Claude Haiku 4.5,1.04,2.639175257731959,0.0,0.25727999999999995,6.770833333333333e-07,False
+video_caption_azure_southeastasia_q1,Video Caption,Azure,southeastasia,Q1,Claude Haiku 4.5,1.04,2.639175257731959,0.0,0.25727999999999995,6.770833333333333e-07,False
+video_caption_anthropic_global_q1,Video Caption,Anthropic,global,Q1,Claude Haiku 4.5,0.85,2.485436893203884,0.0,0.25727999999999995,0.0,False
+video_caption_gcp_europe-west1_q2,Video Caption,GCP,europe-west1,Q2,Claude Sonnet 4.5,1.03,14.222222222222225,0.0,0.8553599999999999,6.510416666666666e-07,False
 video_caption_aws_us-west-2_q2,Video Caption,AWS,us-west-2,Q2,Claude Sonnet 4.5,1.73,11.636363636363638,0.0,0.7776000000000001,7.486979166666667e-07,False
 video_caption_aws_us-east-2_q2,Video Caption,AWS,us-east-2,Q2,Claude Sonnet 4.5,1.73,11.636363636363638,0.0,0.7776000000000001,7.486979166666667e-07,False
 video_caption_aws_ap-southeast-1_q2,Video Caption,AWS,ap-southeast-1,Q2,Claude Sonnet 4.5,1.73,11.636363636363638,0.0,0.7776000000000001,8.138020833333334e-07,False
@@ -97,7 +97,7 @@ video_caption_azure_eastus_q2,Video Caption,Azure,eastus,Q2,Claude Sonnet 4.5,1.
 video_caption_azure_westeurope_q2,Video Caption,Azure,westeurope,Q2,Claude Sonnet 4.5,1.92,13.913043478260873,0.0,0.7776000000000001,6.770833333333333e-07,False
 video_caption_azure_southeastasia_q2,Video Caption,Azure,southeastasia,Q2,Claude Sonnet 4.5,1.92,13.913043478260873,0.0,0.7776000000000001,6.770833333333333e-07,False
 video_caption_anthropic_global_q2,Video Caption,Anthropic,global,Q2,Claude Sonnet 4.5,1.51,13.913043478260873,0.0,0.7776000000000001,0.0,False
-video_caption_gcp_europe-west1_q3,Video Caption,GCP,europe-west1,Q3,Claude Opus 4.5,0.87,23.703703703703717,0.0,1.4432,6.510416666666666e-07,False
+video_caption_gcp_europe-west1_q3,Video Caption,GCP,europe-west1,Q3,Claude Opus 4.5,0.87,23.703703703703713,0.0,1.4432,6.510416666666666e-07,False
 video_caption_aws_us-west-2_q3,Video Caption,AWS,us-west-2,Q3,Claude Opus 4.5,1.73,22.857142857142865,0.0,1.312,7.486979166666667e-07,False
 video_caption_aws_us-east-2_q3,Video Caption,AWS,us-east-2,Q3,Claude Opus 4.5,1.73,22.857142857142865,0.0,1.312,7.486979166666667e-07,False
 video_caption_aws_ap-southeast-1_q3,Video Caption,AWS,ap-southeast-1,Q3,Claude Opus 4.5,1.73,22.857142857142865,0.0,1.312,8.138020833333334e-07,False
@@ -107,202 +107,202 @@ video_caption_azure_eastus_q3,Video Caption,Azure,eastus,Q3,Claude Opus 4.5,2.04
 video_caption_azure_westeurope_q3,Video Caption,Azure,westeurope,Q3,Claude Opus 4.5,2.04,24.615384615384624,0.0,1.312,6.770833333333333e-07,False
 video_caption_azure_southeastasia_q3,Video Caption,Azure,southeastasia,Q3,Claude Opus 4.5,2.04,24.615384615384624,0.0,1.312,6.770833333333333e-07,False
 video_caption_anthropic_global_q3,Video Caption,Anthropic,global,Q3,Claude Opus 4.5,1.53,24.150943396226424,0.0,1.312,0.0,False
-ocr_gcp_us-east1_q1,OCR,GCP,us-east1,Q1,,0.6201653800146524,0.0,0.0,0.005,6.510416666666666e-07,False
-ocr_gcp_us-west1_q1,OCR,GCP,us-west1,Q1,,0.7064141758928538,0.0,0.0,0.005,6.510416666666666e-07,False
-ocr_gcp_europe-west1_q1,OCR,GCP,europe-west1,Q1,,0.5232737161330644,0.0,0.0,0.005,6.510416666666666e-07,False
-ocr_gcp_asia-east1_q1,OCR,GCP,asia-east1,Q1,,0.7720414113890409,0.0,0.0,0.005,6.510416666666666e-07,False
-ocr_aws_us-west-2_q1,OCR,AWS,us-west-2,Q1,,0.8534563831477221,0.0,0.0,0.0033333333333333,7.486979166666667e-07,False
-ocr_aws_us-east-2_q1,OCR,AWS,us-east-2,Q1,,0.7446442043021713,0.0,0.0,0.0033333333333333,7.486979166666667e-07,False
-ocr_aws_ap-southeast-1_q1,OCR,AWS,ap-southeast-1,Q1,,0.8326140211868627,0.0,0.0,0.0033333333333333,8.138020833333334e-07,False
-ocr_aws_eu-central-1_q1,OCR,AWS,eu-central-1,Q1,,0.5060469011740669,0.0,0.0,0.0033333333333333,7.975260416666667e-07,False
-ocr_aliyun_cn-shanghai_q1,OCR,Aliyun,cn-shanghai,Q1,,0.6907885868493734,0.0,0.0,0.04,5.631510416666666e-07,False
-ocr_aliyun_cn-beijing_q1,OCR,Aliyun,cn-beijing,Q1,,0.7319249189864013,0.0,0.0,0.04,5.631510416666666e-07,False
-ocr_aliyun_us-east-1_q1,OCR,Aliyun,us-east-1,Q1,,0.6016876807621634,0.0,0.0,0.04,5.208333333333334e-07,False
-ocr_aliyun_ap-southeast-1_q1,OCR,Aliyun,ap-southeast-1,Q1,,0.5020846783086652,0.0,0.0,0.04,5.533854166666667e-07,False
-ocr_azure_westus2_q1,OCR,Azure,westus2,Q1,,0.7173810868867563,0.0,0.0,0.0033333333333333,5.989583333333334e-07,False
-ocr_azure_eastus_q1,OCR,Azure,eastus,Q1,,0.5977652514476802,0.0,0.0,0.0033333333333333,5.989583333333334e-07,False
-ocr_azure_westeurope_q1,OCR,Azure,westeurope,Q1,,0.6599256488634834,0.0,0.0,0.0033333333333333,6.770833333333333e-07,False
-ocr_azure_southeastasia_q1,OCR,Azure,southeastasia,Q1,,0.7398615382106986,0.0,0.0,0.0033333333333333,6.770833333333333e-07,False
-ocr_gcp_us-east1_q2,OCR,GCP,us-east1,Q2,,0.5168044833455436,0.0,0.0,0.005,6.510416666666666e-07,False
-ocr_gcp_us-west1_q2,OCR,GCP,us-west1,Q2,,0.5886784799107115,0.0,0.0,0.005,6.510416666666666e-07,False
-ocr_gcp_europe-west1_q2,OCR,GCP,europe-west1,Q2,,0.436061430110887,0.0,0.0,0.005,6.510416666666666e-07,False
-ocr_gcp_asia-east1_q2,OCR,GCP,asia-east1,Q2,,0.6433678428242008,0.0,0.0,0.005,6.510416666666666e-07,False
-ocr_aws_us-west-2_q2,OCR,AWS,us-west-2,Q2,,0.7112136526231018,0.0,0.0,0.0033333333333333,7.486979166666667e-07,False
-ocr_aws_us-east-2_q2,OCR,AWS,us-east-2,Q2,,0.620536836918476,0.0,0.0,0.0033333333333333,7.486979166666667e-07,False
-ocr_aws_ap-southeast-1_q2,OCR,AWS,ap-southeast-1,Q2,,0.6938450176557189,0.0,0.0,0.0033333333333333,8.138020833333334e-07,False
-ocr_aws_eu-central-1_q2,OCR,AWS,eu-central-1,Q2,,0.42170575097838914,0.0,0.0,0.0033333333333333,7.975260416666667e-07,False
-ocr_aliyun_cn-shanghai_q2,OCR,Aliyun,cn-shanghai,Q2,,0.5756571557078112,0.0,0.0,0.04,5.631510416666666e-07,False
-ocr_aliyun_cn-beijing_q2,OCR,Aliyun,cn-beijing,Q2,,0.6099374324886678,0.0,0.0,0.04,5.631510416666666e-07,False
-ocr_aliyun_us-east-1_q2,OCR,Aliyun,us-east-1,Q2,,0.5014064006351362,0.0,0.0,0.04,5.208333333333334e-07,False
-ocr_aliyun_ap-southeast-1_q2,OCR,Aliyun,ap-southeast-1,Q2,,0.4184038985905543,0.0,0.0,0.04,5.533854166666667e-07,False
-ocr_azure_westus2_q2,OCR,Azure,westus2,Q2,,0.5978175724056303,0.0,0.0,0.0033333333333333,5.989583333333334e-07,False
-ocr_azure_eastus_q2,OCR,Azure,eastus,Q2,,0.4981377095397335,0.0,0.0,0.0033333333333333,5.989583333333334e-07,False
-ocr_azure_westeurope_q2,OCR,Azure,westeurope,Q2,,0.5499380407195695,0.0,0.0,0.0033333333333333,6.770833333333333e-07,False
-ocr_azure_southeastasia_q2,OCR,Azure,southeastasia,Q2,,0.6165512818422488,0.0,0.0,0.0033333333333333,6.770833333333333e-07,False
-ocr_gcp_us-east1_q3,OCR,GCP,us-east1,Q3,,0.41344358667643494,0.0,0.0,0.005,6.510416666666666e-07,False
-ocr_gcp_us-west1_q3,OCR,GCP,us-west1,Q3,,0.47094278392856925,0.0,0.0,0.005,6.510416666666666e-07,False
-ocr_gcp_europe-west1_q3,OCR,GCP,europe-west1,Q3,,0.3488491440887096,0.0,0.0,0.005,6.510416666666666e-07,False
-ocr_gcp_asia-east1_q3,OCR,GCP,asia-east1,Q3,,0.5146942742593607,0.0,0.0,0.005,6.510416666666666e-07,False
-ocr_aws_us-west-2_q3,OCR,AWS,us-west-2,Q3,,0.5689709220984814,0.0,0.0,0.0033333333333333,7.486979166666667e-07,False
-ocr_aws_us-east-2_q3,OCR,AWS,us-east-2,Q3,,0.49642946953478084,0.0,0.0,0.0033333333333333,7.486979166666667e-07,False
-ocr_aws_ap-southeast-1_q3,OCR,AWS,ap-southeast-1,Q3,,0.5550760141245752,0.0,0.0,0.0033333333333333,8.138020833333334e-07,False
-ocr_aws_eu-central-1_q3,OCR,AWS,eu-central-1,Q3,,0.33736460078271135,0.0,0.0,0.0033333333333333,7.975260416666667e-07,False
-ocr_aliyun_cn-shanghai_q3,OCR,Aliyun,cn-shanghai,Q3,,0.46052572456624896,0.0,0.0,0.04,5.631510416666666e-07,False
-ocr_aliyun_cn-beijing_q3,OCR,Aliyun,cn-beijing,Q3,,0.4879499459909343,0.0,0.0,0.04,5.631510416666666e-07,False
-ocr_aliyun_us-east-1_q3,OCR,Aliyun,us-east-1,Q3,,0.401125120508109,0.0,0.0,0.04,5.208333333333334e-07,False
-ocr_aliyun_ap-southeast-1_q3,OCR,Aliyun,ap-southeast-1,Q3,,0.3347231188724435,0.0,0.0,0.04,5.533854166666667e-07,False
-ocr_azure_westus2_q3,OCR,Azure,westus2,Q3,,0.47825405792450426,0.0,0.0,0.0033333333333333,5.989583333333334e-07,False
-ocr_azure_eastus_q3,OCR,Azure,eastus,Q3,,0.3985101676317868,0.0,0.0,0.0033333333333333,5.989583333333334e-07,False
-ocr_azure_westeurope_q3,OCR,Azure,westeurope,Q3,,0.43995043257565564,0.0,0.0,0.0033333333333333,6.770833333333333e-07,False
-ocr_azure_southeastasia_q3,OCR,Azure,southeastasia,Q3,,0.4932410254737991,0.0,0.0,0.0033333333333333,6.770833333333333e-07,False
-label_detection_gcp_us-east1_q1,Label Detection,GCP,us-east1,Q1,,0.4225875336612868,0.0,0.0,0.005,6.510416666666666e-07,False
-label_detection_gcp_us-west1_q1,Label Detection,GCP,us-west1,Q1,,0.3833432671047149,0.0,0.0,0.005,6.510416666666666e-07,False
-label_detection_gcp_europe-west1_q1,Label Detection,GCP,europe-west1,Q1,,0.28009620483701986,0.0,0.0,0.005,6.510416666666666e-07,False
-label_detection_gcp_asia-east1_q1,Label Detection,GCP,asia-east1,Q1,,0.3455349291413307,0.0,0.0,0.005,6.510416666666666e-07,False
-label_detection_aws_us-west-2_q1,Label Detection,AWS,us-west-2,Q1,,0.3044540342119684,0.0,0.0,0.0033333333333333,7.486979166666667e-07,False
-label_detection_aws_us-east-2_q1,Label Detection,AWS,us-east-2,Q1,,0.4305963379108641,0.0,0.0,0.0033333333333333,7.486979166666667e-07,False
-label_detection_aws_ap-southeast-1_q1,Label Detection,AWS,ap-southeast-1,Q1,,0.3785686879989572,0.0,0.0,0.0033333333333333,8.138020833333334e-07,False
-label_detection_aws_eu-central-1_q1,Label Detection,AWS,eu-central-1,Q1,,0.3091481230350637,0.0,0.0,0.0033333333333333,7.975260416666667e-07,False
-label_detection_aliyun_cn-shanghai_q1,Label Detection,Aliyun,cn-shanghai,Q1,,0.4742858450686195,0.0,0.0,0.0009666666666666,5.631510416666666e-07,False
-label_detection_aliyun_cn-beijing_q1,Label Detection,Aliyun,cn-beijing,Q1,,0.5017827703065086,0.0,0.0,0.0009666666666666,5.631510416666666e-07,False
-label_detection_aliyun_us-east-1_q1,Label Detection,Aliyun,us-east-1,Q1,,0.4670505436910935,0.0,0.0,0.0009666666666666,5.208333333333334e-07,False
-label_detection_aliyun_ap-southeast-1_q1,Label Detection,Aliyun,ap-southeast-1,Q1,,0.29703094966856025,0.0,0.0,0.0009666666666666,5.533854166666667e-07,False
-label_detection_azure_westus2_q1,Label Detection,Azure,westus2,Q1,,0.465168962773391,0.0,0.0,0.0033333333333333,5.989583333333334e-07,False
-label_detection_azure_eastus_q1,Label Detection,Azure,eastus,Q1,,0.39733978228762346,0.0,0.0,0.0033333333333333,5.989583333333334e-07,False
-label_detection_azure_westeurope_q1,Label Detection,Azure,westeurope,Q1,,0.45094934237832895,0.0,0.0,0.0033333333333333,6.770833333333333e-07,False
-label_detection_azure_southeastasia_q1,Label Detection,Azure,southeastasia,Q1,,0.4194392692777022,0.0,0.0,0.0033333333333333,6.770833333333333e-07,False
-label_detection_gcp_us-east1_q2,Label Detection,GCP,us-east1,Q2,,0.35215627805107236,0.0,0.0,0.005,6.510416666666666e-07,False
-label_detection_gcp_us-west1_q2,Label Detection,GCP,us-west1,Q2,,0.3194527225872624,0.0,0.0,0.005,6.510416666666666e-07,False
-label_detection_gcp_europe-west1_q2,Label Detection,GCP,europe-west1,Q2,,0.2334135040308499,0.0,0.0,0.005,6.510416666666666e-07,False
-label_detection_gcp_asia-east1_q2,Label Detection,GCP,asia-east1,Q2,,0.2879457742844423,0.0,0.0,0.005,6.510416666666666e-07,False
-label_detection_aws_us-west-2_q2,Label Detection,AWS,us-west-2,Q2,,0.2537116951766404,0.0,0.0,0.0033333333333333,7.486979166666667e-07,False
-label_detection_aws_us-east-2_q2,Label Detection,AWS,us-east-2,Q2,,0.3588302815923868,0.0,0.0,0.0033333333333333,7.486979166666667e-07,False
-label_detection_aws_ap-southeast-1_q2,Label Detection,AWS,ap-southeast-1,Q2,,0.31547390666579767,0.0,0.0,0.0033333333333333,8.138020833333334e-07,False
-label_detection_aws_eu-central-1_q2,Label Detection,AWS,eu-central-1,Q2,,0.2576234358625531,0.0,0.0,0.0033333333333333,7.975260416666667e-07,False
-label_detection_aliyun_cn-shanghai_q2,Label Detection,Aliyun,cn-shanghai,Q2,,0.3952382042238496,0.0,0.0,0.0009666666666666,5.631510416666666e-07,False
-label_detection_aliyun_cn-beijing_q2,Label Detection,Aliyun,cn-beijing,Q2,,0.41815230858875724,0.0,0.0,0.0009666666666666,5.631510416666666e-07,False
-label_detection_aliyun_us-east-1_q2,Label Detection,Aliyun,us-east-1,Q2,,0.3892087864092446,0.0,0.0,0.0009666666666666,5.208333333333334e-07,False
-label_detection_aliyun_ap-southeast-1_q2,Label Detection,Aliyun,ap-southeast-1,Q2,,0.24752579139046688,0.0,0.0,0.0009666666666666,5.533854166666667e-07,False
-label_detection_azure_westus2_q2,Label Detection,Azure,westus2,Q2,,0.38764080231115916,0.0,0.0,0.0033333333333333,5.989583333333334e-07,False
-label_detection_azure_eastus_q2,Label Detection,Azure,eastus,Q2,,0.33111648523968623,0.0,0.0,0.0033333333333333,5.989583333333334e-07,False
-label_detection_azure_westeurope_q2,Label Detection,Azure,westeurope,Q2,,0.3757911186486075,0.0,0.0,0.0033333333333333,6.770833333333333e-07,False
-label_detection_azure_southeastasia_q2,Label Detection,Azure,southeastasia,Q2,,0.3495327243980852,0.0,0.0,0.0033333333333333,6.770833333333333e-07,False
-label_detection_gcp_us-east1_q3,Label Detection,GCP,us-east1,Q3,,0.2817250224408579,0.0,0.0,0.005,6.510416666666666e-07,False
-label_detection_gcp_us-west1_q3,Label Detection,GCP,us-west1,Q3,,0.25556217806980996,0.0,0.0,0.005,6.510416666666666e-07,False
-label_detection_gcp_europe-west1_q3,Label Detection,GCP,europe-west1,Q3,,0.18673080322467994,0.0,0.0,0.005,6.510416666666666e-07,False
-label_detection_gcp_asia-east1_q3,Label Detection,GCP,asia-east1,Q3,,0.23035661942755384,0.0,0.0,0.005,6.510416666666666e-07,False
-label_detection_aws_us-west-2_q3,Label Detection,AWS,us-west-2,Q3,,0.2029693561413123,0.0,0.0,0.0033333333333333,7.486979166666667e-07,False
-label_detection_aws_us-east-2_q3,Label Detection,AWS,us-east-2,Q3,,0.28706422527390946,0.0,0.0,0.0033333333333333,7.486979166666667e-07,False
-label_detection_aws_ap-southeast-1_q3,Label Detection,AWS,ap-southeast-1,Q3,,0.2523791253326381,0.0,0.0,0.0033333333333333,8.138020833333334e-07,False
-label_detection_aws_eu-central-1_q3,Label Detection,AWS,eu-central-1,Q3,,0.2060987486900425,0.0,0.0,0.0033333333333333,7.975260416666667e-07,False
-label_detection_aliyun_cn-shanghai_q3,Label Detection,Aliyun,cn-shanghai,Q3,,0.3161905633790797,0.0,0.0,0.0009666666666666,5.631510416666666e-07,False
-label_detection_aliyun_cn-beijing_q3,Label Detection,Aliyun,cn-beijing,Q3,,0.33452184687100583,0.0,0.0,0.0009666666666666,5.631510416666666e-07,False
-label_detection_aliyun_us-east-1_q3,Label Detection,Aliyun,us-east-1,Q3,,0.3113670291273957,0.0,0.0,0.0009666666666666,5.208333333333334e-07,False
-label_detection_aliyun_ap-southeast-1_q3,Label Detection,Aliyun,ap-southeast-1,Q3,,0.1980206331123735,0.0,0.0,0.0009666666666666,5.533854166666667e-07,False
-label_detection_azure_westus2_q3,Label Detection,Azure,westus2,Q3,,0.31011264184892734,0.0,0.0,0.0033333333333333,5.989583333333334e-07,False
-label_detection_azure_eastus_q3,Label Detection,Azure,eastus,Q3,,0.264893188191749,0.0,0.0,0.0033333333333333,5.989583333333334e-07,False
-label_detection_azure_westeurope_q3,Label Detection,Azure,westeurope,Q3,,0.300632894918886,0.0,0.0,0.0033333333333333,6.770833333333333e-07,False
-label_detection_azure_southeastasia_q3,Label Detection,Azure,southeastasia,Q3,,0.2796261795184682,0.0,0.0,0.0033333333333333,6.770833333333333e-07,False
-speech_transcription_gcp_us-east1_q1,Speech Transcription,GCP,us-east1,Q1,,5.126254450319508,0.22113600000000014,0.0,0.0016,6.510416666666666e-07,False
-speech_transcription_gcp_us-west1_q1,Speech Transcription,GCP,us-west1,Q1,,4.125772959734551,0.22113600000000014,0.0,0.0016,6.510416666666666e-07,False
-speech_transcription_gcp_europe-west1_q1,Speech Transcription,GCP,europe-west1,Q1,,5.190203317020175,0.22113600000000014,0.0,0.0016,6.510416666666666e-07,False
-speech_transcription_gcp_asia-east1_q1,Speech Transcription,GCP,asia-east1,Q1,,4.5519659271778,0.22113600000000014,0.0,0.0016,6.510416666666666e-07,False
-speech_transcription_aws_us-west-2_q1,Speech Transcription,AWS,us-west-2,Q1,,4.128160016720278,0.22113600000000014,0.0,0.0024,7.486979166666667e-07,False
-speech_transcription_aws_us-east-2_q1,Speech Transcription,AWS,us-east-2,Q1,,5.952576159981181,0.22113600000000014,0.0,0.0024,7.486979166666667e-07,False
-speech_transcription_aws_ap-southeast-1_q1,Speech Transcription,AWS,ap-southeast-1,Q1,,5.666782729061927,0.22113600000000014,0.0,0.0024,8.138020833333334e-07,False
-speech_transcription_aws_eu-central-1_q1,Speech Transcription,AWS,eu-central-1,Q1,,3.915445910551052,0.22113600000000014,0.0,0.0024,7.975260416666667e-07,False
-speech_transcription_aliyun_cn-shanghai_q1,Speech Transcription,Aliyun,cn-shanghai,Q1,,5.835804959013645,0.22113600000000014,0.0,0.00061,5.631510416666666e-07,False
-speech_transcription_aliyun_cn-beijing_q1,Speech Transcription,Aliyun,cn-beijing,Q1,,4.967380776548429,0.22113600000000014,0.0,0.00061,5.631510416666666e-07,False
-speech_transcription_azure_westus2_q1,Speech Transcription,Azure,westus2,Q1,,3.568428602140356,0.22113600000000014,0.0,0.0013,5.989583333333334e-07,False
-speech_transcription_azure_eastus_q1,Speech Transcription,Azure,eastus,Q1,,5.538537391108396,0.22113600000000014,0.0,0.0013,5.989583333333334e-07,False
-speech_transcription_azure_westeurope_q1,Speech Transcription,Azure,westeurope,Q1,,3.395520928424747,0.22113600000000014,0.0,0.0013,6.770833333333333e-07,False
-speech_transcription_azure_southeastasia_q1,Speech Transcription,Azure,southeastasia,Q1,,4.524156493222991,0.22113600000000014,0.0,0.0013,6.770833333333333e-07,False
-speech_transcription_gcp_us-east1_q2,Speech Transcription,GCP,us-east1,Q2,,4.271878708599591,0.1842800000000001,0.0,0.0016,6.510416666666666e-07,False
-speech_transcription_gcp_us-west1_q2,Speech Transcription,GCP,us-west1,Q2,,3.438144133112126,0.1842800000000001,0.0,0.0016,6.510416666666666e-07,False
-speech_transcription_gcp_europe-west1_q2,Speech Transcription,GCP,europe-west1,Q2,,4.325169430850146,0.1842800000000001,0.0,0.0016,6.510416666666666e-07,False
-speech_transcription_gcp_asia-east1_q2,Speech Transcription,GCP,asia-east1,Q2,,3.793304939314834,0.1842800000000001,0.0,0.0016,6.510416666666666e-07,False
-speech_transcription_aws_us-west-2_q2,Speech Transcription,AWS,us-west-2,Q2,,3.4401333472668982,0.1842800000000001,0.0,0.0024,7.486979166666667e-07,False
-speech_transcription_aws_us-east-2_q2,Speech Transcription,AWS,us-east-2,Q2,,4.960480133317651,0.1842800000000001,0.0,0.0024,7.486979166666667e-07,False
-speech_transcription_aws_ap-southeast-1_q2,Speech Transcription,AWS,ap-southeast-1,Q2,,4.722318940884939,0.1842800000000001,0.0,0.0024,8.138020833333334e-07,False
-speech_transcription_aws_eu-central-1_q2,Speech Transcription,AWS,eu-central-1,Q2,,3.262871592125877,0.1842800000000001,0.0,0.0024,7.975260416666667e-07,False
-speech_transcription_aliyun_cn-shanghai_q2,Speech Transcription,Aliyun,cn-shanghai,Q2,,4.863170799178038,0.1842800000000001,0.0,0.00061,5.631510416666666e-07,False
-speech_transcription_aliyun_cn-beijing_q2,Speech Transcription,Aliyun,cn-beijing,Q2,,4.139483980457024,0.1842800000000001,0.0,0.00061,5.631510416666666e-07,False
-speech_transcription_azure_westus2_q2,Speech Transcription,Azure,westus2,Q2,,2.97369050178363,0.1842800000000001,0.0,0.0013,5.989583333333334e-07,False
-speech_transcription_azure_eastus_q2,Speech Transcription,Azure,eastus,Q2,,4.615447825923663,0.1842800000000001,0.0,0.0013,5.989583333333334e-07,False
-speech_transcription_azure_westeurope_q2,Speech Transcription,Azure,westeurope,Q2,,2.8296007736872895,0.1842800000000001,0.0,0.0013,6.770833333333333e-07,False
-speech_transcription_azure_southeastasia_q2,Speech Transcription,Azure,southeastasia,Q2,,3.770130411019159,0.1842800000000001,0.0,0.0013,6.770833333333333e-07,False
-speech_transcription_gcp_us-east1_q3,Speech Transcription,GCP,us-east1,Q3,,3.4175029668796726,0.14742400000000008,0.0,0.0016,6.510416666666666e-07,False
-speech_transcription_gcp_us-west1_q3,Speech Transcription,GCP,us-west1,Q3,,2.750515306489701,0.14742400000000008,0.0,0.0016,6.510416666666666e-07,False
-speech_transcription_gcp_europe-west1_q3,Speech Transcription,GCP,europe-west1,Q3,,3.4601355446801167,0.14742400000000008,0.0,0.0016,6.510416666666666e-07,False
-speech_transcription_gcp_asia-east1_q3,Speech Transcription,GCP,asia-east1,Q3,,3.0346439514518675,0.14742400000000008,0.0,0.0016,6.510416666666666e-07,False
-speech_transcription_aws_us-west-2_q3,Speech Transcription,AWS,us-west-2,Q3,,2.7521066778135186,0.14742400000000008,0.0,0.0024,7.486979166666667e-07,False
-speech_transcription_aws_us-east-2_q3,Speech Transcription,AWS,us-east-2,Q3,,3.9683841066541206,0.14742400000000008,0.0,0.0024,7.486979166666667e-07,False
-speech_transcription_aws_ap-southeast-1_q3,Speech Transcription,AWS,ap-southeast-1,Q3,,3.777855152707952,0.14742400000000008,0.0,0.0024,8.138020833333334e-07,False
-speech_transcription_aws_eu-central-1_q3,Speech Transcription,AWS,eu-central-1,Q3,,2.6102972737007017,0.14742400000000008,0.0,0.0024,7.975260416666667e-07,False
-speech_transcription_aliyun_cn-shanghai_q3,Speech Transcription,Aliyun,cn-shanghai,Q3,,3.8905366393424305,0.14742400000000008,0.0,0.00061,5.631510416666666e-07,False
-speech_transcription_aliyun_cn-beijing_q3,Speech Transcription,Aliyun,cn-beijing,Q3,,3.3115871843656195,0.14742400000000008,0.0,0.00061,5.631510416666666e-07,False
-speech_transcription_azure_westus2_q3,Speech Transcription,Azure,westus2,Q3,,2.378952401426904,0.14742400000000008,0.0,0.0013,5.989583333333334e-07,False
-speech_transcription_azure_eastus_q3,Speech Transcription,Azure,eastus,Q3,,3.692358260738931,0.14742400000000008,0.0,0.0013,5.989583333333334e-07,False
-speech_transcription_azure_westeurope_q3,Speech Transcription,Azure,westeurope,Q3,,2.2636806189498317,0.14742400000000008,0.0,0.0013,6.770833333333333e-07,False
-speech_transcription_azure_southeastasia_q3,Speech Transcription,Azure,southeastasia,Q3,,3.0161043288153273,0.14742400000000008,0.0,0.0013,6.770833333333333e-07,False
-database_gcp_us-east1_q1,Database,GCP,us-east1,Q1,,0.0008936248610088626,0.0,6.159253333333334,0.0,1.1684212239583332e-05,False
-database_gcp_us-west1_q1,Database,GCP,us-west1,Q1,,0.0009737482434395043,0.0,5.450666666666667,0.0,1.0415266927083333e-05,False
-database_gcp_europe-west1_q1,Database,GCP,europe-west1,Q1,,0.0010549239590336161,0.0,5.995733333333334,0.0,1.1391927083333331e-05,False
-database_gcp_asia-east1_q1,Database,GCP,asia-east1,Q1,,0.0011795758331138732,0.0,6.322773333333333,0.0,1.1976497395833333e-05,False
-database_aws_us-west-2_q1,Database,AWS,us-west-2,Q1,,0.0007694504376937298,0.0,5.760000000000001,0.0,4.00390625e-06,False
-database_aws_us-east-2_q1,Database,AWS,us-east-2,Q1,,0.0008342474927768478,0.0,5.760000000000001,0.0,4.00390625e-06,False
-database_aws_ap-southeast-1_q1,Database,AWS,ap-southeast-1,Q1,,0.0007246764831646885,0.0,9.6,0.0,4.39453125e-06,False
-database_aws_eu-central-1_q1,Database,AWS,eu-central-1,Q1,,0.0011538150743176858,0.0,6.72,0.0,4.671223958333333e-06,False
-database_aliyun_cn-shanghai_q1,Database,Aliyun,cn-shanghai,Q1,,0.0011125742331261712,0.0,1.2253333333333332,0.0,9.026692708333333e-06,False
-database_aliyun_cn-beijing_q1,Database,Aliyun,cn-beijing,Q1,,0.0007247825882218023,0.0,1.2253333333333332,0.0,9.026692708333333e-06,False
-database_aliyun_us-east-1_q1,Database,Aliyun,us-east-1,Q1,,0.0010800537662274013,0.0,1.4016666666666666,0.0,9.9609375e-06,False
-database_aliyun_ap-southeast-1_q1,Database,Aliyun,ap-southeast-1,Q1,,0.0007214486518050649,0.0,2.146666666666667,0.0,9.993489583333332e-06,False
-database_azure_westus2_q1,Database,Azure,westus2,Q1,,0.0007898376141866395,0.0,2.457666666666667,0.0,5.989583333333334e-07,False
-database_azure_eastus_q1,Database,Azure,eastus,Q1,,0.0007798460739574152,0.0,2.457666666666667,0.0,5.989583333333334e-07,False
-database_azure_westeurope_q1,Database,Azure,westeurope,Q1,,0.0010124750125911038,0.0,2.457666666666667,0.0,6.770833333333333e-07,False
-database_azure_southeastasia_q1,Database,Azure,southeastasia,Q1,,0.0008109545744696956,0.0,2.457666666666667,0.0,6.770833333333333e-07,False
-database_gcp_us-east1_q2,Database,GCP,us-east1,Q2,,0.0007446873841740522,0.0,6.159253333333334,0.0,1.1684212239583332e-05,False
-database_gcp_us-west1_q2,Database,GCP,us-west1,Q2,,0.0008114568695329203,0.0,5.450666666666667,0.0,1.0415266927083333e-05,False
-database_gcp_europe-west1_q2,Database,GCP,europe-west1,Q2,,0.0008791032991946801,0.0,5.995733333333334,0.0,1.1391927083333331e-05,False
-database_gcp_asia-east1_q2,Database,GCP,asia-east1,Q2,,0.0009829798609282277,0.0,6.322773333333333,0.0,1.1976497395833333e-05,False
-database_aws_us-west-2_q2,Database,AWS,us-west-2,Q2,,0.0006412086980781081,0.0,5.760000000000001,0.0,4.00390625e-06,False
-database_aws_us-east-2_q2,Database,AWS,us-east-2,Q2,,0.0006952062439807066,0.0,5.760000000000001,0.0,4.00390625e-06,False
-database_aws_ap-southeast-1_q2,Database,AWS,ap-southeast-1,Q2,,0.0006038970693039072,0.0,9.6,0.0,4.39453125e-06,False
-database_aws_eu-central-1_q2,Database,AWS,eu-central-1,Q2,,0.0009615125619314048,0.0,6.72,0.0,4.671223958333333e-06,False
-database_aliyun_cn-shanghai_q2,Database,Aliyun,cn-shanghai,Q2,,0.0009271451942718095,0.0,1.2253333333333332,0.0,9.026692708333333e-06,False
-database_aliyun_cn-beijing_q2,Database,Aliyun,cn-beijing,Q2,,0.0006039854901848352,0.0,1.2253333333333332,0.0,9.026692708333333e-06,False
-database_aliyun_us-east-1_q2,Database,Aliyun,us-east-1,Q2,,0.000900044805189501,0.0,1.4016666666666666,0.0,9.9609375e-06,False
-database_aliyun_ap-southeast-1_q2,Database,Aliyun,ap-southeast-1,Q2,,0.0006012072098375541,0.0,2.146666666666667,0.0,9.993489583333332e-06,False
-database_azure_westus2_q2,Database,Azure,westus2,Q2,,0.0006581980118221996,0.0,2.457666666666667,0.0,5.989583333333334e-07,False
-database_azure_eastus_q2,Database,Azure,eastus,Q2,,0.0006498717282978461,0.0,2.457666666666667,0.0,5.989583333333334e-07,False
-database_azure_westeurope_q2,Database,Azure,westeurope,Q2,,0.0008437291771592533,0.0,2.457666666666667,0.0,6.770833333333333e-07,False
-database_azure_southeastasia_q2,Database,Azure,southeastasia,Q2,,0.0006757954787247463,0.0,2.457666666666667,0.0,6.770833333333333e-07,False
-database_gcp_us-east1_q3,Database,GCP,us-east1,Q3,,0.0005957499073392418,0.0,6.159253333333334,0.0,1.1684212239583332e-05,False
-database_gcp_us-west1_q3,Database,GCP,us-west1,Q3,,0.0006491654956263362,0.0,5.450666666666667,0.0,1.0415266927083333e-05,False
-database_gcp_europe-west1_q3,Database,GCP,europe-west1,Q3,,0.0007032826393557441,0.0,5.995733333333334,0.0,1.1391927083333331e-05,False
-database_gcp_asia-east1_q3,Database,GCP,asia-east1,Q3,,0.0007863838887425822,0.0,6.322773333333333,0.0,1.1976497395833333e-05,False
-database_aws_us-west-2_q3,Database,AWS,us-west-2,Q3,,0.0005129669584624865,0.0,5.760000000000001,0.0,4.00390625e-06,False
-database_aws_us-east-2_q3,Database,AWS,us-east-2,Q3,,0.0005561649951845653,0.0,5.760000000000001,0.0,4.00390625e-06,False
-database_aws_ap-southeast-1_q3,Database,AWS,ap-southeast-1,Q3,,0.00048311765544312575,0.0,9.6,0.0,4.39453125e-06,False
-database_aws_eu-central-1_q3,Database,AWS,eu-central-1,Q3,,0.0007692100495451239,0.0,6.72,0.0,4.671223958333333e-06,False
-database_aliyun_cn-shanghai_q3,Database,Aliyun,cn-shanghai,Q3,,0.0007417161554174476,0.0,1.2253333333333332,0.0,9.026692708333333e-06,False
-database_aliyun_cn-beijing_q3,Database,Aliyun,cn-beijing,Q3,,0.0004831883921478682,0.0,1.2253333333333332,0.0,9.026692708333333e-06,False
-database_aliyun_us-east-1_q3,Database,Aliyun,us-east-1,Q3,,0.0007200358441516009,0.0,1.4016666666666666,0.0,9.9609375e-06,False
-database_aliyun_ap-southeast-1_q3,Database,Aliyun,ap-southeast-1,Q3,,0.0004809657678700433,0.0,2.146666666666667,0.0,9.993489583333332e-06,False
-database_azure_westus2_q3,Database,Azure,westus2,Q3,,0.0005265584094577597,0.0,2.457666666666667,0.0,5.989583333333334e-07,False
-database_azure_eastus_q3,Database,Azure,eastus,Q3,,0.0005198973826382769,0.0,2.457666666666667,0.0,5.989583333333334e-07,False
-database_azure_westeurope_q3,Database,Azure,westeurope,Q3,,0.0006749833417274027,0.0,2.457666666666667,0.0,6.770833333333333e-07,False
-database_azure_southeastasia_q3,Database,Azure,southeastasia,Q3,,0.0005406363829797971,0.0,2.457666666666667,0.0,6.770833333333333e-07,False
-q_a_gcp_europe-west1_q1,Q/A,GCP,europe-west1,Q1,Claude Haiku 4.5,0.59,200.78431372549016,0.0,0.39424,6.510416666666666e-07,False
-q_a_gcp_asia-east1_q1,Q/A,GCP,asia-east1,Q1,Claude Haiku 4.5,0.59,200.78431372549016,0.0,0.39424,6.510416666666666e-07,False
+ocr_gcp_us-east1_q1,OCR,GCP,us-east1,Q1,,1.6787885189643112,0.09884544882768437,0.0,0.005,6.510416666666666e-07,False
+ocr_gcp_us-west1_q1,OCR,GCP,us-west1,Q1,,4.463198499925329,0.09181027242287852,0.0,0.005,6.510416666666666e-07,False
+ocr_gcp_europe-west1_q1,OCR,GCP,europe-west1,Q1,,1.3077118584094916,0.02536541079423722,0.0,0.005,6.510416666666666e-07,False
+ocr_gcp_asia-east1_q1,OCR,GCP,asia-east1,Q1,,5.60883777543514,0.0549384449330936,0.0,0.005,6.510416666666666e-07,False
+ocr_aws_us-west-2_q1,OCR,AWS,us-west-2,Q1,,2.2251229356170743,0.06476707689796561,0.0,0.0033333333333333335,7.486979166666667e-07,False
+ocr_aws_us-east-2_q1,OCR,AWS,us-east-2,Q1,,4.179466748923345,0.11520731176107275,0.0,0.0033333333333333335,7.486979166666667e-07,False
+ocr_aws_ap-southeast-1_q1,OCR,AWS,ap-southeast-1,Q1,,2.146809625163097,0.11187931036569894,0.0,0.0033333333333333335,8.138020833333334e-07,False
+ocr_aws_eu-central-1_q1,OCR,AWS,eu-central-1,Q1,,0.7342412534857841,0.07196138857129707,0.0,0.0033333333333333335,7.975260416666667e-07,False
+ocr_aliyun_cn-shanghai_q1,OCR,Aliyun,cn-shanghai,Q1,,4.0234656030778595,0.023436919605081357,0.0,0.04,5.631510416666666e-07,False
+ocr_aliyun_cn-beijing_q1,OCR,Aliyun,cn-beijing,Q1,,1.3578338241451282,0.057264346486160814,0.0,0.04,5.631510416666666e-07,False
+ocr_aliyun_us-east-1_q1,OCR,Aliyun,us-east-1,Q1,,5.817652325573181,0.07637259574931228,0.0,0.04,5.208333333333334e-07,False
+ocr_aliyun_ap-southeast-1_q1,OCR,Aliyun,ap-southeast-1,Q1,,5.63832539664114,0.09887097888620085,0.0,0.04,5.533854166666667e-07,False
+ocr_azure_westus2_q1,OCR,Azure,westus2,Q1,,3.123860648398574,0.09675445251923624,0.0,0.0033333333333333335,5.989583333333334e-07,False
+ocr_azure_eastus_q1,OCR,Azure,eastus,Q1,,0.6963186334757338,0.023787551650699373,0.0,0.0033333333333333335,5.989583333333334e-07,False
+ocr_azure_westeurope_q1,OCR,Azure,westeurope,Q1,,5.0789145203667765,0.09805624553911747,0.0,0.0033333333333333335,6.770833333333333e-07,False
+ocr_azure_southeastasia_q1,OCR,Azure,southeastasia,Q1,,1.8562600066187418,0.06932311578469778,0.0,0.0033333333333333335,6.770833333333333e-07,False
+ocr_gcp_us-east1_q2,OCR,GCP,us-east1,Q2,,3.2270711931500493,0.08809650583984101,0.0,0.005,6.510416666666666e-07,False
+ocr_gcp_us-west1_q2,OCR,GCP,us-west1,Q2,,3.2139822080242655,0.047131441234631234,0.0,0.005,6.510416666666666e-07,False
+ocr_gcp_europe-west1_q2,OCR,GCP,europe-west1,Q2,,2.183828195332322,0.048329387773615895,0.0,0.005,6.510416666666666e-07,False
+ocr_gcp_asia-east1_q2,OCR,GCP,asia-east1,Q2,,3.4336896151098837,0.08807415685770924,0.0,0.005,6.510416666666666e-07,False
+ocr_aws_us-west-2_q2,OCR,AWS,us-west-2,Q2,,2.5425359693433487,0.032305560665622235,0.0,0.0033333333333333335,7.486979166666667e-07,False
+ocr_aws_us-east-2_q2,OCR,AWS,us-east-2,Q2,,1.5649806334891152,0.07714128522191017,0.0,0.0033333333333333335,7.486979166666667e-07,False
+ocr_aws_ap-southeast-1_q2,OCR,AWS,ap-southeast-1,Q2,,4.1745594354075966,0.019475027186871247,0.0,0.0033333333333333335,8.138020833333334e-07,False
+ocr_aws_eu-central-1_q2,OCR,AWS,eu-central-1,Q2,,0.7995148562983017,0.06349902973808066,0.0,0.0033333333333333335,7.975260416666667e-07,False
+ocr_aliyun_cn-shanghai_q2,OCR,Aliyun,cn-shanghai,Q2,,1.1577795988671422,0.08421977714107072,0.0,0.04,5.631510416666666e-07,False
+ocr_aliyun_cn-beijing_q2,OCR,Aliyun,cn-beijing,Q2,,1.896506032658335,0.022948473967402842,0.0,0.04,5.631510416666666e-07,False
+ocr_aliyun_us-east-1_q2,OCR,Aliyun,us-east-1,Q2,,4.644367126193526,0.024897855046175036,0.0,0.04,5.208333333333334e-07,False
+ocr_aliyun_ap-southeast-1_q2,OCR,Aliyun,ap-southeast-1,Q2,,1.78124037052071,0.023825205567285276,0.0,0.04,5.533854166666667e-07,False
+ocr_azure_westus2_q2,OCR,Azure,westus2,Q2,,1.0197052864940974,0.011903321470279603,0.0,0.0033333333333333335,5.989583333333334e-07,False
+ocr_azure_eastus_q2,OCR,Azure,eastus,Q2,,0.7492793412391705,0.025717732384226748,0.0,0.0033333333333333335,5.989583333333334e-07,False
+ocr_azure_westeurope_q2,OCR,Azure,westeurope,Q2,,0.7402186968222892,0.06320294344998742,0.0,0.0033333333333333335,6.770833333333333e-07,False
+ocr_azure_southeastasia_q2,OCR,Azure,southeastasia,Q2,,3.5632153705977787,0.04542674111488255,0.0,0.0033333333333333335,6.770833333333333e-07,False
+ocr_gcp_us-east1_q3,OCR,GCP,us-east1,Q3,,1.5447679490273778,0.044325889065600574,0.0,0.005,6.510416666666666e-07,False
+ocr_gcp_us-west1_q3,OCR,GCP,us-west1,Q3,,3.550017792044591,0.06928147713119884,0.0,0.005,6.510416666666666e-07,False
+ocr_gcp_europe-west1_q3,OCR,GCP,europe-west1,Q3,,0.556510223246051,0.021067885490949734,0.0,0.005,6.510416666666666e-07,False
+ocr_gcp_asia-east1_q3,OCR,GCP,asia-east1,Q3,,1.2522815359758257,0.025955905459919257,0.0,0.005,6.510416666666666e-07,False
+ocr_aws_us-west-2_q3,OCR,AWS,us-west-2,Q3,,2.456437546273982,0.037970894650629854,0.0,0.0033333333333333335,7.486979166666667e-07,False
+ocr_aws_us-east-2_q3,OCR,AWS,us-east-2,Q3,,0.5773148317393384,0.03490021796908916,0.0,0.0033333333333333335,7.486979166666667e-07,False
+ocr_aws_ap-southeast-1_q3,OCR,AWS,ap-southeast-1,Q3,,2.285510615383494,0.015320377009067552,0.0,0.0033333333333333335,8.138020833333334e-07,False
+ocr_aws_eu-central-1_q3,OCR,AWS,eu-central-1,Q3,,3.4004507936388153,0.011741254385487508,0.0,0.0033333333333333335,7.975260416666667e-07,False
+ocr_aliyun_cn-shanghai_q3,OCR,Aliyun,cn-shanghai,Q3,,3.729430728465024,0.01513614619375104,0.0,0.04,5.631510416666666e-07,False
+ocr_aliyun_cn-beijing_q3,OCR,Aliyun,cn-beijing,Q3,,3.43686982575191,0.07299102636278844,0.0,0.04,5.631510416666666e-07,False
+ocr_aliyun_us-east-1_q3,OCR,Aliyun,us-east-1,Q3,,3.9264544501117338,0.06574586337969875,0.0,0.04,5.208333333333334e-07,False
+ocr_aliyun_ap-southeast-1_q3,OCR,Aliyun,ap-southeast-1,Q3,,3.2061191467767842,0.054258795871679436,0.0,0.04,5.533854166666667e-07,False
+ocr_azure_westus2_q3,OCR,Azure,westus2,Q3,,3.2043868764812644,0.01768775900574659,0.0,0.0033333333333333335,5.989583333333334e-07,False
+ocr_azure_eastus_q3,OCR,Azure,eastus,Q3,,2.3298449294114945,0.04502404665370985,0.0,0.0033333333333333335,5.989583333333334e-07,False
+ocr_azure_westeurope_q3,OCR,Azure,westeurope,Q3,,3.4872597188412073,0.041321554322733156,0.0,0.0033333333333333335,6.770833333333333e-07,False
+ocr_azure_southeastasia_q3,OCR,Azure,southeastasia,Q3,,1.7863221859612726,0.05404855552907193,0.0,0.0033333333333333335,6.770833333333333e-07,False
+label_detection_gcp_us-east1_q1,Label Detection,GCP,us-east1,Q1,,2.0389019145045686,0.027094988383027346,0.0,0.005,6.510416666666666e-07,False
+label_detection_gcp_us-west1_q1,Label Detection,GCP,us-west1,Q1,,3.180537279728227,0.057024051808247586,0.0,0.005,6.510416666666666e-07,False
+label_detection_gcp_europe-west1_q1,Label Detection,GCP,europe-west1,Q1,,1.855877678855918,0.05169127549243383,0.0,0.005,6.510416666666666e-07,False
+label_detection_gcp_asia-east1_q1,Label Detection,GCP,asia-east1,Q1,,2.5785192290617363,0.04736952095655492,0.0,0.005,6.510416666666666e-07,False
+label_detection_aws_us-west-2_q1,Label Detection,AWS,us-west-2,Q1,,2.649106030525416,0.0860602813092421,0.0,0.0033333333333333335,7.486979166666667e-07,False
+label_detection_aws_us-east-2_q1,Label Detection,AWS,us-east-2,Q1,,2.2031329626849407,0.11447665608525677,0.0,0.0033333333333333335,7.486979166666667e-07,False
+label_detection_aws_ap-southeast-1_q1,Label Detection,AWS,ap-southeast-1,Q1,,5.548279305506161,0.0639383262564085,0.0,0.0033333333333333335,8.138020833333334e-07,False
+label_detection_aws_eu-central-1_q1,Label Detection,AWS,eu-central-1,Q1,,2.3731505070253194,0.06982695730164035,0.0,0.0033333333333333335,7.975260416666667e-07,False
+label_detection_aliyun_cn-shanghai_q1,Label Detection,Aliyun,cn-shanghai,Q1,,5.182226639377572,0.08247943278049102,0.0,0.0009666666666666667,5.631510416666666e-07,False
+label_detection_aliyun_cn-beijing_q1,Label Detection,Aliyun,cn-beijing,Q1,,4.943715870914217,0.06953400581509994,0.0,0.0009666666666666667,5.631510416666666e-07,False
+label_detection_aliyun_us-east-1_q1,Label Detection,Aliyun,us-east-1,Q1,,4.017755198045152,0.04312080633170587,0.0,0.0009666666666666667,5.208333333333334e-07,False
+label_detection_aliyun_ap-southeast-1_q1,Label Detection,Aliyun,ap-southeast-1,Q1,,4.56842307647557,0.03385969605757758,0.0,0.0009666666666666667,5.533854166666667e-07,False
+label_detection_azure_westus2_q1,Label Detection,Azure,westus2,Q1,,4.35190989561989,0.10495765937919657,0.0,0.0033333333333333335,5.989583333333334e-07,False
+label_detection_azure_eastus_q1,Label Detection,Azure,eastus,Q1,,1.313355321428337,0.07835301197852733,0.0,0.0033333333333333335,5.989583333333334e-07,False
+label_detection_azure_westeurope_q1,Label Detection,Azure,westeurope,Q1,,1.1135170404416468,0.0903772878533141,0.0,0.0033333333333333335,6.770833333333333e-07,False
+label_detection_azure_southeastasia_q1,Label Detection,Azure,southeastasia,Q1,,1.0562633816470093,0.11308150085166761,0.0,0.0033333333333333335,6.770833333333333e-07,False
+label_detection_gcp_us-east1_q2,Label Detection,GCP,us-east1,Q2,,1.1183356851701096,0.09629922213181724,0.0,0.005,6.510416666666666e-07,False
+label_detection_gcp_us-west1_q2,Label Detection,GCP,us-west1,Q2,,4.103978792382935,0.06343138040197187,0.0,0.005,6.510416666666666e-07,False
+label_detection_gcp_europe-west1_q2,Label Detection,GCP,europe-west1,Q2,,4.021808470832961,0.08156033550847773,0.0,0.005,6.510416666666666e-07,False
+label_detection_gcp_asia-east1_q2,Label Detection,GCP,asia-east1,Q2,,4.757121782677986,0.03280450184552685,0.0,0.005,6.510416666666666e-07,False
+label_detection_aws_us-west-2_q2,Label Detection,AWS,us-west-2,Q2,,3.155341529112391,0.018554427780796114,0.0,0.0033333333333333335,7.486979166666667e-07,False
+label_detection_aws_us-east-2_q2,Label Detection,AWS,us-east-2,Q2,,3.2727456501085457,0.025416217368350993,0.0,0.0033333333333333335,7.486979166666667e-07,False
+label_detection_aws_ap-southeast-1_q2,Label Detection,AWS,ap-southeast-1,Q2,,3.0422777516259885,0.06151874626304648,0.0,0.0033333333333333335,8.138020833333334e-07,False
+label_detection_aws_eu-central-1_q2,Label Detection,AWS,eu-central-1,Q2,,2.596933188415523,0.05703685979618106,0.0,0.0033333333333333335,7.975260416666667e-07,False
+label_detection_aliyun_cn-shanghai_q2,Label Detection,Aliyun,cn-shanghai,Q2,,3.9376552550296458,0.081932024486086,0.0,0.0009666666666666667,5.631510416666666e-07,False
+label_detection_aliyun_cn-beijing_q2,Label Detection,Aliyun,cn-beijing,Q2,,2.7146894700894313,0.06396340973703511,0.0,0.0009666666666666667,5.631510416666666e-07,False
+label_detection_aliyun_us-east-1_q2,Label Detection,Aliyun,us-east-1,Q2,,4.6905630606054585,0.020776022965101053,0.0,0.0009666666666666667,5.208333333333334e-07,False
+label_detection_aliyun_ap-southeast-1_q2,Label Detection,Aliyun,ap-southeast-1,Q2,,1.0269660465504973,0.017893811071969155,0.0,0.0009666666666666667,5.533854166666667e-07,False
+label_detection_azure_westus2_q2,Label Detection,Azure,westus2,Q2,,3.4603847826823753,0.04767474707113416,0.0,0.0033333333333333335,5.989583333333334e-07,False
+label_detection_azure_eastus_q2,Label Detection,Azure,eastus,Q2,,3.9844463726382946,0.07041082719777333,0.0,0.0033333333333333335,5.989583333333334e-07,False
+label_detection_azure_westeurope_q2,Label Detection,Azure,westeurope,Q2,,2.0013699124770716,0.09085298926253822,0.0,0.0033333333333333335,6.770833333333333e-07,False
+label_detection_azure_southeastasia_q2,Label Detection,Azure,southeastasia,Q2,,3.9313946618179356,0.03434814468191582,0.0,0.0033333333333333335,6.770833333333333e-07,False
+label_detection_gcp_us-east1_q3,Label Detection,GCP,us-east1,Q3,,1.7110912639793945,0.03063967857470693,0.0,0.005,6.510416666666666e-07,False
+label_detection_gcp_us-west1_q3,Label Detection,GCP,us-west1,Q3,,0.9674019350499988,0.0186404028230378,0.0,0.005,6.510416666666666e-07,False
+label_detection_gcp_europe-west1_q3,Label Detection,GCP,europe-west1,Q3,,3.770058868152679,0.039529090678310244,0.0,0.005,6.510416666666666e-07,False
+label_detection_gcp_asia-east1_q3,Label Detection,GCP,asia-east1,Q3,,1.7799513619986755,0.06053737102477122,0.0,0.005,6.510416666666666e-07,False
+label_detection_aws_us-west-2_q3,Label Detection,AWS,us-west-2,Q3,,2.39077503491044,0.07540207905236929,0.0,0.0033333333333333335,7.486979166666667e-07,False
+label_detection_aws_us-east-2_q3,Label Detection,AWS,us-east-2,Q3,,3.209085378073812,0.04251460861696691,0.0,0.0033333333333333335,7.486979166666667e-07,False
+label_detection_aws_ap-southeast-1_q3,Label Detection,AWS,ap-southeast-1,Q3,,1.7548941045309743,0.0790374712345512,0.0,0.0033333333333333335,8.138020833333334e-07,False
+label_detection_aws_eu-central-1_q3,Label Detection,AWS,eu-central-1,Q3,,2.9839368496131167,0.07648601552027656,0.0,0.0033333333333333335,7.975260416666667e-07,False
+label_detection_aliyun_cn-shanghai_q3,Label Detection,Aliyun,cn-shanghai,Q3,,0.8265228779813489,0.06923842490173636,0.0,0.0009666666666666667,5.631510416666666e-07,False
+label_detection_aliyun_cn-beijing_q3,Label Detection,Aliyun,cn-beijing,Q3,,2.6934659823683473,0.01677836084012811,0.0,0.0009666666666666667,5.631510416666666e-07,False
+label_detection_aliyun_us-east-1_q3,Label Detection,Aliyun,us-east-1,Q3,,2.517728799889195,0.05739893828759232,0.0,0.0009666666666666667,5.208333333333334e-07,False
+label_detection_aliyun_ap-southeast-1_q3,Label Detection,Aliyun,ap-southeast-1,Q3,,0.4442896691989702,0.04071089325260576,0.0,0.0009666666666666667,5.533854166666667e-07,False
+label_detection_azure_westus2_q3,Label Detection,Azure,westus2,Q3,,3.371438240306756,0.02926584982477447,0.0,0.0033333333333333335,5.989583333333334e-07,False
+label_detection_azure_eastus_q3,Label Detection,Azure,eastus,Q3,,2.0507730944747844,0.03984661714888832,0.0,0.0033333333333333335,5.989583333333334e-07,False
+label_detection_azure_westeurope_q3,Label Detection,Azure,westeurope,Q3,,1.48693860919297,0.07412781647711991,0.0,0.0033333333333333335,6.770833333333333e-07,False
+label_detection_azure_southeastasia_q3,Label Detection,Azure,southeastasia,Q3,,3.2126585275534576,0.015962365591719957,0.0,0.0033333333333333335,6.770833333333333e-07,False
+speech_transcription_gcp_us-east1_q1,Speech Transcription,GCP,us-east1,Q1,,5.983987152322895,0.1069536026252365,0.0,0.0016,6.510416666666666e-07,False
+speech_transcription_gcp_us-west1_q1,Speech Transcription,GCP,us-west1,Q1,,2.1331055644658106,0.10238483060338133,0.0,0.0016,6.510416666666666e-07,False
+speech_transcription_gcp_europe-west1_q1,Speech Transcription,GCP,europe-west1,Q1,,1.1746654721054675,0.11990331089121777,0.0,0.0016,6.510416666666666e-07,False
+speech_transcription_gcp_asia-east1_q1,Speech Transcription,GCP,asia-east1,Q1,,4.194697574975299,0.08221350168035009,0.0,0.0016,6.510416666666666e-07,False
+speech_transcription_aws_us-west-2_q1,Speech Transcription,AWS,us-west-2,Q1,,1.0883799257143167,0.10887960708083552,0.0,0.0024000000000000002,7.486979166666667e-07,False
+speech_transcription_aws_us-east-2_q1,Speech Transcription,AWS,us-east-2,Q1,,0.7565973173041348,0.03800943026844388,0.0,0.0024000000000000002,7.486979166666667e-07,False
+speech_transcription_aws_ap-southeast-1_q1,Speech Transcription,AWS,ap-southeast-1,Q1,,1.3723181258998292,0.09589093759475961,0.0,0.0024000000000000002,8.138020833333334e-07,False
+speech_transcription_aws_eu-central-1_q1,Speech Transcription,AWS,eu-central-1,Q1,,1.6703028269496485,0.11034892853013561,0.0,0.0024000000000000002,7.975260416666667e-07,False
+speech_transcription_aliyun_cn-shanghai_q1,Speech Transcription,Aliyun,cn-shanghai,Q1,,4.143852812368447,0.01590557273342719,0.0,0.0006100000000000001,5.631510416666666e-07,False
+speech_transcription_aliyun_cn-beijing_q1,Speech Transcription,Aliyun,cn-beijing,Q1,,0.6293211042949824,0.017579055037555084,0.0,0.0006100000000000001,5.631510416666666e-07,False
+speech_transcription_azure_westus2_q1,Speech Transcription,Azure,westus2,Q1,,3.8719959592977293,0.09856003557281685,0.0,0.0013,5.989583333333334e-07,False
+speech_transcription_azure_eastus_q1,Speech Transcription,Azure,eastus,Q1,,1.8881852313878977,0.10373615503569189,0.0,0.0013,5.989583333333334e-07,False
+speech_transcription_azure_westeurope_q1,Speech Transcription,Azure,westeurope,Q1,,0.909052476827606,0.09850409619330103,0.0,0.0013,6.770833333333333e-07,False
+speech_transcription_azure_southeastasia_q1,Speech Transcription,Azure,southeastasia,Q1,,5.610095322930314,0.0953877071032731,0.0,0.0013,6.770833333333333e-07,False
+speech_transcription_gcp_us-east1_q2,Speech Transcription,GCP,us-east1,Q2,,3.6415435279038673,0.08541821967898448,0.0,0.0016,6.510416666666666e-07,False
+speech_transcription_gcp_us-west1_q2,Speech Transcription,GCP,us-west1,Q2,,0.680680847961799,0.02816038996471499,0.0,0.0016,6.510416666666666e-07,False
+speech_transcription_gcp_europe-west1_q2,Speech Transcription,GCP,europe-west1,Q2,,1.062156556875394,0.055407789117368794,0.0,0.0016,6.510416666666666e-07,False
+speech_transcription_gcp_asia-east1_q2,Speech Transcription,GCP,asia-east1,Q2,,3.8533465774798,0.06670106601187589,0.0,0.0016,6.510416666666666e-07,False
+speech_transcription_aws_us-west-2_q2,Speech Transcription,AWS,us-west-2,Q2,,4.330089948928707,0.023969169319698183,0.0,0.0024000000000000002,7.486979166666667e-07,False
+speech_transcription_aws_us-east-2_q2,Speech Transcription,AWS,us-east-2,Q2,,3.805794913708227,0.027373734178201374,0.0,0.0024000000000000002,7.486979166666667e-07,False
+speech_transcription_aws_ap-southeast-1_q2,Speech Transcription,AWS,ap-southeast-1,Q2,,1.7184143809301011,0.07389142275531735,0.0,0.0024000000000000002,8.138020833333334e-07,False
+speech_transcription_aws_eu-central-1_q2,Speech Transcription,AWS,eu-central-1,Q2,,4.9109215320440684,0.06503892453793626,0.0,0.0024000000000000002,7.975260416666667e-07,False
+speech_transcription_aliyun_cn-shanghai_q2,Speech Transcription,Aliyun,cn-shanghai,Q2,,0.7452514174608302,0.06546780729347795,0.0,0.0006100000000000001,5.631510416666666e-07,False
+speech_transcription_aliyun_cn-beijing_q2,Speech Transcription,Aliyun,cn-beijing,Q2,,0.690577482110752,0.08957311402301354,0.0,0.0006100000000000001,5.631510416666666e-07,False
+speech_transcription_azure_westus2_q2,Speech Transcription,Azure,westus2,Q2,,3.6931022829527933,0.025581506178025293,0.0,0.0013,5.989583333333334e-07,False
+speech_transcription_azure_eastus_q2,Speech Transcription,Azure,eastus,Q2,,0.9127445262088913,0.026517990599228713,0.0,0.0013,5.989583333333334e-07,False
+speech_transcription_azure_westeurope_q2,Speech Transcription,Azure,westeurope,Q2,,4.910122307993866,0.05127045782126409,0.0,0.0013,6.770833333333333e-07,False
+speech_transcription_azure_southeastasia_q2,Speech Transcription,Azure,southeastasia,Q2,,4.028364267536336,0.06727675078969993,0.0,0.0013,6.770833333333333e-07,False
+speech_transcription_gcp_us-east1_q3,Speech Transcription,GCP,us-east1,Q3,,2.460687339851095,0.01844937833588358,0.0,0.0016,6.510416666666666e-07,False
+speech_transcription_gcp_us-west1_q3,Speech Transcription,GCP,us-west1,Q3,,3.8056880328091425,0.029696669541059696,0.0,0.0016,6.510416666666666e-07,False
+speech_transcription_gcp_europe-west1_q3,Speech Transcription,GCP,europe-west1,Q3,,2.480861976907152,0.058383868010412766,0.0,0.0016,6.510416666666666e-07,False
+speech_transcription_gcp_asia-east1_q3,Speech Transcription,GCP,asia-east1,Q3,,2.7372393588831123,0.07572279749807734,0.0,0.0016,6.510416666666666e-07,False
+speech_transcription_aws_us-west-2_q3,Speech Transcription,AWS,us-west-2,Q3,,0.9343803637122088,0.04460139716817984,0.0,0.0024000000000000002,7.486979166666667e-07,False
+speech_transcription_aws_us-east-2_q3,Speech Transcription,AWS,us-east-2,Q3,,1.8545238066667578,0.04214014852274851,0.0,0.0024000000000000002,7.486979166666667e-07,False
+speech_transcription_aws_ap-southeast-1_q3,Speech Transcription,AWS,ap-southeast-1,Q3,,0.8291830943118808,0.017654811910839105,0.0,0.0024000000000000002,8.138020833333334e-07,False
+speech_transcription_aws_eu-central-1_q3,Speech Transcription,AWS,eu-central-1,Q3,,1.4010719648125267,0.029938731470779856,0.0,0.0024000000000000002,7.975260416666667e-07,False
+speech_transcription_aliyun_cn-shanghai_q3,Speech Transcription,Aliyun,cn-shanghai,Q3,,1.9404515692528599,0.05199110338663724,0.0,0.0006100000000000001,5.631510416666666e-07,False
+speech_transcription_aliyun_cn-beijing_q3,Speech Transcription,Aliyun,cn-beijing,Q3,,2.684664822705747,0.037650384554161066,0.0,0.0006100000000000001,5.631510416666666e-07,False
+speech_transcription_azure_westus2_q3,Speech Transcription,Azure,westus2,Q3,,1.8716191939433096,0.023669253922181267,0.0,0.0013,5.989583333333334e-07,False
+speech_transcription_azure_eastus_q3,Speech Transcription,Azure,eastus,Q3,,2.51790249427243,0.03082694561484113,0.0,0.0013,5.989583333333334e-07,False
+speech_transcription_azure_westeurope_q3,Speech Transcription,Azure,westeurope,Q3,,0.5298154033985093,0.03812480317929395,0.0,0.0013,6.770833333333333e-07,False
+speech_transcription_azure_southeastasia_q3,Speech Transcription,Azure,southeastasia,Q3,,2.1068776303246133,0.024242686510703194,0.0,0.0013,6.770833333333333e-07,False
+database_gcp_us-east1_q1,Database,GCP,us-east1,Q1,,3.6912728388594243,0.07310336524664747,6.159253333333334,0.0,1.1684212239583332e-05,False
+database_gcp_us-west1_q1,Database,GCP,us-west1,Q1,,4.390811777996006,0.08197843607773068,5.450666666666667,0.0,1.0415266927083331e-05,False
+database_gcp_europe-west1_q1,Database,GCP,europe-west1,Q1,,4.1231385052135705,0.046151128396996664,5.995733333333334,0.0,1.1391927083333331e-05,False
+database_gcp_asia-east1_q1,Database,GCP,asia-east1,Q1,,4.85213399872415,0.07130759342876539,6.322773333333333,0.0,1.1976497395833333e-05,False
+database_aws_us-west-2_q1,Database,AWS,us-west-2,Q1,,2.9296582539714064,0.07960934794163417,5.760000000000001,0.0,4.00390625e-06,False
+database_aws_us-east-2_q1,Database,AWS,us-east-2,Q1,,2.547549606031373,0.06737583841752989,5.760000000000001,0.0,4.00390625e-06,False
+database_aws_ap-southeast-1_q1,Database,AWS,ap-southeast-1,Q1,,4.578210717803989,0.10773151176616043,9.6,0.0,4.39453125e-06,False
+database_aws_eu-central-1_q1,Database,AWS,eu-central-1,Q1,,5.5737088653940345,0.06639235591977471,6.72,0.0,4.671223958333333e-06,False
+database_aliyun_cn-shanghai_q1,Database,Aliyun,cn-shanghai,Q1,,3.409485619599073,0.09838600436249434,1.2253333333333332,0.0,9.026692708333333e-06,False
+database_aliyun_cn-beijing_q1,Database,Aliyun,cn-beijing,Q1,,2.2980337354186866,0.10243729513326741,1.2253333333333332,0.0,9.026692708333333e-06,False
+database_aliyun_us-east-1_q1,Database,Aliyun,us-east-1,Q1,,3.2683648911940866,0.024512526228208986,1.4016666666666666,0.0,9.960937499999999e-06,False
+database_aliyun_ap-southeast-1_q1,Database,Aliyun,ap-southeast-1,Q1,,0.9891193941938959,0.10293526679226202,2.146666666666667,0.0,9.993489583333332e-06,False
+database_azure_westus2_q1,Database,Azure,westus2,Q1,,0.9000667512971406,0.042306035102434844,2.457666666666667,0.0,5.989583333333334e-07,False
+database_azure_eastus_q1,Database,Azure,eastus,Q1,,2.4043022187083474,0.03068340008069213,2.457666666666667,0.0,5.989583333333334e-07,False
+database_azure_westeurope_q1,Database,Azure,westeurope,Q1,,2.2950241969307417,0.09221079720630924,2.457666666666667,0.0,6.770833333333333e-07,False
+database_azure_southeastasia_q1,Database,Azure,southeastasia,Q1,,0.6792873552243821,0.10133472984823413,2.457666666666667,0.0,6.770833333333333e-07,False
+database_gcp_us-east1_q2,Database,GCP,us-east1,Q2,,4.354466106085512,0.04350354158723934,6.159253333333334,0.0,1.1684212239583332e-05,False
+database_gcp_us-west1_q2,Database,GCP,us-west1,Q2,,1.1912580457728565,0.06407563671505728,5.450666666666667,0.0,1.0415266927083331e-05,False
+database_gcp_europe-west1_q2,Database,GCP,europe-west1,Q2,,1.0385265013920244,0.04284274249704273,5.995733333333334,0.0,1.1391927083333331e-05,False
+database_gcp_asia-east1_q2,Database,GCP,asia-east1,Q2,,4.812931314054376,0.09959180253252735,6.322773333333333,0.0,1.1976497395833333e-05,False
+database_aws_us-west-2_q2,Database,AWS,us-west-2,Q2,,3.974472011095635,0.03798653589286896,5.760000000000001,0.0,4.00390625e-06,False
+database_aws_us-east-2_q2,Database,AWS,us-east-2,Q2,,3.5944927212474163,0.07348657289356114,5.760000000000001,0.0,4.00390625e-06,False
+database_aws_ap-southeast-1_q2,Database,AWS,ap-southeast-1,Q2,,2.245287628236424,0.06767997711275435,9.6,0.0,4.39453125e-06,False
+database_aws_eu-central-1_q2,Database,AWS,eu-central-1,Q2,,0.548274402390543,0.028815189274201736,6.72,0.0,4.671223958333333e-06,False
+database_aliyun_cn-shanghai_q2,Database,Aliyun,cn-shanghai,Q2,,2.8628973633526753,0.024737617383246632,1.2253333333333332,0.0,9.026692708333333e-06,False
+database_aliyun_cn-beijing_q2,Database,Aliyun,cn-beijing,Q2,,1.2465809054444015,0.08526738614952141,1.2253333333333332,0.0,9.026692708333333e-06,False
+database_aliyun_us-east-1_q2,Database,Aliyun,us-east-1,Q2,,4.951098512076225,0.060037248522560364,1.4016666666666666,0.0,9.960937499999999e-06,False
+database_aliyun_ap-southeast-1_q2,Database,Aliyun,ap-southeast-1,Q2,,4.27581378896771,0.09912894978936454,2.146666666666667,0.0,9.993489583333332e-06,False
+database_azure_westus2_q2,Database,Azure,westus2,Q2,,1.1371814985594861,0.050342105192891604,2.457666666666667,0.0,5.989583333333334e-07,False
+database_azure_eastus_q2,Database,Azure,eastus,Q2,,2.2665772212886397,0.017204435528156654,2.457666666666667,0.0,5.989583333333334e-07,False
+database_azure_westeurope_q2,Database,Azure,westeurope,Q2,,3.89898577757635,0.04904011245903338,2.457666666666667,0.0,6.770833333333333e-07,False
+database_azure_southeastasia_q2,Database,Azure,southeastasia,Q2,,2.6119712038568057,0.02356056764319162,2.457666666666667,0.0,6.770833333333333e-07,False
+database_gcp_us-east1_q3,Database,GCP,us-east1,Q3,,1.0513359480311253,0.07331146079524749,6.159253333333334,0.0,1.1684212239583332e-05,False
+database_gcp_us-west1_q3,Database,GCP,us-west1,Q3,,0.560736720307404,0.024765364515946853,5.450666666666667,0.0,1.0415266927083331e-05,False
+database_gcp_europe-west1_q3,Database,GCP,europe-west1,Q3,,1.4514135891323021,0.04329422305291423,5.995733333333334,0.0,1.1391927083333331e-05,False
+database_gcp_asia-east1_q3,Database,GCP,asia-east1,Q3,,2.5112026228532653,0.043516878261248004,6.322773333333333,0.0,1.1976497395833333e-05,False
+database_aws_us-west-2_q3,Database,AWS,us-west-2,Q3,,0.7028152044047753,0.02554405669201138,5.760000000000001,0.0,4.00390625e-06,False
+database_aws_us-east-2_q3,Database,AWS,us-east-2,Q3,,3.436918185145149,0.05390638643444906,5.760000000000001,0.0,4.00390625e-06,False
+database_aws_ap-southeast-1_q3,Database,AWS,ap-southeast-1,Q3,,2.7369365804833876,0.05625463438529757,9.6,0.0,4.39453125e-06,False
+database_aws_eu-central-1_q3,Database,AWS,eu-central-1,Q3,,3.1464508685423045,0.01218381068394421,6.72,0.0,4.671223958333333e-06,False
+database_aliyun_cn-shanghai_q3,Database,Aliyun,cn-shanghai,Q3,,1.7197901857574047,0.04684597533884088,1.2253333333333332,0.0,9.026692708333333e-06,False
+database_aliyun_cn-beijing_q3,Database,Aliyun,cn-beijing,Q3,,1.618443339870374,0.06880247887667744,1.2253333333333332,0.0,9.026692708333333e-06,False
+database_aliyun_us-east-1_q3,Database,Aliyun,us-east-1,Q3,,2.1372610309142583,0.06334118644107531,1.4016666666666666,0.0,9.960937499999999e-06,False
+database_aliyun_ap-southeast-1_q3,Database,Aliyun,ap-southeast-1,Q3,,3.4672558607722084,0.04434498676905187,2.146666666666667,0.0,9.993489583333332e-06,False
+database_azure_westus2_q3,Database,Azure,westus2,Q3,,3.6743880779368596,0.05027292371866261,2.457666666666667,0.0,5.989583333333334e-07,False
+database_azure_eastus_q3,Database,Azure,eastus,Q3,,3.460987475801399,0.032522537282589754,2.457666666666667,0.0,5.989583333333334e-07,False
+database_azure_westeurope_q3,Database,Azure,westeurope,Q3,,2.195741050713347,0.0462615949523296,2.457666666666667,0.0,6.770833333333333e-07,False
+database_azure_southeastasia_q3,Database,Azure,southeastasia,Q3,,0.7779269772258541,0.03669578048251093,2.457666666666667,0.0,6.770833333333333e-07,False
+q_a_gcp_europe-west1_q1,Q/A,GCP,europe-west1,Q1,Claude Haiku 4.5,0.59,200.78431372549016,0.0,0.39424000000000003,6.510416666666666e-07,False
+q_a_gcp_asia-east1_q1,Q/A,GCP,asia-east1,Q1,Claude Haiku 4.5,0.59,200.78431372549016,0.0,0.39424000000000003,6.510416666666666e-07,False
 q_a_aws_us-west-2_q1,Q/A,AWS,us-west-2,Q1,Claude Haiku 4.5,1.03,165.1612903225806,0.0,0.3584,7.486979166666667e-07,False
 q_a_aws_us-east-2_q1,Q/A,AWS,us-east-2,Q1,Claude Haiku 4.5,1.03,165.1612903225806,0.0,0.3584,7.486979166666667e-07,False
 q_a_aws_ap-southeast-1_q1,Q/A,AWS,ap-southeast-1,Q1,Claude Haiku 4.5,1.03,165.1612903225806,0.0,0.3584,8.138020833333334e-07,False
 q_a_aws_eu-central-1_q1,Q/A,AWS,eu-central-1,Q1,Claude Haiku 4.5,1.03,165.1612903225806,0.0,0.3584,7.975260416666667e-07,False
-q_a_azure_westus2_q1,Q/A,Azure,westus2,Q1,Claude Haiku 4.5,1.04,211.13402061855663,0.0,0.3584,5.989583333333334e-07,False
-q_a_azure_eastus_q1,Q/A,Azure,eastus,Q1,Claude Haiku 4.5,1.04,211.13402061855663,0.0,0.3584,5.989583333333334e-07,False
-q_a_azure_westeurope_q1,Q/A,Azure,westeurope,Q1,Claude Haiku 4.5,1.04,211.13402061855663,0.0,0.3584,6.770833333333333e-07,False
-q_a_azure_southeastasia_q1,Q/A,Azure,southeastasia,Q1,Claude Haiku 4.5,1.04,211.13402061855663,0.0,0.3584,6.770833333333333e-07,False
+q_a_azure_westus2_q1,Q/A,Azure,westus2,Q1,Claude Haiku 4.5,1.04,211.13402061855666,0.0,0.3584,5.989583333333334e-07,False
+q_a_azure_eastus_q1,Q/A,Azure,eastus,Q1,Claude Haiku 4.5,1.04,211.13402061855666,0.0,0.3584,5.989583333333334e-07,False
+q_a_azure_westeurope_q1,Q/A,Azure,westeurope,Q1,Claude Haiku 4.5,1.04,211.13402061855666,0.0,0.3584,6.770833333333333e-07,False
+q_a_azure_southeastasia_q1,Q/A,Azure,southeastasia,Q1,Claude Haiku 4.5,1.04,211.13402061855666,0.0,0.3584,6.770833333333333e-07,False
 q_a_anthropic_global_q1,Q/A,Anthropic,global,Q1,Claude Haiku 4.5,0.85,198.83495145631065,0.0,0.3584,0.0,False
 q_a_gcp_europe-west1_q2,Q/A,GCP,europe-west1,Q2,Claude Sonnet 4.5,1.03,853.3333333333334,0.0,1.4784000000000002,6.510416666666666e-07,False
 q_a_aws_us-west-2_q2,Q/A,AWS,us-west-2,Q2,Claude Sonnet 4.5,1.73,698.1818181818181,0.0,1.344,7.486979166666667e-07,False
@@ -314,11 +314,11 @@ q_a_azure_eastus_q2,Q/A,Azure,eastus,Q2,Claude Sonnet 4.5,1.92,834.7826086956521
 q_a_azure_westeurope_q2,Q/A,Azure,westeurope,Q2,Claude Sonnet 4.5,1.92,834.7826086956521,0.0,1.344,6.770833333333333e-07,False
 q_a_azure_southeastasia_q2,Q/A,Azure,southeastasia,Q2,Claude Sonnet 4.5,1.92,834.7826086956521,0.0,1.344,6.770833333333333e-07,False
 q_a_anthropic_global_q2,Q/A,Anthropic,global,Q2,Claude Sonnet 4.5,1.51,834.7826086956521,0.0,1.344,0.0,False
-q_a_gcp_europe-west1_q3,Q/A,GCP,europe-west1,Q3,Claude Opus 4.5,0.87,1185.185185185185,0.0,3.168,6.510416666666666e-07,False
-q_a_aws_us-west-2_q3,Q/A,AWS,us-west-2,Q3,Claude Opus 4.5,1.73,1142.857142857143,0.0,2.8799999999999994,7.486979166666667e-07,False
-q_a_aws_us-east-2_q3,Q/A,AWS,us-east-2,Q3,Claude Opus 4.5,1.73,1142.857142857143,0.0,2.8799999999999994,7.486979166666667e-07,False
-q_a_aws_ap-southeast-1_q3,Q/A,AWS,ap-southeast-1,Q3,Claude Opus 4.5,1.73,1142.857142857143,0.0,2.8799999999999994,8.138020833333334e-07,False
-q_a_aws_eu-central-1_q3,Q/A,AWS,eu-central-1,Q3,Claude Opus 4.5,1.73,1142.857142857143,0.0,2.8799999999999994,7.975260416666667e-07,False
+q_a_gcp_europe-west1_q3,Q/A,GCP,europe-west1,Q3,Claude Opus 4.5,0.87,1185.185185185185,0.0,3.1679999999999997,6.510416666666666e-07,False
+q_a_aws_us-west-2_q3,Q/A,AWS,us-west-2,Q3,Claude Opus 4.5,1.73,1142.8571428571427,0.0,2.8799999999999994,7.486979166666667e-07,False
+q_a_aws_us-east-2_q3,Q/A,AWS,us-east-2,Q3,Claude Opus 4.5,1.73,1142.8571428571427,0.0,2.8799999999999994,7.486979166666667e-07,False
+q_a_aws_ap-southeast-1_q3,Q/A,AWS,ap-southeast-1,Q3,Claude Opus 4.5,1.73,1142.8571428571427,0.0,2.8799999999999994,8.138020833333334e-07,False
+q_a_aws_eu-central-1_q3,Q/A,AWS,eu-central-1,Q3,Claude Opus 4.5,1.73,1142.8571428571427,0.0,2.8799999999999994,7.975260416666667e-07,False
 q_a_azure_westus2_q3,Q/A,Azure,westus2,Q3,Claude Opus 4.5,2.04,1230.7692307692305,0.0,2.8799999999999994,5.989583333333334e-07,False
 q_a_azure_eastus_q3,Q/A,Azure,eastus,Q3,Claude Opus 4.5,2.04,1230.7692307692305,0.0,2.8799999999999994,5.989583333333334e-07,False
 q_a_azure_westeurope_q3,Q/A,Azure,westeurope,Q3,Claude Opus 4.5,2.04,1230.7692307692305,0.0,2.8799999999999994,6.770833333333333e-07,False
