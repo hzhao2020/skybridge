@@ -1,0 +1,140 @@
+workflow,quality_level,query_count,eta,calibration_scenarios_per_query,test_scenarios_per_query,calibration_scenario_count,test_scenario_count,method,solver_method,status,reused_last_feasible,objective_value,expected_cost,avg_latency,p95_latency,p99_latency,violation_rate,solver_runtime_sec,wall_time_sec,max_rss_mb,num_iterations,active_scenario_count,active_scenario_fraction,assignment_signature,error,process_exitcode
+workflow1,Q2,200,0.1,50,,10000,,full_milp,,FAILED,False,,,,,,,,27.146949799964204,943.53125,0,0,,,"RuntimeError: Full MILP failed to find a solution (status=INFEASIBLE)
+Traceback (most recent call last):
+  File ""D:\Document\proj\SkyBridge\src\sim\scripts\run_q_scaling_full_decomp_eta015.py"", line 78, in _worker
+    result = solve_full_milp(
+  File ""D:\Document\proj\SkyBridge\src\sim\src\milp_full.py"", line 50, in solve_full_milp
+    raise RuntimeError(f""Full MILP failed to find a solution (status={status})"")
+RuntimeError: Full MILP failed to find a solution (status=INFEASIBLE)
+",0
+workflow1,Q2,200,0.1,50,50.0,10000,10000.0,decomposed_milp,decomposition,INFEASIBLE_REUSED_LAST_FEASIBLE,True,inf,5.327555577156712,2739.1223052479995,7899.859358546975,13533.963651137838,0.0663,4.884216799982823,34.797413699910976,561.39453125,2,2500,0.25,"[[""Q/A"", ""q_a_azure_eastus_q2""], [""Shot Detection"", ""shot_detection_aliyun_cn-shanghai_q2""], [""Video Caption"", ""video_caption_azure_eastus_q2""], [""Video Split & Sample"", ""video_split_and_sample_aliyun_cn-shanghai_q2""]]",,0
+workflow1,Q2,400,0.1,50,,20000,,full_milp,,FAILED,False,,,,,,,,56.59549680002965,1662.859375,0,0,,,"RuntimeError: Full MILP failed to find a solution (status=INFEASIBLE)
+Traceback (most recent call last):
+  File ""D:\Document\proj\SkyBridge\src\sim\scripts\run_q_scaling_full_decomp_eta015.py"", line 78, in _worker
+    result = solve_full_milp(
+  File ""D:\Document\proj\SkyBridge\src\sim\src\milp_full.py"", line 50, in solve_full_milp
+    raise RuntimeError(f""Full MILP failed to find a solution (status={status})"")
+RuntimeError: Full MILP failed to find a solution (status=INFEASIBLE)
+",0
+workflow1,Q2,400,0.1,50,50.0,20000,20000.0,decomposed_milp,decomposition,INFEASIBLE_REUSED_LAST_FEASIBLE,True,inf,5.11832131614438,2626.6434170617945,7661.24391536346,13268.025245804465,0.0663,12.645456099882722,56.02657089999411,732.41796875,2,5000,0.25,"[[""Q/A"", ""q_a_azure_eastus_q2""], [""Shot Detection"", ""shot_detection_aliyun_cn-shanghai_q2""], [""Video Caption"", ""video_caption_azure_eastus_q2""], [""Video Split & Sample"", ""video_split_and_sample_aliyun_cn-shanghai_q2""]]",,0
+workflow1,Q2,600,0.1,50,,30000,,full_milp,,FAILED,False,,,,,,,,99.07287310005631,2390.0625,0,0,,,"RuntimeError: Full MILP failed to find a solution (status=INFEASIBLE)
+Traceback (most recent call last):
+  File ""D:\Document\proj\SkyBridge\src\sim\scripts\run_q_scaling_full_decomp_eta015.py"", line 78, in _worker
+    result = solve_full_milp(
+  File ""D:\Document\proj\SkyBridge\src\sim\src\milp_full.py"", line 50, in solve_full_milp
+    raise RuntimeError(f""Full MILP failed to find a solution (status={status})"")
+RuntimeError: Full MILP failed to find a solution (status=INFEASIBLE)
+",0
+workflow1,Q2,600,0.1,50,50.0,30000,30000.0,decomposed_milp,decomposition,INFEASIBLE_REUSED_LAST_FEASIBLE,True,inf,5.062764628972389,2206.735799772346,6417.089610914271,11109.6657901694,0.040766666666666666,30.785634000087157,87.76800520007964,961.41015625,2,7500,0.25,"[[""Q/A"", ""q_a_aws_us-east-2_q2""], [""Shot Detection"", ""shot_detection_aliyun_cn-shanghai_q2""], [""Video Caption"", ""video_caption_aws_us-east-2_q2""], [""Video Split & Sample"", ""video_split_and_sample_aliyun_cn-shanghai_q2""]]",,0
+workflow1,Q2,800,0.1,50,,40000,,full_milp,,FAILED,False,,,,,,,,311.00562789989635,3220.96484375,0,0,,,"RuntimeError: Full MILP failed to find a solution (status=INFEASIBLE)
+Traceback (most recent call last):
+  File ""D:\Document\proj\SkyBridge\src\sim\scripts\run_q_scaling_full_decomp_eta015.py"", line 78, in _worker
+    result = solve_full_milp(
+  File ""D:\Document\proj\SkyBridge\src\sim\src\milp_full.py"", line 50, in solve_full_milp
+    raise RuntimeError(f""Full MILP failed to find a solution (status={status})"")
+RuntimeError: Full MILP failed to find a solution (status=INFEASIBLE)
+",0
+workflow1,Q2,800,0.1,50,50.0,40000,40000.0,decomposed_milp,decomposition,INFEASIBLE_REUSED_LAST_FEASIBLE,True,inf,5.006237372408269,2561.8073190793743,7520.031673807216,13032.162237182114,0.067025,56.32365659985226,126.72736989997793,1232.69921875,2,10000,0.25,"[[""Q/A"", ""q_a_azure_eastus_q2""], [""Shot Detection"", ""shot_detection_aliyun_cn-shanghai_q2""], [""Video Caption"", ""video_caption_azure_eastus_q2""], [""Video Split & Sample"", ""video_split_and_sample_aliyun_cn-shanghai_q2""]]",,0
+workflow1,Q2,1000,0.1,50,,50000,,full_milp,,FAILED,False,,,,,,,,160.2832902999362,3969.88671875,0,0,,,"RuntimeError: Full MILP failed to find a solution (status=INFEASIBLE)
+Traceback (most recent call last):
+  File ""D:\Document\proj\SkyBridge\src\sim\scripts\run_q_scaling_full_decomp_eta015.py"", line 78, in _worker
+    result = solve_full_milp(
+  File ""D:\Document\proj\SkyBridge\src\sim\src\milp_full.py"", line 50, in solve_full_milp
+    raise RuntimeError(f""Full MILP failed to find a solution (status={status})"")
+RuntimeError: Full MILP failed to find a solution (status=INFEASIBLE)
+",0
+workflow1,Q2,1000,0.1,50,50.0,50000,50000.0,decomposed_milp,decomposition,INFEASIBLE_REUSED_LAST_FEASIBLE,True,inf,5.112573390036964,2222.8354726506986,6440.924968016938,11018.149733166647,0.04106,40.02030099998228,119.69078910001554,1458.13671875,2,12500,0.25,"[[""Q/A"", ""q_a_aws_us-east-2_q2""], [""Shot Detection"", ""shot_detection_aliyun_cn-shanghai_q2""], [""Video Caption"", ""video_caption_aws_us-east-2_q2""], [""Video Split & Sample"", ""video_split_and_sample_aliyun_cn-shanghai_q2""]]",,0
+workflow1,Q2,1200,0.1,50,,60000,,full_milp,,FAILED,False,,,,,,,,198.26050900004338,4789.8359375,0,0,,,"RuntimeError: Full MILP failed to find a solution (status=INFEASIBLE)
+Traceback (most recent call last):
+  File ""D:\Document\proj\SkyBridge\src\sim\scripts\run_q_scaling_full_decomp_eta015.py"", line 78, in _worker
+    result = solve_full_milp(
+  File ""D:\Document\proj\SkyBridge\src\sim\src\milp_full.py"", line 50, in solve_full_milp
+    raise RuntimeError(f""Full MILP failed to find a solution (status={status})"")
+RuntimeError: Full MILP failed to find a solution (status=INFEASIBLE)
+",0
+workflow1,Q2,1200,0.1,50,50.0,60000,60000.0,decomposed_milp,decomposition,INFEASIBLE_REUSED_LAST_FEASIBLE,True,inf,5.087982920774032,2212.6360615892977,6392.458805682024,11014.708802315477,0.04151666666666667,92.93033220001962,187.63193140004296,1668.33984375,2,14951,0.24918333333333334,"[[""Q/A"", ""q_a_aws_us-east-2_q2""], [""Shot Detection"", ""shot_detection_aliyun_cn-shanghai_q2""], [""Video Caption"", ""video_caption_aws_us-east-2_q2""], [""Video Split & Sample"", ""video_split_and_sample_aliyun_cn-shanghai_q2""]]",,0
+workflow1,Q2,1400,0.1,50,,70000,,full_milp,,FAILED,False,,,,,,,,322.43905789998826,5562.50390625,0,0,,,"RuntimeError: Full MILP failed to find a solution (status=INFEASIBLE)
+Traceback (most recent call last):
+  File ""D:\Document\proj\SkyBridge\src\sim\scripts\run_q_scaling_full_decomp_eta015.py"", line 78, in _worker
+    result = solve_full_milp(
+  File ""D:\Document\proj\SkyBridge\src\sim\src\milp_full.py"", line 50, in solve_full_milp
+    raise RuntimeError(f""Full MILP failed to find a solution (status={status})"")
+RuntimeError: Full MILP failed to find a solution (status=INFEASIBLE)
+",0
+workflow1,Q2,1400,0.1,50,50.0,70000,70000.0,decomposed_milp,decomposition,INFEASIBLE_REUSED_LAST_FEASIBLE,True,inf,5.085648413172183,2213.0979588713776,6407.462706206206,11041.607516482176,0.041485714285714285,130.35069149988703,237.67486679996364,1964.10546875,2,17476,0.24965714285714286,"[[""Q/A"", ""q_a_aws_eu-central-1_q2""], [""Shot Detection"", ""shot_detection_aliyun_cn-shanghai_q2""], [""Video Caption"", ""video_caption_aws_eu-central-1_q2""], [""Video Split & Sample"", ""video_split_and_sample_aliyun_cn-shanghai_q2""]]",,0
+workflow1,Q2,1600,0.1,50,,80000,,full_milp,,FAILED,False,,,,,,,,292.7402277000947,6307.18359375,0,0,,,"RuntimeError: Full MILP failed to find a solution (status=INFEASIBLE)
+Traceback (most recent call last):
+  File ""D:\Document\proj\SkyBridge\src\sim\scripts\run_q_scaling_full_decomp_eta015.py"", line 78, in _worker
+    result = solve_full_milp(
+  File ""D:\Document\proj\SkyBridge\src\sim\src\milp_full.py"", line 50, in solve_full_milp
+    raise RuntimeError(f""Full MILP failed to find a solution (status={status})"")
+RuntimeError: Full MILP failed to find a solution (status=INFEASIBLE)
+",0
+workflow1,Q2,1600,0.1,50,50.0,80000,80000.0,decomposed_milp,decomposition,INFEASIBLE_REUSED_LAST_FEASIBLE,True,inf,5.065746322353254,2204.2182361023856,6395.893472124648,11085.721409236254,0.0415,97.23769360000733,218.57321059994865,2104.24609375,2,20000,0.25,"[[""Q/A"", ""q_a_aws_us-east-2_q2""], [""Shot Detection"", ""shot_detection_aliyun_cn-shanghai_q2""], [""Video Caption"", ""video_caption_aws_us-east-2_q2""], [""Video Split & Sample"", ""video_split_and_sample_aliyun_cn-shanghai_q2""]]",,0
+workflow1,Q2,1800,0.1,50,,90000,,full_milp,,FAILED,False,,,,,,,,705.0130682999734,6946.84765625,0,0,,,"RuntimeError: Full MILP failed to find a solution (status=TIME_LIMIT)
+Traceback (most recent call last):
+  File ""D:\Document\proj\SkyBridge\src\sim\scripts\run_q_scaling_full_decomp_eta015.py"", line 78, in _worker
+    result = solve_full_milp(
+  File ""D:\Document\proj\SkyBridge\src\sim\src\milp_full.py"", line 50, in solve_full_milp
+    raise RuntimeError(f""Full MILP failed to find a solution (status={status})"")
+RuntimeError: Full MILP failed to find a solution (status=TIME_LIMIT)
+",0
+workflow1,Q2,1800,0.1,50,50.0,90000,90000.0,decomposed_milp,decomposition,INFEASIBLE_REUSED_LAST_FEASIBLE,True,inf,5.084142293920294,2212.3881231431747,6404.080834364954,11129.577993396237,0.04156666666666667,213.3753418000415,344.957832199987,2426.390625,2,22500,0.25,"[[""Q/A"", ""q_a_aws_us-east-2_q2""], [""Shot Detection"", ""shot_detection_aliyun_cn-shanghai_q2""], [""Video Caption"", ""video_caption_aws_us-east-2_q2""], [""Video Split & Sample"", ""video_split_and_sample_aliyun_cn-shanghai_q2""]]",,0
+workflow1,Q2,2000,0.1,50,,100000,,full_milp,,FAILED,False,,,,,,,,745.1202942000236,7912.4609375,0,0,,,"RuntimeError: Full MILP failed to find a solution (status=TIME_LIMIT)
+Traceback (most recent call last):
+  File ""D:\Document\proj\SkyBridge\src\sim\scripts\run_q_scaling_full_decomp_eta015.py"", line 78, in _worker
+    result = solve_full_milp(
+  File ""D:\Document\proj\SkyBridge\src\sim\src\milp_full.py"", line 50, in solve_full_milp
+    raise RuntimeError(f""Full MILP failed to find a solution (status={status})"")
+RuntimeError: Full MILP failed to find a solution (status=TIME_LIMIT)
+",0
+workflow1,Q2,2000,0.1,50,50.0,100000,100000.0,decomposed_milp,decomposition,INFEASIBLE_REUSED_LAST_FEASIBLE,True,inf,5.0686149396803915,2206.508774358307,6416.732251101364,11094.069633474433,0.04179,387.77396959997714,534.2646394000622,2550.67578125,2,24930,0.2493,"[[""Q/A"", ""q_a_aws_us-east-2_q2""], [""Shot Detection"", ""shot_detection_aliyun_cn-shanghai_q2""], [""Video Caption"", ""video_caption_aws_us-east-2_q2""], [""Video Split & Sample"", ""video_split_and_sample_aliyun_cn-shanghai_q2""]]",,0
+workflow2,Q2,200,0.1,50,50.0,10000,10000.0,full_milp,full_milp,OPTIMAL,False,10.769358755878025,10.826914669697397,4914.882868167889,13174.75935865587,22302.14056448819,0.0005,236.58856139995623,325.00220220000483,5206.37890625,1,10000,1.0,"[[""Database"", ""database_aliyun_cn-shanghai_q2""], [""Label Detection"", ""label_detection_aliyun_cn-shanghai_q2""], [""OCR"", ""ocr_azure_eastus_q2""], [""Q/A"", ""q_a_azure_eastus_q2""], [""Shot Detection"", ""shot_detection_aliyun_cn-shanghai_q2""], [""Speech Transcription"", ""speech_transcription_aliyun_cn-shanghai_q2""], [""Video Caption"", ""video_caption_azure_eastus_q2""], [""Video Split & Sample"", ""video_split_and_sample_aliyun_cn-shanghai_q2""]]",,0
+workflow2,Q2,200,0.1,50,50.0,10000,10000.0,decomposed_milp,decomposition,OPTIMAL,False,10.769360618748408,10.82691654176357,4495.502942060839,12049.762939600127,20171.990626593622,0.0003,79.59742499992717,147.22955410007853,1242.8359375,2,2004,0.2004,"[[""Database"", ""database_aliyun_cn-shanghai_q2""], [""Label Detection"", ""label_detection_aliyun_cn-shanghai_q2""], [""OCR"", ""ocr_azure_eastus_q2""], [""Q/A"", ""q_a_aws_us-east-2_q2""], [""Shot Detection"", ""shot_detection_aliyun_cn-shanghai_q2""], [""Speech Transcription"", ""speech_transcription_aliyun_cn-shanghai_q2""], [""Video Caption"", ""video_caption_azure_eastus_q2""], [""Video Split & Sample"", ""video_split_and_sample_aliyun_cn-shanghai_q2""]]",,0
+workflow2,Q2,400,0.1,50,50.0,20000,20000.0,full_milp,full_milp,OPTIMAL,False,10.43092390837636,10.45685449709437,4693.96192169251,12858.363303891596,21201.264309278446,0.0005,554.4665649998933,714.9609948999714,10523.73828125,1,20000,1.0,"[[""Database"", ""database_aliyun_cn-shanghai_q2""], [""Label Detection"", ""label_detection_aliyun_cn-shanghai_q2""], [""OCR"", ""ocr_azure_eastus_q2""], [""Q/A"", ""q_a_azure_eastus_q2""], [""Shot Detection"", ""shot_detection_aliyun_cn-shanghai_q2""], [""Speech Transcription"", ""speech_transcription_aliyun_cn-shanghai_q2""], [""Video Caption"", ""video_caption_azure_eastus_q2""], [""Video Split & Sample"", ""video_split_and_sample_aliyun_cn-shanghai_q2""]]",,0
+workflow2,Q2,400,0.1,50,50.0,20000,20000.0,decomposed_milp,decomposition,OPTIMAL,False,10.430925697952361,10.456856289280328,4293.009965103501,11662.24511864147,18865.665656763085,0.00025,177.02518580004107,289.35313470009714,2580.01171875,2,4006,0.2003,"[[""Database"", ""database_aliyun_cn-shanghai_q2""], [""Label Detection"", ""label_detection_aliyun_cn-shanghai_q2""], [""OCR"", ""ocr_azure_eastus_q2""], [""Q/A"", ""q_a_aws_us-east-2_q2""], [""Shot Detection"", ""shot_detection_aliyun_cn-shanghai_q2""], [""Speech Transcription"", ""speech_transcription_aliyun_cn-shanghai_q2""], [""Video Caption"", ""video_caption_azure_eastus_q2""], [""Video Split & Sample"", ""video_split_and_sample_aliyun_cn-shanghai_q2""]]",,0
+workflow2,Q2,600,0.1,50,,30000,,full_milp,,FAILED,False,,,,,,,,512.2652459000237,10867.4765625,0,0,,,"RuntimeError: Full MILP failed to find a solution (status=TIME_LIMIT)
+Traceback (most recent call last):
+  File ""D:\Document\proj\SkyBridge\src\sim\scripts\run_q_scaling_full_decomp_eta015.py"", line 78, in _worker
+    result = solve_full_milp(
+  File ""D:\Document\proj\SkyBridge\src\sim\src\milp_full.py"", line 50, in solve_full_milp
+    raise RuntimeError(f""Full MILP failed to find a solution (status={status})"")
+RuntimeError: Full MILP failed to find a solution (status=TIME_LIMIT)
+",0
+workflow2,Q2,600,0.1,50,50.0,30000,30000.0,decomposed_milp,decomposition,OPTIMAL,False,10.554815987104709,10.596501771294646,4358.697033036801,11736.097508520346,19212.186671124484,0.0002666666666666667,226.77345139998943,385.3582956000464,3445.8125,2,6002,0.20006666666666667,"[[""Database"", ""database_aliyun_cn-shanghai_q2""], [""Label Detection"", ""label_detection_aliyun_cn-shanghai_q2""], [""OCR"", ""ocr_azure_eastus_q2""], [""Q/A"", ""q_a_aws_us-east-2_q2""], [""Shot Detection"", ""shot_detection_aliyun_cn-shanghai_q2""], [""Speech Transcription"", ""speech_transcription_aliyun_cn-shanghai_q2""], [""Video Caption"", ""video_caption_azure_eastus_q2""], [""Video Split & Sample"", ""video_split_and_sample_aliyun_cn-shanghai_q2""]]",,0
+workflow2,Q2,800,0.1,50,,40000,,full_milp,,FAILED,False,,,,,,,,586.1849284999771,12310.40234375,0,0,,,"RuntimeError: Full MILP failed to find a solution (status=TIME_LIMIT)
+Traceback (most recent call last):
+  File ""D:\Document\proj\SkyBridge\src\sim\scripts\run_q_scaling_full_decomp_eta015.py"", line 78, in _worker
+    result = solve_full_milp(
+  File ""D:\Document\proj\SkyBridge\src\sim\src\milp_full.py"", line 50, in solve_full_milp
+    raise RuntimeError(f""Full MILP failed to find a solution (status={status})"")
+RuntimeError: Full MILP failed to find a solution (status=TIME_LIMIT)
+",0
+workflow2,Q2,800,0.1,50,50.0,40000,40000.0,decomposed_milp,decomposition,OPTIMAL,False,10.530163391223397,10.566786006015722,4338.060148351216,11730.872488220855,19295.435948714236,0.000225,327.64424699998926,546.3767097999807,4253.984375,2,8004,0.2001,"[[""Database"", ""database_aliyun_cn-shanghai_q2""], [""Label Detection"", ""label_detection_aliyun_cn-shanghai_q2""], [""OCR"", ""ocr_azure_eastus_q2""], [""Q/A"", ""q_a_aws_us-east-2_q2""], [""Shot Detection"", ""shot_detection_aliyun_cn-shanghai_q2""], [""Speech Transcription"", ""speech_transcription_aliyun_cn-shanghai_q2""], [""Video Caption"", ""video_caption_azure_eastus_q2""], [""Video Split & Sample"", ""video_split_and_sample_aliyun_cn-shanghai_q2""]]",,0
+workflow2,Q2,1000,0.1,50,,50000,,full_milp,,FAILED,False,,,,,,,,672.9611768999603,15237.65625,0,0,,,"RuntimeError: Full MILP failed to find a solution (status=TIME_LIMIT)
+Traceback (most recent call last):
+  File ""D:\Document\proj\SkyBridge\src\sim\scripts\run_q_scaling_full_decomp_eta015.py"", line 78, in _worker
+    result = solve_full_milp(
+  File ""D:\Document\proj\SkyBridge\src\sim\src\milp_full.py"", line 50, in solve_full_milp
+    raise RuntimeError(f""Full MILP failed to find a solution (status={status})"")
+RuntimeError: Full MILP failed to find a solution (status=TIME_LIMIT)
+",0
+workflow2,Q2,1000,0.1,50,50.0,50000,50000.0,decomposed_milp,decomposition,OPTIMAL,False,10.542026580703006,10.5630652388889,4735.073101343065,12855.093002150126,21346.73384236568,0.00054,455.4374761999352,717.3194069999736,5670.85546875,2,10020,0.2004,"[[""Database"", ""database_aliyun_cn-shanghai_q2""], [""Label Detection"", ""label_detection_aliyun_cn-shanghai_q2""], [""OCR"", ""ocr_azure_eastus_q2""], [""Q/A"", ""q_a_azure_eastus_q2""], [""Shot Detection"", ""shot_detection_aliyun_cn-shanghai_q2""], [""Speech Transcription"", ""speech_transcription_aliyun_cn-shanghai_q2""], [""Video Caption"", ""video_caption_azure_eastus_q2""], [""Video Split & Sample"", ""video_split_and_sample_aliyun_cn-shanghai_q2""]]",,0
+workflow2,Q2,1200,0.1,50,,60000,,full_milp,,FAILED,False,,,,,,,,801.9165694999974,15952.7890625,0,0,,,"RuntimeError: Full MILP failed to find a solution (status=TIME_LIMIT)
+Traceback (most recent call last):
+  File ""D:\Document\proj\SkyBridge\src\sim\scripts\run_q_scaling_full_decomp_eta015.py"", line 78, in _worker
+    result = solve_full_milp(
+  File ""D:\Document\proj\SkyBridge\src\sim\src\milp_full.py"", line 50, in solve_full_milp
+    raise RuntimeError(f""Full MILP failed to find a solution (status={status})"")
+RuntimeError: Full MILP failed to find a solution (status=TIME_LIMIT)
+",0
+workflow2,Q2,1200,0.1,50,50.0,60000,60000.0,decomposed_milp,decomposition,OPTIMAL,False,10.643550199098408,10.660277498396994,4376.096874107002,11753.997315627963,19270.593996208252,0.010516666666666667,662.2131047000876,1012.9087461000308,7426.12890625,2,13094,0.21823333333333333,"[[""Database"", ""database_aliyun_cn-shanghai_q2""], [""Label Detection"", ""label_detection_aliyun_cn-shanghai_q2""], [""OCR"", ""ocr_azure_eastus_q2""], [""Q/A"", ""q_a_aws_eu-central-1_q2""], [""Shot Detection"", ""shot_detection_aliyun_cn-shanghai_q2""], [""Speech Transcription"", ""speech_transcription_aliyun_cn-shanghai_q2""], [""Video Caption"", ""video_caption_azure_eastus_q2""], [""Video Split & Sample"", ""video_split_and_sample_aliyun_cn-shanghai_q2""]]",,0
+workflow2,Q2,1400,0.1,50,,70000,,full_milp,,FAILED,False,,,,,,,,848.474042100017,19485.109375,0,0,,,"RuntimeError: Full MILP failed to find a solution (status=TIME_LIMIT)
+Traceback (most recent call last):
+  File ""D:\Document\proj\SkyBridge\src\sim\scripts\run_q_scaling_full_decomp_eta015.py"", line 78, in _worker
+    result = solve_full_milp(
+  File ""D:\Document\proj\SkyBridge\src\sim\src\milp_full.py"", line 50, in solve_full_milp
+    raise RuntimeError(f""Full MILP failed to find a solution (status={status})"")
+RuntimeError: Full MILP failed to find a solution (status=TIME_LIMIT)
+",0
+workflow2,Q2,1400,0.1,50,50.0,70000,70000.0,decomposed_milp,decomposition,TIME_LIMIT_REUSED_LAST_FEASIBLE,True,inf,23.942602352787475,5143.60103577992,13530.742333284667,21887.49232223857,0.02674285714285714,2183.124581500073,3125.0086725999136,11941.41796875,5,22040,0.31485714285714284,"[[""Database"", ""database_aliyun_ap-southeast-1_q2""], [""Label Detection"", ""label_detection_aliyun_ap-southeast-1_q2""], [""OCR"", ""ocr_aliyun_ap-southeast-1_q2""], [""Q/A"", ""q_a_anthropic_global_q2""], [""Shot Detection"", ""shot_detection_aliyun_cn-shanghai_q2""], [""Speech Transcription"", ""speech_transcription_aliyun_cn-beijing_q2""], [""Video Caption"", ""video_caption_anthropic_global_q2""], [""Video Split & Sample"", ""video_split_and_sample_aliyun_ap-southeast-1_q2""]]",,0

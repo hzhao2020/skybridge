@@ -12,6 +12,7 @@ import matplotlib as mpl
 
 mpl.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
 
@@ -34,6 +35,9 @@ METHODS = [
     ("murakkab_profile", "MLS"),
     ("single_cloud", "SC"),
 ]
+FIGSIZE = (3.35, 1.5)
+FONT_WEIGHT = "semibold"
+LEGEND_PROP = {"size": 9, "weight": FONT_WEIGHT}
 
 PALETTE = {
     "SkyFlow": "#3b6fb6",
@@ -65,6 +69,7 @@ def _load_data(result_root: Path) -> pd.DataFrame:
                     "method": method_label,
                     "method_key": method_key,
                     "expected_cost": float(metrics["expected_cost"]),
+                    "p95_latency": float(metrics["p95_latency"]),
                     "violation_rate": float(metrics["violation_rate"]),
                     "status": metrics.get("status", ""),
                 }
@@ -85,11 +90,18 @@ def _configure_style() -> None:
             "mathtext.rm": "Times New Roman",
             "mathtext.it": "Times New Roman:italic",
             "mathtext.bf": "Times New Roman:bold",
-            "font.size": 8,
-            "axes.labelsize": 8,
-            "xtick.labelsize": 7,
-            "ytick.labelsize": 7,
-            "legend.fontsize": 7,
+            "font.size": 10,
+            "axes.labelsize": 10,
+            "xtick.labelsize": 9,
+            "ytick.labelsize": 9,
+            "legend.fontsize": 9,
+            "font.weight": FONT_WEIGHT,
+            "axes.labelweight": FONT_WEIGHT,
+            "text.color": "black",
+            "axes.edgecolor": "black",
+            "axes.labelcolor": "black",
+            "xtick.color": "black",
+            "ytick.color": "black",
             "axes.linewidth": 0.7,
             "hatch.linewidth": 0.35,
         }
@@ -100,11 +112,17 @@ def _decorate_axis(ax, x: np.ndarray, setting_labels: list[str], ylabel: str) ->
     ax.set_xticks(x)
     ax.set_xticklabels(setting_labels)
     ax.set_ylabel(ylabel)
+    _apply_tick_weight(ax)
     ax.grid(axis="y", color="#d0d0d0", linewidth=0.45, alpha=0.8)
     ax.set_axisbelow(True)
     ax.margins(x=0.02)
     for spine in ("top", "right"):
         ax.spines[spine].set_visible(False)
+
+
+def _apply_tick_weight(ax) -> None:
+    for label in [*ax.get_xticklabels(), *ax.get_yticklabels()]:
+        label.set_fontweight(FONT_WEIGHT)
 
 
 def _plot_grouped(
@@ -135,13 +153,54 @@ def _plot_grouped(
             hatch=HATCHES[method_label],
         )
     if add_eta:
-        ax.axhline(0.1, color="#b22222", linewidth=0.8, linestyle="--", label="η=0.1")
+        ax.axhline(0.1, color="#b22222", linewidth=0.8, linestyle="--", label=r"$\eta=0.1$")
     _decorate_axis(ax, x, setting_labels, ylabel)
 
 
 def _set_headroom_ylim(ax, values: pd.Series, *, minimum_top: float = 0.0) -> None:
     top = max(float(values.max()) * 1.18, minimum_top)
     ax.set_ylim(0, top)
+
+
+def _add_cost_legend(ax) -> None:
+    handles, labels = ax.get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+    ordered_labels = ["SkyFlow", "MLS", "Greedy", "SC"]
+    ax.legend(
+        [by_label[label] for label in ordered_labels],
+        ordered_labels,
+        ncol=2,
+        frameon=False,
+        loc="upper left",
+        columnspacing=0.9,
+        handlelength=1.4,
+        prop=LEGEND_PROP,
+    )
+
+
+def _add_svr_legend(ax) -> None:
+    handles, labels = ax.get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+    blank = Line2D([], [], linestyle="", marker="", alpha=0.0)
+    legend_handles = [
+        by_label[r"$\eta=0.1$"],
+        by_label["SkyFlow"],
+        by_label["MLS"],
+        blank,
+        by_label["Greedy"],
+        by_label["SC"],
+    ]
+    legend_labels = [r"$\eta=0.1$", "SkyFlow", "MLS", "", "Greedy", "SC"]
+    ax.legend(
+        legend_handles,
+        legend_labels,
+        ncol=2,
+        frameon=False,
+        loc="upper right",
+        columnspacing=0.9,
+        handlelength=1.4,
+        prop=LEGEND_PROP,
+    )
 
 
 def plot_overall_performance(result_root: Path, fig_dir: Path) -> pd.DataFrame:
@@ -155,16 +214,25 @@ def plot_overall_performance(result_root: Path, fig_dir: Path) -> pd.DataFrame:
     offsets = (np.arange(len(METHODS)) - (len(METHODS) - 1) / 2) * width
     setting_labels = [label for _, label in SETTINGS]
 
-    fig, ax = plt.subplots(figsize=(3.35, 2.25))
+    fig, ax = plt.subplots(figsize=FIGSIZE)
     _plot_grouped(ax, df, x, offsets, width, setting_labels, "expected_cost", "Expected cost ($)")
     _set_headroom_ylim(ax, df["expected_cost"], minimum_top=1.0)
-    ax.legend(ncol=4, frameon=False, loc="upper left", columnspacing=0.9, handlelength=1.4)
+    _add_cost_legend(ax)
     fig.tight_layout(pad=0.35)
     fig.savefig(fig_dir / "overall_cost.pdf", bbox_inches="tight")
     fig.savefig(fig_dir / "overall_cost.png", dpi=300, bbox_inches="tight")
     plt.close(fig)
 
-    fig, ax = plt.subplots(figsize=(3.35, 2.25))
+    fig, ax = plt.subplots(figsize=FIGSIZE)
+    _plot_grouped(ax, df, x, offsets, width, setting_labels, "p95_latency", "P95 latency (s)")
+    _set_headroom_ylim(ax, df["p95_latency"], minimum_top=1.0)
+    _add_cost_legend(ax)
+    fig.tight_layout(pad=0.35)
+    fig.savefig(fig_dir / "overall_p95_latency.pdf", bbox_inches="tight")
+    fig.savefig(fig_dir / "overall_p95_latency.png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+    fig, ax = plt.subplots(figsize=FIGSIZE)
     _plot_grouped(
         ax,
         df,
@@ -176,8 +244,10 @@ def plot_overall_performance(result_root: Path, fig_dir: Path) -> pd.DataFrame:
         "SLO violation rate",
         add_eta=True,
     )
-    _set_headroom_ylim(ax, df["violation_rate"], minimum_top=0.16)
-    ax.legend(ncol=5, frameon=False, loc="upper right", columnspacing=0.9, handlelength=1.4)
+    ax.set_ylim(0, 0.5)
+    ax.set_yticks([0, 0.25, 0.5])
+    _apply_tick_weight(ax)
+    _add_svr_legend(ax)
     fig.tight_layout(pad=0.35)
     fig.savefig(fig_dir / "overall_svr.pdf", bbox_inches="tight")
     fig.savefig(fig_dir / "overall_svr.png", dpi=300, bbox_inches="tight")
@@ -206,12 +276,25 @@ def main() -> None:
     for name in (
         "overall_cost.pdf",
         "overall_cost.png",
+        "overall_p95_latency.pdf",
+        "overall_p95_latency.png",
         "overall_svr.pdf",
         "overall_svr.png",
         "overall_performance_source.csv",
     ):
         print(args.fig_dir / name)
-    print(df[["setting", "method", "expected_cost", "violation_rate", "status"]].to_string(index=False))
+    print(
+        df[
+            [
+                "setting",
+                "method",
+                "expected_cost",
+                "p95_latency",
+                "violation_rate",
+                "status",
+            ]
+        ].to_string(index=False)
+    )
 
 
 if __name__ == "__main__":

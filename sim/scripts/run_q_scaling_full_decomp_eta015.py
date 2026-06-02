@@ -47,6 +47,17 @@ def _assignment_signature(result) -> str:
     return json.dumps(pairs, sort_keys=True)
 
 
+def _load_solver_config_with_eta(eta: float):
+    try:
+        return load_solver_config({"eta": eta})
+    except TypeError:
+        config = load_solver_config()
+        if hasattr(config, "model_copy"):
+            return config.model_copy(update={"eta": eta})
+        config.eta = eta
+        return config
+
+
 def _worker(
     method: str,
     workflow_name: str,
@@ -59,7 +70,7 @@ def _worker(
     started = time.perf_counter()
     try:
         workflow = get_workflow(workflow_name)
-        config = load_solver_config({"eta": eta})
+        config = _load_solver_config_with_eta(eta)
         endpoints = load_endpoints()
         queries = load_queries(quality_level=quality, workflow=workflow_name)[:query_count]
         if len(queries) != query_count:
