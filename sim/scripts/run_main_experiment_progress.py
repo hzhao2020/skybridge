@@ -63,7 +63,7 @@ def run_command(
     return True, None
 
 
-def calibrate_budgets(output: Path, progress: Progress, factor: float) -> None:
+def calibrate_budgets(output: Path, progress: Progress, factor: float, query_count: int) -> None:
     endpoints = load_endpoints()
     endpoint_by_id = {ep.endpoint_id: ep for ep in endpoints}
     network_index = {(l.src_endpoint_id, l.dst_endpoint_id): l for l in load_network_links()}
@@ -82,7 +82,7 @@ def calibrate_budgets(output: Path, progress: Progress, factor: float) -> None:
     for workflow_name in WORKFLOWS:
         workflow = get_workflow(workflow_name)
         for quality in QUALITIES:
-            queries = load_queries(quality_level=quality, workflow=workflow_name)
+            queries = load_queries(quality_level=quality, workflow=workflow_name)[:query_count]
             scenarios = load_scenarios(query_ids=[q.query_id for q in queries])
             calibration_scenarios, _ = split_scenarios_by_query(
                 scenarios,
@@ -211,12 +211,13 @@ def run_experiments(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--results-root", type=Path, default=RESULTS_DIR / "main_Q1000_S50_progress")
+    parser.add_argument("--results-root", type=Path, default=RESULTS_DIR / "main_Q1000_S50_dbfixed_minp95_full")
     parser.add_argument("--budget-factor", type=float, default=1.0)
+    parser.add_argument("--query-count", type=int, default=1000)
     parser.add_argument(
         "--budget-output",
         type=Path,
-        default=RESULTS_DIR / "experiment_logs" / "baseline_calibrated_query_budgets_Q1000_S50_progress.csv",
+        default=RESULTS_DIR / "experiment_logs" / "baseline_calibrated_query_budgets_Q1000_S50_dbfixed_minp95.csv",
     )
     parser.add_argument("--skip-setup", action="store_true")
     parser.add_argument("--skip-budget-calibration", action="store_true")
@@ -229,7 +230,7 @@ def main() -> None:
     parser.add_argument(
         "--failures-output",
         type=Path,
-        default=RESULTS_DIR / "experiment_logs" / "main_Q1000_S50_progress_failures.csv",
+        default=RESULTS_DIR / "experiment_logs" / "main_Q1000_S50_dbfixed_minp95_full_failures.csv",
     )
     args = parser.parse_args()
 
@@ -242,7 +243,7 @@ def main() -> None:
         run_command([sys.executable, str(ROOT / "scripts" / "generate_synthetic_data.py")], "generate synthetic data", progress)
         run_command([sys.executable, str(ROOT / "scripts" / "populate_from_measurements.py")], "populate measurements", progress)
     if not args.skip_budget_calibration:
-        calibrate_budgets(args.budget_output, progress, args.budget_factor)
+        calibrate_budgets(args.budget_output, progress, args.budget_factor, args.query_count)
     run_experiments(
         args.results_root,
         progress,

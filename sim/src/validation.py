@@ -794,37 +794,42 @@ def validate_per_path_latency_excess(report: ValidationReport) -> None:
 
 
 def validate_experiment_hyperparameters(report: ValidationReport) -> None:
-    """Paper settings: η=0.05, S=10 scenarios/query, random_seed=42."""
+    """Current settings: η=0.10, S=50 calibration + 50 test scenarios/query, seed=42."""
     from src.config import load_default_config, load_solver_config
 
     cfg = load_default_config()
     solver = load_solver_config()
+    cal_s = int(cfg.get("num_scenarios_per_query", -1))
+    test_s = int(cfg.get("num_heldout_scenarios_per_query", -1))
     ok = (
         int(cfg.get("random_seed", -1)) == 42
-        and int(cfg.get("num_scenarios_per_query", -1)) == 10
-        and float(cfg.get("eta", -1.0)) == 0.05
-        and solver.eta == 0.05
+        and cal_s == 50
+        and test_s == 50
+        and float(cfg.get("eta", -1.0)) == 0.10
+        and solver.eta == 0.10
         and solver.random_seed == 42
     )
     report.add(
-        "Experiment hyperparameters (η=0.05, S=10, seed=42)",
+        "Experiment hyperparameters (η=0.10, S_cal=50, S_test=50, seed=42)",
         ok,
         f"random_seed={cfg.get('random_seed')}, "
         f"num_scenarios_per_query={cfg.get('num_scenarios_per_query')}, "
+        f"num_heldout_scenarios_per_query={cfg.get('num_heldout_scenarios_per_query')}, "
         f"eta={cfg.get('eta')}",
     )
 
     path = DATA_DIR / "scenarios.csv"
     if not path.exists():
-        report.add("scenarios.csv S=10 per query", False, "missing scenarios.csv")
+        report.add("scenarios.csv S=100 per query", False, "missing scenarios.csv")
         return
     import pandas as pd
 
     sc = pd.read_csv(path)
     counts = sc.groupby("query_id").size()
-    ok_s = bool((counts == 10).all()) and len(counts) > 0
+    expected_s = cal_s + test_s
+    ok_s = bool((counts == expected_s).all()) and len(counts) > 0
     report.add(
-        "Generated scenarios: exactly S=10 per query",
+        "Generated scenarios: exactly S=100 per query",
         ok_s,
         f"queries={len(counts)}, min={int(counts.min())}, max={int(counts.max())}",
     )

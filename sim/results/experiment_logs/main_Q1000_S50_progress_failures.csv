@@ -1,5 +1,0 @@
-workflow,quality,method,message
-workflow1,Q1,single_cloud,run workflow1/Q1/single_cloud failed with exit 1 in 57.3s
-workflow1,Q2,single_cloud,run workflow1/Q2/single_cloud failed with exit 1 in 155.1s
-workflow1,Q3,decomposition,run workflow1/Q3/decomposition failed with exit 1 in 70.3s
-workflow1,Q3,single_cloud,run workflow1/Q3/single_cloud failed with exit 1 in 212.0s

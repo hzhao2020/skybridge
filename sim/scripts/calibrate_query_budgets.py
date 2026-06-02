@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from src.baselines import BASELINE_SOLVERS, solve_baseline  # noqa: E402
-from src.config import DATA_DIR, RESULTS_DIR, load_solver_config  # noqa: E402
+from src.config import DATA_DIR, RESULTS_DIR, load_default_config, load_solver_config  # noqa: E402
 from src.cost_latency import critical_path_latency  # noqa: E402
 from src.data_loader import load_endpoints, load_network_links, load_queries, load_scenarios  # noqa: E402
 from src.experiment_protocol import split_scenarios_by_query  # noqa: E402
@@ -26,6 +26,12 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--factor", type=float, default=1.0)
+    parser.add_argument("--query-count", type=int, default=1000)
+    parser.add_argument(
+        "--calibration-count",
+        type=int,
+        default=int(load_default_config().get("num_scenarios_per_query", 50)),
+    )
     parser.add_argument(
         "--output",
         type=Path,
@@ -50,9 +56,12 @@ def main() -> None:
         workflow = get_workflow(workflow_name)
         for quality in ("Q1", "Q2", "Q3"):
             logging.info("Calibrating %s %s", workflow_name, quality)
-            queries = load_queries(quality_level=quality, workflow=workflow_name)
+            queries = load_queries(quality_level=quality, workflow=workflow_name)[: args.query_count]
             scenarios = load_scenarios(query_ids=[q.query_id for q in queries])
-            calibration_scenarios, _ = split_scenarios_by_query(scenarios)
+            calibration_scenarios, _ = split_scenarios_by_query(
+                scenarios,
+                calibration_count=args.calibration_count,
+            )
             scenario_by_q: dict[str, list] = {}
             for s in calibration_scenarios:
                 scenario_by_q.setdefault(s.query_id, []).append(s)

@@ -20,8 +20,7 @@ sys.path.insert(0, str(ROOT))
 from src.config import RESULTS_DIR  # noqa: E402
 
 DEFAULT_CSVS = [
-    RESULTS_DIR / "experiment_logs" / "decomposition_scaling_sweep.csv",
-    RESULTS_DIR / "experiment_logs" / "full_vs_decomposition_scaling_final.csv",
+    RESULTS_DIR / "experiment_logs" / "q_scaling_full_vs_decomp_S50_Q200_2000_minp95_v2.csv",
 ]
 
 
@@ -30,6 +29,9 @@ def _load_frames(paths: list[Path]) -> pd.DataFrame:
     if not frames:
         raise SystemExit("No input CSV files found.")
     df = pd.concat(frames, ignore_index=True)
+    if "sample_count" not in df.columns and "calibration_scenarios_per_query" in df.columns:
+        df["sample_count"] = df["calibration_scenarios_per_query"]
+    df["method"] = df["method"].replace({"decomposed_milp": "decomposition"})
     df = df[df["status"].isin(["OPTIMAL", "optimal"])].copy()
     df["query_count"] = df["query_count"].astype(int)
     df["sample_count"] = df["sample_count"].astype(int)
@@ -112,7 +114,7 @@ def _plot_grouped_bars(
 
 
 def _plot_ratio_lines(paired: pd.DataFrame, path: Path) -> None:
-    """Full / decomp ratio vs Q for S=10 (or largest available S per workflow)."""
+    """Full / decomp ratio vs Q for the largest available S per workflow."""
     fig, axes = plt.subplots(1, 2, figsize=(10, 4))
     for ax, (num_col, den_col, ylabel) in zip(
         axes,

@@ -261,13 +261,13 @@ def main() -> None:
     parser.add_argument(
         "--result-root",
         type=Path,
-        default=RESULTS_DIR / "main_Q1000_S50_eta010",
+        default=RESULTS_DIR / "main_Q1000_S50_dbfixed_minp95_full",
         help="Directory containing workflow*/method/selected_plan.json",
     )
     parser.add_argument(
         "--fig-dir",
         type=Path,
-        default=ROOT / "fig",
+        default=ROOT / "fig" / "main_Q1000_S50_dbfixed_minp95_full",
         help="Output directory for PDFs and source CSV",
     )
     args = parser.parse_args()

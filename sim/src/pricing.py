@@ -109,6 +109,14 @@ def database_output_token_range() -> tuple[float, float]:
     )
 
 
+def q_a_output_token_range() -> tuple[float, float]:
+    cfg = load_pricing_config()
+    return (
+        float(cfg.get("q_a_output_tokens_min", 50.0)),
+        float(cfg.get("q_a_output_tokens_max", 100.0)),
+    )
+
+
 def sampling_fps(quality_level: str) -> float:
     cfg = load_pricing_config()
     rates = cfg.get("sampling_rates_fps", {})

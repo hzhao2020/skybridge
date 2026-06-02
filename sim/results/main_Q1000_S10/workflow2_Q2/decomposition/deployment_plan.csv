@@ -1,9 +1,0 @@
-workflow,quality_level,logical_node,endpoint_id,provider,region,model_name
-workflow2,Q2,Shot Detection,shot_detection_aliyun_cn-shanghai_q2,Aliyun,cn-shanghai,
-workflow2,Q2,Video Split & Sample,video_split_and_sample_aliyun_cn-shanghai_q2,Aliyun,cn-shanghai,
-workflow2,Q2,Video Caption,video_caption_aws_ap-southeast-1_q2,AWS,ap-southeast-1,Claude Sonnet 4.5
-workflow2,Q2,OCR,ocr_azure_eastus_q2,Azure,eastus,
-workflow2,Q2,Label Detection,label_detection_aliyun_cn-shanghai_q2,Aliyun,cn-shanghai,
-workflow2,Q2,Speech Transcription,speech_transcription_aliyun_cn-shanghai_q2,Aliyun,cn-shanghai,
-workflow2,Q2,Database,database_aliyun_cn-shanghai_q2,Aliyun,cn-shanghai,
-workflow2,Q2,Q/A,q_a_aws_ap-southeast-1_q2,AWS,ap-southeast-1,Claude Sonnet 4.5

@@ -14,6 +14,7 @@ from src.pricing import (
     expected_data_conversion_ratio,
     llm_performance,
     physical_endpoint_exists,
+    q_a_output_token_range,
     query_generation_params,
     region_network_values,
     sample_data_conversion_ratio,
@@ -276,12 +277,13 @@ def _generate_scenarios(
                 "database_output_tokens": float(
                     rng.uniform(*database_output_token_range())
                 ),
+                "q_a_output_tokens": float(rng.uniform(*q_a_output_token_range())),
                 "exec_stress": 1.0,
                 "bw_stress": 1.0,
                 "rtt_stress": 1.0,
             }
             for op in LOGICAL_OPERATIONS:
-                if op == "Database":
+                if op in ("Database", "Q/A"):
                     continue
                 key = f"rho_{op.replace(' ', '_').replace('/', '_').replace('&', 'and')}"
                 row[key] = float(sample_data_conversion_ratio(op, ql, rng))

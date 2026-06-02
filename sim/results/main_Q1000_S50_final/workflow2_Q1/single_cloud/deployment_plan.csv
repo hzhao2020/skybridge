@@ -1,9 +1,0 @@
-workflow,quality_level,logical_node,endpoint_id,provider,region,model_name
-workflow2,Q1,Speech Transcription,speech_transcription_aws_us-east-2_q1,AWS,us-east-2,
-workflow2,Q1,Shot Detection,shot_detection_aws_us-east-2_q1,AWS,us-east-2,
-workflow2,Q1,Video Split & Sample,video_split_and_sample_aws_us-east-2_q1,AWS,us-east-2,
-workflow2,Q1,Video Caption,video_caption_aws_us-east-2_q1,AWS,us-east-2,Claude Haiku 4.5
-workflow2,Q1,OCR,ocr_aws_us-east-2_q1,AWS,us-east-2,
-workflow2,Q1,Label Detection,label_detection_aws_us-east-2_q1,AWS,us-east-2,
-workflow2,Q1,Database,database_aws_us-east-2_q1,AWS,us-east-2,
-workflow2,Q1,Q/A,q_a_aws_us-east-2_q1,AWS,us-east-2,Claude Haiku 4.5

@@ -34,8 +34,7 @@ def propagate_data_sizes(
             else:
                 total = 0.0
                 for pred in preds:
-                    rho = scenario.rho.get(pred, default_rho)
-                    total += sizes.get(pred, 0.0) * rho
+                    total += _node_output_size(pred, sizes, scenario, workflow, default_rho)
                 sizes[node] = total
 
     return sizes
@@ -52,12 +51,26 @@ def output_data_sizes(
     for node in workflow.node_names():
         if workflow.is_virtual(node):
             outputs[node] = sizes.get(node, 0.0)
-        elif node == "Database" and scenario.database_output_tokens is not None:
-            outputs[node] = scenario.database_output_tokens / tokens_per_mb()
         else:
-            rho = scenario.rho.get(node, default_rho)
-            outputs[node] = sizes.get(node, 0.0) * rho
+            outputs[node] = _node_output_size(node, sizes, scenario, workflow, default_rho)
     return outputs
+
+
+def _node_output_size(
+    node: str,
+    sizes: dict[str, float],
+    scenario: Scenario,
+    workflow: WorkflowDAG,
+    default_rho: float,
+) -> float:
+    if workflow.is_virtual(node):
+        return sizes.get(node, 0.0)
+    if node == "Database" and scenario.database_output_tokens is not None:
+        return scenario.database_output_tokens / tokens_per_mb()
+    if node == "Q/A" and scenario.q_a_output_tokens is not None:
+        return scenario.q_a_output_tokens / tokens_per_mb()
+    rho = scenario.rho.get(node, default_rho)
+    return sizes.get(node, 0.0) * rho
 
 
 def _topological_sort(workflow: WorkflowDAG) -> list[str]:

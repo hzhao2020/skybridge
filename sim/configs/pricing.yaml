@@ -4,10 +4,12 @@
 video_mb_per_minute: 300.0
 video_fps: 30
 tokens_per_kb: 250
-caption_tokens_per_frame: 786
+caption_tokens_per_frame: 32
 caption_prompt_tokens: 200
 database_output_tokens_min: 1000
 database_output_tokens_max: 2000
+q_a_output_tokens_min: 50
+q_a_output_tokens_max: 100
 storage_days_per_month: 30.0
 mb_per_vision_image: 0.3
 

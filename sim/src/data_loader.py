@@ -136,6 +136,12 @@ def load_scenarios(
                     and pd.notna(row.get("database_output_tokens"))
                     else None
                 ),
+                q_a_output_tokens=(
+                    float(row["q_a_output_tokens"])
+                    if "q_a_output_tokens" in row
+                    and pd.notna(row.get("q_a_output_tokens"))
+                    else None
+                ),
                 exec_latency_multiplier=exec_mult,
                 bandwidth_multiplier=bw_mult,
                 rtt_multiplier=rtt_mult,
