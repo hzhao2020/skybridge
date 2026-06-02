@@ -1,0 +1,5 @@
+workflow,quality_level,logical_node,endpoint_id,provider,region,model_name
+workflow1,Q1,Shot Detection,shot_detection_aliyun_cn-shanghai_q1,Aliyun,cn-shanghai,
+workflow1,Q1,Video Split & Sample,video_split_and_sample_aliyun_ap-southeast-1_q1,Aliyun,ap-southeast-1,
+workflow1,Q1,Video Caption,video_caption_anthropic_global_q1,Anthropic,global,Claude Haiku 4.5
+workflow1,Q1,Q/A,q_a_anthropic_global_q1,Anthropic,global,Claude Haiku 4.5

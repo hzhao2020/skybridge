@@ -112,7 +112,7 @@ def calibrate_budgets(output: Path, progress: Progress, factor: float) -> None:
                 progress.step(f"{label} finished in {time.perf_counter() - t0:.1f}s")
 
             for query in queries:
-                method_p90: dict[str, float] = {}
+                method_p95: dict[str, float] = {}
                 for method, assignment in assignments.items():
                     latencies = [
                         critical_path_latency(
@@ -126,9 +126,9 @@ def calibrate_budgets(output: Path, progress: Progress, factor: float) -> None:
                         )
                         for scenario in scenario_by_q[query.query_id]
                     ]
-                    method_p90[method] = float(pd.Series(latencies).quantile(0.90))
-                best = min(method_p90, key=method_p90.get)
-                budget = factor * method_p90[best]
+                    method_p95[method] = float(pd.Series(latencies).quantile(0.95))
+                budget_baseline = min(method_p95, key=method_p95.get)
+                budget = factor * method_p95[budget_baseline]
                 new_sla[query.query_id] = budget
                 records.append(
                     {
@@ -136,11 +136,11 @@ def calibrate_budgets(output: Path, progress: Progress, factor: float) -> None:
                         "quality_level": quality,
                         "query_id": query.query_id,
                         "budget_factor": factor,
-                        "best_baseline": best,
-                        "baseline_p90_min": method_p90[best],
+                        "budget_baseline": budget_baseline,
+                        "baseline_p95_min": method_p95[budget_baseline],
                         "sla_sec_old": query.sla_sec,
                         "sla_sec_new": budget,
-                        **{f"p90_{m}": v for m, v in method_p90.items()},
+                        **{f"p95_{m}": v for m, v in method_p95.items()},
                     }
                 )
             progress.step(f"calibrate {workflow_name}/{quality}/budgets updated")
@@ -212,7 +212,7 @@ def run_experiments(
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--results-root", type=Path, default=RESULTS_DIR / "main_Q1000_S50_progress")
-    parser.add_argument("--budget-factor", type=float, default=1.1)
+    parser.add_argument("--budget-factor", type=float, default=1.0)
     parser.add_argument(
         "--budget-output",
         type=Path,

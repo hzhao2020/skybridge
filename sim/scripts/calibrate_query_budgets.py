@@ -73,7 +73,7 @@ def main() -> None:
                 }
 
             for q in queries:
-                method_p90: dict[str, float] = {}
+                method_p95: dict[str, float] = {}
                 for method, assignment in assignments.items():
                     latencies = [
                         critical_path_latency(
@@ -87,9 +87,9 @@ def main() -> None:
                         )
                         for s in scenario_by_q[q.query_id]
                     ]
-                    method_p90[method] = float(pd.Series(latencies).quantile(0.90))
-                best = min(method_p90, key=method_p90.get)
-                budget = args.factor * method_p90[best]
+                    method_p95[method] = float(pd.Series(latencies).quantile(0.95))
+                budget_baseline = min(method_p95, key=method_p95.get)
+                budget = args.factor * method_p95[budget_baseline]
                 new_sla[q.query_id] = budget
                 records.append(
                     {
@@ -97,11 +97,11 @@ def main() -> None:
                         "quality_level": quality,
                         "query_id": q.query_id,
                         "budget_factor": args.factor,
-                        "best_baseline": best,
-                        "baseline_p90_min": method_p90[best],
+                        "budget_baseline": budget_baseline,
+                        "baseline_p95_min": method_p95[budget_baseline],
                         "sla_sec_old": q.sla_sec,
                         "sla_sec_new": budget,
-                        **{f"p90_{m}": v for m, v in method_p90.items()},
+                        **{f"p95_{m}": v for m, v in method_p95.items()},
                     }
                 )
 

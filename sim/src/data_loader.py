@@ -130,6 +130,12 @@ def load_scenarios(
                 query_id=str(row["query_id"]),
                 scenario_id=str(row["scenario_id"]),
                 rho=rho,
+                database_output_tokens=(
+                    float(row["database_output_tokens"])
+                    if "database_output_tokens" in row
+                    and pd.notna(row.get("database_output_tokens"))
+                    else None
+                ),
                 exec_latency_multiplier=exec_mult,
                 bandwidth_multiplier=bw_mult,
                 rtt_multiplier=rtt_mult,

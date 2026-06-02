@@ -1,0 +1,50 @@
+{
+  "workflow": "workflow1",
+  "quality_level": "Q2",
+  "method": "greedy",
+  "assignments": [
+    {
+      "logical_node": "Shot Detection",
+      "endpoint_id": "shot_detection_aliyun_cn-shanghai_q2",
+      "provider": "Aliyun",
+      "region": "cn-shanghai",
+      "model_name": null
+    },
+    {
+      "logical_node": "Video Split & Sample",
+      "endpoint_id": "video_split_and_sample_aliyun_cn-shanghai_q2",
+      "provider": "Aliyun",
+      "region": "cn-shanghai",
+      "model_name": null
+    },
+    {
+      "logical_node": "Video Caption",
+      "endpoint_id": "video_caption_azure_eastus_q2",
+      "provider": "Azure",
+      "region": "eastus",
+      "model_name": "Claude Sonnet 4.5"
+    },
+    {
+      "logical_node": "Q/A",
+      "endpoint_id": "q_a_azure_eastus_q2",
+      "provider": "Azure",
+      "region": "eastus",
+      "model_name": "Claude Sonnet 4.5"
+    }
+  ],
+  "objective_value": 0.06376,
+  "metrics": {
+    "workflow": "workflow1",
+    "quality_level": "Q2",
+    "method": "greedy",
+    "objective_value": 0.06376,
+    "expected_cost": 5.123103801321664,
+    "avg_latency": 2626.7802108037527,
+    "p95_latency": 7671.80408074441,
+    "p99_latency": 13238.486838803234,
+    "violation_rate": 0.06756,
+    "cvar_value": 1641.0993113113093,
+    "solver_runtime_sec": 28.557329166011186,
+    "status": "optimal"
+  }
+}

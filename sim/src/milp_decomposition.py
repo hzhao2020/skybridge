@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gc
 import logging
 import math
 
@@ -111,8 +112,12 @@ def solve_decomposition(
             assignment = last_feasible_assignment
             if stop_on_infeasible:
                 status = f"{status}_REUSED_LAST_FEASIBLE"
+                artifacts.model.dispose()
+                gc.collect()
                 break
         else:
+            artifacts.model.dispose()
+            gc.collect()
             raise RuntimeError(f"Decomposition infeasible at iteration {iteration} (status={status})")
 
         inactive = all_keys - active_keys
@@ -152,11 +157,15 @@ def solve_decomposition(
 
         if not violations:
             logger.info("Decomposition converged at iteration %d", iteration)
+            artifacts.model.dispose()
+            gc.collect()
             break
 
         violations.sort(key=lambda x: x[1], reverse=True)
         for key, _ in violations[:batch]:
             active_keys.add(key)
+        artifacts.model.dispose()
+        gc.collect()
 
     metrics = evaluate_deployment(
         workflow=workflow,

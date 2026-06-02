@@ -93,6 +93,33 @@ def tokens_per_mb() -> float:
     return float(cfg["tokens_per_kb"]) * 1024.0
 
 
+def caption_tokens_per_frame() -> float:
+    return float(load_pricing_config().get("caption_tokens_per_frame", 786.0))
+
+
+def caption_prompt_tokens() -> float:
+    return float(load_pricing_config().get("caption_prompt_tokens", 0.0))
+
+
+def database_output_token_range() -> tuple[float, float]:
+    cfg = load_pricing_config()
+    return (
+        float(cfg.get("database_output_tokens_min", 1000.0)),
+        float(cfg.get("database_output_tokens_max", 2000.0)),
+    )
+
+
+def sampling_fps(quality_level: str) -> float:
+    cfg = load_pricing_config()
+    rates = cfg.get("sampling_rates_fps", {})
+    return float(rates[quality_level])
+
+
+def caption_input_tokens(video_duration_sec: float, quality_level: str) -> float:
+    num_frames = video_duration_sec * sampling_fps(quality_level)
+    return num_frames * caption_tokens_per_frame() + caption_prompt_tokens()
+
+
 def video_mb_per_minute() -> float:
     return float(load_pricing_config()["video_mb_per_minute"])
 
@@ -136,10 +163,17 @@ def llm_cost_usd(
     model: str,
     input_size_mb: float,
     output_size_mb: float,
+    *,
+    logical_operation: str | None = None,
+    quality_level: str | None = None,
+    video_duration_sec: float | None = None,
 ) -> float:
     input_price, output_price = llm_prices_per_million(provider, region, model)
     tpm = tokens_per_mb()
-    input_tokens = input_size_mb * tpm
+    if logical_operation == "Video Caption" and quality_level and video_duration_sec is not None:
+        input_tokens = caption_input_tokens(video_duration_sec, quality_level)
+    else:
+        input_tokens = input_size_mb * tpm
     output_tokens = output_size_mb * tpm
     return (input_tokens * input_price + output_tokens * output_price) / 1_000_000.0
 
@@ -184,6 +218,27 @@ def endpoint_cost_fields(
         inp_p, out_p = llm_prices_per_million(provider, region, model_name)
         tpm = tokens_per_mb()
         rho_out = expected_data_conversion_ratio(op, quality_level)
+        if op == "Video Caption":
+            qcfg = query_generation_params()
+            mean_duration = (
+                float(qcfg["video_duration_sec_min"])
+                + float(qcfg["video_duration_sec_max"])
+            ) / 2.0
+            mean_caption_input_mb = caption_input_tokens(
+                mean_duration,
+                quality_level,
+            ) / tpm
+            sampled_video_mb = video_mb_per_minute() * (mean_duration / 60.0)
+            sampled_video_mb *= expected_data_conversion_ratio(
+                "Video Split & Sample",
+                quality_level,
+            )
+            denom = max(sampled_video_mb, 1e-9)
+            cost_per_mb = (
+                (mean_caption_input_mb * tpm * inp_p)
+                + (denom * rho_out * tpm * out_p)
+            ) / 1_000_000.0 / denom
+            return 0.0, cost_per_mb, storage_per_mb_day
         cost_per_mb = (tpm / 1_000_000.0) * (inp_p + out_p * rho_out)
         return 0.0, cost_per_mb, storage_per_mb_day
 

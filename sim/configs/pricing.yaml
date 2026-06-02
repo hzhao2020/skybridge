@@ -1,9 +1,13 @@
 # Cloud pricing and data-conversion tables (SkyFlow paper / Simulation.md).
 # Monetary amounts are USD unless noted. Storage and DB instance charges assume 1 billable day.
 
-video_mb_per_minute: 10.0
+video_mb_per_minute: 300.0
 video_fps: 30
 tokens_per_kb: 250
+caption_tokens_per_frame: 786
+caption_prompt_tokens: 200
+database_output_tokens_min: 1000
+database_output_tokens_max: 2000
 storage_days_per_month: 30.0
 mb_per_vision_image: 0.3
 
@@ -12,7 +16,7 @@ query:
   requests_per_quality_level: 100
   workflow1_workflow2_ratio: [1, 1]
   video_duration_sec_min: 60
-  video_duration_sec_max: 1800
+  video_duration_sec_max: 3600
 
 quality_tiers:
   Q1: Essential
@@ -219,9 +223,9 @@ data_conversion_ratio_mean_std:
     Standard: {mean: 0.0167, std: 0.0017}
     Premium: {mean: 0.0333, std: 0.0033}
   Video Caption:
-    Essential: {mean: 0.0010, std: 0.0008}
+    Essential: {mean: 0.0025, std: 0.0020}
     Standard: {mean: 0.0025, std: 0.0020}
-    Premium: {mean: 0.0050, std: 0.0050}
+    Premium: {mean: 0.0025, std: 0.0020}
   OCR: {tier: null, mean: 0.001981, std: 0.0004031}
   Label Detection: {tier: null, mean: 0.00832, std: 0.006262}
   Speech Transcription: {tier: null, mean: 0.001989, std: 0.0002701}

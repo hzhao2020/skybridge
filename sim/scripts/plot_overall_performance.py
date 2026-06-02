@@ -139,6 +139,11 @@ def _plot_grouped(
     _decorate_axis(ax, x, setting_labels, ylabel)
 
 
+def _set_headroom_ylim(ax, values: pd.Series, *, minimum_top: float = 0.0) -> None:
+    top = max(float(values.max()) * 1.18, minimum_top)
+    ax.set_ylim(0, top)
+
+
 def plot_overall_performance(result_root: Path, fig_dir: Path) -> pd.DataFrame:
     fig_dir.mkdir(parents=True, exist_ok=True)
     df = _load_data(result_root)
@@ -151,10 +156,12 @@ def plot_overall_performance(result_root: Path, fig_dir: Path) -> pd.DataFrame:
     setting_labels = [label for _, label in SETTINGS]
 
     fig, ax = plt.subplots(figsize=(3.35, 2.25))
-    _plot_grouped(ax, df, x, offsets, width, setting_labels, "expected_cost", "Expected cost (USD)")
+    _plot_grouped(ax, df, x, offsets, width, setting_labels, "expected_cost", "Expected cost ($)")
+    _set_headroom_ylim(ax, df["expected_cost"], minimum_top=1.0)
     ax.legend(ncol=4, frameon=False, loc="upper left", columnspacing=0.9, handlelength=1.4)
     fig.tight_layout(pad=0.35)
     fig.savefig(fig_dir / "overall_cost.pdf", bbox_inches="tight")
+    fig.savefig(fig_dir / "overall_cost.png", dpi=300, bbox_inches="tight")
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(3.35, 2.25))
@@ -169,45 +176,11 @@ def plot_overall_performance(result_root: Path, fig_dir: Path) -> pd.DataFrame:
         "SLO violation rate",
         add_eta=True,
     )
-    ax.set_ylim(0, max(0.42, df["violation_rate"].max() * 1.12))
+    _set_headroom_ylim(ax, df["violation_rate"], minimum_top=0.16)
     ax.legend(ncol=5, frameon=False, loc="upper right", columnspacing=0.9, handlelength=1.4)
     fig.tight_layout(pad=0.35)
     fig.savefig(fig_dir / "overall_svr.pdf", bbox_inches="tight")
-    plt.close(fig)
-
-    fig, axes = plt.subplots(1, 2, figsize=(7.05, 2.35))
-    _plot_grouped(axes[0], df, x, offsets, width, setting_labels, "expected_cost", "Expected cost (USD)")
-    _plot_grouped(
-        axes[1],
-        df,
-        x,
-        offsets,
-        width,
-        setting_labels,
-        "violation_rate",
-        "SLO violation rate",
-        add_eta=True,
-    )
-    axes[1].set_ylim(0, max(0.42, df["violation_rate"].max() * 1.12))
-    axes[0].text(
-        -0.13, 1.02, "(a)", transform=axes[0].transAxes, fontsize=8, fontweight="bold", fontfamily="Times New Roman"
-    )
-    axes[1].text(
-        -0.13, 1.02, "(b)", transform=axes[1].transAxes, fontsize=8, fontweight="bold", fontfamily="Times New Roman"
-    )
-    handles, labels = axes[1].get_legend_handles_labels()
-    fig.legend(
-        handles,
-        labels,
-        ncol=5,
-        frameon=False,
-        loc="upper center",
-        bbox_to_anchor=(0.5, 1.03),
-        columnspacing=1.2,
-        handlelength=1.4,
-    )
-    fig.tight_layout(rect=(0, 0, 1, 0.92), pad=0.35, w_pad=1.0)
-    fig.savefig(fig_dir / "overall_performance.pdf", bbox_inches="tight")
+    fig.savefig(fig_dir / "overall_svr.png", dpi=300, bbox_inches="tight")
     plt.close(fig)
 
     return df
@@ -232,8 +205,9 @@ def main() -> None:
     df = plot_overall_performance(args.result_root, args.fig_dir)
     for name in (
         "overall_cost.pdf",
+        "overall_cost.png",
         "overall_svr.pdf",
-        "overall_performance.pdf",
+        "overall_svr.png",
         "overall_performance_source.csv",
     ):
         print(args.fig_dir / name)

@@ -46,6 +46,7 @@ def execution_cost(
     endpoint: Endpoint,
     input_size_mb: float,
     output_size_mb: float | None = None,
+    query: Query | None = None,
 ) -> float:
     if is_llm_operation(endpoint.logical_operation):
         if endpoint.model_name is None:
@@ -56,6 +57,9 @@ def execution_cost(
             endpoint.model_name,
             input_size_mb,
             0.0 if output_size_mb is None else output_size_mb,
+            logical_operation=endpoint.logical_operation,
+            quality_level=endpoint.quality_level,
+            video_duration_sec=query.video_duration_sec if query is not None else None,
         )
     return endpoint.fixed_cost + input_size_mb * endpoint.cost_per_mb
 
@@ -220,7 +224,7 @@ def total_cost(
             continue
         inp = input_sizes.get(node, 0.0)
         out = output_sizes.get(node, 0.0)
-        cost += execution_cost(ep, inp, out)
+        cost += execution_cost(ep, inp, out, query)
         cost += storage_cost(ep, inp, out, ablation.enable_storage_cost)
 
     for edge in workflow.edges:

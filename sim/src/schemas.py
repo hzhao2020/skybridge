@@ -78,6 +78,7 @@ class Scenario(BaseModel):
     query_id: str
     scenario_id: str
     rho: dict[str, float] = Field(default_factory=dict)
+    database_output_tokens: float | None = None
     exec_latency_multiplier: dict[str, float] = Field(default_factory=dict)
     bandwidth_multiplier: dict[str, float] = Field(default_factory=dict)
     rtt_multiplier: dict[str, float] = Field(default_factory=dict)

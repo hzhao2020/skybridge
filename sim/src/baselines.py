@@ -265,14 +265,19 @@ class _BaselineEvaluationCache:
         if cached is not None:
             return cached
         costs = [
-            execution_cost(endpoint, input_sizes.get(node, 0.0), output_sizes.get(node, 0.0))
+            execution_cost(
+                endpoint,
+                input_sizes.get(node, 0.0),
+                output_sizes.get(node, 0.0),
+                query,
+            )
             + storage_cost(
                 endpoint,
                 input_sizes.get(node, 0.0),
                 output_sizes.get(node, 0.0),
                 self.config.ablation.enable_storage_cost,
             )
-            for _, _, input_sizes, output_sizes in self.qs_data
+            for query, _, input_sizes, output_sizes in self.qs_data
         ]
         value = float(np.mean(costs)) if costs else 0.0
         self._avg_node_cost_cache[key] = value
@@ -361,7 +366,7 @@ class _BaselineEvaluationCache:
         for node, ep in assignment.items():
             inp = input_sizes.get(node, 0.0)
             out = output_sizes.get(node, 0.0)
-            cost += execution_cost(ep, inp, out)
+            cost += execution_cost(ep, inp, out, query)
             cost += storage_cost(ep, inp, out, self.config.ablation.enable_storage_cost)
 
         for edge in self.workflow.edges:
@@ -518,7 +523,7 @@ def _expected_incremental_cost_latency(
         inp = input_sizes.get(node, 0.0)
         out = output_sizes.get(node, 0.0)
 
-        inc_cost = execution_cost(endpoint, inp, out)
+        inc_cost = execution_cost(endpoint, inp, out, query)
         inc_cost += storage_cost(
             endpoint,
             inp,

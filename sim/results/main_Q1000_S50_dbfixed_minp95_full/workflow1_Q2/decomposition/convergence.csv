@@ -1,0 +1,3 @@
+workflow,quality_level,iteration,active_scenario_count,objective_value,max_violation,num_violated_scenarios,runtime_sec
+workflow1,Q2,1,10000,5.1389883718819585,26161.772845643674,1926,37.63415912500932
+workflow1,Q2,2,11926,inf,0.0,0,24.637395416997606

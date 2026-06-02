@@ -249,7 +249,8 @@ def _build_cost_expression(
     qs_pairs: list[tuple[Query, Scenario]],
     ablation: AblationConfig,
 ) -> gp.LinExpr:
-    total = gp.LinExpr(0)
+    x_coeffs: dict[tuple[str, str], float] = {key: 0.0 for key in x}
+    y_coeffs: dict[tuple[str, str, str, str], float] = {key: 0.0 for key in y}
     for q, s in qs_pairs:
         input_sizes = propagate_data_sizes(workflow, q, s)
         output_sizes = output_data_sizes(input_sizes, s, workflow)
@@ -258,11 +259,11 @@ def _build_cost_expression(
             inp = input_sizes.get(node, 0.0)
             out = output_sizes.get(node, 0.0)
             for ep in cands:
-                exec_c = execution_cost(ep, inp, out)
+                exec_c = execution_cost(ep, inp, out, q)
                 stor_c = 0.0
                 if ablation.enable_storage_cost:
                     stor_c = ep.storage_cost_per_mb * (inp + out)
-                total += (exec_c + stor_c) * x[node, ep.endpoint_id]
+                x_coeffs[node, ep.endpoint_id] += exec_c + stor_c
 
         for edge in workflow.edges:
             src, dst = edge.src, edge.dst
@@ -282,7 +283,15 @@ def _build_cost_expression(
                     net_c = (out_mb / 1024.0) * link.egress_cost_per_gb
                     key = (src, dst, ep_s.endpoint_id, ep_d.endpoint_id)
                     if key in y:
-                        total += net_c * y[key]
+                        y_coeffs[key] += net_c
+
+    total = gp.LinExpr(0)
+    for key, coeff in x_coeffs.items():
+        if coeff:
+            total += coeff * x[key]
+    for key, coeff in y_coeffs.items():
+        if coeff:
+            total += coeff * y[key]
 
     return total
 

@@ -19,6 +19,7 @@ from src.pricing import (
     sample_data_conversion_ratio,
     tokens_per_mb,
     video_mb_per_minute,
+    database_output_token_range,
 )
 from src.workflow import LOGICAL_OPERATIONS, WORKFLOW_OPERATIONS
 from src.measurement.network import LinkCategory, classify_link, sample_link_by_index
@@ -272,11 +273,16 @@ def _generate_scenarios(
             row: dict = {
                 "query_id": qid,
                 "scenario_id": sid,
+                "database_output_tokens": float(
+                    rng.uniform(*database_output_token_range())
+                ),
                 "exec_stress": 1.0,
                 "bw_stress": 1.0,
                 "rtt_stress": 1.0,
             }
             for op in LOGICAL_OPERATIONS:
+                if op == "Database":
+                    continue
                 key = f"rho_{op.replace(' ', '_').replace('/', '_').replace('&', 'and')}"
                 row[key] = float(sample_data_conversion_ratio(op, ql, rng))
             rows.append(row)

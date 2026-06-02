@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from src.schemas import Query, Scenario, WorkflowDAG
+from src.pricing import tokens_per_mb
 
 
 def propagate_data_sizes(
@@ -51,6 +52,8 @@ def output_data_sizes(
     for node in workflow.node_names():
         if workflow.is_virtual(node):
             outputs[node] = sizes.get(node, 0.0)
+        elif node == "Database" and scenario.database_output_tokens is not None:
+            outputs[node] = scenario.database_output_tokens / tokens_per_mb()
         else:
             rho = scenario.rho.get(node, default_rho)
             outputs[node] = sizes.get(node, 0.0) * rho
