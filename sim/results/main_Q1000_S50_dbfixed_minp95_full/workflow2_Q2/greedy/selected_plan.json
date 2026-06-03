@@ -54,25 +54,25 @@
     },
     {
       "logical_node": "Q/A",
-      "endpoint_id": "q_a_anthropic_global_q2",
-      "provider": "Anthropic",
-      "region": "global",
+      "endpoint_id": "q_a_azure_westus2_q2",
+      "provider": "Azure",
+      "region": "westus2",
       "model_name": "Claude Sonnet 4.5"
     }
   ],
-  "objective_value": 0.10836,
+  "objective_value": 0.0615,
   "metrics": {
     "workflow": "workflow2",
     "quality_level": "Q2",
     "method": "greedy",
-    "objective_value": 0.10836,
-    "expected_cost": 33.00644540541315,
-    "avg_latency": 18627.09584002662,
-    "p95_latency": 52984.55713511743,
-    "p99_latency": 87876.4753361552,
-    "violation_rate": 0.1045,
-    "cvar_value": 15043.196070486947,
-    "solver_runtime_sec": 87.70755537500372,
+    "objective_value": 0.0615,
+    "expected_cost": 4.549769576876212,
+    "avg_latency": 2239.487672972488,
+    "p95_latency": 6420.969281391245,
+    "p99_latency": 10879.777625692797,
+    "violation_rate": 0.06634,
+    "cvar_value": 1276.0270644155637,
+    "solver_runtime_sec": 50.45886191600039,
     "status": "optimal"
   }
 }

@@ -6,4 +6,4 @@ workflow2,Q2,Video Caption,video_caption_azure_eastus_q2,Azure,eastus,Claude Son
 workflow2,Q2,OCR,ocr_azure_eastus_q2,Azure,eastus,
 workflow2,Q2,Label Detection,label_detection_aliyun_cn-shanghai_q2,Aliyun,cn-shanghai,
 workflow2,Q2,Database,database_aliyun_cn-shanghai_q2,Aliyun,cn-shanghai,
-workflow2,Q2,Q/A,q_a_anthropic_global_q2,Anthropic,global,Claude Sonnet 4.5
+workflow2,Q2,Q/A,q_a_azure_westus2_q2,Azure,westus2,Claude Sonnet 4.5

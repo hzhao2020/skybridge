@@ -19,9 +19,9 @@
     },
     {
       "logical_node": "Video Caption",
-      "endpoint_id": "video_caption_azure_eastus_q1",
-      "provider": "Azure",
-      "region": "eastus",
+      "endpoint_id": "video_caption_aws_us-east-2_q1",
+      "provider": "AWS",
+      "region": "us-east-2",
       "model_name": "Claude Haiku 4.5"
     },
     {
@@ -54,9 +54,9 @@
     },
     {
       "logical_node": "Q/A",
-      "endpoint_id": "q_a_aws_us-east-2_q1",
-      "provider": "AWS",
-      "region": "us-east-2",
+      "endpoint_id": "q_a_anthropic_global_q1",
+      "provider": "Anthropic",
+      "region": "global",
       "model_name": "Claude Haiku 4.5"
     }
   ],
@@ -66,13 +66,13 @@
     "quality_level": "Q1",
     "method": "decomposition",
     "objective_value": Infinity,
-    "expected_cost": 9.965611236526728,
-    "avg_latency": 3769.359103448806,
-    "p95_latency": 10279.302032227652,
-    "p99_latency": 16875.832741705304,
-    "violation_rate": 0.04238,
-    "cvar_value": 1295.8770306625395,
-    "solver_runtime_sec": 837.5948693329992,
+    "expected_cost": 2.8695574875864516,
+    "avg_latency": 529.9732303969854,
+    "p95_latency": 1268.2975626628715,
+    "p99_latency": 1952.1076145826546,
+    "violation_rate": 0.03148,
+    "cvar_value": 102.56883244744624,
+    "solver_runtime_sec": 714.6244446659985,
     "status": "INFEASIBLE"
   }
 }

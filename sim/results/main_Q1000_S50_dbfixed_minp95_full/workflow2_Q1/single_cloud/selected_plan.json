@@ -4,75 +4,75 @@
   "method": "single_cloud",
   "assignments": [
     {
-      "logical_node": "Shot Detection",
-      "endpoint_id": "shot_detection_aws_us-east-2_q1",
-      "provider": "AWS",
-      "region": "us-east-2",
+      "logical_node": "Speech Transcription",
+      "endpoint_id": "speech_transcription_gcp_asia-east1_q1",
+      "provider": "GCP",
+      "region": "asia-east1",
       "model_name": null
     },
     {
-      "logical_node": "Speech Transcription",
-      "endpoint_id": "speech_transcription_aws_us-east-2_q1",
-      "provider": "AWS",
-      "region": "us-east-2",
+      "logical_node": "Shot Detection",
+      "endpoint_id": "shot_detection_gcp_asia-east1_q1",
+      "provider": "GCP",
+      "region": "asia-east1",
       "model_name": null
     },
     {
       "logical_node": "Video Split & Sample",
-      "endpoint_id": "video_split_and_sample_aws_us-east-2_q1",
-      "provider": "AWS",
-      "region": "us-east-2",
+      "endpoint_id": "video_split_and_sample_gcp_asia-east1_q1",
+      "provider": "GCP",
+      "region": "asia-east1",
       "model_name": null
     },
     {
       "logical_node": "Video Caption",
-      "endpoint_id": "video_caption_aws_us-east-2_q1",
-      "provider": "AWS",
-      "region": "us-east-2",
+      "endpoint_id": "video_caption_gcp_asia-east1_q1",
+      "provider": "GCP",
+      "region": "asia-east1",
       "model_name": "Claude Haiku 4.5"
     },
     {
       "logical_node": "OCR",
-      "endpoint_id": "ocr_aws_us-east-2_q1",
-      "provider": "AWS",
-      "region": "us-east-2",
+      "endpoint_id": "ocr_gcp_asia-east1_q1",
+      "provider": "GCP",
+      "region": "asia-east1",
       "model_name": null
     },
     {
       "logical_node": "Label Detection",
-      "endpoint_id": "label_detection_aws_us-east-2_q1",
-      "provider": "AWS",
-      "region": "us-east-2",
+      "endpoint_id": "label_detection_gcp_asia-east1_q1",
+      "provider": "GCP",
+      "region": "asia-east1",
       "model_name": null
     },
     {
       "logical_node": "Database",
-      "endpoint_id": "database_aws_us-east-2_q1",
-      "provider": "AWS",
-      "region": "us-east-2",
+      "endpoint_id": "database_gcp_us-west1_q1",
+      "provider": "GCP",
+      "region": "us-west1",
       "model_name": null
     },
     {
       "logical_node": "Q/A",
-      "endpoint_id": "q_a_aws_us-east-2_q1",
-      "provider": "AWS",
-      "region": "us-east-2",
+      "endpoint_id": "q_a_gcp_asia-east1_q1",
+      "provider": "GCP",
+      "region": "asia-east1",
       "model_name": "Claude Haiku 4.5"
     }
   ],
-  "objective_value": 0.06044,
+  "objective_value": 0.80256,
   "metrics": {
     "workflow": "workflow2",
     "quality_level": "Q1",
     "method": "single_cloud",
-    "objective_value": 0.06044,
-    "expected_cost": 15.822652573767018,
-    "avg_latency": 4898.3341603066965,
-    "p95_latency": 12014.517197835265,
-    "p99_latency": 18735.52372415147,
-    "violation_rate": 0.0656,
-    "cvar_value": 1895.2822934462904,
-    "solver_runtime_sec": 21.632828666013665,
+    "objective_value": 0.80256,
+    "expected_cost": 8.371949321914501,
+    "avg_latency": 1405.772131032078,
+    "p95_latency": 2595.8111360332937,
+    "p99_latency": 3425.760960127143,
+    "violation_rate": 0.79394,
+    "cvar_value": 1010.7965118375652,
+    "solver_runtime_sec": 12.921293291999973,
     "status": "optimal"
   }
 }

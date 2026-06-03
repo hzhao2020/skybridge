@@ -54,25 +54,25 @@
     },
     {
       "logical_node": "Q/A",
-      "endpoint_id": "q_a_aws_us-west-2_q2",
-      "provider": "AWS",
-      "region": "us-west-2",
+      "endpoint_id": "q_a_anthropic_global_q2",
+      "provider": "Anthropic",
+      "region": "global",
       "model_name": "Claude Sonnet 4.5"
     }
   ],
-  "objective_value": 0.06766,
+  "objective_value": 0.08542,
   "metrics": {
     "workflow": "workflow2",
     "quality_level": "Q2",
     "method": "murakkab_profile",
-    "objective_value": 0.06766,
-    "expected_cost": 39.985121446162935,
-    "avg_latency": 16359.194365685864,
-    "p95_latency": 45616.10094401053,
-    "p99_latency": 74944.5090841356,
-    "violation_rate": 0.0688,
-    "cvar_value": 8846.611822750385,
-    "solver_runtime_sec": 311.61320733401226,
+    "objective_value": 0.08542,
+    "expected_cost": 11.52851850691602,
+    "avg_latency": 2650.9887315540964,
+    "p95_latency": 7057.930970787807,
+    "p99_latency": 11598.533262960134,
+    "violation_rate": 0.08576,
+    "cvar_value": 1581.825822052227,
+    "solver_runtime_sec": 7.921847292000166,
     "status": "optimal"
   }
 }

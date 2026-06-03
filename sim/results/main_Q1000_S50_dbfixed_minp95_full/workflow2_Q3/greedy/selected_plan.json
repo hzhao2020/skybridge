@@ -4,15 +4,15 @@
   "method": "greedy",
   "assignments": [
     {
-      "logical_node": "Speech Transcription",
-      "endpoint_id": "speech_transcription_aliyun_cn-shanghai_q3",
+      "logical_node": "Shot Detection",
+      "endpoint_id": "shot_detection_aliyun_cn-shanghai_q3",
       "provider": "Aliyun",
       "region": "cn-shanghai",
       "model_name": null
     },
     {
-      "logical_node": "Shot Detection",
-      "endpoint_id": "shot_detection_aliyun_cn-shanghai_q3",
+      "logical_node": "Speech Transcription",
+      "endpoint_id": "speech_transcription_aliyun_cn-shanghai_q3",
       "provider": "Aliyun",
       "region": "cn-shanghai",
       "model_name": null
@@ -54,25 +54,25 @@
     },
     {
       "logical_node": "Q/A",
-      "endpoint_id": "q_a_anthropic_global_q3",
-      "provider": "Anthropic",
-      "region": "global",
+      "endpoint_id": "q_a_azure_eastus_q3",
+      "provider": "Azure",
+      "region": "eastus",
       "model_name": "Claude Opus 4.5"
     }
   ],
-  "objective_value": 0.0739,
+  "objective_value": 0.061,
   "metrics": {
     "workflow": "workflow2",
     "quality_level": "Q3",
     "method": "greedy",
-    "objective_value": 0.0739,
-    "expected_cost": 78.2774553402821,
-    "avg_latency": 30148.760716908484,
-    "p95_latency": 92285.82057389045,
-    "p99_latency": 170969.22189949322,
-    "violation_rate": 0.07372,
-    "cvar_value": 25017.19875356404,
-    "solver_runtime_sec": 87.35424066698761,
+    "objective_value": 0.061,
+    "expected_cost": 8.855713187397791,
+    "avg_latency": 4011.1742056670346,
+    "p95_latency": 11570.868842315796,
+    "p99_latency": 19517.091242851013,
+    "violation_rate": 0.06852,
+    "cvar_value": 2240.0518580863427,
+    "solver_runtime_sec": 50.48272141699999,
     "status": "optimal"
   }
 }

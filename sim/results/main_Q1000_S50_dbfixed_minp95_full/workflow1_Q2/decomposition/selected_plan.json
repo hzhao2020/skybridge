@@ -19,16 +19,16 @@
     },
     {
       "logical_node": "Video Caption",
-      "endpoint_id": "video_caption_aws_us-east-2_q2",
-      "provider": "AWS",
-      "region": "us-east-2",
+      "endpoint_id": "video_caption_azure_eastus_q2",
+      "provider": "Azure",
+      "region": "eastus",
       "model_name": "Claude Sonnet 4.5"
     },
     {
       "logical_node": "Q/A",
-      "endpoint_id": "q_a_aws_us-east-2_q2",
-      "provider": "AWS",
-      "region": "us-east-2",
+      "endpoint_id": "q_a_azure_eastus_q2",
+      "provider": "Azure",
+      "region": "eastus",
       "model_name": "Claude Sonnet 4.5"
     }
   ],
@@ -38,13 +38,13 @@
     "quality_level": "Q2",
     "method": "decomposition",
     "objective_value": Infinity,
-    "expected_cost": 5.123126928931126,
-    "avg_latency": 2233.2929870239423,
-    "p95_latency": 6472.1597059979385,
-    "p99_latency": 11128.239946707885,
-    "violation_rate": 0.04176,
-    "cvar_value": 914.8419059559138,
-    "solver_runtime_sec": 62.271554542006925,
+    "expected_cost": 2.8338120419615924,
+    "avg_latency": 2304.1140592025663,
+    "p95_latency": 6687.79038237684,
+    "p99_latency": 11380.364880108951,
+    "violation_rate": 0.06676,
+    "cvar_value": 1422.1882186330229,
+    "solver_runtime_sec": 106.78469841600054,
     "status": "INFEASIBLE"
   }
 }

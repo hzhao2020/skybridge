@@ -92,11 +92,12 @@ def main() -> None:
     endpoints = load_endpoints()
     queries = load_queries(quality_level=args.quality, workflow=args.workflow)
     expected_n = _expected_queries_per_run(cfg)
-    if len(queries) != expected_n:
+    if len(queries) < expected_n:
         raise SystemExit(
             f"Expected {expected_n} queries for {args.workflow} + {args.quality}, "
             f"found {len(queries)}. Regenerate data: python scripts/generate_synthetic_data.py"
         )
+    queries = queries[:expected_n]
 
     query_ids = [q.query_id for q in queries]
     scenarios = load_scenarios(query_ids=query_ids)

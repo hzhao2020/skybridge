@@ -12,9 +12,9 @@
     },
     {
       "logical_node": "Video Split & Sample",
-      "endpoint_id": "video_split_and_sample_aliyun_ap-southeast-1_q1",
+      "endpoint_id": "video_split_and_sample_aliyun_cn-shanghai_q1",
       "provider": "Aliyun",
-      "region": "ap-southeast-1",
+      "region": "cn-shanghai",
       "model_name": null
     },
     {
@@ -60,19 +60,19 @@
       "model_name": "Claude Haiku 4.5"
     }
   ],
-  "objective_value": 0.08172,
+  "objective_value": 0.04436,
   "metrics": {
     "workflow": "workflow2",
     "quality_level": "Q1",
     "method": "murakkab_profile",
-    "objective_value": 0.08172,
-    "expected_cost": 17.119989519418883,
-    "avg_latency": 4783.530340441025,
-    "p95_latency": 12732.953525728852,
-    "p99_latency": 20717.569116603143,
-    "violation_rate": 0.0821,
-    "cvar_value": 2737.6147649102973,
-    "solver_runtime_sec": 12.370213375019375,
+    "objective_value": 0.04436,
+    "expected_cost": 2.917979968457664,
+    "avg_latency": 721.7481357785485,
+    "p95_latency": 1451.0398079932475,
+    "p99_latency": 2272.677113630281,
+    "violation_rate": 0.05332,
+    "cvar_value": 195.8694368868366,
+    "solver_runtime_sec": 180.06779745800122,
     "status": "optimal"
   }
 }

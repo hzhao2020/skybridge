@@ -32,19 +32,19 @@
       "model_name": "Claude Sonnet 4.5"
     }
   ],
-  "objective_value": 0.06396,
+  "objective_value": 0.06962,
   "metrics": {
     "workflow": "workflow1",
     "quality_level": "Q2",
     "method": "single_cloud",
-    "objective_value": 0.06396,
-    "expected_cost": 5.746949436600568,
-    "avg_latency": 3112.411187295266,
-    "p95_latency": 7804.534206895475,
-    "p99_latency": 12485.234724387421,
-    "violation_rate": 0.06856,
-    "cvar_value": 1382.918665461978,
-    "solver_runtime_sec": 9.021899417013628,
+    "objective_value": 0.06962,
+    "expected_cost": 3.45763853045911,
+    "avg_latency": 2842.5361017516184,
+    "p95_latency": 7037.060175845236,
+    "p99_latency": 10978.90254602958,
+    "violation_rate": 0.07326,
+    "cvar_value": 1291.1307059280382,
+    "solver_runtime_sec": 5.779165042000386,
     "status": "optimal"
   }
 }

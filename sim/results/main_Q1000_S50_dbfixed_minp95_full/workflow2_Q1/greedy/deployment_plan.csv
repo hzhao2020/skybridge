@@ -6,4 +6,4 @@ workflow2,Q1,Video Caption,video_caption_azure_eastus_q1,Azure,eastus,Claude Hai
 workflow2,Q1,OCR,ocr_azure_westus2_q1,Azure,westus2,
 workflow2,Q1,Label Detection,label_detection_aliyun_cn-shanghai_q1,Aliyun,cn-shanghai,
 workflow2,Q1,Database,database_aliyun_cn-shanghai_q1,Aliyun,cn-shanghai,
-workflow2,Q1,Q/A,q_a_anthropic_global_q1,Anthropic,global,Claude Haiku 4.5
+workflow2,Q1,Q/A,q_a_azure_westus2_q1,Azure,westus2,Claude Haiku 4.5
