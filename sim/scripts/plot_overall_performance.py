@@ -69,6 +69,7 @@ def _load_data(result_root: Path) -> pd.DataFrame:
                     "method": method_label,
                     "method_key": method_key,
                     "expected_cost": float(metrics["expected_cost"]),
+                    "avg_latency": float(metrics["avg_latency"]),
                     "p95_latency": float(metrics["p95_latency"]),
                     "violation_rate": float(metrics["violation_rate"]),
                     "status": metrics.get("status", ""),
@@ -224,6 +225,15 @@ def plot_overall_performance(result_root: Path, fig_dir: Path) -> pd.DataFrame:
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=FIGSIZE)
+    _plot_grouped(ax, df, x, offsets, width, setting_labels, "avg_latency", "Mean latency (s)")
+    _set_headroom_ylim(ax, df["avg_latency"], minimum_top=1.0)
+    _add_cost_legend(ax)
+    fig.tight_layout(pad=0.35)
+    fig.savefig(fig_dir / "overall_mean_latency.pdf", bbox_inches="tight")
+    fig.savefig(fig_dir / "overall_mean_latency.png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+    fig, ax = plt.subplots(figsize=FIGSIZE)
     _plot_grouped(ax, df, x, offsets, width, setting_labels, "p95_latency", "P95 latency (s)")
     _set_headroom_ylim(ax, df["p95_latency"], minimum_top=1.0)
     _add_cost_legend(ax)
@@ -276,6 +286,8 @@ def main() -> None:
     for name in (
         "overall_cost.pdf",
         "overall_cost.png",
+        "overall_mean_latency.pdf",
+        "overall_mean_latency.png",
         "overall_p95_latency.pdf",
         "overall_p95_latency.png",
         "overall_svr.pdf",
@@ -289,6 +301,7 @@ def main() -> None:
                 "setting",
                 "method",
                 "expected_cost",
+                "avg_latency",
                 "p95_latency",
                 "violation_rate",
                 "status",
