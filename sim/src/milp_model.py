@@ -100,7 +100,8 @@ def build_milp(
 
     model = gp.Model("skyflow")
     model.Params.OutputFlag = 0
-    model.Params.TimeLimit = config.gurobi_time_limit_sec
+    if config.gurobi_time_limit_sec > 0:
+        model.Params.TimeLimit = config.gurobi_time_limit_sec
     model.Params.MIPGap = config.gurobi_mip_gap
     model.Params.MIPGapAbs = 1e-12
     model.Params.Seed = config.random_seed

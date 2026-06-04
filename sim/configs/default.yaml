@@ -13,7 +13,7 @@ initial_active_fraction: 0.20
 active_batch_fraction: 0.05
 violation_tolerance: 1.0e-6
 max_iterations: 100
-gurobi_time_limit_sec: 300
+gurobi_time_limit_sec: 0
 gurobi_mip_gap: 1.0e-9
 latency_tiebreaker_weight: 0.0
 endpoint_tiebreaker_weight: 1.0e-6
