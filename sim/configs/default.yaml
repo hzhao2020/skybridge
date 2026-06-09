@@ -2,14 +2,15 @@
 random_seed: 42          # RNG seed for queries, scenarios (ρ), and endpoint latency scaling
 num_scenarios_per_query: 50  # S = 50 calibration scenarios per query
 num_heldout_scenarios_per_query: 50  # S = 50 held-out evaluation scenarios per query
-eta: 0.10                # η CVaR tail confidence in SAA-CVaR MILP and post-eval CVaR
+eta: 0.05                # η CVaR tail confidence in SAA-CVaR MILP and post-eval CVaR
 
 # all = every region in providers; first = one region per provider; integer = first N regions per provider.
 regions_per_provider: all
 num_queries_per_workflow_quality: 1000
-num_queries_per_quality: 2000
+num_queries_per_quality: 1000
 top_k: 10
 initial_active_fraction: 0.20
+initial_active_strategy: stratified_random
 active_batch_fraction: 0.05
 violation_tolerance: 1.0e-6
 max_iterations: 100

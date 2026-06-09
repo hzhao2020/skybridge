@@ -132,6 +132,10 @@ def video_mb_per_minute() -> float:
     return float(load_pricing_config()["video_mb_per_minute"])
 
 
+def video_to_audio_ratio() -> float:
+    return float(load_pricing_config().get("video_to_audio_ratio", 0.0064))
+
+
 def llm_model_listed(provider: str, region: str, model: str) -> bool:
     """True only when (provider, region, model) appears in the paper LLM table."""
     cfg = load_pricing_config()

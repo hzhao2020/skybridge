@@ -1,0 +1,64 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/0ch_cf",
+      "description": "Fish",
+      "score": 0.97619957,
+      "topicality": 0.40046814
+    },
+    {
+      "mid": "/m/01sfb5",
+      "description": "Underwater",
+      "score": 0.96442574,
+      "topicality": 0.18787616
+    },
+    {
+      "mid": "/m/02yfx",
+      "description": "Fluid",
+      "score": 0.95415354,
+      "topicality": 0.00014024109
+    },
+    {
+      "mid": "/m/050vn",
+      "description": "Marine biology",
+      "score": 0.9366221,
+      "topicality": 0.037088938
+    },
+    {
+      "mid": "/m/05kq4",
+      "description": "Ocean",
+      "score": 0.7883762,
+      "topicality": 0.08738648
+    },
+    {
+      "mid": "/m/0sxvh",
+      "description": "Animal migration",
+      "score": 0.7708047,
+      "topicality": 0.004223901
+    },
+    {
+      "mid": "/m/0ctsx",
+      "description": "Coral",
+      "score": 0.7683341,
+      "topicality": 0.0060584215
+    },
+    {
+      "mid": "/m/01jypq",
+      "description": "Reef",
+      "score": 0.7527762,
+      "topicality": 0.1474036
+    },
+    {
+      "mid": "/m/04zygmh",
+      "description": "Forage fish",
+      "score": 0.6844245,
+      "topicality": 0.048025735
+    },
+    {
+      "mid": "/m/02zg_",
+      "description": "Fin",
+      "score": 0.64937437,
+      "topicality": 0.005942271
+    }
+  ]
+}

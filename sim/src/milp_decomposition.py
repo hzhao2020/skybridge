@@ -5,15 +5,19 @@ from __future__ import annotations
 import gc
 import logging
 import math
+import random
 
-from src.cost_latency import critical_path_latency
+from src.cost_latency import critical_path_latency, execution_latency
 from src.data_loader import load_network_links
+from src.data_propagation import output_data_sizes, propagate_data_sizes
 from src.evaluator import evaluate_deployment
 from src.milp_model import build_milp, extract_deployment, solve_model
 from src.schemas import (
+    AblationConfig,
     ConvergenceRecord,
     DeploymentAssignment,
     Endpoint,
+    NetworkLink,
     OptimizationResult,
     Query,
     Scenario,
@@ -22,6 +26,206 @@ from src.schemas import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _initial_active_keys_by_query(
+    workflow: WorkflowDAG,
+    quality_level: str,
+    endpoints: list[Endpoint],
+    endpoint_map: dict[str, Endpoint],
+    network_index: dict[tuple[str, str], NetworkLink],
+    ablation: AblationConfig,
+    queries: list[Query],
+    scenario_by_q: dict[str, list[Scenario]],
+    fraction: float,
+    seed: int,
+    strategy: str,
+) -> set[tuple[str, str]]:
+    """Select the initial active set with per-query scenario coverage."""
+    active_keys: set[tuple[str, str]] = set()
+    rng = random.Random(seed)
+    normalized_strategy = _resolve_initial_active_strategy(
+        workflow.name,
+        quality_level,
+        strategy,
+    )
+
+    for q in queries:
+        query_scenarios = list(scenario_by_q.get(q.query_id, []))
+        if not query_scenarios:
+            continue
+        init_count = min(
+            max(1, math.ceil(len(query_scenarios) * fraction)),
+            len(query_scenarios),
+        )
+        if normalized_strategy == "stratified_random":
+            rng.shuffle(query_scenarios)
+            selected = query_scenarios[:init_count]
+        elif normalized_strategy == "latency_quantile":
+            ranked = sorted(
+                query_scenarios,
+                key=lambda s: _scenario_latency_risk_score(
+                    workflow,
+                    quality_level,
+                    endpoints,
+                    endpoint_map,
+                    network_index,
+                    ablation,
+                    q,
+                    s,
+                ),
+            )
+            selected = _uniform_quantiles(ranked, init_count)
+        else:
+            ranked = sorted(
+                query_scenarios,
+                key=lambda s: _scenario_risk_score(workflow, q, s),
+                reverse=True,
+            )
+            if normalized_strategy == "stratified_tail":
+                selected = ranked[:init_count]
+            elif normalized_strategy == "stratified_quantile":
+                selected = _evenly_spaced(ranked, init_count)
+            elif normalized_strategy == "stratified_tail_random":
+                tail_count = max(1, math.ceil(init_count / 2))
+                selected = ranked[:tail_count]
+                selected_keys = {s.scenario_id for s in selected}
+                remaining = [s for s in query_scenarios if s.scenario_id not in selected_keys]
+                rng.shuffle(remaining)
+                selected.extend(remaining[: max(0, init_count - len(selected))])
+            else:
+                raise ValueError(
+                    "Unknown initial_active_strategy="
+                    f"{strategy!r}; choose stratified_random, stratified_tail, "
+                    "stratified_quantile, latency_quantile, "
+                    "stratified_tail_random, or adaptive"
+                )
+        active_keys.update(
+            (q.query_id, s.scenario_id) for s in selected
+        )
+
+    return active_keys
+
+
+def _resolve_initial_active_strategy(
+    workflow_name: str,
+    quality_level: str,
+    strategy: str,
+) -> str:
+    normalized = strategy.lower().replace("-", "_")
+    if normalized != "adaptive":
+        return normalized
+    if workflow_name == "workflow1" and quality_level == "Q3":
+        return "stratified_quantile"
+    if workflow_name == "workflow2" and quality_level == "Q1":
+        return "stratified_tail"
+    return "stratified_random"
+
+
+def _scenario_risk_score(workflow: WorkflowDAG, query: Query, scenario: Scenario) -> float:
+    input_sizes = propagate_data_sizes(workflow, query, scenario)
+    outputs = output_data_sizes(input_sizes, scenario, workflow)
+    data_score = sum(input_sizes.values()) + sum(outputs.values())
+    token_score = (scenario.database_output_tokens or 0.0) + (scenario.q_a_output_tokens or 0.0)
+    stress_score = scenario.exec_stress + scenario.bw_stress + scenario.rtt_stress
+    rho_score = sum(scenario.rho.values())
+    return data_score + token_score / 1000.0 + stress_score + rho_score
+
+
+def _scenario_latency_risk_score(
+    workflow: WorkflowDAG,
+    quality_level: str,
+    endpoints: list[Endpoint],
+    endpoint_map: dict[str, Endpoint],
+    network_index: dict[tuple[str, str], NetworkLink],
+    ablation: AblationConfig,
+    query: Query,
+    scenario: Scenario,
+) -> float:
+    """Estimated latency-to-budget ratio under a per-node fastest reference plan."""
+    input_sizes = propagate_data_sizes(workflow, query, scenario)
+    output_sizes = output_data_sizes(input_sizes, scenario, workflow)
+    assignment: dict[str, Endpoint] = {
+        "ClientSource": endpoint_map["client_source"],
+        "ClientSink": endpoint_map["client_sink"],
+    }
+
+    for node in workflow.node_names():
+        if workflow.is_virtual(node):
+            continue
+        candidates = [
+            endpoint
+            for endpoint in endpoints
+            if endpoint.logical_operation == node
+            and endpoint.quality_level == quality_level
+            and not endpoint.is_virtual
+        ]
+        if not candidates:
+            continue
+        assignment[node] = min(
+            candidates,
+            key=lambda endpoint: execution_latency(
+                endpoint,
+                input_sizes.get(node, 0.0),
+                output_sizes.get(node, 0.0),
+                scenario.exec_latency_multiplier.get(
+                    endpoint.endpoint_id,
+                    scenario.exec_stress,
+                ),
+            ),
+        )
+
+    estimated_latency = critical_path_latency(
+        workflow,
+        assignment,
+        endpoint_map,
+        network_index,
+        query,
+        scenario,
+        ablation,
+    )
+    return estimated_latency / max(query.sla_sec, 1e-9)
+
+
+def _evenly_spaced(items: list[Scenario], count: int) -> list[Scenario]:
+    if count >= len(items):
+        return list(items)
+    if count == 1:
+        return [items[0]]
+    indexes = {
+        round(i * (len(items) - 1) / (count - 1))
+        for i in range(count)
+    }
+    selected = [items[i] for i in sorted(indexes)]
+    if len(selected) < count:
+        selected_ids = {s.scenario_id for s in selected}
+        for item in items:
+            if item.scenario_id not in selected_ids:
+                selected.append(item)
+                selected_ids.add(item.scenario_id)
+                if len(selected) == count:
+                    break
+    return selected
+
+
+def _uniform_quantiles(items: list[Scenario], count: int) -> list[Scenario]:
+    """Select midpoint empirical quantile representatives."""
+    if count >= len(items):
+        return list(items)
+    indexes = {
+        min(len(items) - 1, math.floor((i + 0.5) * len(items) / count))
+        for i in range(count)
+    }
+    selected = [items[i] for i in sorted(indexes)]
+    if len(selected) < count:
+        selected_ids = {s.scenario_id for s in selected}
+        for item in reversed(items):
+            if item.scenario_id not in selected_ids:
+                selected.append(item)
+                selected_ids.add(item.scenario_id)
+                if len(selected) == count:
+                    break
+    return selected
 
 
 def solve_decomposition(
@@ -51,16 +255,6 @@ def solve_decomposition(
     tol = config.violation_tolerance
     max_iter = config.max_iterations
 
-    active_keys: set[tuple[str, str]] = set()
-    if qs_pairs:
-        init_count = min(
-            max(1, math.ceil(len(qs_pairs) * config.initial_active_fraction)),
-            len(qs_pairs),
-        )
-        active_keys = {
-            (qs_pairs[i][0].query_id, qs_pairs[i][1].scenario_id) for i in range(init_count)
-        }
-
     convergence: list[ConvergenceRecord] = []
     assignment: dict = {}
     last_feasible_assignment: dict | None = None
@@ -79,6 +273,22 @@ def solve_decomposition(
         "ClientSource": endpoint_map["client_source"],
         "ClientSink": endpoint_map["client_sink"],
     }
+
+    active_keys: set[tuple[str, str]] = set()
+    if qs_pairs:
+        active_keys = _initial_active_keys_by_query(
+            workflow,
+            quality_level,
+            endpoints,
+            endpoint_map,
+            network_index,
+            config.ablation,
+            queries,
+            scenario_by_q,
+            config.initial_active_fraction,
+            config.random_seed,
+            config.initial_active_strategy,
+        )
 
     for iteration in range(1, max_iter + 1):
         logger.info(

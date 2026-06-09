@@ -1,0 +1,5 @@
+workflow,quality_level,logical_node,endpoint_id,provider,region,model_name
+workflow1,Q3,Shot Detection,shot_detection_aliyun_cn-shanghai_q3,Aliyun,cn-shanghai,
+workflow1,Q3,Video Split & Sample,video_split_and_sample_azure_eastus_q3,Azure,eastus,
+workflow1,Q3,Video Caption,video_caption_aws_us-east-2_q3,AWS,us-east-2,Claude Opus 4.5
+workflow1,Q3,Q/A,q_a_anthropic_global_q3,Anthropic,global,Claude Opus 4.5

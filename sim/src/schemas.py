@@ -104,6 +104,7 @@ class SolverConfig(BaseModel):
     eta: float = 0.05
     top_k: int = 10
     initial_active_fraction: float = 0.20
+    initial_active_strategy: str = "stratified_random"
     active_batch_fraction: float = 0.05
     violation_tolerance: float = 1e-6
     max_iterations: int = 100

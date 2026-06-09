@@ -1,0 +1,64 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/050vn",
+      "description": "Marine biology",
+      "score": 0.9309228,
+      "topicality": 0.026582746
+    },
+    {
+      "mid": "/m/01sfb5",
+      "description": "Underwater",
+      "score": 0.886148,
+      "topicality": 0.11949886
+    },
+    {
+      "mid": "/m/0ctsx",
+      "description": "Coral",
+      "score": 0.87897974,
+      "topicality": 0.011458976
+    },
+    {
+      "mid": "/m/0hlw",
+      "description": "Algae",
+      "score": 0.8754952,
+      "topicality": 0.5890966
+    },
+    {
+      "mid": "/m/0l_br",
+      "description": "Coral reef",
+      "score": 0.8280151,
+      "topicality": 0.089123435
+    },
+    {
+      "mid": "/m/05kq4",
+      "description": "Ocean",
+      "score": 0.80146164,
+      "topicality": 0.10083401
+    },
+    {
+      "mid": "/m/0cj6f",
+      "description": "Seaweed",
+      "score": 0.7726714,
+      "topicality": 0.046147898
+    },
+    {
+      "mid": "/m/01jypq",
+      "description": "Reef",
+      "score": 0.7618568,
+      "topicality": 0.14019951
+    },
+    {
+      "mid": "/m/01y24v",
+      "description": "Green algae",
+      "score": 0.7267104,
+      "topicality": 0.0582517
+    },
+    {
+      "mid": "/m/013sbk",
+      "description": "Aquatic plant",
+      "score": 0.6915324,
+      "topicality": 0.007993825
+    }
+  ]
+}

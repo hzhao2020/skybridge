@@ -1,0 +1,28 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/0zkm",
+      "description": "Arthropod",
+      "score": 0.66661066,
+      "topicality": 0.0049503176
+    },
+    {
+      "mid": "/m/03rbf6",
+      "description": "Macro photography",
+      "score": 0.5770834,
+      "topicality": 0.0057048863
+    },
+    {
+      "mid": "/m/0b_l7",
+      "description": "Parasitism",
+      "score": 0.53081626,
+      "topicality": 0.017017975
+    },
+    {
+      "mid": "/m/03vt0",
+      "description": "Insect",
+      "score": 0.51068634,
+      "topicality": 0.037947368
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/02yfx",
+      "description": "Fluid",
+      "score": 0.95220304,
+      "topicality": 0.0001459835
+    },
+    {
+      "mid": "/m/04k94",
+      "description": "Liquid",
+      "score": 0.9209142,
+      "topicality": 1.9269879e-05
+    },
+    {
+      "mid": "/m/06npx",
+      "description": "Sea",
+      "score": 0.90488285,
+      "topicality": 0.21563408
+    },
+    {
+      "mid": "/m/05kq4",
+      "description": "Ocean",
+      "score": 0.8968995,
+      "topicality": 0.08891288
+    },
+    {
+      "mid": "/m/02zg_",
+      "description": "Fin",
+      "score": 0.8569799,
+      "topicality": 0.018756106
+    },
+    {
+      "mid": "/m/050vn",
+      "description": "Marine biology",
+      "score": 0.8464635,
+      "topicality": 0.011904745
+    },
+    {
+      "mid": "/m/0ch_cf",
+      "description": "Fish",
+      "score": 0.82396805,
+      "topicality": 0.06093968
+    },
+    {
+      "mid": "/m/084zz",
+      "description": "Cetaceans",
+      "score": 0.76801926,
+      "topicality": 0.37519225
+    },
+    {
+      "mid": "/m/02p0sll",
+      "description": "Wave",
+      "score": 0.58471584,
+      "topicality": 0.004808785
+    },
+    {
+      "mid": "/m/034srq",
+      "description": "Wind wave",
+      "score": 0.563713,
+      "topicality": 0.004576642
+    }
+  ]
+}

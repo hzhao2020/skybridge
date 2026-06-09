@@ -4,15 +4,15 @@
   "method": "greedy",
   "assignments": [
     {
-      "logical_node": "Shot Detection",
-      "endpoint_id": "shot_detection_aliyun_cn-shanghai_q2",
+      "logical_node": "Speech Transcription",
+      "endpoint_id": "speech_transcription_aliyun_cn-shanghai_q2",
       "provider": "Aliyun",
       "region": "cn-shanghai",
       "model_name": null
     },
     {
-      "logical_node": "Speech Transcription",
-      "endpoint_id": "speech_transcription_aliyun_cn-shanghai_q2",
+      "logical_node": "Shot Detection",
+      "endpoint_id": "shot_detection_aliyun_cn-shanghai_q2",
       "provider": "Aliyun",
       "region": "cn-shanghai",
       "model_name": null
@@ -66,13 +66,13 @@
     "quality_level": "Q2",
     "method": "greedy",
     "objective_value": 0.0615,
-    "expected_cost": 4.549769576876212,
+    "expected_cost": 4.364091223665369,
     "avg_latency": 2239.487672972488,
     "p95_latency": 6420.969281391245,
     "p99_latency": 10879.777625692797,
     "violation_rate": 0.06634,
-    "cvar_value": 1276.0270644155637,
-    "solver_runtime_sec": 50.45886191600039,
+    "cvar_value": 1276.027064415561,
+    "solver_runtime_sec": 89.38887850000174,
     "status": "optimal"
   }
 }

@@ -1,0 +1,34 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/050vn",
+      "description": "Marine biology",
+      "score": 0.6727712,
+      "topicality": 0.0015528012
+    },
+    {
+      "mid": "/m/03rbf6",
+      "description": "Macro photography",
+      "score": 0.6374143,
+      "topicality": 0.012778049
+    },
+    {
+      "mid": "/m/0hlw",
+      "description": "Algae",
+      "score": 0.5550196,
+      "topicality": 0.042396743
+    },
+    {
+      "mid": "/m/0b_l7",
+      "description": "Parasitism",
+      "score": 0.5194141,
+      "topicality": 0.029515738
+    },
+    {
+      "mid": "/m/02057l",
+      "description": "Liverworts",
+      "score": 0.51940584,
+      "topicality": 0.000682545
+    }
+  ]
+}

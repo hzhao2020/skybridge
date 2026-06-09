@@ -26,9 +26,9 @@
     },
     {
       "logical_node": "OCR",
-      "endpoint_id": "ocr_azure_eastus_q2",
-      "provider": "Azure",
-      "region": "eastus",
+      "endpoint_id": "ocr_aws_us-east-2_q2",
+      "provider": "AWS",
+      "region": "us-east-2",
       "model_name": null
     },
     {
@@ -54,9 +54,9 @@
     },
     {
       "logical_node": "Q/A",
-      "endpoint_id": "q_a_aws_ap-southeast-1_q2",
-      "provider": "AWS",
-      "region": "ap-southeast-1",
+      "endpoint_id": "q_a_anthropic_global_q2",
+      "provider": "Anthropic",
+      "region": "global",
       "model_name": "Claude Sonnet 4.5"
     }
   ],
@@ -66,13 +66,13 @@
     "quality_level": "Q2",
     "method": "decomposition",
     "objective_value": Infinity,
-    "expected_cost": 4.549769587638231,
-    "avg_latency": 2239.0328009837735,
-    "p95_latency": 6420.484324189009,
-    "p99_latency": 10879.40728510978,
+    "expected_cost": 4.36411449329337,
+    "avg_latency": 2239.078732362877,
+    "p95_latency": 6420.560298984534,
+    "p99_latency": 10879.368724403159,
     "violation_rate": 0.06624,
-    "cvar_value": 1275.7247601061688,
-    "solver_runtime_sec": 312.64230337499976,
+    "cvar_value": 1275.7559745815954,
+    "solver_runtime_sec": 334.3927232510032,
     "status": "INFEASIBLE"
   }
 }

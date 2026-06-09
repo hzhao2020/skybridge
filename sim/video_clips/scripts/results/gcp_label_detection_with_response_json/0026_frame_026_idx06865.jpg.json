@@ -1,0 +1,52 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/06bt6",
+      "description": "Reptile",
+      "score": 0.96068794,
+      "topicality": 0.11574272
+    },
+    {
+      "mid": "/m/0fbf1m",
+      "description": "Terrestrial animal",
+      "score": 0.90586454,
+      "topicality": 0.0028717883
+    },
+    {
+      "mid": "/m/01280g",
+      "description": "Wildlife",
+      "score": 0.87189525,
+      "topicality": 0.015729066
+    },
+    {
+      "mid": "/m/01shdw",
+      "description": "Scaled reptiles",
+      "score": 0.8006241,
+      "topicality": 0.023279127
+    },
+    {
+      "mid": "/m/09dzg",
+      "description": "Turtle",
+      "score": 0.7802546,
+      "topicality": 0.3100168
+    },
+    {
+      "mid": "/m/011k07",
+      "description": "Tortoise",
+      "score": 0.7611021,
+      "topicality": 0.24046133
+    },
+    {
+      "mid": "/m/0bc95d",
+      "description": "Gopher tortoises",
+      "score": 0.6466339,
+      "topicality": 0.020637332
+    },
+    {
+      "mid": "/m/05qy47",
+      "description": "Galápagos tortoise",
+      "score": 0.5145394,
+      "topicality": 0.070486814
+    }
+  ]
+}

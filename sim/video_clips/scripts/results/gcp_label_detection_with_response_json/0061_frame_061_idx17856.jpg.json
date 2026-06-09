@@ -1,0 +1,22 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/088fh",
+      "description": "Yellow",
+      "score": 0.9639359,
+      "topicality": 0.008659852
+    },
+    {
+      "mid": "/m/02cqfm",
+      "description": "Close-up",
+      "score": 0.8251003,
+      "topicality": 0.006159904
+    },
+    {
+      "mid": "/m/03rbf6",
+      "description": "Macro photography",
+      "score": 0.6853084,
+      "topicality": 0.0042069894
+    }
+  ]
+}

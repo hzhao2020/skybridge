@@ -1,0 +1,64 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/02cqfm",
+      "description": "Close-up",
+      "score": 0.8372853,
+      "topicality": 0.01500327
+    },
+    {
+      "mid": "/m/01dqkc",
+      "description": "Pest",
+      "score": 0.7724875,
+      "topicality": 0.0068728626
+    },
+    {
+      "mid": "/m/03vt0",
+      "description": "Insect",
+      "score": 0.74661636,
+      "topicality": 0.060494006
+    },
+    {
+      "mid": "/m/0zkm",
+      "description": "Arthropod",
+      "score": 0.7236631,
+      "topicality": 0.008844259
+    },
+    {
+      "mid": "/m/01280g",
+      "description": "Wildlife",
+      "score": 0.69972944,
+      "topicality": 0.02767835
+    },
+    {
+      "mid": "/m/03rbf6",
+      "description": "Macro photography",
+      "score": 0.66840196,
+      "topicality": 0.03226202
+    },
+    {
+      "mid": "/m/0_k2",
+      "description": "Ant",
+      "score": 0.6357655,
+      "topicality": 0.12559673
+    },
+    {
+      "mid": "/m/02057l",
+      "description": "Liverworts",
+      "score": 0.53047186,
+      "topicality": 5.423829e-05
+    },
+    {
+      "mid": "/m/013sbk",
+      "description": "Aquatic plant",
+      "score": 0.51627463,
+      "topicality": 0.0053538894
+    },
+    {
+      "mid": "/m/0b_l7",
+      "description": "Parasitism",
+      "score": 0.5029476,
+      "topicality": 0.012050251
+    }
+  ]
+}

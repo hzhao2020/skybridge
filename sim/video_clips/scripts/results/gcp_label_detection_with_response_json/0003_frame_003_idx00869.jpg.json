@@ -1,0 +1,64 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/0csby",
+      "description": "Cloud",
+      "score": 0.9899372,
+      "topicality": 0.38889605
+    },
+    {
+      "mid": "/m/01g5v",
+      "description": "Blue",
+      "score": 0.98839873,
+      "topicality": 0.005673013
+    },
+    {
+      "mid": "/m/02q7ylj",
+      "description": "Daytime",
+      "score": 0.9810895,
+      "topicality": 0.00939764
+    },
+    {
+      "mid": "/m/02yfx",
+      "description": "Fluid",
+      "score": 0.9548774,
+      "topicality": 0.0014108017
+    },
+    {
+      "mid": "/m/0d1n2",
+      "description": "Horizon",
+      "score": 0.95202804,
+      "topicality": 0.005246749
+    },
+    {
+      "mid": "/m/0csh5",
+      "description": "Cumulus",
+      "score": 0.9445116,
+      "topicality": 0.034890164
+    },
+    {
+      "mid": "/m/06npx",
+      "description": "Sea",
+      "score": 0.94320446,
+      "topicality": 0.17569704
+    },
+    {
+      "mid": "/m/04k94",
+      "description": "Liquid",
+      "score": 0.9194383,
+      "topicality": 0.00046639287
+    },
+    {
+      "mid": "/m/05kq4",
+      "description": "Ocean",
+      "score": 0.9171421,
+      "topicality": 0.10511342
+    },
+    {
+      "mid": "/m/02c9_23",
+      "description": "Coastal and oceanic landforms",
+      "score": 0.909686,
+      "topicality": 0.00023336604
+    }
+  ]
+}

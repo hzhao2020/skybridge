@@ -1,0 +1,22 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/0cnxs6x",
+      "description": "Tooth",
+      "score": 0.9181982,
+      "topicality": 0.008710377
+    },
+    {
+      "mid": "/m/02p16m6",
+      "description": "Flesh",
+      "score": 0.59636146,
+      "topicality": 0.008840263
+    },
+    {
+      "mid": "/m/01f5gx",
+      "description": "Eating",
+      "score": 0.5311671,
+      "topicality": 0.03069924
+    }
+  ]
+}

@@ -38,13 +38,13 @@
     "quality_level": "Q2",
     "method": "greedy",
     "objective_value": 0.06134,
-    "expected_cost": 2.8338120419615924,
+    "expected_cost": 2.8338120419615933,
     "avg_latency": 2304.1140592025663,
     "p95_latency": 6687.79038237684,
     "p99_latency": 11380.364880108951,
     "violation_rate": 0.06676,
-    "cvar_value": 1422.1882186330229,
-    "solver_runtime_sec": 16.74371175000124,
+    "cvar_value": 1422.1882186330215,
+    "solver_runtime_sec": 29.068852500000503,
     "status": "optimal"
   }
 }

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from src.schemas import Query, Scenario, WorkflowDAG
-from src.pricing import tokens_per_mb
+from src.pricing import tokens_per_mb, video_to_audio_ratio
 
 
 def propagate_data_sizes(
@@ -27,6 +27,8 @@ def propagate_data_sizes(
         elif workflow.is_virtual(node):
             preds = workflow.predecessors(node)
             sizes[node] = sum(sizes.get(p, 0.0) for p in preds) if preds else 0.0
+        elif node == "Speech Transcription":
+            sizes[node] = query.video_size_mb * video_to_audio_ratio()
         else:
             preds = workflow.predecessors(node)
             if not preds:
@@ -54,6 +56,18 @@ def output_data_sizes(
         else:
             outputs[node] = _node_output_size(node, sizes, scenario, workflow, default_rho)
     return outputs
+
+
+def edge_transfer_size(
+    src: str,
+    dst: str,
+    output_sizes: dict[str, float],
+    query: Query,
+) -> float:
+    """Data size transferred on a DAG edge."""
+    if src == "ClientSource" and dst == "Speech Transcription":
+        return query.video_size_mb * video_to_audio_ratio()
+    return output_sizes.get(src, 0.0)
 
 
 def _node_output_size(

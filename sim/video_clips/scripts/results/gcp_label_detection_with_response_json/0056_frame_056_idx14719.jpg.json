@@ -1,0 +1,22 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/088fh",
+      "description": "Yellow",
+      "score": 0.95666605,
+      "topicality": 0.011969902
+    },
+    {
+      "mid": "/m/0ch_cf",
+      "description": "Fish",
+      "score": 0.60844517,
+      "topicality": 0.16015059
+    },
+    {
+      "mid": "/m/050vn",
+      "description": "Marine biology",
+      "score": 0.5764679,
+      "topicality": 0.00056022423
+    }
+  ]
+}

@@ -39,12 +39,12 @@
     "method": "decomposition",
     "objective_value": Infinity,
     "expected_cost": 6.89509967353863,
-    "avg_latency": 3919.2489767757525,
-    "p95_latency": 11274.446680512328,
-    "p99_latency": 19777.303157671813,
-    "violation_rate": 0.0657,
-    "cvar_value": 2353.1824625972354,
-    "solver_runtime_sec": 129.72914508299982,
+    "avg_latency": 3931.1835103607737,
+    "p95_latency": 11290.742334405328,
+    "p99_latency": 19794.612098367645,
+    "violation_rate": 0.06574,
+    "cvar_value": 2353.4526365286806,
+    "solver_runtime_sec": 127.01068045799911,
     "status": "INFEASIBLE"
   }
 }

@@ -1,0 +1,64 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/09dzg",
+      "description": "Turtle",
+      "score": 0.9561928,
+      "topicality": 0.8707183
+    },
+    {
+      "mid": "/m/011k07",
+      "description": "Tortoise",
+      "score": 0.94279927,
+      "topicality": 0.3509691
+    },
+    {
+      "mid": "/m/06bt6",
+      "description": "Reptile",
+      "score": 0.9320245,
+      "topicality": 0.053785592
+    },
+    {
+      "mid": "/m/099fz",
+      "description": "Sand",
+      "score": 0.8875082,
+      "topicality": 0.14137019
+    },
+    {
+      "mid": "/m/0120dh",
+      "description": "Sea turtle",
+      "score": 0.830579,
+      "topicality": 0.6652871
+    },
+    {
+      "mid": "/m/04jz15",
+      "description": "Olive ridley sea turtle",
+      "score": 0.7291926,
+      "topicality": 0.1913651
+    },
+    {
+      "mid": "/m/04gvhhy",
+      "description": "Aeolian landform",
+      "score": 0.6532047,
+      "topicality": 0.0001242314
+    },
+    {
+      "mid": "/m/0g57nsf",
+      "description": "Chelonoidis",
+      "score": 0.6167744,
+      "topicality": 0.004854226
+    },
+    {
+      "mid": "/m/0bc95d",
+      "description": "Gopher tortoises",
+      "score": 0.5876163,
+      "topicality": 0.00246248
+    },
+    {
+      "mid": "/m/0b3yr",
+      "description": "Beach",
+      "score": 0.55833787,
+      "topicality": 0.04522054
+    }
+  ]
+}

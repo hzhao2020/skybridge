@@ -54,9 +54,9 @@
     },
     {
       "logical_node": "Q/A",
-      "endpoint_id": "q_a_aws_ap-southeast-1_q3",
+      "endpoint_id": "q_a_aws_eu-central-1_q3",
       "provider": "AWS",
-      "region": "ap-southeast-1",
+      "region": "eu-central-1",
       "model_name": "Claude Opus 4.5"
     }
   ],
@@ -66,13 +66,13 @@
     "quality_level": "Q3",
     "method": "decomposition",
     "objective_value": Infinity,
-    "expected_cost": 8.855713198150843,
-    "avg_latency": 4012.4591940247547,
-    "p95_latency": 11571.991761597867,
-    "p99_latency": 19519.518670515794,
-    "violation_rate": 0.06858,
-    "cvar_value": 2240.956251645546,
-    "solver_runtime_sec": 342.9689751250007,
+    "expected_cost": 8.667616424971454,
+    "avg_latency": 4024.6282828305034,
+    "p95_latency": 11584.297623993678,
+    "p99_latency": 19538.174003457454,
+    "violation_rate": 0.06854,
+    "cvar_value": 2241.207138390508,
+    "solver_runtime_sec": 328.04718191600114,
     "status": "INFEASIBLE"
   }
 }

@@ -54,9 +54,9 @@
     },
     {
       "logical_node": "Q/A",
-      "endpoint_id": "q_a_anthropic_global_q1",
-      "provider": "Anthropic",
-      "region": "global",
+      "endpoint_id": "q_a_aws_eu-central-1_q1",
+      "provider": "AWS",
+      "region": "eu-central-1",
       "model_name": "Claude Haiku 4.5"
     }
   ],
@@ -66,13 +66,13 @@
     "quality_level": "Q1",
     "method": "decomposition",
     "objective_value": Infinity,
-    "expected_cost": 2.8695574875864516,
-    "avg_latency": 529.9732303969854,
-    "p95_latency": 1268.2975626628715,
-    "p99_latency": 1952.1076145826546,
-    "violation_rate": 0.03148,
-    "cvar_value": 102.56883244744624,
-    "solver_runtime_sec": 714.6244446659985,
+    "expected_cost": 2.6792298024874763,
+    "avg_latency": 517.7608758944118,
+    "p95_latency": 1250.6354273390675,
+    "p99_latency": 1934.3944031250408,
+    "violation_rate": 0.03776,
+    "cvar_value": 120.08079176523232,
+    "solver_runtime_sec": 649.7826855839958,
     "status": "INFEASIBLE"
   }
 }

@@ -1,0 +1,16 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/0cnxs6x",
+      "description": "Tooth",
+      "score": 0.92927533,
+      "topicality": 0.0047474657
+    },
+    {
+      "mid": "/m/0b_l7",
+      "description": "Parasitism",
+      "score": 0.51744765,
+      "topicality": 0.024009405
+    }
+  ]
+}

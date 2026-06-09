@@ -1,0 +1,40 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/084zz",
+      "description": "Cetaceans",
+      "score": 0.84245,
+      "topicality": 0.41350746
+    },
+    {
+      "mid": "/m/050vn",
+      "description": "Marine biology",
+      "score": 0.70387864,
+      "topicality": 0.00785105
+    },
+    {
+      "mid": "/m/02zg_",
+      "description": "Fin",
+      "score": 0.6971886,
+      "topicality": 0.018190414
+    },
+    {
+      "mid": "/m/0ch_cf",
+      "description": "Fish",
+      "score": 0.6688799,
+      "topicality": 0.041753903
+    },
+    {
+      "mid": "/m/01hq29",
+      "description": "Humpback whale",
+      "score": 0.5969571,
+      "topicality": 0.08971647
+    },
+    {
+      "mid": "/m/01k8h",
+      "description": "Blue whale",
+      "score": 0.5349622,
+      "topicality": 0.45332786
+    }
+  ]
+}

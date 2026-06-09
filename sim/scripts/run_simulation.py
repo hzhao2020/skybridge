@@ -82,13 +82,45 @@ def main() -> None:
         action="store_true",
         help="Use the first half of scenarios for selection and report metrics on the held-out half",
     )
+    parser.add_argument(
+        "--initial-active-fraction",
+        type=float,
+        default=None,
+        help="Override decomposition initial active scenario fraction",
+    )
+    parser.add_argument(
+        "--initial-active-strategy",
+        choices=[
+            "stratified_random",
+            "stratified_tail",
+            "stratified_quantile",
+            "latency_quantile",
+            "stratified_tail_random",
+            "adaptive",
+        ],
+        default=None,
+        help="Override decomposition initial active scenario selection strategy",
+    )
+    parser.add_argument(
+        "--active-batch-fraction",
+        type=float,
+        default=None,
+        help="Override decomposition active scenario batch fraction",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
     cfg = load_default_config()
     workflow = get_workflow(args.workflow)
-    config = load_solver_config()
+    solver_overrides = {}
+    if args.initial_active_fraction is not None:
+        solver_overrides["initial_active_fraction"] = args.initial_active_fraction
+    if args.initial_active_strategy is not None:
+        solver_overrides["initial_active_strategy"] = args.initial_active_strategy
+    if args.active_batch_fraction is not None:
+        solver_overrides["active_batch_fraction"] = args.active_batch_fraction
+    config = load_solver_config(solver_overrides)
     endpoints = load_endpoints()
     queries = load_queries(quality_level=args.quality, workflow=args.workflow)
     expected_n = _expected_queries_per_run(cfg)

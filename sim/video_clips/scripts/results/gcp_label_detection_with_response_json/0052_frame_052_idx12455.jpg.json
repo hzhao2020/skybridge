@@ -1,0 +1,52 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/04k94",
+      "description": "Liquid",
+      "score": 0.91941434,
+      "topicality": 2.995384e-05
+    },
+    {
+      "mid": "/m/02zg_",
+      "description": "Fin",
+      "score": 0.86575186,
+      "topicality": 0.048962608
+    },
+    {
+      "mid": "/m/05kq4",
+      "description": "Ocean",
+      "score": 0.85789084,
+      "topicality": 0.0742776
+    },
+    {
+      "mid": "/m/06npx",
+      "description": "Sea",
+      "score": 0.85461324,
+      "topicality": 0.19292928
+    },
+    {
+      "mid": "/m/050vn",
+      "description": "Marine biology",
+      "score": 0.84640265,
+      "topicality": 0.010833521
+    },
+    {
+      "mid": "/m/0ch_cf",
+      "description": "Fish",
+      "score": 0.8248056,
+      "topicality": 0.033574942
+    },
+    {
+      "mid": "/m/084zz",
+      "description": "Cetaceans",
+      "score": 0.79450375,
+      "topicality": 0.31715775
+    },
+    {
+      "mid": "/m/06z_nw",
+      "description": "Tail",
+      "score": 0.6465834,
+      "topicality": 0.0066843177
+    }
+  ]
+}

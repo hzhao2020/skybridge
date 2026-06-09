@@ -7,7 +7,7 @@ from functools import lru_cache
 
 from src.config import load_default_config
 from src.measurement import MEASURED_OPS
-from src.measurement.populate import QUALITY_LATENCY_FACTOR, node_number
+from src.measurement.populate import node_number
 from src.schemas import Endpoint, Query, Scenario
 
 
@@ -37,7 +37,6 @@ def _sampled_execution_latency_cached(
     provider: str,
     region: str,
     op: str,
-    quality_level: str,
 ) -> float:
     params = _measurement_params(seed, provider, region, op)
     if len(params) == 4:
@@ -48,9 +47,8 @@ def _sampled_execution_latency_cached(
         lower, upper = params
 
     lo, hi = sorted((max(0.0, float(lower)), max(0.0, float(upper))))
-    factor = QUALITY_LATENCY_FACTOR[quality_level]
     rng = random.Random(f"{seed}|{query_id}|{scenario_id}|{endpoint_id}")
-    return rng.uniform(lo, hi) * factor
+    return rng.uniform(lo, hi)
 
 
 def sampled_execution_latency(
@@ -77,5 +75,4 @@ def sampled_execution_latency(
         endpoint.provider,
         endpoint.region,
         op,
-        endpoint.quality_level,
     )

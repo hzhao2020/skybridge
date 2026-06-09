@@ -20,7 +20,7 @@ from src.cost_latency import (
     storage_cost,
 )
 from src.data_loader import get_virtual_endpoint_map, load_network_links
-from src.data_propagation import output_data_sizes, propagate_data_sizes
+from src.data_propagation import edge_transfer_size, output_data_sizes, propagate_data_sizes
 from src.measurement.execution_latency import sampled_execution_latency
 from src.evaluator import evaluate_deployment
 from src.path_utils import enumerate_source_to_sink_paths, path_edges
@@ -256,7 +256,7 @@ class _BaselineEvaluationCache:
             dst_ep = self._resolve_endpoint(dst, compute_assignment)
             if src_ep is None or dst_ep is None:
                 continue
-            cost += self._average_edge_cost(src, src_ep, dst_ep)
+            cost += self._average_edge_cost(src, dst, src_ep, dst_ep)
         return cost
 
     def _average_node_cost(self, node: str, endpoint: Endpoint) -> float:
@@ -286,10 +286,11 @@ class _BaselineEvaluationCache:
     def _average_edge_cost(
         self,
         src_node: str,
+        dst_node: str,
         src_ep: Endpoint,
         dst_ep: Endpoint,
     ) -> float:
-        key = (src_node, src_ep.endpoint_id, dst_ep.endpoint_id)
+        key = (src_node, dst_node, src_ep.endpoint_id, dst_ep.endpoint_id)
         cached = self._avg_edge_cost_cache.get(key)
         if cached is not None:
             return cached
@@ -300,10 +301,10 @@ class _BaselineEvaluationCache:
             costs = [
                 network_transfer_cost(
                     link,
-                    output_sizes.get(src_node, 0.0),
+                    edge_transfer_size(src_node, dst_node, output_sizes, query),
                     self.config.ablation.enable_network_cost,
                 )
-                for _, _, _, output_sizes in self.qs_data
+                for query, _, _, output_sizes in self.qs_data
             ]
             value = float(np.mean(costs)) if costs else 0.0
         self._avg_edge_cost_cache[key] = value
@@ -381,9 +382,10 @@ class _BaselineEvaluationCache:
             link = self.network_index.get((src_ep.endpoint_id, dst_ep.endpoint_id))
             if link is None:
                 continue
+            transferred = edge_transfer_size(src, dst, output_sizes, query)
             cost += network_transfer_cost(
                 link,
-                output_sizes.get(src, 0.0),
+                transferred,
                 self.config.ablation.enable_network_cost,
             )
         return cost
@@ -445,9 +447,10 @@ class _BaselineEvaluationCache:
             pair_key = f"{src_ep.endpoint_id}->{dst_ep.endpoint_id}"
             bw_mult = scenario.bandwidth_multiplier.get(pair_key, scenario.bw_stress)
             rtt_mult = scenario.rtt_multiplier.get(pair_key, scenario.rtt_stress)
+            transferred = edge_transfer_size(src, dst, output_sizes, query)
             total += network_latency(
                 link,
-                output_sizes.get(src, 0.0),
+                transferred,
                 bw_mult,
                 rtt_mult,
                 self.config.ablation.enable_network_latency,
@@ -547,7 +550,7 @@ def _expected_incremental_cost_latency(
             link = network_index.get((pred_ep.endpoint_id, endpoint.endpoint_id))
             if link is None:
                 continue
-            pred_out = output_sizes.get(pred, 0.0)
+            pred_out = edge_transfer_size(pred, node, output_sizes, query)
             inc_cost += network_transfer_cost(
                 link,
                 pred_out,

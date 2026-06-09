@@ -37,6 +37,12 @@ def main() -> None:
         type=Path,
         default=RESULTS_DIR / "experiment_logs" / "baseline_calibrated_query_budgets.csv",
     )
+    parser.add_argument(
+        "--baseline-aggregation",
+        choices=["min", "max"],
+        default="min",
+        help="Choose whether each query budget uses the minimum or maximum P95 across baselines.",
+    )
     args = parser.parse_args()
 
     endpoints = load_endpoints()
@@ -97,7 +103,8 @@ def main() -> None:
                         for s in scenario_by_q[q.query_id]
                     ]
                     method_p95[method] = float(pd.Series(latencies).quantile(0.95))
-                budget_baseline = min(method_p95, key=method_p95.get)
+                choose = max if args.baseline_aggregation == "max" else min
+                budget_baseline = choose(method_p95, key=method_p95.get)
                 budget = args.factor * method_p95[budget_baseline]
                 new_sla[q.query_id] = budget
                 records.append(
@@ -106,8 +113,11 @@ def main() -> None:
                         "quality_level": quality,
                         "query_id": q.query_id,
                         "budget_factor": args.factor,
+                        "baseline_aggregation": args.baseline_aggregation,
                         "budget_baseline": budget_baseline,
-                        "baseline_p95_min": method_p95[budget_baseline],
+                        "baseline_p95_selected": method_p95[budget_baseline],
+                        "baseline_p95_min": min(method_p95.values()),
+                        "baseline_p95_max": max(method_p95.values()),
                         "sla_sec_old": q.sla_sec,
                         "sla_sec_new": budget,
                         **{f"p95_{m}": v for m, v in method_p95.items()},

@@ -1,0 +1,46 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/02yfx",
+      "description": "Fluid",
+      "score": 0.95527387,
+      "topicality": 0.0004833745
+    },
+    {
+      "mid": "/m/04k94",
+      "description": "Liquid",
+      "score": 0.9176949,
+      "topicality": 0.00010884108
+    },
+    {
+      "mid": "/m/05kq4",
+      "description": "Ocean",
+      "score": 0.86004215,
+      "topicality": 0.14238957
+    },
+    {
+      "mid": "/m/050vn",
+      "description": "Marine biology",
+      "score": 0.8075652,
+      "topicality": 0.00541337
+    },
+    {
+      "mid": "/m/02p0sll",
+      "description": "Wave",
+      "score": 0.8066758,
+      "topicality": 0.066429146
+    },
+    {
+      "mid": "/m/034srq",
+      "description": "Wind wave",
+      "score": 0.7937953,
+      "topicality": 0.07907172
+    },
+    {
+      "mid": "/m/0ch_cf",
+      "description": "Fish",
+      "score": 0.5660378,
+      "topicality": 0.059769515
+    }
+  ]
+}

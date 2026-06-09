@@ -1,0 +1,64 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/02cqfm",
+      "description": "Close-up",
+      "score": 0.9356139,
+      "topicality": 0.0354562
+    },
+    {
+      "mid": "/m/04k94",
+      "description": "Liquid",
+      "score": 0.9144728,
+      "topicality": 0.0013388019
+    },
+    {
+      "mid": "/m/03rbf6",
+      "description": "Macro photography",
+      "score": 0.9089379,
+      "topicality": 0.08756508
+    },
+    {
+      "mid": "/m/02t59k",
+      "description": "Moisture",
+      "score": 0.8353747,
+      "topicality": 0.0058773477
+    },
+    {
+      "mid": "/m/03vt0",
+      "description": "Insect",
+      "score": 0.8013946,
+      "topicality": 0.12400203
+    },
+    {
+      "mid": "/m/01dqkc",
+      "description": "Pest",
+      "score": 0.7641033,
+      "topicality": 0.012711117
+    },
+    {
+      "mid": "/m/0f9kh",
+      "description": "Dew",
+      "score": 0.75404644,
+      "topicality": 0.045775257
+    },
+    {
+      "mid": "/m/0b7z1",
+      "description": "Drop",
+      "score": 0.677594,
+      "topicality": 0.020781277
+    },
+    {
+      "mid": "/m/0b_l7",
+      "description": "Parasitism",
+      "score": 0.62991476,
+      "topicality": 0.015332293
+    },
+    {
+      "mid": "/m/0zkm",
+      "description": "Arthropod",
+      "score": 0.57877886,
+      "topicality": 0.0102681015
+    }
+  ]
+}

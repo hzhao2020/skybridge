@@ -17,9 +17,6 @@ def _default_measurement_seed() -> int:
 
 
 DEFAULT_SEED = _default_measurement_seed()
-QUALITY_LATENCY_FACTOR = {"Q1": 1.2, "Q2": 1.0, "Q3": 0.8}
-
-
 def node_number(seed: int, provider: str, region: str, logical_op: str) -> int:
     """Deterministic node index from seed + endpoint identity."""
     buf = hashlib.sha256(str(int(seed)).encode("utf-8"))
@@ -54,7 +51,6 @@ def latency_from_measurement(
     logical_op: str,
     provider: str,
     region: str,
-    quality_level: str,
     *,
     seed: int,
     duration_per_mb: float,
@@ -66,8 +62,7 @@ def latency_from_measurement(
         base, per_mb = linear_to_endpoint(*params, duration_per_mb)
     else:
         base, per_mb = bounds_to_endpoint(*params)
-    factor = QUALITY_LATENCY_FACTOR[quality_level]
-    return base * factor, per_mb * factor
+    return base, per_mb
 
 
 def apply_measurement_latencies(
@@ -88,7 +83,6 @@ def apply_measurement_latencies(
             op,
             row["provider"],
             row["region"],
-            row["quality_level"],
             seed=seed,
             duration_per_mb=duration_per_mb,
         )

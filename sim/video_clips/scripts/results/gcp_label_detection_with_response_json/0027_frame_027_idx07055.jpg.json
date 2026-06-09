@@ -1,0 +1,52 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/011k07",
+      "description": "Tortoise",
+      "score": 0.9433973,
+      "topicality": 0.45146486
+    },
+    {
+      "mid": "/m/09dzg",
+      "description": "Turtle",
+      "score": 0.9306259,
+      "topicality": 0.48216894
+    },
+    {
+      "mid": "/m/06bt6",
+      "description": "Reptile",
+      "score": 0.8838927,
+      "topicality": 0.0152409915
+    },
+    {
+      "mid": "/m/0g57nsf",
+      "description": "Chelonoidis",
+      "score": 0.67139536,
+      "topicality": 0.04637194
+    },
+    {
+      "mid": "/m/050vn",
+      "description": "Marine biology",
+      "score": 0.5838689,
+      "topicality": 0.00010852758
+    },
+    {
+      "mid": "/m/0hjf",
+      "description": "Amphibians",
+      "score": 0.5339362,
+      "topicality": 0.0007778101
+    },
+    {
+      "mid": "/m/0bc95d",
+      "description": "Gopher tortoises",
+      "score": 0.5264644,
+      "topicality": 0.0055549894
+    },
+    {
+      "mid": "/m/01vpx5",
+      "description": "Geoemydidae",
+      "score": 0.50541407,
+      "topicality": 0.0012777881
+    }
+  ]
+}

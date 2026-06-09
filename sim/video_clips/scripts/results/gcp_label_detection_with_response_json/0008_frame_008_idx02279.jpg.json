@@ -1,0 +1,28 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/050vn",
+      "description": "Marine biology",
+      "score": 0.737434,
+      "topicality": 0.0060894466
+    },
+    {
+      "mid": "/m/01sfb5",
+      "description": "Underwater",
+      "score": 0.5943758,
+      "topicality": 0.04182276
+    },
+    {
+      "mid": "/m/01jypq",
+      "description": "Reef",
+      "score": 0.53403413,
+      "topicality": 0.06159621
+    },
+    {
+      "mid": "/m/0l_br",
+      "description": "Coral reef",
+      "score": 0.5203623,
+      "topicality": 0.016060326
+    }
+  ]
+}

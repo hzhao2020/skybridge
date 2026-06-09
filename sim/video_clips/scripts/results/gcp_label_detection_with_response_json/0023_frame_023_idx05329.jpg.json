@@ -1,0 +1,34 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/09dv7",
+      "description": "Soil",
+      "score": 0.72351044,
+      "topicality": 0.004886963
+    },
+    {
+      "mid": "/m/011k07",
+      "description": "Tortoise",
+      "score": 0.69580376,
+      "topicality": 0.12874497
+    },
+    {
+      "mid": "/m/0bc95d",
+      "description": "Gopher tortoises",
+      "score": 0.6854044,
+      "topicality": 0.021386284
+    },
+    {
+      "mid": "/m/0bz5vf",
+      "description": "Gopher tortoise",
+      "score": 0.63763124,
+      "topicality": 0.14540033
+    },
+    {
+      "mid": "/m/09dzg",
+      "description": "Turtle",
+      "score": 0.62160015,
+      "topicality": 0.28500503
+    }
+  ]
+}

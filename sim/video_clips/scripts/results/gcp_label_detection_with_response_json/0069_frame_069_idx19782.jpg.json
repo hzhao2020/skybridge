@@ -1,0 +1,64 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/06cnp",
+      "description": "River",
+      "score": 0.797913,
+      "topicality": 0.3039868
+    },
+    {
+      "mid": "/m/099fz",
+      "description": "Sand",
+      "score": 0.7881591,
+      "topicality": 0.014030203
+    },
+    {
+      "mid": "/m/02fm9k",
+      "description": "Shore",
+      "score": 0.73820657,
+      "topicality": 0.013050573
+    },
+    {
+      "mid": "/m/019gvf",
+      "description": "Fluvial landforms of streams",
+      "score": 0.70070225,
+      "topicality": 0.00020964826
+    },
+    {
+      "mid": "/m/0pvlz",
+      "description": "Wetland",
+      "score": 0.68286204,
+      "topicality": 0.0044566756
+    },
+    {
+      "mid": "/m/0hl08",
+      "description": "Tropics",
+      "score": 0.6734902,
+      "topicality": 0.00637451
+    },
+    {
+      "mid": "/m/0b3yr",
+      "description": "Beach",
+      "score": 0.63446844,
+      "topicality": 0.08089221
+    },
+    {
+      "mid": "/m/0j6jq",
+      "description": "Floodplain",
+      "score": 0.59251684,
+      "topicality": 0.015660692
+    },
+    {
+      "mid": "/m/0fpjpt",
+      "description": "Lacustrine plain",
+      "score": 0.5901392,
+      "topicality": 0.0014253801
+    },
+    {
+      "mid": "/m/01r3xn",
+      "description": "Shoal",
+      "score": 0.5783571,
+      "topicality": 0.01604221
+    }
+  ]
+}

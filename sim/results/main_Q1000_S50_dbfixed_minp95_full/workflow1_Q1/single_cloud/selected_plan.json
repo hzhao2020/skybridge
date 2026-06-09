@@ -32,19 +32,19 @@
       "model_name": "Claude Haiku 4.5"
     }
   ],
-  "objective_value": 0.6026,
+  "objective_value": 0.68052,
   "metrics": {
     "workflow": "workflow1",
     "quality_level": "Q1",
     "method": "single_cloud",
-    "objective_value": 0.6026,
-    "expected_cost": 1.843148898531035,
-    "avg_latency": 1275.7573306567697,
-    "p95_latency": 2598.393870660869,
-    "p99_latency": 3482.833500821414,
-    "violation_rate": 0.59952,
-    "cvar_value": 1013.8694046136275,
-    "solver_runtime_sec": 5.927125417001662,
+    "objective_value": 0.68052,
+    "expected_cost": 1.8431488985310351,
+    "avg_latency": 1262.9576227921511,
+    "p95_latency": 2579.632424028839,
+    "p99_latency": 3463.985022359399,
+    "violation_rate": 0.67646,
+    "cvar_value": 1084.5759232123319,
+    "solver_runtime_sec": 9.457347374991514,
     "status": "optimal"
   }
 }

@@ -66,13 +66,13 @@
     "quality_level": "Q2",
     "method": "single_cloud",
     "objective_value": 0.07014,
-    "expected_cost": 10.565307770502049,
-    "avg_latency": 2768.4327207388624,
+    "expected_cost": 9.8483756216501,
+    "avg_latency": 2768.4327207388615,
     "p95_latency": 6809.573258054225,
     "p99_latency": 10592.637695158865,
     "violation_rate": 0.07368,
-    "cvar_value": 1162.2605615787468,
-    "solver_runtime_sec": 12.826675791000525,
+    "cvar_value": 1162.260561578748,
+    "solver_runtime_sec": 21.734935000000405,
     "status": "optimal"
   }
 }

@@ -63,6 +63,16 @@ Thumbs.db
 
 # Project specific - 视频文件（已在 datasets/ 中单独处理）
 *.mp4
+*.mkv
+*.m4a
+*.flac
+*.wav
+*.mp3
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp
 # *.avi
 # *.mov
 # *.mkv

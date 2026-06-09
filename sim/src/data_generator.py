@@ -109,6 +109,7 @@ def _generate_endpoints(
 ) -> pd.DataFrame:
     rows: list[dict] = list(VIRTUAL_ENDPOINTS)
     quality_levels = ["Q1", "Q2", "Q3"]
+    non_quality_latency: dict[tuple[str, str, str], tuple[float, float]] = {}
 
     for op in LOGICAL_OPERATIONS:
         for ql in quality_levels:
@@ -130,11 +131,13 @@ def _generate_endpoints(
                     except KeyError:
                         continue
 
-                    base_lat = float(rng.uniform(0.5, 5.0))
-                    lat_per_mb = float(rng.uniform(0.01, 0.1))
-                    quality_factor = {"Q1": 1.2, "Q2": 1.0, "Q3": 0.8}[ql]
-                    base_lat *= quality_factor
-                    lat_per_mb *= quality_factor
+                    latency_key = (op, prov, region)
+                    if latency_key not in non_quality_latency:
+                        non_quality_latency[latency_key] = (
+                            float(rng.uniform(0.5, 5.0)),
+                            float(rng.uniform(0.01, 0.1)),
+                        )
+                    base_lat, lat_per_mb = non_quality_latency[latency_key]
                     if op in ("Video Caption", "Q/A"):
                         ttft, throughput = llm_performance(prov, region, model_name)
                         rho_out = expected_data_conversion_ratio(op, ql)

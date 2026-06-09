@@ -1,0 +1,64 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/01g5v",
+      "description": "Blue",
+      "score": 0.98885393,
+      "topicality": 0.015664715
+    },
+    {
+      "mid": "/m/0838f",
+      "description": "Water",
+      "score": 0.98163444,
+      "topicality": 0.18081853
+    },
+    {
+      "mid": "/m/02p0sll",
+      "description": "Wave",
+      "score": 0.96955526,
+      "topicality": 0.25434226
+    },
+    {
+      "mid": "/m/02yfx",
+      "description": "Fluid",
+      "score": 0.9556084,
+      "topicality": 0.0048771524
+    },
+    {
+      "mid": "/m/034srq",
+      "description": "Wind wave",
+      "score": 0.94734716,
+      "topicality": 0.3370762
+    },
+    {
+      "mid": "/m/06npx",
+      "description": "Sea",
+      "score": 0.9418171,
+      "topicality": 0.28916663
+    },
+    {
+      "mid": "/m/04k94",
+      "description": "Liquid",
+      "score": 0.9181435,
+      "topicality": 0.0007738161
+    },
+    {
+      "mid": "/m/05kq4",
+      "description": "Ocean",
+      "score": 0.9109499,
+      "topicality": 0.27345383
+    },
+    {
+      "mid": "/m/02c9_23",
+      "description": "Coastal and oceanic landforms",
+      "score": 0.8792434,
+      "topicality": 0.0014660094
+    },
+    {
+      "mid": "/m/01lxd",
+      "description": "Coast",
+      "score": 0.78883886,
+      "topicality": 0.020321192
+    }
+  ]
+}

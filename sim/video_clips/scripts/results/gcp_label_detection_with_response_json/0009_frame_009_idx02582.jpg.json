@@ -1,0 +1,64 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/0zkm",
+      "description": "Arthropod",
+      "score": 0.9742429,
+      "topicality": 0.0070442506
+    },
+    {
+      "mid": "/m/0n28_",
+      "description": "Crabs",
+      "score": 0.9646884,
+      "topicality": 0.90977985
+    },
+    {
+      "mid": "/m/028cj8",
+      "description": "Decapods",
+      "score": 0.95929676,
+      "topicality": 0.036633424
+    },
+    {
+      "mid": "/m/0c2sy",
+      "description": "Crustacean",
+      "score": 0.92339754,
+      "topicality": 0.17753565
+    },
+    {
+      "mid": "/m/03hl4l9",
+      "description": "Marine invertebrates",
+      "score": 0.91029334,
+      "topicality": 0.0038132532
+    },
+    {
+      "mid": "/m/03vt0",
+      "description": "Insect",
+      "score": 0.84042907,
+      "topicality": 0.00013453829
+    },
+    {
+      "mid": "/m/050vn",
+      "description": "Marine biology",
+      "score": 0.820606,
+      "topicality": 0.009974124
+    },
+    {
+      "mid": "/m/0h668xv",
+      "description": "Freshwater crab",
+      "score": 0.77013755,
+      "topicality": 0.01307656
+    },
+    {
+      "mid": "/m/0fbdv",
+      "description": "Shellfish",
+      "score": 0.6756644,
+      "topicality": 0.0014963476
+    },
+    {
+      "mid": "/m/02g49",
+      "description": "Digital compositing",
+      "score": 0.6339574,
+      "topicality": 0.00016786707
+    }
+  ]
+}

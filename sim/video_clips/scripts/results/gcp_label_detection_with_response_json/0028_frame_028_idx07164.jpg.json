@@ -1,0 +1,52 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/0cblv",
+      "description": "Ecoregion",
+      "score": 0.92110157,
+      "topicality": 0.0053070993
+    },
+    {
+      "mid": "/m/06600f2",
+      "description": "Plant community",
+      "score": 0.89415497,
+      "topicality": 0.012531506
+    },
+    {
+      "mid": "/m/09dv7",
+      "description": "Soil",
+      "score": 0.8656629,
+      "topicality": 0.04993833
+    },
+    {
+      "mid": "/m/036hv",
+      "description": "Geology",
+      "score": 0.8353789,
+      "topicality": 0.0157814
+    },
+    {
+      "mid": "/m/06w1j5",
+      "description": "Shrubland",
+      "score": 0.7977098,
+      "topicality": 0.050208084
+    },
+    {
+      "mid": "/m/099fz",
+      "description": "Sand",
+      "score": 0.75440294,
+      "topicality": 0.10160748
+    },
+    {
+      "mid": "/m/07k3c",
+      "description": "Tundra",
+      "score": 0.551654,
+      "topicality": 0.004449184
+    },
+    {
+      "mid": "/m/02393",
+      "description": "Chaparral",
+      "score": 0.5416186,
+      "topicality": 0.0026417342
+    }
+  ]
+}

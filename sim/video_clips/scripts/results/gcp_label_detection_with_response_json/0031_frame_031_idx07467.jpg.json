@@ -1,0 +1,64 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/011k07",
+      "description": "Tortoise",
+      "score": 0.9866058,
+      "topicality": 0.85802335
+    },
+    {
+      "mid": "/m/09dzg",
+      "description": "Turtle",
+      "score": 0.96310246,
+      "topicality": 0.6321584
+    },
+    {
+      "mid": "/m/09686",
+      "description": "Vertebrate",
+      "score": 0.9595563,
+      "topicality": 0.0026222847
+    },
+    {
+      "mid": "/m/06bt6",
+      "description": "Reptile",
+      "score": 0.95605916,
+      "topicality": 0.02069429
+    },
+    {
+      "mid": "/m/05qy47",
+      "description": "Galápagos tortoise",
+      "score": 0.8942582,
+      "topicality": 0.58189964
+    },
+    {
+      "mid": "/m/0bc95d",
+      "description": "Gopher tortoises",
+      "score": 0.88462293,
+      "topicality": 0.019782854
+    },
+    {
+      "mid": "/m/0fbf1m",
+      "description": "Terrestrial animal",
+      "score": 0.88011134,
+      "topicality": 0.0056557897
+    },
+    {
+      "mid": "/m/01280g",
+      "description": "Wildlife",
+      "score": 0.82894146,
+      "topicality": 0.02796682
+    },
+    {
+      "mid": "/m/0g57nsf",
+      "description": "Chelonoidis",
+      "score": 0.82036144,
+      "topicality": 0.058141187
+    },
+    {
+      "mid": "/m/054y2k",
+      "description": "Desert tortoise",
+      "score": 0.7057648,
+      "topicality": 0.033258267
+    }
+  ]
+}

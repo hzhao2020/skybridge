@@ -1,0 +1,21 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/06fvc",
+      "description": "Red",
+      "score": 0.9761885,
+      "topicality": 0.054152757
+    },
+    {
+      "mid": "/m/07sx2n",
+      "description": "Natural material",
+      "score": 0.68858844,
+      "topicality": 0.002199497
+    },
+    {
+      "mid": "/m/01fnck",
+      "description": "Waste",
+      "score": 0.63596255
+    }
+  ]
+}

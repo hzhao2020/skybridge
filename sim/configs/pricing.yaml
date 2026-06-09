@@ -1,17 +1,18 @@
 # Cloud pricing and data-conversion tables (SkyFlow paper / Simulation.md).
 # Monetary amounts are USD unless noted. Storage and DB instance charges assume 1 billable day.
 
-video_mb_per_minute: 300.0
+video_mb_per_minute: 75.0
+video_to_audio_ratio: 0.031626
 video_fps: 30
 tokens_per_kb: 250
 caption_tokens_per_frame: 32
-caption_prompt_tokens: 200
+caption_prompt_tokens: 50
 database_output_tokens_min: 1000
 database_output_tokens_max: 2000
 q_a_output_tokens_min: 50
 q_a_output_tokens_max: 100
 storage_days_per_month: 30.0
-mb_per_vision_image: 0.3
+mb_per_vision_image: 0.557626
 
 # Calibration query workload (paper Query section).
 query:
@@ -154,28 +155,28 @@ shot_detection_usd_per_minute:
   Aliyun:
     cn-shanghai: 0.03
 
-# Video split (serverless 1 vCPU + 1 GiB): USD per minute
+# Video split (serverless 2 vCPU + 2 GiB): USD per minute
 video_split_usd_per_minute:
   GCP:
-    us-east1: 0.0012
-    us-west1: 0.0012
-    europe-west1: 0.0012
-    asia-east1: 0.0012
+    us-east1: 0.0024
+    us-west1: 0.0024
+    europe-west1: 0.0024
+    asia-east1: 0.0024
   AWS:
     us-west-2: 0.002
     us-east-2: 0.002
     ap-southeast-1: 0.002
     eu-central-1: 0.002
   Aliyun:
-    cn-shanghai: 0.0011
-    cn-beijing: 0.0011
-    us-east-1: 0.0011
-    ap-southeast-1: 0.0011
+    cn-shanghai: 0.002
+    cn-beijing: 0.002
+    us-east-1: 0.002
+    ap-southeast-1: 0.002
   Azure:
-    westus2: 0.00156
-    eastus: 0.00156
-    westeurope: 0.00156
-    southeastasia: 0.00222
+    westus2: 0.00192
+    eastus: 0.00192
+    westeurope: 0.00192
+    southeastasia: 0.00192
 
 # OCR / label: USD per image
 ocr_usd_per_image:
@@ -221,16 +222,16 @@ database_instance_usd_per_month:
 data_conversion_ratio_mean_std:
   Shot Detection: {tier: null, mean: 1.0, std: 0.0}
   Video Split & Sample:
-    Essential: {mean: 0.0067, std: 0.0007}
-    Standard: {mean: 0.0167, std: 0.0017}
-    Premium: {mean: 0.0333, std: 0.0033}
+    Essential: {mean: 0.089220, std: 0.009200}
+    Standard: {mean: 0.223050, std: 0.014547}
+    Premium: {mean: 0.446101, std: 0.020573}
   Video Caption:
     Essential: {mean: 0.0025, std: 0.0020}
     Standard: {mean: 0.0025, std: 0.0020}
     Premium: {mean: 0.0025, std: 0.0020}
-  OCR: {tier: null, mean: 0.001981, std: 0.0004031}
-  Label Detection: {tier: null, mean: 0.00832, std: 0.006262}
-  Speech Transcription: {tier: null, mean: 0.001989, std: 0.0002701}
+  OCR: {tier: null, mean: 0.014557, std: 0.009412}
+  Label Detection: {tier: null, mean: 0.002671, std: 0.001597}
+  Speech Transcription: {tier: null, mean: 0.000113, std: 0.000008}
   Database: {tier: null, mean: 0.150, std: 0.075}
   Q/A:
     Essential: {mean: 0.080, std: 0.060}

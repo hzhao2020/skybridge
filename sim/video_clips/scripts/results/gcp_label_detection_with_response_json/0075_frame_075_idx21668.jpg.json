@@ -1,0 +1,64 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/09686",
+      "description": "Vertebrate",
+      "score": 0.9598769,
+      "topicality": 0.0033078063
+    },
+    {
+      "mid": "/m/02yfx",
+      "description": "Fluid",
+      "score": 0.95534796,
+      "topicality": 0.0003785404
+    },
+    {
+      "mid": "/m/04k94",
+      "description": "Liquid",
+      "score": 0.91508514,
+      "topicality": 0.0001357777
+    },
+    {
+      "mid": "/m/06npx",
+      "description": "Sea",
+      "score": 0.9135832,
+      "topicality": 0.2952193
+    },
+    {
+      "mid": "/m/01sfb5",
+      "description": "Underwater",
+      "score": 0.91272694,
+      "topicality": 0.22509715
+    },
+    {
+      "mid": "/m/050vn",
+      "description": "Marine biology",
+      "score": 0.91191626,
+      "topicality": 0.03381286
+    },
+    {
+      "mid": "/m/05kq4",
+      "description": "Ocean",
+      "score": 0.91085756,
+      "topicality": 0.12144357
+    },
+    {
+      "mid": "/m/09dzg",
+      "description": "Turtle",
+      "score": 0.85813195,
+      "topicality": 0.166422
+    },
+    {
+      "mid": "/m/0120dh",
+      "description": "Sea turtle",
+      "score": 0.77837163,
+      "topicality": 0.10513171
+    },
+    {
+      "mid": "/m/064_lq",
+      "description": "Loggerhead sea turtle",
+      "score": 0.6425585,
+      "topicality": 0.038782433
+    }
+  ]
+}

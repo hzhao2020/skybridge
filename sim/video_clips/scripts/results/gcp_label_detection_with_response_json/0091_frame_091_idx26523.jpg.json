@@ -1,0 +1,58 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/02cqfm",
+      "description": "Close-up",
+      "score": 0.9372527,
+      "topicality": 0.0663958
+    },
+    {
+      "mid": "/m/04k94",
+      "description": "Liquid",
+      "score": 0.9186848,
+      "topicality": 0.0025435858
+    },
+    {
+      "mid": "/m/03rbf6",
+      "description": "Macro photography",
+      "score": 0.8751502,
+      "topicality": 0.14537375
+    },
+    {
+      "mid": "/m/02t59k",
+      "description": "Moisture",
+      "score": 0.77293855,
+      "topicality": 0.024687698
+    },
+    {
+      "mid": "/m/0f9kh",
+      "description": "Dew",
+      "score": 0.5689264,
+      "topicality": 0.08144757
+    },
+    {
+      "mid": "/m/0b7z1",
+      "description": "Drop",
+      "score": 0.55489886,
+      "topicality": 0.05896975
+    },
+    {
+      "mid": "/m/0b_l7",
+      "description": "Parasitism",
+      "score": 0.52655387,
+      "topicality": 0.02374861
+    },
+    {
+      "mid": "/m/0g91zf",
+      "description": "Bubble",
+      "score": 0.5262534,
+      "topicality": 0.016636884
+    },
+    {
+      "mid": "/m/02057l",
+      "description": "Liverworts",
+      "score": 0.5229981,
+      "topicality": 9.916966e-05
+    }
+  ]
+}

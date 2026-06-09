@@ -1,0 +1,64 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/01cbzq",
+      "description": "Rock",
+      "score": 0.96864283,
+      "topicality": 0.36977428
+    },
+    {
+      "mid": "/m/06600f2",
+      "description": "Plant community",
+      "score": 0.8948039,
+      "topicality": 0.0018297217
+    },
+    {
+      "mid": "/m/0308t8",
+      "description": "Bedrock",
+      "score": 0.8848428,
+      "topicality": 0.006865005
+    },
+    {
+      "mid": "/m/036hv",
+      "description": "Geology",
+      "score": 0.85812,
+      "topicality": 0.0668747
+    },
+    {
+      "mid": "/m/03k5cs",
+      "description": "Geological formation",
+      "score": 0.84909457,
+      "topicality": 0.04354806
+    },
+    {
+      "mid": "/m/07sn5gn",
+      "description": "geological phenomenon",
+      "score": 0.8436761,
+      "topicality": 0.0002743571
+    },
+    {
+      "mid": "/m/07cwvn",
+      "description": "Outcrop",
+      "score": 0.73740757,
+      "topicality": 0.02407708
+    },
+    {
+      "mid": "/m/06w1j5",
+      "description": "Shrubland",
+      "score": 0.73024803,
+      "topicality": 0.00893419
+    },
+    {
+      "mid": "/m/07k3c",
+      "description": "Tundra",
+      "score": 0.65792245,
+      "topicality": 0.025182867
+    },
+    {
+      "mid": "/m/0ghpy",
+      "description": "Boulder",
+      "score": 0.57776546,
+      "topicality": 0.032365806
+    }
+  ]
+}

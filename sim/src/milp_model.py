@@ -15,7 +15,7 @@ from src.cost_latency import (
     execution_latency,
     filter_endpoints,
 )
-from src.data_propagation import output_data_sizes, propagate_data_sizes
+from src.data_propagation import edge_transfer_size, output_data_sizes, propagate_data_sizes
 from src.measurement.execution_latency import sampled_execution_latency
 from src.path_utils import enumerate_source_to_sink_paths, path_edges
 from src.schemas import (
@@ -275,7 +275,7 @@ def _build_cost_expression(
                 continue
             src_cands = _candidates_for_node(src, node_candidates, virtual_assignment, workflow)
             dst_cands = _candidates_for_node(dst, node_candidates, virtual_assignment, workflow)
-            out_mb = output_sizes.get(src, 0.0)
+            out_mb = edge_transfer_size(src, dst, output_sizes, q)
             for ep_s in src_cands:
                 for ep_d in dst_cands:
                     link = network_index.get((ep_s.endpoint_id, ep_d.endpoint_id))
@@ -380,7 +380,7 @@ def _path_latency_expr(
             continue
         src_cands = _candidates_for_node(src, node_candidates, virtual_assignment, workflow)
         dst_cands = _candidates_for_node(dst, node_candidates, virtual_assignment, workflow)
-        out_mb = output_sizes.get(src, 0.0)
+        out_mb = edge_transfer_size(src, dst, output_sizes, query)
         for ep_s in src_cands:
             for ep_d in dst_cands:
                 link = network_index.get((ep_s.endpoint_id, ep_d.endpoint_id))

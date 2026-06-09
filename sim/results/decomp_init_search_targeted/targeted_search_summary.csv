@@ -1,0 +1,11 @@
+avg_latency,expected_cost,fraction,ok,p95_latency,quality,runtime_wall_sec,solver_runtime_sec,status,strategy,violation_rate,workflow
+,,0.2,False,,Q3,43.99265612500312,,,stratified_tail,,workflow1
+,,0.2,False,,Q3,43.8842301669938,,,stratified_tail_random,,workflow1
+14777.583273867096,20.295869122608355,0.2,True,39294.57128313082,Q3,177.05880808399525,115.11550391599303,INFEASIBLE,stratified_quantile,0.0544,workflow1
+,,0.3,False,,Q3,55.404230792002636,,,stratified_tail,,workflow1
+,,0.3,False,,Q3,56.12389279100171,,,stratified_tail_random,,workflow1
+,,0.3,False,,Q3,55.85106166600599,,,stratified_random,,workflow1
+4617.901110716445,3.4000636189441433,0.2,True,9086.088988163498,Q1,695.3095671250048,488.37219012499554,INFEASIBLE,stratified_tail,0.03332,workflow2
+4617.901110716445,3.4000641949257737,0.2,True,9086.088988163498,Q1,700.860403957995,494.3499970829871,INFEASIBLE,stratified_tail_random,0.03332,workflow2
+4617.956218425765,3.4000636038216903,0.2,True,9086.152152579296,Q1,687.5004440420016,484.4965274580027,INFEASIBLE,stratified_quantile,0.03332,workflow2
+,,0.3,False,,Q1,178.9594322089979,,,stratified_tail,,workflow2

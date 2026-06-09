@@ -1,0 +1,64 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/01cbzq",
+      "description": "Rock",
+      "score": 0.9302089,
+      "topicality": 0.4817243
+    },
+    {
+      "mid": "/m/0308t8",
+      "description": "Bedrock",
+      "score": 0.9172058,
+      "topicality": 0.07741273
+    },
+    {
+      "mid": "/m/07sn5gn",
+      "description": "geological phenomenon",
+      "score": 0.8989916,
+      "topicality": 0.00044757078
+    },
+    {
+      "mid": "/m/036hv",
+      "description": "Geology",
+      "score": 0.8588938,
+      "topicality": 0.1889168
+    },
+    {
+      "mid": "/m/03k5cs",
+      "description": "Geological formation",
+      "score": 0.8089623,
+      "topicality": 0.06068929
+    },
+    {
+      "mid": "/m/09dv7",
+      "description": "Soil",
+      "score": 0.7481332,
+      "topicality": 0.052646846
+    },
+    {
+      "mid": "/m/01q0j8",
+      "description": "Mixture",
+      "score": 0.7195355,
+      "topicality": 0.00037046478
+    },
+    {
+      "mid": "/m/08qrwn",
+      "description": "Rubble",
+      "score": 0.71840507,
+      "topicality": 0.022056593
+    },
+    {
+      "mid": "/m/01tx7r",
+      "description": "Volcanic rock",
+      "score": 0.63855445,
+      "topicality": 0.18611991
+    },
+    {
+      "mid": "/m/046j6d",
+      "description": "Intrusive rock",
+      "score": 0.60390127,
+      "topicality": 0.0148077225
+    }
+  ]
+}

@@ -38,13 +38,13 @@
     "quality_level": "Q2",
     "method": "decomposition",
     "objective_value": Infinity,
-    "expected_cost": 2.8338120419615924,
+    "expected_cost": 2.8338120419615933,
     "avg_latency": 2304.1140592025663,
     "p95_latency": 6687.79038237684,
     "p99_latency": 11380.364880108951,
     "violation_rate": 0.06676,
-    "cvar_value": 1422.1882186330229,
-    "solver_runtime_sec": 106.78469841600054,
+    "cvar_value": 1422.1882186330215,
+    "solver_runtime_sec": 101.89585516600346,
     "status": "INFEASIBLE"
   }
 }

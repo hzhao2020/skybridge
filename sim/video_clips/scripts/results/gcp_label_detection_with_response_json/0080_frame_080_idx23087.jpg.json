@@ -1,0 +1,64 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/02yfx",
+      "description": "Fluid",
+      "score": 0.9531725,
+      "topicality": 0.00052158587
+    },
+    {
+      "mid": "/m/050vn",
+      "description": "Marine biology",
+      "score": 0.9469484,
+      "topicality": 0.028529242
+    },
+    {
+      "mid": "/m/01sfb5",
+      "description": "Underwater",
+      "score": 0.9298833,
+      "topicality": 0.2073369
+    },
+    {
+      "mid": "/m/0ch_cf",
+      "description": "Fish",
+      "score": 0.8852775,
+      "topicality": 0.07226546
+    },
+    {
+      "mid": "/m/0ctsx",
+      "description": "Coral",
+      "score": 0.8599504,
+      "topicality": 0.016525047
+    },
+    {
+      "mid": "/m/0hlw",
+      "description": "Algae",
+      "score": 0.8436591,
+      "topicality": 0.24439308
+    },
+    {
+      "mid": "/m/05kq4",
+      "description": "Ocean",
+      "score": 0.8341038,
+      "topicality": 0.08360079
+    },
+    {
+      "mid": "/m/06npx",
+      "description": "Sea",
+      "score": 0.8341031,
+      "topicality": 0.24678648
+    },
+    {
+      "mid": "/m/0l_br",
+      "description": "Coral reef",
+      "score": 0.79825944,
+      "topicality": 0.099241145
+    },
+    {
+      "mid": "/m/01jypq",
+      "description": "Reef",
+      "score": 0.78818095,
+      "topicality": 0.16776891
+    }
+  ]
+}

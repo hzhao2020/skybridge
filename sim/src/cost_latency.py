@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from src.data_propagation import output_data_sizes, propagate_data_sizes
+from src.data_propagation import edge_transfer_size, output_data_sizes, propagate_data_sizes
 from src.measurement.execution_latency import sampled_execution_latency
 from src.path_utils import enumerate_source_to_sink_paths, path_edges
 from src.pricing import is_llm_operation, llm_cost_usd, llm_latency_sec
@@ -166,9 +166,10 @@ def path_latency(
         pair_key = f"{src_ep.endpoint_id}->{dst_ep.endpoint_id}"
         bw_mult = scenario.bandwidth_multiplier.get(pair_key, scenario.bw_stress)
         rtt_mult = scenario.rtt_multiplier.get(pair_key, scenario.rtt_stress)
+        transferred = edge_transfer_size(src, dst, output_sizes, query)
         total += network_latency(
             link,
-            output_sizes.get(src, 0.0),
+            transferred,
             bw_mult,
             rtt_mult,
             ablation.enable_network_latency,
@@ -239,8 +240,9 @@ def total_cost(
         link = network_index.get((src_ep.endpoint_id, dst_ep.endpoint_id))
         if link is None:
             continue
+        transferred = edge_transfer_size(src, dst, output_sizes, query)
         cost += network_transfer_cost(
-            link, output_sizes.get(src, 0.0), ablation.enable_network_cost
+            link, transferred, ablation.enable_network_cost
         )
 
     return cost

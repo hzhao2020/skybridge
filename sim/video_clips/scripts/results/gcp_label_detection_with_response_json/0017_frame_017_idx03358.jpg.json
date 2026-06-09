@@ -1,0 +1,64 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/0zkm",
+      "description": "Arthropod",
+      "score": 0.9672982,
+      "topicality": 0.014392282
+    },
+    {
+      "mid": "/m/028cj8",
+      "description": "Decapods",
+      "score": 0.9553695,
+      "topicality": 0.043082062
+    },
+    {
+      "mid": "/m/0n28_",
+      "description": "Crabs",
+      "score": 0.9523424,
+      "topicality": 0.8310145
+    },
+    {
+      "mid": "/m/0c2sy",
+      "description": "Crustacean",
+      "score": 0.9214274,
+      "topicality": 0.1288024
+    },
+    {
+      "mid": "/m/03hl4l9",
+      "description": "Marine invertebrates",
+      "score": 0.9025772,
+      "topicality": 0.0031730838
+    },
+    {
+      "mid": "/m/03vt0",
+      "description": "Insect",
+      "score": 0.84530747,
+      "topicality": 0.00053702336
+    },
+    {
+      "mid": "/m/050vn",
+      "description": "Marine biology",
+      "score": 0.7976349,
+      "topicality": 0.0067266473
+    },
+    {
+      "mid": "/m/0h668xv",
+      "description": "Freshwater crab",
+      "score": 0.74584293,
+      "topicality": 0.01953238
+    },
+    {
+      "mid": "/m/06nwz",
+      "description": "Seafood",
+      "score": 0.7127394,
+      "topicality": 0.0008133441
+    },
+    {
+      "mid": "/m/0fbdv",
+      "description": "Shellfish",
+      "score": 0.64647335,
+      "topicality": 0.000648739
+    }
+  ]
+}

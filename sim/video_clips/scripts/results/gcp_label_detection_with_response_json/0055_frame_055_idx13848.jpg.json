@@ -1,0 +1,52 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/06npx",
+      "description": "Sea",
+      "score": 0.8628766,
+      "topicality": 0.15424666
+    },
+    {
+      "mid": "/m/05kq4",
+      "description": "Ocean",
+      "score": 0.8601486,
+      "topicality": 0.080786474
+    },
+    {
+      "mid": "/m/02p0sll",
+      "description": "Wave",
+      "score": 0.699443,
+      "topicality": 0.02447326
+    },
+    {
+      "mid": "/m/034srq",
+      "description": "Wind wave",
+      "score": 0.6854143,
+      "topicality": 0.028378539
+    },
+    {
+      "mid": "/m/019jd",
+      "description": "Boat",
+      "score": 0.6456943,
+      "topicality": 0.026986381
+    },
+    {
+      "mid": "/m/02zg_",
+      "description": "Fin",
+      "score": 0.63915557,
+      "topicality": 0.007397522
+    },
+    {
+      "mid": "/m/01rzcn",
+      "description": "Watercraft",
+      "score": 0.6345881,
+      "topicality": 0.0042222384
+    },
+    {
+      "mid": "/m/0ch_cf",
+      "description": "Fish",
+      "score": 0.50488865,
+      "topicality": 0.009689867
+    }
+  ]
+}

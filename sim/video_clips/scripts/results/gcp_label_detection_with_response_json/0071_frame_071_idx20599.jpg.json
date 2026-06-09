@@ -1,0 +1,40 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/01g5v",
+      "description": "Blue",
+      "score": 0.9889794,
+      "topicality": 0.13937908
+    },
+    {
+      "mid": "/m/02yfx",
+      "description": "Fluid",
+      "score": 0.9553475,
+      "topicality": 0.036174674
+    },
+    {
+      "mid": "/m/04k94",
+      "description": "Liquid",
+      "score": 0.9192683,
+      "topicality": 0.012622397
+    },
+    {
+      "mid": "/m/01sfb5",
+      "description": "Underwater",
+      "score": 0.768577,
+      "topicality": 0.16853145
+    },
+    {
+      "mid": "/m/05kq4",
+      "description": "Ocean",
+      "score": 0.7430269,
+      "topicality": 0.23003688
+    },
+    {
+      "mid": "/m/050vn",
+      "description": "Marine biology",
+      "score": 0.7266691,
+      "topicality": 0.0069422284
+    }
+  ]
+}

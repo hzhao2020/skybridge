@@ -1,0 +1,58 @@
+{
+  "label_annotations": [
+    {
+      "mid": "/m/088fh",
+      "description": "Yellow",
+      "score": 0.95909894,
+      "topicality": 0.0073588425
+    },
+    {
+      "mid": "/m/02cqfm",
+      "description": "Close-up",
+      "score": 0.9423826,
+      "topicality": 0.044410147
+    },
+    {
+      "mid": "/m/03rbf6",
+      "description": "Macro photography",
+      "score": 0.893973,
+      "topicality": 0.08209459
+    },
+    {
+      "mid": "/m/01dqkc",
+      "description": "Pest",
+      "score": 0.8277496,
+      "topicality": 0.044536218
+    },
+    {
+      "mid": "/m/03vt0",
+      "description": "Insect",
+      "score": 0.7254933,
+      "topicality": 0.22828504
+    },
+    {
+      "mid": "/m/0_k2",
+      "description": "Ant",
+      "score": 0.64107823,
+      "topicality": 0.077518314
+    },
+    {
+      "mid": "/m/0b_l7",
+      "description": "Parasitism",
+      "score": 0.60796857,
+      "topicality": 0.026115738
+    },
+    {
+      "mid": "/m/0zkm",
+      "description": "Arthropod",
+      "score": 0.54876906,
+      "topicality": 0.009071075
+    },
+    {
+      "mid": "/m/02057l",
+      "description": "Liverworts",
+      "score": 0.53558695,
+      "topicality": 3.355572e-05
+    }
+  ]
+}
