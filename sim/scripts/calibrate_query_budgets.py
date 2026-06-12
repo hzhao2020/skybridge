@@ -13,7 +13,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from src.baselines import BASELINE_SOLVERS, solve_baseline  # noqa: E402
+from src.baselines import CANONICAL_BASELINE_METHODS, solve_baseline  # noqa: E402
 from src.config import DATA_DIR, RESULTS_DIR, load_default_config, load_solver_config  # noqa: E402
 from src.cost_latency import critical_path_latency  # noqa: E402
 from src.data_loader import load_endpoints, load_network_links, load_queries, load_scenarios  # noqa: E402
@@ -57,7 +57,7 @@ def main() -> None:
 
     records: list[dict] = []
     new_sla: dict[str, float] = {}
-    methods = sorted(BASELINE_SOLVERS)
+    methods = CANONICAL_BASELINE_METHODS
     for workflow_name in ("workflow1", "workflow2"):
         workflow = get_workflow(workflow_name)
         for quality in ("Q1", "Q2", "Q3"):

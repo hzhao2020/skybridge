@@ -53,6 +53,7 @@ def export_results(
         "cvar_value": result.cvar_value,
         "solver_runtime_sec": result.solver_runtime_sec,
         "status": result.status,
+        "selected_initializer": result.selected_initializer or "",
     }
     metrics_path = metrics_root / "metrics.csv"
     if metrics_path.exists():
@@ -70,6 +71,10 @@ def export_results(
         "objective_value": result.objective_value,
         "metrics": metrics_row,
     }
+    if result.selected_initializer is not None:
+        selected["selected_initializer"] = result.selected_initializer
+    if result.initializer_selection_history:
+        selected["initializer_selection_history"] = result.initializer_selection_history
     with open(out / "selected_plan.json", "w", encoding="utf-8") as f:
         json.dump(selected, f, indent=2)
 
@@ -93,5 +98,11 @@ def export_results(
             existing = pd.read_csv(conv_path)
             conv_out = pd.concat([existing, conv_out], ignore_index=True)
         conv_out.to_csv(conv_path, index=False)
+
+    if result.initializer_selection_history:
+        init_df = pd.DataFrame(result.initializer_selection_history)
+        init_df["workflow"] = result.workflow
+        init_df["quality_level"] = result.quality_level
+        init_df.to_csv(out / "initializer_selection.csv", index=False)
 
     logger.info("Results exported to %s", out)

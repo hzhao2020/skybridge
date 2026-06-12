@@ -31,35 +31,59 @@ SETTINGS = [
 ]
 METHODS = [
     ("decomposition", "SkyFlow"),
-    ("greedy", "Greedy"),
-    ("murakkab_profile", "MLS"),
     ("single_cloud", "SC"),
+    ("greedy", "Greedy"),
+    ("dpgm", "DPGM"),
+    ("mtgp", "MTGP"),
 ]
-FIGSIZE = (3.35, 1.5)
-COMBINED_FIGSIZE = (3.35, 1.82)
+METHOD_ALIASES = {
+    "dpgm": ("dpgm", "murakkab_profile"),
+    "mtgp": ("mtgp", "mtgp_3d"),
+}
+FIGSIZE = (3.55, 1.5)
+COMBINED_FIGSIZE = (3.55, 1.82)
 FONT_WEIGHT = "semibold"
 LEGEND_PROP = {"size": 9, "weight": FONT_WEIGHT}
 COMBINED_LEGEND_PROP = {"size": 5.8, "weight": "normal"}
 
 PALETTE = {
     "SkyFlow": "#3b6fb6",
-    "Greedy": "#64a85b",
-    "MLS": "#d9893d",
     "SC": "#8a8a8a",
+    "Greedy": "#64a85b",
+    "DPGM": "#d9893d",
+    "MTGP": "#8e6ab8",
 }
 HATCHES = {
     "SkyFlow": "",
-    "Greedy": "///",
-    "MLS": "\\\\",
     "SC": "xx",
+    "Greedy": "///",
+    "DPGM": "\\\\",
+    "MTGP": "--",
 }
 
 
-def _load_data(result_root: Path) -> pd.DataFrame:
+def _load_data(
+    result_root: Path,
+    *,
+    decomposition_root: Path | None = None,
+) -> pd.DataFrame:
     rows = []
     for setting_key, setting_label in SETTINGS:
         for method_key, method_label in METHODS:
-            path = result_root / setting_key / method_key / "selected_plan.json"
+            root = (
+                decomposition_root
+                if method_key == "decomposition" and decomposition_root is not None
+                else result_root
+            )
+            candidate_keys = METHOD_ALIASES.get(method_key, (method_key,))
+            path = next(
+                (
+                    root / setting_key / candidate_key / "selected_plan.json"
+                    for candidate_key in candidate_keys
+                    if (root / setting_key / candidate_key / "selected_plan.json").exists()
+                ),
+                root / setting_key / method_key / "selected_plan.json",
+            )
             with path.open(encoding="utf-8") as f:
                 selected = json.load(f)
             metrics = selected["metrics"]
@@ -280,7 +304,7 @@ def _set_headroom_ylim(ax, values: pd.Series, *, minimum_top: float = 0.0) -> No
 def _add_cost_legend(ax) -> None:
     handles, labels = ax.get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
-    ordered_labels = ["SkyFlow", "MLS", "Greedy", "SC"]
+    ordered_labels = [label for _, label in METHODS]
     ax.legend(
         [by_label[label] for label in ordered_labels],
         ordered_labels,
@@ -297,20 +321,13 @@ def _add_svr_legend(ax, eta: float) -> None:
     handles, labels = ax.get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
     eta_label = rf"$\eta={eta:g}$"
-    blank = Line2D([], [], linestyle="", marker="", alpha=0.0)
-    legend_handles = [
-        by_label[eta_label],
-        by_label["SkyFlow"],
-        by_label["MLS"],
-        blank,
-        by_label["Greedy"],
-        by_label["SC"],
-    ]
-    legend_labels = [eta_label, "SkyFlow", "MLS", "", "Greedy", "SC"]
+    method_labels = [label for _, label in METHODS]
+    legend_handles = [by_label[eta_label], *[by_label[label] for label in method_labels]]
+    legend_labels = [eta_label, *method_labels]
     ax.legend(
         legend_handles,
         legend_labels,
-        ncol=2,
+        ncol=3,
         frameon=False,
         loc="upper right",
         columnspacing=0.9,
@@ -319,15 +336,20 @@ def _add_svr_legend(ax, eta: float) -> None:
     )
 
 
-def plot_overall_performance(result_root: Path, fig_dir: Path) -> pd.DataFrame:
+def plot_overall_performance(
+    result_root: Path,
+    fig_dir: Path,
+    *,
+    decomposition_root: Path | None = None,
+) -> pd.DataFrame:
     fig_dir.mkdir(parents=True, exist_ok=True)
-    df = _load_data(result_root)
+    df = _load_data(result_root, decomposition_root=decomposition_root)
     df.to_csv(fig_dir / "overall_performance_source.csv", index=False)
     eta = float(load_default_config().get("eta", 0.1))
 
     _configure_style()
     x = np.arange(len(SETTINGS), dtype=float)
-    width = 0.18
+    width = 0.14
     offsets = (np.arange(len(METHODS)) - (len(METHODS) - 1) / 2) * width
     setting_labels = [label for _, label in SETTINGS]
     combined_setting_labels = [label.replace("-", "\n") for _, label in SETTINGS]
@@ -465,9 +487,22 @@ def main() -> None:
         default=ROOT / "fig" / "main_Q1000_S50_dbfixed_minp95_full",
         help="Output directory for PDFs and source CSV",
     )
+    parser.add_argument(
+        "--decomposition-root",
+        type=Path,
+        default=None,
+        help=(
+            "Optional directory for SkyFlow/decomposition selected_plan.json files; "
+            "other methods still load from --result-root"
+        ),
+    )
     args = parser.parse_args()
 
-    df = plot_overall_performance(args.result_root, args.fig_dir)
+    df = plot_overall_performance(
+        args.result_root,
+        args.fig_dir,
+        decomposition_root=args.decomposition_root,
+    )
     for name in (
         "overall_cost.pdf",
         "overall_cost.png",

@@ -13,7 +13,7 @@ FAILURES_CSV="${LOG_DIR}/main_Q1000_S50_dbfixed_minp95_full_failures.csv"
 mkdir -p "${LOG_DIR}" "${RESULTS_ROOT}"
 cp -R "results/main_Q1000_S50_dbfixed_minp95_w2q3/workflow2_Q3" "${RESULTS_ROOT}/" 2>/dev/null || true
 
-methods=(decomposition greedy murakkab_profile single_cloud)
+methods=(decomposition single_cloud greedy dpgm mtgp)
 combos=(workflow1:Q1 workflow1:Q2 workflow1:Q3 workflow2:Q1 workflow2:Q2)
 
 for combo in "${combos[@]}"; do

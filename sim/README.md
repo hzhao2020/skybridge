@@ -49,10 +49,12 @@ This writes CSV files under `data/synthetic/` with deterministic seed `42` by de
 | Symbol | Config key | Value |
 |--------|------------|-------|
 | — | `random_seed` | 42 |
-| S | `num_scenarios_per_query` | 10 |
+| S_cal | `num_scenarios_per_query` | 50 |
+| S_test | `num_heldout_scenarios_per_query` | 50 |
 | η | `eta` | 0.05 |
 
 Data generation, measurement latency scaling (`populate_from_measurements`), SAA-CVaR MILP, and post-hoc CVaR evaluation all read these values from config.
+For SkyFlow, each workflow-quality calibration set is split per query into 80% training scenarios and 20% validation scenarios to select one of QBR/QBW/QBB/QBQ by a fixed cost-SVR rule; the final SkyFlow plan is then re-solved on the full calibration set and evaluated once on held-out test scenarios.
 
 **Query workload** (in `pricing.yaml` → `queries.csv`): 100 requests per quality level; video duration ~ Uniform(1 min, 30 min); `fps=30`; Workflow 1 : Workflow 2 = 1 : 1. Only **documented** `(operation, provider, region[, model])` combinations appear in `endpoints.csv`.
 
@@ -88,16 +90,18 @@ Runs **6 isolated SkyFlow jobs** (not 12): `workflow1`×`Q1|Q2|Q3` and `workflow
 | Method | Module | Description |
 |--------|--------|-------------|
 | `full_milp` | `src/milp_full.py` | Full SAA-CVaR MILP with latency excess constraints on all query–scenario pairs |
-| `decomposition` | `src/milp_decomposition.py` | Scenario-adaptive constraint generation; final evaluation on all scenarios |
+| `decomposition` | `src/milp_decomposition.py` | SkyFlow with calibration train/validation initializer selection, then final solve on full calibration scenarios |
 | `single_cloud` | `src/baselines.py` | **SC:** one cloud provider; min cost subject to empirical SLA violation threshold |
 | `logical_optimal` | `src/baselines.py` | **LO:** per-node argmax capability μ_k (ignores cross-node effects) |
 | `greedy` | `src/baselines.py` | **Greedy:** topological DAG pass; min violation given fixed predecessors |
+| `dpgm` | `src/baselines.py` | **DPGM:** deterministic profile-guided MILP; minimum-slack profiled solution if hard profile constraints are infeasible |
+| `mtgp` | `src/mtgp_baseline.py` | **MTGP:** multi-tree GP hyper-heuristic baseline with task/cloud/resource selection rules inspired by Sun et al., IEEE TSC 2024 |
 
 ```bash
-# Three baselines for one experiment
-python scripts/run_simulation.py --workflow workflow1 --quality Q1 --method logical_optimal
+# One baseline for one experiment
+python scripts/run_simulation.py --workflow workflow1 --quality Q1 --method dpgm
 
-# 6 experiments × 3 baselines = 18 runs
+# 6 experiments × 4 baselines = 24 runs
 python scripts/run_baselines.py
 ```
 

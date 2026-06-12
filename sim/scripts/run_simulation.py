@@ -16,8 +16,11 @@ from src.data_loader import load_endpoints, load_queries, load_scenarios  # noqa
 from src.evaluator import evaluate_deployment  # noqa: E402
 from src.exporter import export_results  # noqa: E402
 from src.experiment_protocol import split_scenarios_by_query  # noqa: E402
-from src.baselines import BASELINE_SOLVERS, solve_baseline  # noqa: E402
-from src.milp_decomposition import solve_decomposition  # noqa: E402
+from src.baselines import CANONICAL_BASELINE_METHODS, solve_baseline  # noqa: E402
+from src.milp_decomposition import (  # noqa: E402
+    solve_decomposition,
+    solve_decomposition_with_initializer_selection,
+)
 from src.milp_full import solve_full_milp  # noqa: E402
 from src.pricing import query_generation_params  # noqa: E402
 from src.workflow import get_workflow  # noqa: E402
@@ -68,7 +71,7 @@ def main() -> None:
         choices=[
             "full_milp",
             "decomposition",
-            *sorted(BASELINE_SOLVERS),
+            *CANONICAL_BASELINE_METHODS,
         ],
     )
     parser.add_argument(
@@ -91,11 +94,16 @@ def main() -> None:
     parser.add_argument(
         "--initial-active-strategy",
         choices=[
+            "qbr",
+            "qbw",
+            "qbb",
+            "qbq",
             "stratified_random",
             "stratified_tail",
             "stratified_quantile",
             "latency_quantile",
             "stratified_tail_random",
+            "data_budget_tertile",
             "adaptive",
         ],
         default=None,
@@ -106,6 +114,11 @@ def main() -> None:
         type=float,
         default=None,
         help="Override decomposition active scenario batch fraction",
+    )
+    parser.add_argument(
+        "--disable-initializer-selection",
+        action="store_true",
+        help="Run decomposition directly with the configured initializer",
     )
     args = parser.parse_args()
 
@@ -160,9 +173,19 @@ def main() -> None:
             workflow, endpoints, queries, train_scenarios, args.quality, config
         )
     elif args.method == "decomposition":
-        result = solve_decomposition(
-            workflow, endpoints, queries, train_scenarios, args.quality, config
+        has_initializer_override = (
+            args.initial_active_fraction is not None
+            or args.initial_active_strategy is not None
+            or args.active_batch_fraction is not None
         )
+        if args.disable_initializer_selection or has_initializer_override:
+            result = solve_decomposition(
+                workflow, endpoints, queries, train_scenarios, args.quality, config
+            )
+        else:
+            result = solve_decomposition_with_initializer_selection(
+                workflow, endpoints, queries, train_scenarios, args.quality, config
+            )
     else:
         result = solve_baseline(
             args.method,

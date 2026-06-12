@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 
 
-METHOD_ORDER = ["SkyFlow", "Greedy", "Murakkab-style"]
+METHOD_ORDER = ["SkyFlow", "Greedy", "DPGM"]
 WORKFLOW_ORDER = ["workflow1", "workflow2"]
 QUALITY_ORDER = ["Q1", "Q2", "Q3"]
 COMPONENT_COLUMNS = ["execution_cost", "network_cost", "storage_cost"]
@@ -43,11 +43,12 @@ METHOD_ALIASES = {
     "decomposed_milp": "SkyFlow",
     "skyflow": "SkyFlow",
     "greedy": "Greedy",
-    "murakkab": "Murakkab-style",
-    "murakkab-style": "Murakkab-style",
-    "murakkab_style": "Murakkab-style",
-    "murakkab profile": "Murakkab-style",
-    "murakkab_profile": "Murakkab-style",
+    "dpgm": "DPGM",
+    "murakkab": "DPGM",
+    "murakkab-style": "DPGM",
+    "murakkab_style": "DPGM",
+    "murakkab profile": "DPGM",
+    "murakkab_profile": "DPGM",
     "single-cloud": "Single-Cloud",
     "single_cloud": "Single-Cloud",
     "single cloud": "Single-Cloud",
@@ -231,7 +232,7 @@ def print_summary(summary_df: pd.DataFrame, original_df: pd.DataFrame) -> None:
             print(f"{_pretty_workflow(workflow)}: SkyFlow missing")
             continue
         sky_total = float(sub.loc["SkyFlow", "total_breakdown_cost"])
-        for baseline in ("Greedy", "Murakkab-style"):
+        for baseline in ("Greedy", "DPGM"):
             if baseline not in sub.index:
                 print(f"{_pretty_workflow(workflow)} vs {baseline}: baseline missing")
                 continue

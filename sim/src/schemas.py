@@ -104,7 +104,16 @@ class SolverConfig(BaseModel):
     eta: float = 0.05
     top_k: int = 10
     initial_active_fraction: float = 0.20
-    initial_active_strategy: str = "stratified_random"
+    initial_active_strategy: str = "qbr"
+    initializer_validation_fraction: float = 0.20
+    initializer_selection_candidates: list[str] = Field(
+        default_factory=lambda: [
+            "qbr",
+            "qbw",
+            "qbb",
+            "qbq",
+        ]
+    )
     active_batch_fraction: float = 0.05
     violation_tolerance: float = 1e-6
     max_iterations: int = 100
@@ -112,6 +121,14 @@ class SolverConfig(BaseModel):
     gurobi_mip_gap: float = 0.01
     latency_tiebreaker_weight: float = 0.0
     endpoint_tiebreaker_weight: float = 1e-6
+    mtgp_population_size: int = 28
+    mtgp_generations: int = 16
+    mtgp_max_depth: int = 5
+    mtgp_tournament_size: int = 3
+    mtgp_elite_count: int = 2
+    mtgp_crossover_rate: float = 0.80
+    mtgp_mutation_rate: float = 0.15
+    mtgp_fitness_sample_size: int = 350
     ablation: AblationConfig = Field(default_factory=AblationConfig)
 
 
@@ -139,6 +156,8 @@ class OptimizationResult(BaseModel):
     status: str
     num_iterations: int = 1
     active_scenario_count: int = 0
+    selected_initializer: str | None = None
+    initializer_selection_history: list[dict[str, Any]] = Field(default_factory=list)
     convergence_history: list[dict[str, Any]] = Field(default_factory=list)
     per_query_scenario_metrics: list[dict[str, Any]] = Field(default_factory=list)
 

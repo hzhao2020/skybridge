@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run all baseline policies for each (workflow, quality) experiment — 18 jobs total."""
+"""Run all canonical baseline policies for each (workflow, quality) experiment."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from src.baselines import BASELINE_SOLVERS  # noqa: E402
+from src.baselines import CANONICAL_BASELINE_METHODS  # noqa: E402
 
 EXPERIMENT_RUNS: list[tuple[str, str]] = [
     (workflow, quality)
@@ -20,9 +20,7 @@ EXPERIMENT_RUNS: list[tuple[str, str]] = [
     for quality in ("Q1", "Q2", "Q3")
 ]
 
-BASELINE_METHODS = sorted(
-    method for method in BASELINE_SOLVERS if method != "logical_optimal"
-)
+BASELINE_METHODS = CANONICAL_BASELINE_METHODS
 
 
 def main() -> None:
@@ -30,7 +28,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
             f"Run {len(EXPERIMENT_RUNS) * len(BASELINE_METHODS)} baseline jobs: "
-            "each workflow×quality × each of single_cloud, logical_optimal, greedy."
+            f"each workflow×quality × each of {', '.join(BASELINE_METHODS)}."
         )
     )
     parser.add_argument(

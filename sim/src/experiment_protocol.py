@@ -34,3 +34,28 @@ def split_scenarios_by_query(
         test.extend(group[n_calib:])
 
     return calibration, test
+
+
+def split_calibration_train_validation(
+    calibration_scenarios: list[Scenario],
+    *,
+    validation_fraction: float = 0.20,
+) -> tuple[list[Scenario], list[Scenario]]:
+    """Split calibration scenarios per query into train and validation subsets."""
+    by_query: dict[str, list[Scenario]] = defaultdict(list)
+    for scenario in calibration_scenarios:
+        by_query[scenario.query_id].append(scenario)
+
+    train: list[Scenario] = []
+    validation: list[Scenario] = []
+    for query_id in sorted(by_query):
+        group = sorted(by_query[query_id], key=lambda s: s.scenario_id)
+        if len(group) == 1:
+            train.extend(group)
+            continue
+        n_val = round(len(group) * validation_fraction)
+        n_val = max(1, min(len(group) - 1, n_val))
+        train.extend(group[:-n_val])
+        validation.extend(group[-n_val:])
+
+    return train, validation

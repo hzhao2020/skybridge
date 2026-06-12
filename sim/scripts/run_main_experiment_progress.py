@@ -15,7 +15,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from src.baselines import BASELINE_SOLVERS, solve_baseline  # noqa: E402
+from src.baselines import CANONICAL_BASELINE_METHODS, solve_baseline  # noqa: E402
 from src.config import DATA_DIR, RESULTS_DIR, load_default_config, load_solver_config  # noqa: E402
 from src.cost_latency import critical_path_latency  # noqa: E402
 from src.data_loader import load_endpoints, load_network_links, load_queries, load_scenarios  # noqa: E402
@@ -24,7 +24,7 @@ from src.workflow import get_workflow  # noqa: E402
 
 WORKFLOWS = ("workflow1", "workflow2")
 QUALITIES = ("Q1", "Q2", "Q3")
-METHODS = ("decomposition", "greedy", "murakkab_profile", "single_cloud")
+METHODS = ("decomposition", "single_cloud", "greedy", "dpgm", "mtgp")
 
 
 class Progress:
@@ -75,7 +75,7 @@ def calibrate_budgets(output: Path, progress: Progress, factor: float, query_cou
     if not backup.exists():
         qdf.to_csv(backup, index=False)
 
-    methods = sorted(BASELINE_SOLVERS)
+    methods = CANONICAL_BASELINE_METHODS
     records: list[dict] = []
     new_sla: dict[str, float] = {}
 
@@ -236,7 +236,7 @@ def main() -> None:
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
-    total_steps = 2 + len(WORKFLOWS) * len(QUALITIES) * (len(BASELINE_SOLVERS) + 1 + len(METHODS))
+    total_steps = 2 + len(WORKFLOWS) * len(QUALITIES) * (len(CANONICAL_BASELINE_METHODS) + 1 + len(METHODS))
     progress = Progress(total_steps, done=args.initial_done)
 
     if not args.skip_setup:

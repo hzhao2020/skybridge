@@ -20,7 +20,7 @@ from src.experiment_protocol import split_scenarios_by_query  # noqa: E402
 from src.workflow import get_workflow  # noqa: E402
 
 
-BASELINE_METHODS = ("greedy", "murakkab_profile", "single_cloud")
+BASELINE_METHODS = ("single_cloud", "greedy", "dpgm", "mtgp")
 
 
 def _load_plan_assignment(
