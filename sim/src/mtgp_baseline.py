@@ -5,8 +5,9 @@ This module follows the core MTGP idea from Sun et al. (IEEE TSC 2024): one
 individual contains three priority-rule trees for task, cloud, and resource
 selection. The repository evaluates static deployment plans rather than a
 multi-workflow event simulator, so endpoints are treated as the selectable
-resource instances and the evolved rules are used to construct one deployment
-plan that is evaluated by the shared SkyFlow evaluator.
+resource instances. The rules are evolved against deterministic calibration
+profiles only; scenario-level violation rates and CVaR risk are reserved for
+SkyFlow and final evaluation.
 """
 
 from __future__ import annotations
@@ -28,6 +29,7 @@ from src.cost_latency import (
     storage_cost,
 )
 from src.data_propagation import edge_transfer_size
+from src.path_utils import enumerate_source_to_sink_paths, path_edges
 from src.schemas import Endpoint, Query, Scenario, SolverConfig, WorkflowDAG
 
 Decision = Literal["task", "cloud", "instance"]
@@ -42,8 +44,7 @@ DEFAULT_TOURNAMENT_SIZE = 3
 DEFAULT_ELITE_COUNT = 2
 DEFAULT_CROSSOVER_RATE = 0.80
 DEFAULT_MUTATION_RATE = 0.15
-DEFAULT_FITNESS_SAMPLE_SIZE = 350
-VIOLATION_PENALTY_WEIGHT = 50.0
+PROFILE_LATENCY_PENALTY_WEIGHT = 25.0
 
 FUNCTIONS: tuple[FunctionName, ...] = ("add", "sub", "mul", "div", "max", "min")
 
@@ -154,15 +155,12 @@ def solve_mtgp(
         metrics_cache,
         config,
     )
-    fitness_qs = _sample_fitness_qs(metrics_cache.qs_data, config, rng)
-
     best, history = _evolve_rules(
         workflow=workflow,
         node_candidates=node_candidates,
         avg_samples=avg_samples,
         terminal_stats=terminal_stats,
         metrics_cache=metrics_cache,
-        fitness_qs=fitness_qs,
         config=config,
         rng=rng,
     )
@@ -185,7 +183,7 @@ def solve_mtgp(
         runtime_sec=time.perf_counter() - t0,
     )
     result.num_iterations = len(history)
-    result.active_scenario_count = len(fitness_qs)
+    result.active_scenario_count = len(avg_samples)
     result.convergence_history = history
     return result
 
@@ -209,7 +207,6 @@ def _evolve_rules(
     avg_samples: list[_AvgQueryScenario],
     terminal_stats: _TerminalStats,
     metrics_cache: _BaselineEvaluationCache,
-    fitness_qs: list[QueryScenarioData],
     config: SolverConfig,
     rng: random.Random,
 ) -> tuple[_Individual, list[dict[str, float]]]:
@@ -236,7 +233,6 @@ def _evolve_rules(
                     avg_samples,
                     terminal_stats,
                     metrics_cache,
-                    fitness_qs,
                     config,
                 ),
                 individual,
@@ -250,7 +246,7 @@ def _evolve_rules(
         history.append(
             {
                 "iteration": generation + 1,
-                "active_scenario_count": len(fitness_qs),
+                "active_scenario_count": len(avg_samples),
                 "objective_value": float(scored[0][0]),
                 "max_violation": float(max(0.0, scored[0][0] - best_fitness)),
                 "num_violated_scenarios": 0,
@@ -281,7 +277,6 @@ def _fitness(
     avg_samples: list[_AvgQueryScenario],
     terminal_stats: _TerminalStats,
     metrics_cache: _BaselineEvaluationCache,
-    fitness_qs: list[QueryScenarioData],
     config: SolverConfig,
 ) -> float:
     try:
@@ -296,9 +291,22 @@ def _fitness(
         )
     except Exception:
         return math.inf
-    metrics = _evaluate_assignment_on_qs(metrics_cache, assignment, fitness_qs)
-    excess_violation = max(0.0, float(metrics["violation_rate"]) - config.eta)
-    return float(metrics["expected_cost"]) * (1.0 + VIOLATION_PENALTY_WEIGHT * excess_violation)
+    metrics = _evaluate_assignment_on_profiles(
+        workflow=workflow,
+        assignment=assignment,
+        avg_samples=avg_samples,
+        metrics_cache=metrics_cache,
+        config=config,
+    )
+    latency_penalty = (
+        metrics["mean_normalized_excess"]
+        + metrics["max_normalized_excess"]
+    )
+    return (
+        float(metrics["expected_cost"])
+        * (1.0 + PROFILE_LATENCY_PENALTY_WEIGHT * latency_penalty)
+        + 1e-6 * float(metrics["avg_latency"])
+    )
 
 
 def _schedule_with_individual(
@@ -736,48 +744,179 @@ def _min_positive_bandwidth(links) -> float:
     return min(values) if values else 1.0
 
 
-def _evaluate_assignment_on_qs(
-    metrics_cache: _BaselineEvaluationCache,
+def _evaluate_assignment_on_profiles(
+    *,
+    workflow: WorkflowDAG,
     assignment: dict[str, Endpoint],
-    qs_data: list[QueryScenarioData],
+    avg_samples: list[_AvgQueryScenario],
+    metrics_cache: _BaselineEvaluationCache,
+    config: SolverConfig,
 ) -> dict[str, float]:
     assign_full = dict(assignment)
     assign_full.setdefault("ClientSource", metrics_cache.virtual_map["virtual_ClientSource"])
     assign_full.setdefault("ClientSink", metrics_cache.virtual_map["virtual_ClientSink"])
-    compute_assignment = {
-        node: ep for node, ep in assign_full.items() if not metrics_cache.workflow.is_virtual(node)
-    }
-    costs: list[float] = []
-    violations = 0
-    total = 0
-    for query, scenario, input_sizes, output_sizes in qs_data:
-        cost = metrics_cache._total_cost(compute_assignment, query, scenario, input_sizes, output_sizes)
-        latency = metrics_cache._critical_path_latency(
-            assign_full,
-            query,
-            scenario,
-            input_sizes,
-            output_sizes,
+    paths = enumerate_source_to_sink_paths(workflow)
+
+    profile_costs: list[float] = []
+    profile_latencies: list[float] = []
+    normalized_excesses: list[float] = []
+    for sample in avg_samples:
+        cost = _profile_total_cost(
+            workflow=workflow,
+            assignment=assign_full,
+            network_index=metrics_cache.network_index,
+            sample=sample,
+            config=config,
         )
-        costs.append(cost)
-        violations += int(latency > query.sla_sec)
-        total += 1
+        latency = _profile_critical_path_latency(
+            workflow=workflow,
+            assignment=assign_full,
+            network_index=metrics_cache.network_index,
+            sample=sample,
+            config=config,
+            paths=paths,
+        )
+        profile_costs.append(cost)
+        profile_latencies.append(latency)
+        normalized_excesses.append(
+            max(0.0, latency - sample.query.sla_sec) / max(sample.query.sla_sec, 1e-9)
+        )
+
     return {
-        "expected_cost": float(np.mean(costs)) if costs else 0.0,
-        "violation_rate": violations / max(total, 1),
+        "expected_cost": float(np.mean(profile_costs)) if profile_costs else 0.0,
+        "avg_latency": float(np.mean(profile_latencies)) if profile_latencies else 0.0,
+        "mean_normalized_excess": (
+            float(np.mean(normalized_excesses)) if normalized_excesses else 0.0
+        ),
+        "max_normalized_excess": max(normalized_excesses) if normalized_excesses else 0.0,
     }
 
 
-def _sample_fitness_qs(
-    qs_data: list[QueryScenarioData],
+def _profile_total_cost(
+    *,
+    workflow: WorkflowDAG,
+    assignment: dict[str, Endpoint],
+    network_index,
+    sample: _AvgQueryScenario,
     config: SolverConfig,
-    rng: random.Random,
-) -> list[QueryScenarioData]:
-    sample_size = _config_int(config, "mtgp_fitness_sample_size", DEFAULT_FITNESS_SAMPLE_SIZE)
-    if len(qs_data) <= sample_size:
-        return list(qs_data)
-    indexes = sorted(rng.sample(range(len(qs_data)), sample_size))
-    return [qs_data[i] for i in indexes]
+) -> float:
+    cost = 0.0
+    for node, ep in assignment.items():
+        if workflow.is_virtual(node):
+            continue
+        inp = sample.input_sizes.get(node, 0.0)
+        out = sample.output_sizes.get(node, 0.0)
+        cost += execution_cost(ep, inp, out, sample.query)
+        cost += storage_cost(
+            ep,
+            inp,
+            out,
+            config.ablation.enable_storage_cost,
+        )
+
+    for edge in workflow.edges:
+        src_ep = _resolve_profile_endpoint(edge.src, assignment, workflow)
+        dst_ep = _resolve_profile_endpoint(edge.dst, assignment, workflow)
+        if src_ep is None or dst_ep is None:
+            continue
+        link = network_index.get((src_ep.endpoint_id, dst_ep.endpoint_id))
+        if link is None:
+            continue
+        transferred = edge_transfer_size(
+            edge.src,
+            edge.dst,
+            sample.output_sizes,
+            sample.query,
+        )
+        cost += network_transfer_cost(
+            link,
+            transferred,
+            config.ablation.enable_network_cost,
+        )
+    return cost
+
+
+def _profile_critical_path_latency(
+    *,
+    workflow: WorkflowDAG,
+    assignment: dict[str, Endpoint],
+    network_index,
+    sample: _AvgQueryScenario,
+    config: SolverConfig,
+    paths: list[list[str]],
+) -> float:
+    path_latencies = [
+        _profile_path_latency(
+            path=path,
+            workflow=workflow,
+            assignment=assignment,
+            network_index=network_index,
+            sample=sample,
+            config=config,
+        )
+        for path in paths
+    ]
+    return max(path_latencies) if path_latencies else 0.0
+
+
+def _profile_path_latency(
+    *,
+    path: list[str],
+    workflow: WorkflowDAG,
+    assignment: dict[str, Endpoint],
+    network_index,
+    sample: _AvgQueryScenario,
+    config: SolverConfig,
+) -> float:
+    total = 0.0
+    for node in path:
+        if workflow.is_virtual(node):
+            continue
+        ep = assignment.get(node)
+        if ep is None:
+            continue
+        total += execution_latency(
+            ep,
+            sample.input_sizes.get(node, 0.0),
+            sample.output_sizes.get(node, 0.0),
+            1.0,
+        )
+
+    for src, dst in path_edges(path):
+        if not config.ablation.enable_client_upload_download:
+            if src == "ClientSource" or dst == "ClientSink":
+                continue
+        src_ep = _resolve_profile_endpoint(src, assignment, workflow)
+        dst_ep = _resolve_profile_endpoint(dst, assignment, workflow)
+        if src_ep is None or dst_ep is None:
+            continue
+        link = network_index.get((src_ep.endpoint_id, dst_ep.endpoint_id))
+        if link is None:
+            continue
+        transferred = edge_transfer_size(src, dst, sample.output_sizes, sample.query)
+        total += network_latency(
+            link,
+            transferred,
+            1.0,
+            1.0,
+            config.ablation.enable_network_latency,
+        )
+    return total
+
+
+def _resolve_profile_endpoint(
+    node: str,
+    assignment: dict[str, Endpoint],
+    workflow: WorkflowDAG,
+) -> Endpoint | None:
+    if node in assignment:
+        return assignment[node]
+    if workflow.is_virtual(node):
+        if node == "ClientSource":
+            return assignment.get("ClientSource")
+        if node == "ClientSink":
+            return assignment.get("ClientSink")
+    return None
 
 
 def _random_individual(rng: random.Random, max_depth: int, full: bool) -> _Individual:

@@ -1,0 +1,131 @@
+{
+  "workflow": "workflow2",
+  "quality_level": "Q3",
+  "method": "decomposition",
+  "assignments": [
+    {
+      "logical_node": "Shot Detection",
+      "endpoint_id": "shot_detection_aliyun_cn-shanghai_q3",
+      "provider": "Aliyun",
+      "region": "cn-shanghai",
+      "model_name": null
+    },
+    {
+      "logical_node": "Video Split & Sample",
+      "endpoint_id": "video_split_and_sample_aliyun_cn-shanghai_q3",
+      "provider": "Aliyun",
+      "region": "cn-shanghai",
+      "model_name": null
+    },
+    {
+      "logical_node": "Video Caption",
+      "endpoint_id": "video_caption_aws_us-east-2_q3",
+      "provider": "AWS",
+      "region": "us-east-2",
+      "model_name": "Claude Opus 4.5"
+    },
+    {
+      "logical_node": "OCR",
+      "endpoint_id": "ocr_azure_westus2_q3",
+      "provider": "Azure",
+      "region": "westus2",
+      "model_name": null
+    },
+    {
+      "logical_node": "Label Detection",
+      "endpoint_id": "label_detection_aliyun_cn-shanghai_q3",
+      "provider": "Aliyun",
+      "region": "cn-shanghai",
+      "model_name": null
+    },
+    {
+      "logical_node": "Speech Transcription",
+      "endpoint_id": "speech_transcription_aliyun_cn-shanghai_q3",
+      "provider": "Aliyun",
+      "region": "cn-shanghai",
+      "model_name": null
+    },
+    {
+      "logical_node": "Database",
+      "endpoint_id": "database_aliyun_cn-shanghai_q3",
+      "provider": "Aliyun",
+      "region": "cn-shanghai",
+      "model_name": null
+    },
+    {
+      "logical_node": "Q/A",
+      "endpoint_id": "q_a_anthropic_global_q3",
+      "provider": "Anthropic",
+      "region": "global",
+      "model_name": "Claude Opus 4.5"
+    }
+  ],
+  "objective_value": Infinity,
+  "metrics": {
+    "workflow": "workflow2",
+    "quality_level": "Q3",
+    "method": "decomposition",
+    "objective_value": Infinity,
+    "expected_cost": 20.958204542377235,
+    "avg_latency": 14935.820855098931,
+    "p95_latency": 39353.93770490545,
+    "p99_latency": 64431.01740397804,
+    "violation_rate": 0.05546,
+    "cvar_value": 11723.974772257248,
+    "solver_runtime_sec": 497.9912027910177,
+    "status": "INFEASIBLE",
+    "selected_initializer": "qbm"
+  },
+  "selected_initializer": "qbm",
+  "initializer_selection_history": [
+    {
+      "initializer": "qbr",
+      "status": "INFEASIBLE_REUSED_LAST_FEASIBLE",
+      "train_scenario_count": 40000,
+      "validation_scenario_count": 10000,
+      "expected_cost": 20.8902843076996,
+      "avg_latency": 14887.35168395566,
+      "p95_latency": 39011.68646962442,
+      "p99_latency": 65278.84218907486,
+      "violation_rate": 0.0395,
+      "cvar_value": 8402.705800831862,
+      "solver_runtime_sec": 374.25688449999143,
+      "num_iterations": 2,
+      "active_scenario_count": 10000,
+      "selection_feasible": true,
+      "selection_rank": [
+        0.0,
+        20.8902843076996,
+        0.0395
+      ]
+    },
+    {
+      "initializer": "qbu",
+      "status": "ERROR",
+      "train_scenario_count": 40000,
+      "validation_scenario_count": 10000,
+      "error": "RuntimeError: Decomposition infeasible at iteration 1 (status=INFEASIBLE)"
+    },
+    {
+      "initializer": "qbm",
+      "status": "INFEASIBLE_REUSED_LAST_FEASIBLE",
+      "train_scenario_count": 40000,
+      "validation_scenario_count": 10000,
+      "expected_cost": 20.890284292287017,
+      "avg_latency": 14887.477625183887,
+      "p95_latency": 39011.81614631102,
+      "p99_latency": 65278.961449632574,
+      "violation_rate": 0.0395,
+      "cvar_value": 8402.80514364458,
+      "solver_runtime_sec": 355.36871299998893,
+      "num_iterations": 2,
+      "active_scenario_count": 10000,
+      "selection_feasible": true,
+      "selection_rank": [
+        0.0,
+        20.890284292287017,
+        0.0395
+      ]
+    }
+  ]
+}

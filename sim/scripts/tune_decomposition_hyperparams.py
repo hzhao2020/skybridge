@@ -56,20 +56,20 @@ def _candidate_grid(
         ]
 
     configs: list[dict] = []
-    for fraction in (0.10, 0.15, 0.20, 0.25):
+    for fraction in (0.20, 0.25, 0.30, 0.35):
         for batch in (0.025, 0.05, 0.10):
             configs.append(
                 {
-                    "initial_active_strategy": "stratified_random",
+                    "initial_active_strategy": "qbt",
                     "initial_active_fraction": fraction,
                     "active_batch_fraction": batch,
                 }
             )
-    for fraction in (0.10, 0.15, 0.20):
+    for fraction in (0.20, 0.25, 0.30):
         for batch in (0.025, 0.05):
             configs.append(
                 {
-                    "initial_active_strategy": "stratified_quantile",
+                    "initial_active_strategy": "qbq",
                     "initial_active_fraction": fraction,
                     "active_batch_fraction": batch,
                 }
@@ -413,11 +413,11 @@ def main() -> None:
     parser.add_argument("--calibration-count", type=int, default=50)
     parser.add_argument("--tuning-calibration-count", type=int, default=30)
     parser.add_argument("--tuning-validation-count", type=int, default=20)
-    parser.add_argument("--initial-active-strategy", default="stratified_random")
-    parser.add_argument("--initial-active-fraction", type=float, default=0.20)
+    parser.add_argument("--initial-active-strategy", default="qbt")
+    parser.add_argument("--initial-active-fraction", type=float, default=0.30)
     parser.add_argument("--active-batch-fraction", type=float, default=0.05)
-    parser.add_argument("--strategies", default="stratified_random,stratified_quantile")
-    parser.add_argument("--initial-fractions", default="0.10,0.15,0.20,0.25")
+    parser.add_argument("--strategies", default="qbr,qbb,qbq,qbu,qbm")
+    parser.add_argument("--initial-fractions", default="0.20,0.25,0.30,0.35")
     parser.add_argument("--batch-fractions", default="0.025,0.05,0.10")
     parser.add_argument(
         "--output-dir",

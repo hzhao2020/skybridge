@@ -1,0 +1,145 @@
+{
+  "workflow": "workflow2",
+  "quality_level": "Q2",
+  "method": "decomposition",
+  "assignments": [
+    {
+      "logical_node": "Shot Detection",
+      "endpoint_id": "shot_detection_aliyun_cn-shanghai_q2",
+      "provider": "Aliyun",
+      "region": "cn-shanghai",
+      "model_name": null
+    },
+    {
+      "logical_node": "Video Split & Sample",
+      "endpoint_id": "video_split_and_sample_aliyun_cn-shanghai_q2",
+      "provider": "Aliyun",
+      "region": "cn-shanghai",
+      "model_name": null
+    },
+    {
+      "logical_node": "Video Caption",
+      "endpoint_id": "video_caption_aws_us-west-2_q2",
+      "provider": "AWS",
+      "region": "us-west-2",
+      "model_name": "Claude Sonnet 4.5"
+    },
+    {
+      "logical_node": "OCR",
+      "endpoint_id": "ocr_azure_eastus_q2",
+      "provider": "Azure",
+      "region": "eastus",
+      "model_name": null
+    },
+    {
+      "logical_node": "Label Detection",
+      "endpoint_id": "label_detection_aliyun_cn-shanghai_q2",
+      "provider": "Aliyun",
+      "region": "cn-shanghai",
+      "model_name": null
+    },
+    {
+      "logical_node": "Speech Transcription",
+      "endpoint_id": "speech_transcription_aliyun_cn-shanghai_q2",
+      "provider": "Aliyun",
+      "region": "cn-shanghai",
+      "model_name": null
+    },
+    {
+      "logical_node": "Database",
+      "endpoint_id": "database_aliyun_cn-shanghai_q2",
+      "provider": "Aliyun",
+      "region": "cn-shanghai",
+      "model_name": null
+    },
+    {
+      "logical_node": "Q/A",
+      "endpoint_id": "q_a_aws_eu-central-1_q2",
+      "provider": "AWS",
+      "region": "eu-central-1",
+      "model_name": "Claude Sonnet 4.5"
+    }
+  ],
+  "objective_value": Infinity,
+  "metrics": {
+    "workflow": "workflow2",
+    "quality_level": "Q2",
+    "method": "decomposition",
+    "objective_value": Infinity,
+    "expected_cost": 8.431467004404224,
+    "avg_latency": 9419.521123656768,
+    "p95_latency": 22690.304736931113,
+    "p99_latency": 36409.66050902596,
+    "violation_rate": 0.03978,
+    "cvar_value": 4856.498602885473,
+    "solver_runtime_sec": 410.5112858740031,
+    "status": "INFEASIBLE",
+    "selected_initializer": "qbm"
+  },
+  "selected_initializer": "qbm",
+  "initializer_selection_history": [
+    {
+      "initializer": "qbr",
+      "status": "INFEASIBLE_REUSED_LAST_FEASIBLE",
+      "train_scenario_count": 40000,
+      "validation_scenario_count": 10000,
+      "expected_cost": 8.39685108220765,
+      "avg_latency": 9377.900482274106,
+      "p95_latency": 22790.78342017213,
+      "p99_latency": 36014.986625554804,
+      "violation_rate": 0.0244,
+      "cvar_value": 3417.2379874747976,
+      "solver_runtime_sec": 310.4453404579981,
+      "num_iterations": 2,
+      "active_scenario_count": 10000,
+      "selection_feasible": true,
+      "selection_rank": [
+        0.0,
+        8.39685108220765,
+        0.0244
+      ]
+    },
+    {
+      "initializer": "qbu",
+      "status": "INFEASIBLE_REUSED_LAST_FEASIBLE",
+      "train_scenario_count": 40000,
+      "validation_scenario_count": 10000,
+      "expected_cost": 8.39685108220765,
+      "avg_latency": 9377.900482274106,
+      "p95_latency": 22790.78342017213,
+      "p99_latency": 36014.986625554804,
+      "violation_rate": 0.0244,
+      "cvar_value": 3417.2379874747976,
+      "solver_runtime_sec": 318.5983208329999,
+      "num_iterations": 2,
+      "active_scenario_count": 10000,
+      "selection_feasible": true,
+      "selection_rank": [
+        0.0,
+        8.39685108220765,
+        0.0244
+      ]
+    },
+    {
+      "initializer": "qbm",
+      "status": "INFEASIBLE_REUSED_LAST_FEASIBLE",
+      "train_scenario_count": 40000,
+      "validation_scenario_count": 10000,
+      "expected_cost": 8.396851075783237,
+      "avg_latency": 9377.854710534531,
+      "p95_latency": 22790.813001155555,
+      "p99_latency": 36014.93614271117,
+      "violation_rate": 0.0244,
+      "cvar_value": 3417.2147710867553,
+      "solver_runtime_sec": 309.29794866699376,
+      "num_iterations": 2,
+      "active_scenario_count": 9761,
+      "selection_feasible": true,
+      "selection_rank": [
+        0.0,
+        8.396851075783237,
+        0.0244
+      ]
+    }
+  ]
+}

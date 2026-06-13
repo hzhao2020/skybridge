@@ -10,19 +10,18 @@ num_queries_per_workflow_quality: 1000
 num_queries_per_quality: 1000
 top_k: 10
 initial_active_fraction: 0.20
-initial_active_strategy: qbr
+initial_active_strategy: qbu
 initializer_validation_fraction: 0.20
 initializer_selection_candidates:
   - qbr
-  - qbw
-  - qbb
-  - qbq
+  - qbu
+  - qbm
 active_batch_fraction: 0.05
 violation_tolerance: 1.0e-6
 max_iterations: 100
 gurobi_time_limit_sec: 0
 gurobi_mip_gap: 1.0e-9
-latency_tiebreaker_weight: 0.0
+latency_tiebreaker_weight: 1.0e-6
 endpoint_tiebreaker_weight: 1.0e-6
 
 # MTGP baseline hyperparameters.
@@ -33,7 +32,6 @@ mtgp_tournament_size: 3
 mtgp_elite_count: 2
 mtgp_crossover_rate: 0.80
 mtgp_mutation_rate: 0.15
-mtgp_fitness_sample_size: 350
 
 # Solver used by run_all.py (6 experiments: each workflow × each quality, run separately).
 default_solver_method: decomposition

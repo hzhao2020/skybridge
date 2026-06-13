@@ -173,6 +173,9 @@ def run_experiments(
                         continue
                 out = results_root / f"{workflow}_{quality}" / method
                 label = f"run {key}"
+                if (out / "selected_plan.json").exists():
+                    progress.step(f"skip existing {key}")
+                    continue
                 cmd = [
                     sys.executable,
                     str(script),

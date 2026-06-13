@@ -104,14 +104,13 @@ class SolverConfig(BaseModel):
     eta: float = 0.05
     top_k: int = 10
     initial_active_fraction: float = 0.20
-    initial_active_strategy: str = "qbr"
+    initial_active_strategy: str = "qbu"
     initializer_validation_fraction: float = 0.20
     initializer_selection_candidates: list[str] = Field(
         default_factory=lambda: [
             "qbr",
-            "qbw",
-            "qbb",
-            "qbq",
+            "qbu",
+            "qbm",
         ]
     )
     active_batch_fraction: float = 0.05
@@ -119,7 +118,7 @@ class SolverConfig(BaseModel):
     max_iterations: int = 100
     gurobi_time_limit_sec: float = 300.0
     gurobi_mip_gap: float = 0.01
-    latency_tiebreaker_weight: float = 0.0
+    latency_tiebreaker_weight: float = 1e-6
     endpoint_tiebreaker_weight: float = 1e-6
     mtgp_population_size: int = 28
     mtgp_generations: int = 16
@@ -128,7 +127,6 @@ class SolverConfig(BaseModel):
     mtgp_elite_count: int = 2
     mtgp_crossover_rate: float = 0.80
     mtgp_mutation_rate: float = 0.15
-    mtgp_fitness_sample_size: int = 350
     ablation: AblationConfig = Field(default_factory=AblationConfig)
 
 
