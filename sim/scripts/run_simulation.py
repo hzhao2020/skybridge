@@ -112,6 +112,12 @@ def main() -> None:
         help="Override decomposition active scenario batch fraction",
     )
     parser.add_argument(
+        "--eta",
+        type=float,
+        default=None,
+        help="Override the SLO violation/CVaR risk threshold",
+    )
+    parser.add_argument(
         "--disable-initializer-selection",
         action="store_true",
         help="Run decomposition directly with the configured initializer",
@@ -129,6 +135,8 @@ def main() -> None:
         solver_overrides["initial_active_strategy"] = args.initial_active_strategy
     if args.active_batch_fraction is not None:
         solver_overrides["active_batch_fraction"] = args.active_batch_fraction
+    if args.eta is not None:
+        solver_overrides["eta"] = args.eta
     config = load_solver_config(solver_overrides)
     endpoints = load_endpoints()
     queries = load_queries(quality_level=args.quality, workflow=args.workflow)

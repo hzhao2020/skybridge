@@ -12,6 +12,9 @@ from src.config import CONFIG_DIR, DATA_DIR, load_default_config
 from src.pricing import (
     endpoint_cost_fields,
     expected_data_conversion_ratio,
+    caption_output_tokens,
+    caption_output_tokens_per_frame_range,
+    expected_caption_output_tokens_per_frame,
     llm_performance,
     physical_endpoint_exists,
     q_a_output_token_range,
@@ -140,9 +143,31 @@ def _generate_endpoints(
                     base_lat, lat_per_mb = non_quality_latency[latency_key]
                     if op in ("Video Caption", "Q/A"):
                         ttft, throughput = llm_performance(prov, region, model_name)
-                        rho_out = expected_data_conversion_ratio(op, ql)
                         base_lat = ttft
-                        lat_per_mb = rho_out * tokens_per_mb() / max(throughput, 1e-9)
+                        if op == "Video Caption":
+                            qcfg = query_generation_params()
+                            mean_duration = (
+                                float(qcfg["video_duration_sec_min"])
+                                + float(qcfg["video_duration_sec_max"])
+                            ) / 2.0
+                            sampled_video_mb = video_mb_per_minute() * (mean_duration / 60.0)
+                            sampled_video_mb *= expected_data_conversion_ratio(
+                                "Video Split & Sample",
+                                ql,
+                            )
+                            mean_output_tokens = caption_output_tokens(
+                                mean_duration,
+                                ql,
+                                expected_caption_output_tokens_per_frame(),
+                            )
+                            lat_per_mb = (
+                                mean_output_tokens
+                                / max(sampled_video_mb, 1e-9)
+                                / max(throughput, 1e-9)
+                            )
+                        else:
+                            rho_out = expected_data_conversion_ratio(op, ql)
+                            lat_per_mb = rho_out * tokens_per_mb() / max(throughput, 1e-9)
 
                     rows.append(
                         {
@@ -281,12 +306,15 @@ def _generate_scenarios(
                     rng.uniform(*database_output_token_range())
                 ),
                 "q_a_output_tokens": float(rng.uniform(*q_a_output_token_range())),
+                "caption_output_tokens_per_frame": float(
+                    rng.uniform(*caption_output_tokens_per_frame_range())
+                ),
                 "exec_stress": 1.0,
                 "bw_stress": 1.0,
                 "rtt_stress": 1.0,
             }
             for op in LOGICAL_OPERATIONS:
-                if op in ("Database", "Q/A"):
+                if op in ("Database", "Q/A", "Video Caption"):
                     continue
                 key = f"rho_{op.replace(' ', '_').replace('/', '_').replace('&', 'and')}"
                 row[key] = float(sample_data_conversion_ratio(op, ql, rng))

@@ -192,7 +192,7 @@ def build_milp(
         for q, s in active_qs_pairs:
             key = (q.query_id, s.scenario_id)
             input_sizes = propagate_data_sizes(workflow, q, s)
-            output_sizes = output_data_sizes(input_sizes, s, workflow)
+            output_sizes = output_data_sizes(input_sizes, s, workflow, q)
             for path in paths:
                 path_expr = _path_latency_expr(
                     path, workflow, x, y, node_candidates, virtual_assignment,
@@ -254,7 +254,7 @@ def _build_cost_expression(
     y_coeffs: dict[tuple[str, str, str, str], float] = {key: 0.0 for key in y}
     for q, s in qs_pairs:
         input_sizes = propagate_data_sizes(workflow, q, s)
-        output_sizes = output_data_sizes(input_sizes, s, workflow)
+        output_sizes = output_data_sizes(input_sizes, s, workflow, q)
 
         for node, cands in node_candidates.items():
             inp = input_sizes.get(node, 0.0)
@@ -312,7 +312,7 @@ def _build_latency_tiebreaker_expression(
     denom = max(len(qs_pairs) * max(len(paths), 1), 1)
     for q, s in qs_pairs:
         input_sizes = propagate_data_sizes(workflow, q, s)
-        output_sizes = output_data_sizes(input_sizes, s, workflow)
+        output_sizes = output_data_sizes(input_sizes, s, workflow, q)
         for path in paths:
             total += _path_latency_expr(
                 path,

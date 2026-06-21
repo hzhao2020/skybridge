@@ -187,7 +187,7 @@ def critical_path_latency(
     ablation: AblationConfig,
 ) -> float:
     input_sizes = propagate_data_sizes(workflow, query, scenario)
-    output_sizes = output_data_sizes(input_sizes, scenario, workflow)
+    output_sizes = output_data_sizes(input_sizes, scenario, workflow, query)
     paths = enumerate_source_to_sink_paths(workflow)
     latencies = [
         path_latency(
@@ -217,7 +217,7 @@ def total_cost(
     ablation: AblationConfig,
 ) -> float:
     input_sizes = propagate_data_sizes(workflow, query, scenario)
-    output_sizes = output_data_sizes(input_sizes, scenario, workflow)
+    output_sizes = output_data_sizes(input_sizes, scenario, workflow, query)
     cost = 0.0
 
     for node, ep in assignment.items():

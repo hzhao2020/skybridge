@@ -80,6 +80,7 @@ class Scenario(BaseModel):
     rho: dict[str, float] = Field(default_factory=dict)
     database_output_tokens: float | None = None
     q_a_output_tokens: float | None = None
+    caption_output_tokens_per_frame: float | None = None
     exec_latency_multiplier: dict[str, float] = Field(default_factory=dict)
     bandwidth_multiplier: dict[str, float] = Field(default_factory=dict)
     rtt_multiplier: dict[str, float] = Field(default_factory=dict)
@@ -120,9 +121,9 @@ class SolverConfig(BaseModel):
     gurobi_mip_gap: float = 0.01
     latency_tiebreaker_weight: float = 1e-6
     endpoint_tiebreaker_weight: float = 1e-6
-    mtgp_population_size: int = 28
-    mtgp_generations: int = 16
-    mtgp_max_depth: int = 5
+    mtgp_population_size: int = 12
+    mtgp_generations: int = 6
+    mtgp_max_depth: int = 4
     mtgp_tournament_size: int = 3
     mtgp_elite_count: int = 2
     mtgp_crossover_rate: float = 0.80

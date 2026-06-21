@@ -69,9 +69,13 @@ def _node_candidates(
 
 
 def _topological_compute_nodes(workflow: WorkflowDAG) -> list[str]:
-    compute = set(workflow.compute_nodes())
-    indegree = {n: len([p for p in workflow.predecessors(n) if p in compute]) for n in compute}
-    ready = [n for n in compute if indegree[n] == 0]
+    compute_order = workflow.compute_nodes()
+    compute = set(compute_order)
+    indegree = {
+        n: len([p for p in workflow.predecessors(n) if p in compute])
+        for n in compute_order
+    }
+    ready = [n for n in compute_order if indegree[n] == 0]
     order: list[str] = []
     while ready:
         n = ready.pop(0)
@@ -489,32 +493,15 @@ def _build_query_scenario_data(
             continue
         for scenario in scenario_by_q.get(query.query_id, []):
             input_sizes = propagate_data_sizes(workflow, query, scenario)
-            output_sizes = output_data_sizes(input_sizes, scenario, workflow)
+            output_sizes = output_data_sizes(input_sizes, scenario, workflow, query)
             data.append((query, scenario, input_sizes, output_sizes))
     return data
 
 
-def _resolve_selected_endpoint(
-    node: str,
-    assignment: dict[str, Endpoint],
-    virtual_map: dict[str, Endpoint],
-    workflow: WorkflowDAG,
-) -> Endpoint | None:
-    if node in assignment:
-        return assignment[node]
-    if workflow.is_virtual(node):
-        return virtual_map.get(f"virtual_{node}")
-    return None
-
-
-def _expected_incremental_cost_latency(
+def _expected_node_profile_cost_latency(
     *,
-    workflow: WorkflowDAG,
     node: str,
     endpoint: Endpoint,
-    partial: dict[str, Endpoint],
-    virtual_map: dict[str, Endpoint],
-    network_index: dict[tuple[str, str], object],
     qs_data: list[QueryScenarioData],
     config: SolverConfig,
 ) -> tuple[float, float]:
@@ -542,30 +529,6 @@ def _expected_incremental_cost_latency(
                 scenario.exec_stress,
             )
             inc_latency = execution_latency(endpoint, inp, out, exec_mult)
-
-        for pred in workflow.predecessors(node):
-            pred_ep = _resolve_selected_endpoint(pred, partial, virtual_map, workflow)
-            if pred_ep is None:
-                continue
-            link = network_index.get((pred_ep.endpoint_id, endpoint.endpoint_id))
-            if link is None:
-                continue
-            pred_out = edge_transfer_size(pred, node, output_sizes, query)
-            inc_cost += network_transfer_cost(
-                link,
-                pred_out,
-                config.ablation.enable_network_cost,
-            )
-            pair_key = f"{pred_ep.endpoint_id}->{endpoint.endpoint_id}"
-            bw_mult = scenario.bandwidth_multiplier.get(pair_key, scenario.bw_stress)
-            rtt_mult = scenario.rtt_multiplier.get(pair_key, scenario.rtt_stress)
-            inc_latency += network_latency(
-                link,
-                pred_out,
-                bw_mult,
-                rtt_mult,
-                config.ablation.enable_network_latency,
-            )
 
         total_cost += inc_cost
         total_latency += inc_latency
@@ -737,9 +700,10 @@ def solve_greedy(
 ) -> OptimizationResult:
     """
     Greedy: traverse the workflow DAG in topological order. For each logical node,
-    choose the endpoint with the lowest expected incremental execution/storage and
-    already-selected predecessor transfer cost. Ties break by lower expected
-    incremental latency. Decisions are irrevocable and local.
+    choose the physical candidate endpoint with the lowest expected node cost
+    from calibration profiles, including execution and storage costs. Ties break
+    by lower expected node latency. Decisions are irrevocable and local, and the
+    global deployment plan is not jointly optimized.
     """
     t0 = time.perf_counter()
     node_candidates = _node_candidates(workflow, endpoints, quality_level, config)
@@ -752,17 +716,13 @@ def solve_greedy(
         best_ep: Endpoint | None = None
         best_rank: tuple[float, float, str] | None = None
         for ep in node_candidates[node]:
-            inc_cost, inc_latency = _expected_incremental_cost_latency(
-                workflow=workflow,
+            node_cost, node_latency = _expected_node_profile_cost_latency(
                 node=node,
                 endpoint=ep,
-                partial=partial,
-                virtual_map=metrics_cache.virtual_map,
-                network_index=metrics_cache.network_index,
                 qs_data=metrics_cache.qs_data,
                 config=config,
             )
-            rank = (inc_cost, inc_latency, ep.endpoint_id)
+            rank = (node_cost, node_latency, ep.endpoint_id)
             if best_rank is None or rank < best_rank:
                 best_rank = rank
                 best_ep = ep
@@ -884,103 +844,109 @@ def _build_dpgm_query_profiles(
     metrics_cache: _BaselineEvaluationCache,
     config: SolverConfig,
 ) -> list[dict]:
-    grouped: dict[str, list[QueryScenarioData]] = {}
-    for row in metrics_cache.qs_data:
-        grouped.setdefault(row[0].query_id, []).append(row)
+    rows = metrics_cache.qs_data
+    if not rows:
+        return []
 
-    profiles: list[dict] = []
-    for rows in grouped.values():
-        query = rows[0][0]
-        node_cost: dict[tuple[str, str], float] = {}
-        node_latency: dict[tuple[str, str], float] = {}
-        edge_cost: dict[tuple[str, str, str, str], float] = {}
-        edge_latency: dict[tuple[str, str, str, str], float] = {}
+    template_query = rows[0][0]
+    profile_query = Query(
+        query_id="aggregate_profile",
+        workflow=template_query.workflow,
+        quality_level=template_query.quality_level,
+        video_size_mb=float(np.mean([row[0].video_size_mb for row in rows])),
+        video_duration_sec=float(np.mean([row[0].video_duration_sec for row in rows])),
+        fps=float(np.mean([row[0].fps for row in rows])),
+        sla_sec=float(np.mean([row[0].sla_sec for row in rows])),
+    )
 
-        for node, cands in node_candidates.items():
-            for ep in cands:
+    node_cost: dict[tuple[str, str], float] = {}
+    node_latency: dict[tuple[str, str], float] = {}
+    edge_cost: dict[tuple[str, str, str, str], float] = {}
+    edge_latency: dict[tuple[str, str, str, str], float] = {}
+
+    for node, cands in node_candidates.items():
+        for ep in cands:
+            costs = []
+            latencies = []
+            for q, scenario, input_sizes, output_sizes in rows:
+                inp = input_sizes.get(node, 0.0)
+                out = output_sizes.get(node, 0.0)
+                costs.append(
+                    execution_cost(ep, inp, out, q)
+                    + storage_cost(ep, inp, out, config.ablation.enable_storage_cost)
+                )
+                sampled = sampled_execution_latency(ep, q, scenario)
+                if sampled is not None:
+                    latencies.append(sampled)
+                else:
+                    mult = scenario.exec_latency_multiplier.get(ep.endpoint_id, scenario.exec_stress)
+                    latencies.append(execution_latency(ep, inp, out, mult))
+            node_cost[node, ep.endpoint_id] = float(np.mean(costs)) if costs else 0.0
+            node_latency[node, ep.endpoint_id] = float(np.mean(latencies)) if latencies else 0.0
+
+    for edge in workflow.edges:
+        src, dst = edge.src, edge.dst
+        if not config.ablation.enable_client_upload_download:
+            if src == "ClientSource" or dst == "ClientSink":
+                continue
+        src_eps = _dpgm_candidates_for_node(
+            src,
+            node_candidates,
+            metrics_cache.virtual_map,
+            workflow,
+        )
+        dst_eps = _dpgm_candidates_for_node(
+            dst,
+            node_candidates,
+            metrics_cache.virtual_map,
+            workflow,
+        )
+        for src_ep in src_eps:
+            for dst_ep in dst_eps:
+                link = metrics_cache.network_index.get((src_ep.endpoint_id, dst_ep.endpoint_id))
                 costs = []
                 latencies = []
-                for q, scenario, input_sizes, output_sizes in rows:
-                    inp = input_sizes.get(node, 0.0)
-                    out = output_sizes.get(node, 0.0)
+                for q, scenario, _, output_sizes in rows:
+                    transferred = edge_transfer_size(src, dst, output_sizes, q)
+                    if link is None:
+                        costs.append(0.0)
+                        latencies.append(0.0)
+                        continue
                     costs.append(
-                        execution_cost(ep, inp, out, q)
-                        + storage_cost(ep, inp, out, config.ablation.enable_storage_cost)
-                    )
-                    sampled = sampled_execution_latency(ep, q, scenario)
-                    if sampled is not None:
-                        latencies.append(sampled)
-                    else:
-                        mult = scenario.exec_latency_multiplier.get(ep.endpoint_id, scenario.exec_stress)
-                        latencies.append(execution_latency(ep, inp, out, mult))
-                node_cost[node, ep.endpoint_id] = float(np.mean(costs)) if costs else 0.0
-                node_latency[node, ep.endpoint_id] = float(np.mean(latencies)) if latencies else 0.0
-
-        for edge in workflow.edges:
-            src, dst = edge.src, edge.dst
-            if not config.ablation.enable_client_upload_download:
-                if src == "ClientSource" or dst == "ClientSink":
-                    continue
-            src_eps = _dpgm_candidates_for_node(
-                src,
-                node_candidates,
-                metrics_cache.virtual_map,
-                workflow,
-            )
-            dst_eps = _dpgm_candidates_for_node(
-                dst,
-                node_candidates,
-                metrics_cache.virtual_map,
-                workflow,
-            )
-            for src_ep in src_eps:
-                for dst_ep in dst_eps:
-                    link = metrics_cache.network_index.get((src_ep.endpoint_id, dst_ep.endpoint_id))
-                    costs = []
-                    latencies = []
-                    for q, scenario, _, output_sizes in rows:
-                        transferred = edge_transfer_size(src, dst, output_sizes, q)
-                        if link is None:
-                            costs.append(0.0)
-                            latencies.append(0.0)
-                            continue
-                        costs.append(
-                            network_transfer_cost(
-                                link,
-                                transferred,
-                                config.ablation.enable_network_cost,
-                            )
+                        network_transfer_cost(
+                            link,
+                            transferred,
+                            config.ablation.enable_network_cost,
                         )
-                        pair_key = f"{src_ep.endpoint_id}->{dst_ep.endpoint_id}"
-                        bw_mult = scenario.bandwidth_multiplier.get(pair_key, scenario.bw_stress)
-                        rtt_mult = scenario.rtt_multiplier.get(pair_key, scenario.rtt_stress)
-                        latencies.append(
-                            network_latency(
-                                link,
-                                transferred,
-                                bw_mult,
-                                rtt_mult,
-                                config.ablation.enable_network_latency,
-                            )
+                    )
+                    pair_key = f"{src_ep.endpoint_id}->{dst_ep.endpoint_id}"
+                    bw_mult = scenario.bandwidth_multiplier.get(pair_key, scenario.bw_stress)
+                    rtt_mult = scenario.rtt_multiplier.get(pair_key, scenario.rtt_stress)
+                    latencies.append(
+                        network_latency(
+                            link,
+                            transferred,
+                            bw_mult,
+                            rtt_mult,
+                            config.ablation.enable_network_latency,
                         )
-                    edge_cost[src, dst, src_ep.endpoint_id, dst_ep.endpoint_id] = (
-                        float(np.mean(costs)) if costs else 0.0
                     )
-                    edge_latency[src, dst, src_ep.endpoint_id, dst_ep.endpoint_id] = (
-                        float(np.mean(latencies)) if latencies else 0.0
-                    )
+                edge_cost[src, dst, src_ep.endpoint_id, dst_ep.endpoint_id] = (
+                    float(np.mean(costs)) if costs else 0.0
+                )
+                edge_latency[src, dst, src_ep.endpoint_id, dst_ep.endpoint_id] = (
+                    float(np.mean(latencies)) if latencies else 0.0
+                )
 
-        profiles.append(
-            {
-                "query": query,
-                "node_cost": node_cost,
-                "node_latency": node_latency,
-                "edge_cost": edge_cost,
-                "edge_latency": edge_latency,
-            }
-        )
-
-    return profiles
+    return [
+        {
+            "query": profile_query,
+            "node_cost": node_cost,
+            "node_latency": node_latency,
+            "edge_cost": edge_cost,
+            "edge_latency": edge_latency,
+        }
+    ]
 
 
 def _build_dpgm_profile_milp(

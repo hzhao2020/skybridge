@@ -142,6 +142,12 @@ def load_scenarios(
                     and pd.notna(row.get("q_a_output_tokens"))
                     else None
                 ),
+                caption_output_tokens_per_frame=(
+                    float(row["caption_output_tokens_per_frame"])
+                    if "caption_output_tokens_per_frame" in row
+                    and pd.notna(row.get("caption_output_tokens_per_frame"))
+                    else None
+                ),
                 exec_latency_multiplier=exec_mult,
                 bandwidth_multiplier=bw_mult,
                 rtt_multiplier=rtt_mult,

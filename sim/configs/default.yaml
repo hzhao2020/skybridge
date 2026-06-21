@@ -25,9 +25,9 @@ latency_tiebreaker_weight: 1.0e-6
 endpoint_tiebreaker_weight: 1.0e-6
 
 # MTGP baseline hyperparameters.
-mtgp_population_size: 28
-mtgp_generations: 16
-mtgp_max_depth: 5
+mtgp_population_size: 12
+mtgp_generations: 6
+mtgp_max_depth: 4
 mtgp_tournament_size: 3
 mtgp_elite_count: 2
 mtgp_crossover_rate: 0.80

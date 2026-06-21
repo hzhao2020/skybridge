@@ -37,14 +37,14 @@ FunctionName = Literal["add", "sub", "mul", "div", "max", "min"]
 QueryScenarioData = tuple[Query, Scenario, dict[str, float], dict[str, float]]
 
 SUB_DEADLINE_EPSILON = 0.95
-DEFAULT_POPULATION_SIZE = 28
-DEFAULT_GENERATIONS = 16
-DEFAULT_MAX_DEPTH = 5
+DEFAULT_POPULATION_SIZE = 12
+DEFAULT_GENERATIONS = 6
+DEFAULT_MAX_DEPTH = 4
 DEFAULT_TOURNAMENT_SIZE = 3
 DEFAULT_ELITE_COUNT = 2
 DEFAULT_CROSSOVER_RATE = 0.80
 DEFAULT_MUTATION_RATE = 0.15
-PROFILE_LATENCY_PENALTY_WEIGHT = 25.0
+PROFILE_LATENCY_PENALTY_WEIGHT = 8.0
 
 FUNCTIONS: tuple[FunctionName, ...] = ("add", "sub", "mul", "div", "max", "min")
 
@@ -368,7 +368,7 @@ def _schedule_with_individual(
         ]
 
         feasible: list[tuple[float, str, Endpoint]] = []
-        fallback: list[tuple[float, str, Endpoint]] = []
+        all_ranked: list[tuple[float, str, Endpoint]] = []
         for ep in provider_candidates:
             start, finish = _estimate_times(
                 workflow,
@@ -394,9 +394,10 @@ def _schedule_with_individual(
             row = (priority, ep.endpoint_id, ep)
             if finish <= terminal_stats.sub_deadline[selected_node] + 1e-9:
                 feasible.append(row)
-            fallback.append((finish, ep.endpoint_id, ep))
+            all_ranked.append(row)
 
-        chosen = min(feasible, key=lambda row: (row[0], row[1]))[2] if feasible else min(fallback)[2]
+        ranked = feasible if feasible else all_ranked
+        chosen = min(ranked, key=lambda row: (row[0], row[1]))[2]
         _commit_assignment(
             workflow=workflow,
             node=selected_node,

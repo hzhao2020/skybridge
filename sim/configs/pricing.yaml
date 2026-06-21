@@ -5,8 +5,22 @@ video_mb_per_minute: 75.0
 video_to_audio_ratio: 0.031626
 video_fps: 30
 tokens_per_kb: 250
-caption_tokens_per_frame: 32
+caption_frame_width: 3840
+caption_frame_height: 2160
 caption_prompt_tokens: 50
+caption_output_tokens_per_frame_min: 32
+caption_output_tokens_per_frame_max: 64
+claude_vision:
+  patch_size: 28
+  max_edge: 1568
+  max_tokens: 1568
+  high_resolution_max_edge: 2576
+  high_resolution_max_tokens: 4784
+  high_resolution_model_patterns:
+    - "Opus 4.7"
+    - "Opus 4.8"
+    - "Fable 5"
+    - "Mythos 5"
 database_output_tokens_min: 1000
 database_output_tokens_max: 2000
 q_a_output_tokens_min: 50
@@ -95,50 +109,50 @@ llm_price_per_million:
 llm_performance:
   Anthropic:
     global:
-      Claude Haiku 4.5: [0.85, 103]
-      Claude Sonnet 4.5: [1.51, 46]
-      Claude Opus 4.5: [1.53, 53]
+      Claude Haiku 4.5: [0.89, 88]
+      Claude Sonnet 4.5: [1.45, 38]
+      Claude Opus 4.5: [1.58, 41]
   AWS:
     us-west-2:
-      Claude Haiku 4.5: [1.03, 124]
-      Claude Sonnet 4.5: [1.73, 55]
-      Claude Opus 4.5: [1.73, 56]
+      Claude Haiku 4.5: [1.06, 102]
+      Claude Sonnet 4.5: [1.70, 45]
+      Claude Opus 4.5: [1.61, 44]
     us-east-2:
-      Claude Haiku 4.5: [1.03, 124]
-      Claude Sonnet 4.5: [1.73, 55]
-      Claude Opus 4.5: [1.73, 56]
+      Claude Haiku 4.5: [1.06, 102]
+      Claude Sonnet 4.5: [1.70, 45]
+      Claude Opus 4.5: [1.61, 44]
     ap-southeast-1:
-      Claude Haiku 4.5: [1.03, 124]
-      Claude Sonnet 4.5: [1.73, 55]
-      Claude Opus 4.5: [1.73, 56]
+      Claude Haiku 4.5: [1.06, 102]
+      Claude Sonnet 4.5: [1.70, 45]
+      Claude Opus 4.5: [1.61, 44]
     eu-central-1:
-      Claude Haiku 4.5: [1.03, 124]
-      Claude Sonnet 4.5: [1.73, 55]
-      Claude Opus 4.5: [1.73, 56]
+      Claude Haiku 4.5: [1.06, 102]
+      Claude Sonnet 4.5: [1.70, 45]
+      Claude Opus 4.5: [1.61, 44]
   GCP:
     europe-west1:
-      Claude Haiku 4.5: [0.59, 102]
-      Claude Sonnet 4.5: [1.03, 45]
-      Claude Opus 4.5: [0.87, 54]
+      Claude Haiku 4.5: [0.61, 88]
+      Claude Sonnet 4.5: [1.02, 38]
+      Claude Opus 4.5: [0.86, 44]
     asia-east1:
-      Claude Haiku 4.5: [0.59, 102]
+      Claude Haiku 4.5: [0.61, 88]
   Azure:
     westus2:
-      Claude Haiku 4.5: [1.04, 97]
-      Claude Sonnet 4.5: [1.92, 46]
-      Claude Opus 4.5: [2.04, 52]
+      Claude Haiku 4.5: [1.19, 90]
+      Claude Sonnet 4.5: [2.01, 38]
+      Claude Opus 4.5: [2.11, 42]
     eastus:
-      Claude Haiku 4.5: [1.04, 97]
-      Claude Sonnet 4.5: [1.92, 46]
-      Claude Opus 4.5: [2.04, 52]
+      Claude Haiku 4.5: [1.19, 90]
+      Claude Sonnet 4.5: [2.01, 38]
+      Claude Opus 4.5: [2.11, 42]
     westeurope:
-      Claude Haiku 4.5: [1.04, 97]
-      Claude Sonnet 4.5: [1.92, 46]
-      Claude Opus 4.5: [2.04, 52]
+      Claude Haiku 4.5: [1.19, 90]
+      Claude Sonnet 4.5: [2.01, 38]
+      Claude Opus 4.5: [2.11, 42]
     southeastasia:
-      Claude Haiku 4.5: [1.04, 97]
-      Claude Sonnet 4.5: [1.92, 46]
-      Claude Opus 4.5: [2.04, 52]
+      Claude Haiku 4.5: [1.19, 90]
+      Claude Sonnet 4.5: [2.01, 38]
+      Claude Opus 4.5: [2.11, 42]
 
 # Shot detection: USD per minute of video
 shot_detection_usd_per_minute:

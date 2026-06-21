@@ -93,8 +93,69 @@ def tokens_per_mb() -> float:
     return float(cfg["tokens_per_kb"]) * 1024.0
 
 
-def caption_tokens_per_frame() -> float:
-    return float(load_pricing_config().get("caption_tokens_per_frame", 786.0))
+def _claude_vision_config(model_name: str | None = None) -> dict[str, float]:
+    cfg = load_pricing_config()
+    vision = cfg.get("claude_vision", {})
+    patch_size = float(vision.get("patch_size", 28))
+    max_edge = float(vision.get("max_edge", 1568))
+    max_tokens = float(vision.get("max_tokens", 1568))
+
+    patterns = vision.get("high_resolution_model_patterns", [])
+    if model_name and any(str(pattern) in model_name for pattern in patterns):
+        max_edge = float(vision.get("high_resolution_max_edge", max_edge))
+        max_tokens = float(vision.get("high_resolution_max_tokens", max_tokens))
+
+    return {
+        "patch_size": patch_size,
+        "max_edge": max_edge,
+        "max_tokens": max_tokens,
+    }
+
+
+def claude_vision_tokens_for_image(
+    width: float,
+    height: float,
+    *,
+    model_name: str | None = None,
+) -> int:
+    """Claude Vision visual token count after Anthropic-style image resizing."""
+    if width <= 0 or height <= 0:
+        raise ValueError("image width/height must be positive")
+    vision = _claude_vision_config(model_name)
+    patch_size = vision["patch_size"]
+    max_edge = vision["max_edge"]
+    max_tokens = vision["max_tokens"]
+
+    def tokens_at(scale: float) -> int:
+        scaled_w = max(1e-9, width * scale)
+        scaled_h = max(1e-9, height * scale)
+        return int(math.ceil(scaled_w / patch_size) * math.ceil(scaled_h / patch_size))
+
+    scale_hi = min(1.0, max_edge / max(width, height))
+    if tokens_at(scale_hi) <= max_tokens:
+        return tokens_at(scale_hi)
+
+    lo, hi = 0.0, scale_hi
+    for _ in range(80):
+        mid = (lo + hi) / 2.0
+        if tokens_at(mid) <= max_tokens:
+            lo = mid
+        else:
+            hi = mid
+    return tokens_at(lo)
+
+
+def caption_tokens_per_frame(model_name: str | None = None) -> float:
+    cfg = load_pricing_config()
+    if "caption_frame_width" in cfg and "caption_frame_height" in cfg:
+        return float(
+            claude_vision_tokens_for_image(
+                float(cfg["caption_frame_width"]),
+                float(cfg["caption_frame_height"]),
+                model_name=model_name,
+            )
+        )
+    return float(cfg.get("caption_tokens_per_frame", 786.0))
 
 
 def caption_prompt_tokens() -> float:
@@ -117,15 +178,53 @@ def q_a_output_token_range() -> tuple[float, float]:
     )
 
 
+def caption_output_tokens_per_frame_range() -> tuple[float, float]:
+    cfg = load_pricing_config()
+    return (
+        float(cfg.get("caption_output_tokens_per_frame_min", 32.0)),
+        float(cfg.get("caption_output_tokens_per_frame_max", 64.0)),
+    )
+
+
+def expected_caption_output_tokens_per_frame() -> float:
+    lo, hi = caption_output_tokens_per_frame_range()
+    return (lo + hi) / 2.0
+
+
 def sampling_fps(quality_level: str) -> float:
     cfg = load_pricing_config()
     rates = cfg.get("sampling_rates_fps", {})
     return float(rates[quality_level])
 
 
-def caption_input_tokens(video_duration_sec: float, quality_level: str) -> float:
+def caption_input_tokens(
+    video_duration_sec: float,
+    quality_level: str,
+    model_name: str | None = None,
+) -> float:
     num_frames = video_duration_sec * sampling_fps(quality_level)
-    return num_frames * caption_tokens_per_frame() + caption_prompt_tokens()
+    return num_frames * caption_tokens_per_frame(model_name) + caption_prompt_tokens()
+
+
+def caption_output_tokens(
+    video_duration_sec: float,
+    quality_level: str,
+    output_tokens_per_frame: float,
+) -> float:
+    num_frames = video_duration_sec * sampling_fps(quality_level)
+    return num_frames * output_tokens_per_frame
+
+
+def caption_output_size_mb(
+    video_duration_sec: float,
+    quality_level: str,
+    output_tokens_per_frame: float,
+) -> float:
+    return caption_output_tokens(
+        video_duration_sec,
+        quality_level,
+        output_tokens_per_frame,
+    ) / tokens_per_mb()
 
 
 def video_mb_per_minute() -> float:
@@ -183,7 +282,7 @@ def llm_cost_usd(
     input_price, output_price = llm_prices_per_million(provider, region, model)
     tpm = tokens_per_mb()
     if logical_operation == "Video Caption" and quality_level and video_duration_sec is not None:
-        input_tokens = caption_input_tokens(video_duration_sec, quality_level)
+        input_tokens = caption_input_tokens(video_duration_sec, quality_level, model)
     else:
         input_tokens = input_size_mb * tpm
     output_tokens = output_size_mb * tpm
@@ -229,7 +328,6 @@ def endpoint_cost_fields(
             raise ValueError(f"{op} requires model_name")
         inp_p, out_p = llm_prices_per_million(provider, region, model_name)
         tpm = tokens_per_mb()
-        rho_out = expected_data_conversion_ratio(op, quality_level)
         if op == "Video Caption":
             qcfg = query_generation_params()
             mean_duration = (
@@ -239,6 +337,7 @@ def endpoint_cost_fields(
             mean_caption_input_mb = caption_input_tokens(
                 mean_duration,
                 quality_level,
+                model_name,
             ) / tpm
             sampled_video_mb = video_mb_per_minute() * (mean_duration / 60.0)
             sampled_video_mb *= expected_data_conversion_ratio(
@@ -246,11 +345,17 @@ def endpoint_cost_fields(
                 quality_level,
             )
             denom = max(sampled_video_mb, 1e-9)
+            mean_output_tokens = caption_output_tokens(
+                mean_duration,
+                quality_level,
+                expected_caption_output_tokens_per_frame(),
+            )
             cost_per_mb = (
                 (mean_caption_input_mb * tpm * inp_p)
-                + (denom * rho_out * tpm * out_p)
+                + (mean_output_tokens * out_p)
             ) / 1_000_000.0 / denom
             return 0.0, cost_per_mb, storage_per_mb_day
+        rho_out = expected_data_conversion_ratio(op, quality_level)
         cost_per_mb = (tpm / 1_000_000.0) * (inp_p + out_p * rho_out)
         return 0.0, cost_per_mb, storage_per_mb_day
 
