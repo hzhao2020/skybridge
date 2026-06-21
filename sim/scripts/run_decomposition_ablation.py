@@ -35,11 +35,17 @@ def _maxrss_mb() -> float:
     return rss / (1024.0 * 1024.0) if rss > 10_000_000 else rss / 1024.0
 
 
-def _worker(method: str, workflow_name: str, quality: str, queue: mp.Queue) -> None:
+def _worker(
+    method: str,
+    workflow_name: str,
+    quality: str,
+    solver_overrides: dict,
+    queue: mp.Queue,
+) -> None:
     started = time.perf_counter()
     try:
         workflow = get_workflow(workflow_name)
-        config = load_solver_config()
+        config = load_solver_config(solver_overrides)
         endpoints = load_endpoints()
         queries = load_queries(quality_level=quality, workflow=workflow_name)
         scenarios = load_scenarios(query_ids=[q.query_id for q in queries])
@@ -74,6 +80,10 @@ def _worker(method: str, workflow_name: str, quality: str, queue: mp.Queue) -> N
                 "workflow": workflow_name,
                 "quality_level": quality,
                 "method": method,
+                "eta": config.eta,
+                "initial_active_fraction": config.initial_active_fraction,
+                "initial_active_strategy": config.initial_active_strategy,
+                "active_batch_fraction": config.active_batch_fraction,
                 "status": result.status,
                 "objective_value": result.objective_value,
                 "expected_cost": metrics["expected_cost"],
@@ -93,6 +103,16 @@ def _worker(method: str, workflow_name: str, quality: str, queue: mp.Queue) -> N
                 "workflow": workflow_name,
                 "quality_level": quality,
                 "method": method,
+                "eta": solver_overrides.get("eta", float("nan")),
+                "initial_active_fraction": solver_overrides.get(
+                    "initial_active_fraction", float("nan")
+                ),
+                "initial_active_strategy": solver_overrides.get(
+                    "initial_active_strategy", ""
+                ),
+                "active_batch_fraction": solver_overrides.get(
+                    "active_batch_fraction", float("nan")
+                ),
                 "status": "FAILED",
                 "objective_value": float("nan"),
                 "expected_cost": float("nan"),
@@ -108,9 +128,11 @@ def _worker(method: str, workflow_name: str, quality: str, queue: mp.Queue) -> N
         )
 
 
-def _run_one(method: str, workflow: str, quality: str) -> dict:
+def _run_one(method: str, workflow: str, quality: str, solver_overrides: dict) -> dict:
     queue: mp.Queue = mp.Queue()
-    proc = mp.Process(target=_worker, args=(method, workflow, quality, queue))
+    proc = mp.Process(
+        target=_worker, args=(method, workflow, quality, solver_overrides, queue)
+    )
     proc.start()
     proc.join()
     if not queue.empty():
@@ -135,13 +157,29 @@ def main() -> None:
         type=Path,
         default=RESULTS_DIR / "experiment_logs" / "decomposition_ablation.csv",
     )
+    parser.add_argument("--eta", type=float, default=0.05)
+    parser.add_argument("--initial-active-fraction", type=float, default=0.3)
+    parser.add_argument(
+        "--initial-active-strategy",
+        choices=["qbr", "qbw", "qbb", "qbq", "qbt", "qbu", "qbm"],
+        default="qbr",
+    )
+    parser.add_argument("--active-batch-fraction", type=float, default=None)
     args = parser.parse_args()
+
+    solver_overrides = {
+        "eta": args.eta,
+        "initial_active_fraction": args.initial_active_fraction,
+        "initial_active_strategy": args.initial_active_strategy,
+    }
+    if args.active_batch_fraction is not None:
+        solver_overrides["active_batch_fraction"] = args.active_batch_fraction
 
     rows: list[dict] = []
     for workflow, quality in RUNS:
         for method in ("full_milp", "decomposition"):
             logging.info("Running %s %s %s", method, workflow, quality)
-            row = _run_one(method, workflow, quality)
+            row = _run_one(method, workflow, quality, solver_overrides)
             logging.info(
                 "%s %s %s status=%s wall=%.2fs rss=%.1fMB",
                 method,

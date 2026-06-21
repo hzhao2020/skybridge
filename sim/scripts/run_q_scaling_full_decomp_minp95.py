@@ -65,12 +65,22 @@ def _worker(
     query_count: int,
     calibration_count: int,
     eta: float,
+    initial_active_fraction: float,
+    initial_active_strategy: str,
+    active_batch_fraction: float | None,
     queue: mp.Queue,
 ) -> None:
     started = time.perf_counter()
     try:
         workflow = get_workflow(workflow_name)
-        config = _load_solver_config_with_eta(eta)
+        solver_overrides = {
+            "eta": eta,
+            "initial_active_fraction": initial_active_fraction,
+            "initial_active_strategy": initial_active_strategy,
+        }
+        if active_batch_fraction is not None:
+            solver_overrides["active_batch_fraction"] = active_batch_fraction
+        config = load_solver_config(solver_overrides)
         endpoints = load_endpoints()
         queries = load_queries(quality_level=quality, workflow=workflow_name)[:query_count]
         if len(queries) != query_count:
@@ -128,6 +138,9 @@ def _worker(
                 "query_count": query_count,
                 "eta": eta,
                 "calibration_scenarios_per_query": calibration_count,
+                "initial_active_fraction": config.initial_active_fraction,
+                "initial_active_strategy": config.initial_active_strategy,
+                "active_batch_fraction": config.active_batch_fraction,
                 "test_scenarios_per_query": (
                     len(test_scenarios) // query_count if query_count else 0
                 ),
@@ -165,6 +178,11 @@ def _worker(
                 "query_count": query_count,
                 "eta": eta,
                 "calibration_scenarios_per_query": calibration_count,
+                "initial_active_fraction": initial_active_fraction,
+                "initial_active_strategy": initial_active_strategy,
+                "active_batch_fraction": (
+                    float("nan") if active_batch_fraction is None else active_batch_fraction
+                ),
                 "test_scenarios_per_query": float("nan"),
                 "calibration_scenario_count": query_count * calibration_count,
                 "test_scenario_count": float("nan"),
@@ -197,11 +215,25 @@ def _run_one(
     query_count: int,
     calibration_count: int,
     eta: float,
+    initial_active_fraction: float,
+    initial_active_strategy: str,
+    active_batch_fraction: float | None,
 ) -> dict:
     queue: mp.Queue = mp.Queue()
     proc = mp.Process(
         target=_worker,
-        args=(method, workflow, quality, query_count, calibration_count, eta, queue),
+        args=(
+            method,
+            workflow,
+            quality,
+            query_count,
+            calibration_count,
+            eta,
+            initial_active_fraction,
+            initial_active_strategy,
+            active_batch_fraction,
+            queue,
+        ),
     )
     proc.start()
     peak_rss_mb = 0.0
@@ -217,7 +249,7 @@ def _run_one(
                         if child.is_running()
                     )
                     peak_rss_mb = max(peak_rss_mb, rss / (1024.0 * 1024.0))
-                except psutil.Error:
+                except (psutil.Error, PermissionError):
                     pass
             time.sleep(0.2)
     finally:
@@ -267,6 +299,13 @@ def main() -> None:
         default=int(cfg.get("num_scenarios_per_query", 50)),
     )
     parser.add_argument("--eta", type=float, default=float(cfg.get("eta", 0.10)))
+    parser.add_argument("--initial-active-fraction", type=float, default=0.3)
+    parser.add_argument(
+        "--initial-active-strategy",
+        choices=["qbr", "qbw", "qbb", "qbq", "qbt", "qbu", "qbm"],
+        default="qbr",
+    )
+    parser.add_argument("--active-batch-fraction", type=float, default=None)
     parser.add_argument(
         "--output",
         type=Path,
@@ -336,6 +375,9 @@ def main() -> None:
                         query_count,
                         args.calibration_count,
                         args.eta,
+                        args.initial_active_fraction,
+                        args.initial_active_strategy,
+                        args.active_batch_fraction,
                     )
                     rows.append(row)
                     _write_rows(rows, args.output)
