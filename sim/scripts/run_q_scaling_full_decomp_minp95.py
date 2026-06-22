@@ -7,6 +7,7 @@ import argparse
 import json
 import logging
 import multiprocessing as mp
+import math
 import sys
 import time
 import traceback
@@ -68,6 +69,7 @@ def _worker(
     initial_active_fraction: float,
     initial_active_strategy: str,
     active_batch_fraction: float | None,
+    gurobi_time_limit_sec: float | None,
     queue: mp.Queue,
 ) -> None:
     started = time.perf_counter()
@@ -80,6 +82,8 @@ def _worker(
         }
         if active_batch_fraction is not None:
             solver_overrides["active_batch_fraction"] = active_batch_fraction
+        if gurobi_time_limit_sec is not None:
+            solver_overrides["gurobi_time_limit_sec"] = gurobi_time_limit_sec
         config = load_solver_config(solver_overrides)
         endpoints = load_endpoints()
         queries = load_queries(quality_level=quality, workflow=workflow_name)[:query_count]
@@ -156,6 +160,7 @@ def _worker(
                 "p95_latency": metrics["p95_latency"],
                 "p99_latency": metrics["p99_latency"],
                 "violation_rate": metrics["violation_rate"],
+                "success_rate": 1.0 - float(metrics["violation_rate"]),
                 "solver_runtime_sec": result.solver_runtime_sec,
                 "wall_time_sec": time.perf_counter() - started,
                 "max_rss_mb": 0.0,
@@ -196,6 +201,7 @@ def _worker(
                 "p95_latency": float("nan"),
                 "p99_latency": float("nan"),
                 "violation_rate": float("nan"),
+                "success_rate": float("nan"),
                 "solver_runtime_sec": float("nan"),
                 "wall_time_sec": time.perf_counter() - started,
                 "max_rss_mb": 0.0,
@@ -218,6 +224,8 @@ def _run_one(
     initial_active_fraction: float,
     initial_active_strategy: str,
     active_batch_fraction: float | None,
+    gurobi_time_limit_sec: float | None,
+    wall_time_limit_sec: float | None,
 ) -> dict:
     queue: mp.Queue = mp.Queue()
     proc = mp.Process(
@@ -232,14 +240,29 @@ def _run_one(
             initial_active_fraction,
             initial_active_strategy,
             active_batch_fraction,
+            gurobi_time_limit_sec,
             queue,
         ),
     )
     proc.start()
+    start_time = time.perf_counter()
     peak_rss_mb = 0.0
+    timed_out = False
     try:
         ps_proc = psutil.Process(proc.pid) if psutil is not None else None
         while proc.is_alive():
+            if wall_time_limit_sec is not None and time.perf_counter() - start_time > wall_time_limit_sec:
+                timed_out = True
+                if ps_proc is not None:
+                    try:
+                        for child in ps_proc.children(recursive=True):
+                            child.terminate()
+                        ps_proc.terminate()
+                    except (psutil.Error, PermissionError):
+                        proc.terminate()
+                else:
+                    proc.terminate()
+                break
             if ps_proc is not None:
                 try:
                     rss = ps_proc.memory_info().rss
@@ -253,9 +276,44 @@ def _run_one(
                     pass
             time.sleep(0.2)
     finally:
-        proc.join()
+        proc.join(timeout=10)
+        if proc.is_alive():
+            proc.kill()
+            proc.join()
 
-    if queue.empty():
+    if timed_out:
+        row = {
+            "workflow": workflow,
+            "quality_level": quality,
+            "query_count": query_count,
+            "eta": eta,
+            "calibration_scenarios_per_query": calibration_count,
+            "initial_active_fraction": initial_active_fraction,
+            "initial_active_strategy": initial_active_strategy,
+            "active_batch_fraction": (
+                float("nan") if active_batch_fraction is None else active_batch_fraction
+            ),
+            "method": method,
+            "solver_method": "",
+            "status": "WALL_TIME_LIMIT",
+            "reused_last_feasible": False,
+            "objective_value": float("nan"),
+            "expected_cost": float("nan"),
+            "avg_latency": float("nan"),
+            "p95_latency": float("nan"),
+            "p99_latency": float("nan"),
+            "violation_rate": float("nan"),
+            "success_rate": float("nan"),
+            "solver_runtime_sec": float("nan"),
+            "wall_time_sec": wall_time_limit_sec,
+            "max_rss_mb": peak_rss_mb,
+            "num_iterations": 0,
+            "active_scenario_count": 0,
+            "active_scenario_fraction": float("nan"),
+            "assignment_signature": "",
+            "error": f"wall time limit exceeded ({wall_time_limit_sec}s)",
+        }
+    elif queue.empty():
         row = {
             "workflow": workflow,
             "quality_level": quality,
@@ -282,6 +340,99 @@ def _write_rows(rows: list[dict], output: Path) -> None:
         json.dump(rows, f, indent=2)
 
 
+def _finite(value: object) -> float | None:
+    try:
+        out = float(value)
+    except (TypeError, ValueError):
+        return None
+    return out if math.isfinite(out) else None
+
+
+def _write_pair_summary(rows: list[dict], output: Path) -> None:
+    records: list[dict] = []
+    df = pd.DataFrame(rows)
+    if df.empty:
+        pd.DataFrame(records).to_csv(output, index=False)
+        return
+
+    for (workflow, quality, query_count), group in df.groupby(
+        ["workflow", "quality_level", "query_count"], dropna=False
+    ):
+        by_method = {str(row["method"]): row for row in group.to_dict("records")}
+        full = by_method.get("full_milp", {})
+        skyflow = by_method.get("decomposed_milp", {})
+        full_cost = _finite(full.get("expected_cost"))
+        sky_cost = _finite(skyflow.get("expected_cost"))
+        full_wall = _finite(full.get("wall_time_sec"))
+        sky_wall = _finite(skyflow.get("wall_time_sec"))
+        full_solver = _finite(full.get("solver_runtime_sec"))
+        sky_solver = _finite(skyflow.get("solver_runtime_sec"))
+        full_mem = _finite(full.get("max_rss_mb"))
+        sky_mem = _finite(skyflow.get("max_rss_mb"))
+
+        cost_gap = (
+            sky_cost - full_cost
+            if sky_cost is not None and full_cost is not None
+            else float("nan")
+        )
+        records.append(
+            {
+                "workflow": workflow,
+                "quality_level": quality,
+                "query_count": int(query_count),
+                "full_status": full.get("status", ""),
+                "skyflow_status": skyflow.get("status", ""),
+                "full_expected_cost": full_cost if full_cost is not None else float("nan"),
+                "skyflow_expected_cost": sky_cost if sky_cost is not None else float("nan"),
+                "skyflow_cost_gap_abs": cost_gap,
+                "skyflow_cost_gap_pct": (
+                    100.0 * cost_gap / full_cost
+                    if full_cost not in (None, 0.0) and math.isfinite(cost_gap)
+                    else float("nan")
+                ),
+                "full_violation_rate": _finite(full.get("violation_rate")),
+                "skyflow_violation_rate": _finite(skyflow.get("violation_rate")),
+                "full_success_rate": _finite(full.get("success_rate")),
+                "skyflow_success_rate": _finite(skyflow.get("success_rate")),
+                "full_avg_latency": _finite(full.get("avg_latency")),
+                "skyflow_avg_latency": _finite(skyflow.get("avg_latency")),
+                "full_p95_latency": _finite(full.get("p95_latency")),
+                "skyflow_p95_latency": _finite(skyflow.get("p95_latency")),
+                "full_solver_runtime_sec": full_solver if full_solver is not None else float("nan"),
+                "skyflow_solver_runtime_sec": sky_solver if sky_solver is not None else float("nan"),
+                "solver_runtime_speedup": (
+                    full_solver / sky_solver
+                    if full_solver is not None and sky_solver not in (None, 0.0)
+                    else float("nan")
+                ),
+                "full_wall_time_sec": full_wall if full_wall is not None else float("nan"),
+                "skyflow_wall_time_sec": sky_wall if sky_wall is not None else float("nan"),
+                "wall_time_speedup": (
+                    full_wall / sky_wall
+                    if full_wall is not None and sky_wall not in (None, 0.0)
+                    else float("nan")
+                ),
+                "full_peak_memory_mb": full_mem if full_mem is not None else float("nan"),
+                "skyflow_peak_memory_mb": sky_mem if sky_mem is not None else float("nan"),
+                "memory_reduction_mb": (
+                    full_mem - sky_mem
+                    if full_mem is not None and sky_mem is not None
+                    else float("nan")
+                ),
+                "memory_reduction_pct": (
+                    100.0 * (full_mem - sky_mem) / full_mem
+                    if full_mem not in (None, 0.0) and sky_mem is not None
+                    else float("nan")
+                ),
+            }
+        )
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(records).sort_values(
+        ["workflow", "quality_level", "query_count"]
+    ).to_csv(output, index=False)
+
+
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     cfg = load_default_config()
@@ -306,13 +457,19 @@ def main() -> None:
         default="qbr",
     )
     parser.add_argument("--active-batch-fraction", type=float, default=None)
+    parser.add_argument("--gurobi-time-limit-sec", type=float, default=None)
+    parser.add_argument("--wall-time-limit-sec", type=float, default=None)
     parser.add_argument(
         "--output",
         type=Path,
         default=RESULTS_DIR / "experiment_logs" / "q_scaling_full_vs_decomp_S50_Q200_2000_minp95_v2.csv",
     )
+    parser.add_argument("--summary-output", type=Path, default=None)
     parser.add_argument("--resume", action="store_true")
     args = parser.parse_args()
+    summary_output = args.summary_output or args.output.with_name(
+        f"{args.output.stem}_paired_summary.csv"
+    )
 
     workflows = _parse_csv(args.workflows)
     qualities = _parse_csv(args.qualities)
@@ -378,9 +535,12 @@ def main() -> None:
                         args.initial_active_fraction,
                         args.initial_active_strategy,
                         args.active_batch_fraction,
+                        args.gurobi_time_limit_sec,
+                        args.wall_time_limit_sec,
                     )
                     rows.append(row)
                     _write_rows(rows, args.output)
+                    _write_pair_summary(rows, summary_output)
                     logging.info(
                         "Finished %s %s/%s Q=%d status=%s cost=%.6f vio=%.5f iter=%s active=%.3f wall=%.1fs",
                         method,
@@ -396,7 +556,9 @@ def main() -> None:
                     )
 
     _write_rows(rows, args.output)
+    _write_pair_summary(rows, summary_output)
     logging.info("Wrote %s", args.output)
+    logging.info("Wrote %s", summary_output)
 
 
 if __name__ == "__main__":
