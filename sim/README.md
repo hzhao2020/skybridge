@@ -93,7 +93,7 @@ Runs **6 isolated SkyFlow jobs** (not 12): `workflow1`×`Q1|Q2|Q3` and `workflow
 | `decomposition` | `src/milp_decomposition.py` | SkyFlow with calibration train/validation initializer selection, then final solve on full calibration scenarios |
 | `single_cloud` | `src/baselines.py` | **SC:** one cloud provider; min cost subject to empirical SLA violation threshold |
 | `logical_optimal` | `src/baselines.py` | **LO:** per-node argmax capability μ_k (ignores cross-node effects) |
-| `greedy` | `src/baselines.py` | **Greedy:** topological DAG pass; min violation given fixed predecessors |
+| `greedy` | `src/baselines.py` | **Greedy:** topological DAG pass; per-node min expected execution/storage cost with latency tie-break |
 | `dpgm` | `src/baselines.py` | **DPGM:** deterministic profile-guided MILP; minimum-slack profiled solution if hard profile constraints are infeasible |
 | `mtgp` | `src/mtgp_baseline.py` | **MTGP:** multi-tree GP hyper-heuristic baseline with task/cloud/resource selection rules inspired by Sun et al., IEEE TSC 2024 |
 

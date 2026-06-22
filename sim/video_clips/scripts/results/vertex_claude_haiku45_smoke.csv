@@ -1,0 +1,23 @@
+run_id,model_label,model_id,index,image_name,image_path,gcs_uri,image_size_bytes,width,height,request_image_size_bytes,request_width,request_height,start_utc,end_utc,execution_time_sec,success,input_tokens,output_tokens,cache_creation_input_tokens,cache_read_input_tokens,caption,response_size_bytes,response_json_path,error_message
+20260613_075143_84037d21,Claude Haiku 4.5,claude-haiku-4-5@20251001,1,frame_001_idx00212.jpg,/Users/heng/Documents/skybridge/sim/video_clips/frames_sample/frame_001_idx00212.jpg,gs://skyflow-ae/frames_sample/frame_001_idx00212.jpg,325855,3840,2160,21624,512,288,2026-06-13T07:51:43.687934+00:00,2026-06-13T07:51:45.095357+00:00,1.407464,0,,,,,,,,"VertexClaudeError: HTTP 429 from Vertex AI for claude-haiku-4-5@20251001: {
+  ""error"": {
+    ""code"": 429,
+    ""message"": ""Quota exceeded for aiplatform.googleapis.com/online_prediction_input_tokens_per_minute_per_base_model with base model: anthropic-claude-haiku-4-5. Please submit a quota increase request. https://cloud.google.com/vertex-ai/docs/generative-ai/quotas-genai."",
+    ""status"": ""RESOURCE_EXHAUSTED""
+  }
+}
+
+Traceback (most recent call last):
+  File ""/Users/heng/Documents/skybridge/sim/video_clips/scripts/run_vertex_claude_caption_measurement.py"", line 610, in run_batch
+    resp_json = call_vertex_claude(
+  File ""/Users/heng/Documents/skybridge/sim/video_clips/scripts/run_vertex_claude_caption_measurement.py"", line 426, in call_vertex_claude
+    raise VertexClaudeError(
+VertexClaudeError: HTTP 429 from Vertex AI for claude-haiku-4-5@20251001: {
+  ""error"": {
+    ""code"": 429,
+    ""message"": ""Quota exceeded for aiplatform.googleapis.com/online_prediction_input_tokens_per_minute_per_base_model with base model: anthropic-claude-haiku-4-5. Please submit a quota increase request. https://cloud.google.com/vertex-ai/docs/generative-ai/quotas-genai."",
+    ""status"": ""RESOURCE_EXHAUSTED""
+  }
+}
+
+"

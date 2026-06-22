@@ -19,16 +19,16 @@
     },
     {
       "logical_node": "Video Caption",
-      "endpoint_id": "video_caption_azure_eastus_q1",
-      "provider": "Azure",
-      "region": "eastus",
+      "endpoint_id": "video_caption_aws_us-east-2_q1",
+      "provider": "AWS",
+      "region": "us-east-2",
       "model_name": "Claude Haiku 4.5"
     },
     {
       "logical_node": "Q/A",
-      "endpoint_id": "q_a_azure_eastus_q1",
-      "provider": "Azure",
-      "region": "eastus",
+      "endpoint_id": "q_a_aws_us-east-2_q1",
+      "provider": "AWS",
+      "region": "us-east-2",
       "model_name": "Claude Haiku 4.5"
     }
   ],
@@ -38,13 +38,87 @@
     "quality_level": "Q1",
     "method": "decomposition",
     "objective_value": Infinity,
-    "expected_cost": 1.8014148806196806,
-    "avg_latency": 4897.577195567062,
-    "p95_latency": 9801.735255076623,
-    "p99_latency": 12972.440037043556,
-    "violation_rate": 0.06354,
-    "cvar_value": 1648.2311730280887,
-    "solver_runtime_sec": 44.56880891698529,
-    "status": "INFEASIBLE"
-  }
+    "expected_cost": 1.8014457212491957,
+    "avg_latency": 4623.320734651276,
+    "p95_latency": 9024.669359632491,
+    "p99_latency": 11508.600873272258,
+    "violation_rate": 0.03196,
+    "cvar_value": 741.0418368505581,
+    "solver_runtime_sec": 91.81124991699471,
+    "status": "INFEASIBLE",
+    "selected_initializer": "qbr"
+  },
+  "selected_initializer": "qbr",
+  "initializer_selection_history": [
+    {
+      "initializer": "qbr",
+      "status": "INFEASIBLE_REUSED_LAST_FEASIBLE",
+      "train_scenario_count": 40000,
+      "validation_scenario_count": 10000,
+      "expected_cost": 1.8052164923069547,
+      "avg_latency": 4628.515322596954,
+      "p95_latency": 9022.832351099714,
+      "p99_latency": 11475.952387710655,
+      "violation_rate": 0.0228,
+      "cvar_value": 546.6609769301303,
+      "solver_runtime_sec": 39.994889667010284,
+      "num_iterations": 2,
+      "active_scenario_count": 9932,
+      "selection_feasible": true,
+      "selection_rank": [
+        0.0,
+        1.8052164923069547,
+        0.0228
+      ]
+    },
+    {
+      "initializer": "qbw",
+      "status": "ERROR",
+      "train_scenario_count": 40000,
+      "validation_scenario_count": 10000,
+      "error": "RuntimeError: Decomposition infeasible at iteration 1 (status=INFEASIBLE)"
+    },
+    {
+      "initializer": "qbb",
+      "status": "INFEASIBLE_REUSED_LAST_FEASIBLE",
+      "train_scenario_count": 40000,
+      "validation_scenario_count": 10000,
+      "expected_cost": 1.805185654182834,
+      "avg_latency": 4904.185513766377,
+      "p95_latency": 9799.65942345868,
+      "p99_latency": 12987.928411495643,
+      "violation_rate": 0.0586,
+      "cvar_value": 1329.735755029055,
+      "solver_runtime_sec": 49.696224792001885,
+      "num_iterations": 2,
+      "active_scenario_count": 10000,
+      "selection_feasible": false,
+      "selection_rank": [
+        1.0,
+        0.0586,
+        1.805185654182834
+      ]
+    },
+    {
+      "initializer": "qbq",
+      "status": "INFEASIBLE_REUSED_LAST_FEASIBLE",
+      "train_scenario_count": 40000,
+      "validation_scenario_count": 10000,
+      "expected_cost": 1.805185654182834,
+      "avg_latency": 4904.185513766377,
+      "p95_latency": 9799.65942345868,
+      "p99_latency": 12987.928411495643,
+      "violation_rate": 0.0586,
+      "cvar_value": 1329.735755029055,
+      "solver_runtime_sec": 29.9999445410067,
+      "num_iterations": 2,
+      "active_scenario_count": 10000,
+      "selection_feasible": false,
+      "selection_rank": [
+        1.0,
+        0.0586,
+        1.805185654182834
+      ]
+    }
+  ]
 }

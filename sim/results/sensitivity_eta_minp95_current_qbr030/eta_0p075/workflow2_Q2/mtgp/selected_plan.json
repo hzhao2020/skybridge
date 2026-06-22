@@ -1,0 +1,79 @@
+{
+  "workflow": "workflow2",
+  "quality_level": "Q2",
+  "method": "mtgp",
+  "assignments": [
+    {
+      "logical_node": "Shot Detection",
+      "endpoint_id": "shot_detection_aliyun_cn-shanghai_q2",
+      "provider": "Aliyun",
+      "region": "cn-shanghai",
+      "model_name": null
+    },
+    {
+      "logical_node": "Speech Transcription",
+      "endpoint_id": "speech_transcription_aliyun_cn-beijing_q2",
+      "provider": "Aliyun",
+      "region": "cn-beijing",
+      "model_name": null
+    },
+    {
+      "logical_node": "Video Split & Sample",
+      "endpoint_id": "video_split_and_sample_azure_eastus_q2",
+      "provider": "Azure",
+      "region": "eastus",
+      "model_name": null
+    },
+    {
+      "logical_node": "Label Detection",
+      "endpoint_id": "label_detection_aliyun_ap-southeast-1_q2",
+      "provider": "Aliyun",
+      "region": "ap-southeast-1",
+      "model_name": null
+    },
+    {
+      "logical_node": "OCR",
+      "endpoint_id": "ocr_azure_eastus_q2",
+      "provider": "Azure",
+      "region": "eastus",
+      "model_name": null
+    },
+    {
+      "logical_node": "Video Caption",
+      "endpoint_id": "video_caption_anthropic_global_q2",
+      "provider": "Anthropic",
+      "region": "global",
+      "model_name": "Claude Sonnet 4.5"
+    },
+    {
+      "logical_node": "Database",
+      "endpoint_id": "database_aliyun_ap-southeast-1_q2",
+      "provider": "Aliyun",
+      "region": "ap-southeast-1",
+      "model_name": null
+    },
+    {
+      "logical_node": "Q/A",
+      "endpoint_id": "q_a_anthropic_global_q2",
+      "provider": "Anthropic",
+      "region": "global",
+      "model_name": "Claude Sonnet 4.5"
+    }
+  ],
+  "objective_value": 0.37648,
+  "metrics": {
+    "workflow": "workflow2",
+    "quality_level": "Q2",
+    "method": "mtgp",
+    "objective_value": 0.37648,
+    "expected_cost": 9.559932236167986,
+    "avg_latency": 4890.060934007179,
+    "p95_latency": 9161.37280760004,
+    "p99_latency": 9838.442907487259,
+    "violation_rate": 0.37228,
+    "cvar_value": 398.3996882699865,
+    "solver_runtime_sec": 16.03219449997414,
+    "status": "optimal",
+    "selected_initializer": ""
+  }
+}

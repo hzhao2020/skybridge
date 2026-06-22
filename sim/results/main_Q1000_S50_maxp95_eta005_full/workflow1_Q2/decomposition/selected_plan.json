@@ -43,8 +43,82 @@
     "p95_latency": 26848.9724950125,
     "p99_latency": 42094.69367490282,
     "violation_rate": 0.06614,
-    "cvar_value": 8591.948252714245,
-    "solver_runtime_sec": 95.93279558300856,
-    "status": "INFEASIBLE"
-  }
+    "cvar_value": 8591.717611219574,
+    "solver_runtime_sec": 126.53800012501597,
+    "status": "INFEASIBLE",
+    "selected_initializer": "qbb"
+  },
+  "selected_initializer": "qbb",
+  "initializer_selection_history": [
+    {
+      "initializer": "qbr",
+      "status": "INFEASIBLE_REUSED_LAST_FEASIBLE",
+      "train_scenario_count": 40000,
+      "validation_scenario_count": 10000,
+      "expected_cost": 7.016957842741327,
+      "avg_latency": 10644.641660904,
+      "p95_latency": 27281.13554563085,
+      "p99_latency": 42574.03482357563,
+      "violation_rate": 0.0608,
+      "cvar_value": 6908.1911861533135,
+      "solver_runtime_sec": 55.346380583010614,
+      "num_iterations": 2,
+      "active_scenario_count": 10000,
+      "selection_feasible": false,
+      "selection_rank": [
+        1.0,
+        0.0608,
+        7.016957842741327
+      ]
+    },
+    {
+      "initializer": "qbw",
+      "status": "ERROR",
+      "train_scenario_count": 40000,
+      "validation_scenario_count": 10000,
+      "error": "RuntimeError: Decomposition infeasible at iteration 1 (status=INFEASIBLE)"
+    },
+    {
+      "initializer": "qbb",
+      "status": "INFEASIBLE_REUSED_LAST_FEASIBLE",
+      "train_scenario_count": 40000,
+      "validation_scenario_count": 10000,
+      "expected_cost": 7.016957842741327,
+      "avg_latency": 10644.641660904,
+      "p95_latency": 27281.13554563085,
+      "p99_latency": 42574.03482357563,
+      "violation_rate": 0.0608,
+      "cvar_value": 6908.1911861533135,
+      "solver_runtime_sec": 54.57606191698869,
+      "num_iterations": 2,
+      "active_scenario_count": 10000,
+      "selection_feasible": false,
+      "selection_rank": [
+        1.0,
+        0.0608,
+        7.016957842741327
+      ]
+    },
+    {
+      "initializer": "qbq",
+      "status": "INFEASIBLE_REUSED_LAST_FEASIBLE",
+      "train_scenario_count": 40000,
+      "validation_scenario_count": 10000,
+      "expected_cost": 7.016957842741327,
+      "avg_latency": 10644.641660904,
+      "p95_latency": 27281.13554563085,
+      "p99_latency": 42574.03482357563,
+      "violation_rate": 0.0608,
+      "cvar_value": 6908.1911861533135,
+      "solver_runtime_sec": 55.90244341699872,
+      "num_iterations": 2,
+      "active_scenario_count": 10000,
+      "selection_feasible": false,
+      "selection_rank": [
+        1.0,
+        0.0608,
+        7.016957842741327
+      ]
+    }
+  ]
 }

@@ -1,7 +1,0 @@
-setting,workflow,quality,initial_active_strategy,initial_active_fraction,active_batch_fraction,expected_cost,violation_rate,avg_latency,p95_latency,solver_runtime_sec,peak_memory_mb,iteration_count,active_scenario_count,selection_rule,svr_satisfied_count,candidate_count
-W1-Q1,workflow1,Q1,stratified_random,0.2,0.025,1.8064683732957236,0.02185,4630.591934885699,9017.316277267317,24.404135874996427,1449.09375,2,6750,min_cost_under_svr_limit,12,20
-W1-Q2,workflow1,Q2,stratified_random,0.2,0.025,6.993142917867113,0.0279,9483.354019583883,23406.55015740779,26.6263428759994,1402.53125,2,6750,min_cost_under_svr_limit,12,20
-W1-Q3,workflow1,Q3,stratified_random,0.1,0.075,20.299643165158212,0.06045,15650.14955570907,41845.47436794099,11.658672249992378,1281.03125,2,5250,min_svr_then_cost,0,12
-W2-Q1,workflow2,Q1,stratified_random,0.1,0.075,3.401993680448355,0.0223,4620.822625854236,9059.23989753551,79.2618111250049,3026.5,2,3759,min_cost_under_svr_limit,20,20
-W2-Q2,workflow2,Q2,stratified_random,0.2,0.025,8.440083917717699,0.02795,9435.383246876612,22846.273017886226,202.84095508299652,4261.3125,2,6750,min_cost_under_svr_limit,8,16
-W2-Q3,workflow2,Q3,stratified_random,0.2,0.05,20.89579336189008,0.0595,15760.93426696078,42030.26921440648,315.7074203750235,4298.59375,2,7500,min_svr_then_cost,0,12

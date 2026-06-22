@@ -43,8 +43,9 @@
     "p95_latency": 23639.77305458716,
     "p99_latency": 36468.90739356157,
     "violation_rate": 0.04198,
-    "cvar_value": 4897.633180949254,
-    "solver_runtime_sec": 9.345527875004336,
-    "status": "optimal"
+    "cvar_value": 4897.461964495486,
+    "solver_runtime_sec": 9.052794959003222,
+    "status": "optimal",
+    "selected_initializer": ""
   }
 }

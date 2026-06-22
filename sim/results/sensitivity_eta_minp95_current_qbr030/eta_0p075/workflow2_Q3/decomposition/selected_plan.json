@@ -1,0 +1,79 @@
+{
+  "workflow": "workflow2",
+  "quality_level": "Q3",
+  "method": "decomposition",
+  "assignments": [
+    {
+      "logical_node": "Shot Detection",
+      "endpoint_id": "shot_detection_aws_us-west-2_q3",
+      "provider": "AWS",
+      "region": "us-west-2",
+      "model_name": null
+    },
+    {
+      "logical_node": "Video Split & Sample",
+      "endpoint_id": "video_split_and_sample_aws_us-west-2_q3",
+      "provider": "AWS",
+      "region": "us-west-2",
+      "model_name": null
+    },
+    {
+      "logical_node": "Video Caption",
+      "endpoint_id": "video_caption_aws_us-west-2_q3",
+      "provider": "AWS",
+      "region": "us-west-2",
+      "model_name": "Claude Opus 4.5"
+    },
+    {
+      "logical_node": "OCR",
+      "endpoint_id": "ocr_aws_us-west-2_q3",
+      "provider": "AWS",
+      "region": "us-west-2",
+      "model_name": null
+    },
+    {
+      "logical_node": "Label Detection",
+      "endpoint_id": "label_detection_aliyun_cn-beijing_q3",
+      "provider": "Aliyun",
+      "region": "cn-beijing",
+      "model_name": null
+    },
+    {
+      "logical_node": "Speech Transcription",
+      "endpoint_id": "speech_transcription_aliyun_cn-shanghai_q3",
+      "provider": "Aliyun",
+      "region": "cn-shanghai",
+      "model_name": null
+    },
+    {
+      "logical_node": "Database",
+      "endpoint_id": "database_aliyun_cn-beijing_q3",
+      "provider": "Aliyun",
+      "region": "cn-beijing",
+      "model_name": null
+    },
+    {
+      "logical_node": "Q/A",
+      "endpoint_id": "q_a_aws_ap-southeast-1_q3",
+      "provider": "AWS",
+      "region": "ap-southeast-1",
+      "model_name": "Claude Opus 4.5"
+    }
+  ],
+  "objective_value": Infinity,
+  "metrics": {
+    "workflow": "workflow2",
+    "quality_level": "Q3",
+    "method": "decomposition",
+    "objective_value": Infinity,
+    "expected_cost": 21.28831351070498,
+    "avg_latency": 5492.29813863425,
+    "p95_latency": 10465.070871104204,
+    "p99_latency": 11476.495380673909,
+    "violation_rate": 0.04292,
+    "cvar_value": 30.517208942694786,
+    "solver_runtime_sec": 3030.982357873989,
+    "status": "INFEASIBLE",
+    "selected_initializer": ""
+  }
+}
