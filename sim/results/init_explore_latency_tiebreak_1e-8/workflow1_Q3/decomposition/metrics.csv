@@ -1,2 +1,0 @@
-workflow,quality_level,method,objective_value,expected_cost,avg_latency,p95_latency,p99_latency,violation_rate,cvar_value,solver_runtime_sec,status,selected_initializer
-workflow1,Q3,decomposition,inf,20.295721633246075,15648.722419127245,41887.18577031493,68370.25044998073,0.06688,14764.607814194733,70.00857729100971,INFEASIBLE,

@@ -105,13 +105,11 @@ class SolverConfig(BaseModel):
     eta: float = 0.05
     top_k: int = 10
     initial_active_fraction: float = 0.20
-    initial_active_strategy: str = "qbu"
+    initial_active_strategy: str = "qbr"
     initializer_validation_fraction: float = 0.20
     initializer_selection_candidates: list[str] = Field(
         default_factory=lambda: [
             "qbr",
-            "qbu",
-            "qbm",
         ]
     )
     active_batch_fraction: float = 0.05

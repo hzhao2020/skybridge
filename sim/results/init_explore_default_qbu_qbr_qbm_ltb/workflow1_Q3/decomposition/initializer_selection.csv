@@ -1,4 +1,0 @@
-initializer,status,train_scenario_count,validation_scenario_count,expected_cost,avg_latency,p95_latency,p99_latency,violation_rate,cvar_value,solver_runtime_sec,num_iterations,active_scenario_count,selection_feasible,selection_rank,error,workflow,quality_level
-qbr,INFEASIBLE_REUSED_LAST_FEASIBLE,40000,10000,20.28754961834186,14771.79290296192,39341.17520522814,65443.56160427725,0.0412,7842.866756552206,35.24328679199971,2.0,10000.0,True,"[0.0, 20.28754961834186, 0.0412]",,workflow1,Q3
-qbu,ERROR,40000,10000,,,,,,,,,,,,RuntimeError: Decomposition infeasible at iteration 1 (status=INFEASIBLE),workflow1,Q3
-qbm,INFEASIBLE_REUSED_LAST_FEASIBLE,40000,10000,20.28754961834186,14771.79290296192,39341.17520522814,65443.56160427725,0.0412,7842.866756552206,34.17327304200444,2.0,10000.0,True,"[0.0, 20.28754961834186, 0.0412]",,workflow1,Q3

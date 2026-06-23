@@ -93,15 +93,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--initial-active-strategy",
-        choices=[
-            "qbr",
-            "qbw",
-            "qbb",
-            "qbq",
-            "qbt",
-            "qbu",
-            "qbm",
-        ],
+        choices=["qbr"],
         default=None,
         help="Override decomposition initial active scenario selection strategy",
     )
@@ -116,6 +108,12 @@ def main() -> None:
         type=float,
         default=None,
         help="Override the SLO violation/CVaR risk threshold",
+    )
+    parser.add_argument(
+        "--sla-multiplier",
+        type=float,
+        default=1.0,
+        help="Multiply each query SLA before optimization and held-out evaluation",
     )
     parser.add_argument(
         "--disable-initializer-selection",
@@ -147,6 +145,14 @@ def main() -> None:
             f"found {len(queries)}. Regenerate data: python scripts/generate_synthetic_data.py"
         )
     queries = queries[:expected_n]
+    if args.sla_multiplier <= 0:
+        raise SystemExit("--sla-multiplier must be positive")
+    if args.sla_multiplier != 1.0:
+        queries = [
+            q.model_copy(update={"sla_sec": q.sla_sec * args.sla_multiplier})
+            for q in queries
+        ]
+        logging.info("Applied SLA multiplier %.4g", args.sla_multiplier)
 
     query_ids = [q.query_id for q in queries]
     scenarios = load_scenarios(query_ids=query_ids)

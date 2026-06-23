@@ -453,7 +453,7 @@ def main() -> None:
     parser.add_argument("--initial-active-fraction", type=float, default=0.3)
     parser.add_argument(
         "--initial-active-strategy",
-        choices=["qbr", "qbw", "qbb", "qbq", "qbt", "qbu", "qbm"],
+        choices=["qbr"],
         default="qbr",
     )
     parser.add_argument("--active-batch-fraction", type=float, default=None)

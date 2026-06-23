@@ -61,23 +61,16 @@ def _initial_active_key_sets_by_query(
     strategies: list[str],
     config: SolverConfig,
 ) -> dict[str, set[tuple[str, str]]]:
-    """Build initial active sets for multiple strategies, sharing Greedy scores."""
+    """Build query-balanced random initial active sets."""
     normalized = [
         _resolve_initial_active_strategy(workflow.name, quality_level, strategy)
         for strategy in strategies
     ]
-    greedy_scores: dict[tuple[str, str], float] | None = None
-    if any(strategy in {"qbw", "qbb", "qbq", "qbt", "qbu", "qbm"} for strategy in normalized):
-        greedy_scores = _greedy_latency_excess_scores(
-            workflow=workflow,
-            quality_level=quality_level,
-            endpoints=endpoints,
-            endpoint_map=endpoint_map,
-            network_index=network_index,
-            ablation=ablation,
-            queries=queries,
-            scenario_by_q=scenario_by_q,
-            config=config,
+    unsupported = sorted({strategy for strategy in normalized if strategy != "qbr"})
+    if unsupported:
+        raise ValueError(
+            "Only query-balanced random initial active selection is supported; "
+            f"got {', '.join(unsupported)}"
         )
 
     out: dict[str, set[tuple[str, str]]] = {}
@@ -94,56 +87,8 @@ def _initial_active_key_sets_by_query(
             fraction,
             seed,
             strategy,
-            greedy_scores=greedy_scores,
         )
     return out
-
-
-def _greedy_latency_excess_scores(
-    *,
-    workflow: WorkflowDAG,
-    quality_level: str,
-    endpoints: list[Endpoint],
-    endpoint_map: dict[str, Endpoint],
-    network_index: dict[tuple[str, str], NetworkLink],
-    ablation: AblationConfig,
-    queries: list[Query],
-    scenario_by_q: dict[str, list[Scenario]],
-    config: SolverConfig,
-) -> dict[tuple[str, str], float]:
-    """Signed normalized latency excess g[q,s] under one Greedy reference plan."""
-    from src.baselines import solve_greedy
-
-    scenarios = [
-        scenario
-        for query in queries
-        for scenario in scenario_by_q.get(query.query_id, [])
-    ]
-    greedy_result = solve_greedy(
-        workflow,
-        endpoints,
-        queries,
-        scenarios,
-        quality_level,
-        config,
-    )
-    assignment = _deployment_assignment_map(greedy_result, endpoints)
-    scores: dict[tuple[str, str], float] = {}
-    for query in queries:
-        for scenario in scenario_by_q.get(query.query_id, []):
-            latency = critical_path_latency(
-                workflow,
-                assignment,
-                endpoint_map,
-                network_index,
-                query,
-                scenario,
-                ablation,
-            )
-            scores[query.query_id, scenario.scenario_id] = (
-                latency - query.sla_sec
-            ) / max(query.sla_sec, 1e-9)
-    return scores
 
 
 def solve_decomposition_with_initializer_selection(
@@ -312,10 +257,8 @@ def _initial_active_keys_by_query(
     fraction: float,
     seed: int,
     strategy: str,
-    *,
-    greedy_scores: dict[tuple[str, str], float] | None = None,
 ) -> set[tuple[str, str]]:
-    """Select the initial active set with per-query scenario coverage."""
+    """Select the same fraction of scenarios per query using seeded randomness."""
     active_keys: set[tuple[str, str]] = set()
     rng = random.Random(seed)
     normalized_strategy = _resolve_initial_active_strategy(
@@ -332,95 +275,13 @@ def _initial_active_keys_by_query(
             max(1, math.ceil(len(query_scenarios) * fraction)),
             len(query_scenarios),
         )
-        if normalized_strategy == "qbr":
-            rng.shuffle(query_scenarios)
-            selected = query_scenarios[:init_count]
-        elif normalized_strategy in {"qbw", "qbb", "qbq", "qbt", "qbu", "qbm"}:
-            if greedy_scores is None:
-                greedy_scores = _greedy_latency_excess_scores(
-                    workflow=workflow,
-                    quality_level=quality_level,
-                    endpoints=endpoints,
-                    endpoint_map=endpoint_map,
-                    network_index=network_index,
-                    ablation=ablation,
-                    queries=queries,
-                    scenario_by_q=scenario_by_q,
-                    config=SolverConfig(
-                        random_seed=seed,
-                        ablation=ablation,
-                    ),
-                )
-            if normalized_strategy == "qbw":
-                ranked = sorted(
-                    query_scenarios,
-                    key=lambda s: (
-                        -greedy_scores.get((q.query_id, s.scenario_id), 0.0),
-                        s.scenario_id,
-                    ),
-                )
-                selected = ranked[:init_count]
-            elif normalized_strategy == "qbb":
-                ranked = sorted(
-                    query_scenarios,
-                    key=lambda s: (
-                        greedy_scores.get((q.query_id, s.scenario_id), 0.0),
-                        s.scenario_id,
-                    ),
-                )
-                selected = ranked[:init_count]
-            elif normalized_strategy == "qbq":
-                ranked = sorted(
-                    query_scenarios,
-                    key=lambda s: (
-                        greedy_scores.get((q.query_id, s.scenario_id), 0.0),
-                        s.scenario_id,
-                    ),
-                )
-                selected = [
-                    ranked[i]
-                    for i in _unique_midpoint_quantile_indices(
-                        len(ranked),
-                        init_count,
-                    )
-                ]
-            elif normalized_strategy == "qbt":
-                ranked = sorted(
-                    query_scenarios,
-                    key=lambda s: (
-                        greedy_scores.get((q.query_id, s.scenario_id), 0.0),
-                        s.scenario_id,
-                    ),
-                )
-                selected = _tail_quantile_scenarios(ranked, init_count)
-            elif normalized_strategy == "qbu":
-                ranked = sorted(
-                    query_scenarios,
-                    key=lambda s: (
-                        greedy_scores.get((q.query_id, s.scenario_id), 0.0),
-                        s.scenario_id,
-                    ),
-                )
-                selected = _upper_quantile_scenarios(ranked, init_count)
-            else:
-                ranked = sorted(
-                    query_scenarios,
-                    key=lambda s: (
-                        greedy_scores.get((q.query_id, s.scenario_id), 0.0),
-                        s.scenario_id,
-                    ),
-                )
-                selected = _risk_mixed_scenarios(
-                    query_scenarios,
-                    ranked,
-                    init_count,
-                    rng,
-                )
-        else:
+        if normalized_strategy != "qbr":
             raise ValueError(
                 "Unknown initial_active_strategy="
-                f"{strategy!r}; choose qbr, qbw, qbb, qbq, qbt, qbu, or qbm"
+                f"{strategy!r}; only qbr is supported"
             )
+        rng.shuffle(query_scenarios)
+        selected = query_scenarios[:init_count]
         active_keys.update(
             (q.query_id, s.scenario_id) for s in selected
         )
@@ -436,146 +297,9 @@ def _resolve_initial_active_strategy(
     normalized = strategy.lower().replace("-", "_")
     aliases = {
         "query_balanced_random": "qbr",
-        "query_balanced_worst": "qbw",
-        "query_balanced_worst_violation": "qbw",
-        "query_balanced_best": "qbb",
-        "query_balanced_best_slack": "qbb",
-        "query_balanced_quantile": "qbq",
-        "query_balanced_tail_quantile": "qbt",
-        "query_balanced_tail": "qbt",
-        "query_balanced_upper_quantile": "qbu",
-        "query_balanced_upper": "qbu",
-        "query_balanced_mixed": "qbm",
-        "query_balanced_risk_mixed": "qbm",
     }
     normalized = aliases.get(normalized, normalized)
     return normalized
-
-
-def _tail_quantile_scenarios(
-    ranked_ascending: list[Scenario],
-    count: int,
-) -> list[Scenario]:
-    """
-    Select a risk-balanced set from a Greedy excess ranking.
-
-    Half of the slots are allocated to the highest-excess tail, and the
-    remaining slots cover the empirical quantiles. This keeps each query's
-    initializer sensitive to SLA-threatening scenarios without using only tail
-    outliers.
-    """
-    n = len(ranked_ascending)
-    count = min(max(count, 0), n)
-    if count == 0:
-        return []
-
-    tail_count = min(n, max(1, math.ceil(count * 0.5)))
-    selected_indices: list[int] = []
-    used: set[int] = set()
-
-    for idx in range(n - 1, max(n - tail_count - 1, -1), -1):
-        selected_indices.append(idx)
-        used.add(idx)
-
-    quantile_count = count - len(selected_indices)
-    for idx in _unique_midpoint_quantile_indices(n, quantile_count):
-        if idx in used:
-            idx = _nearest_unused_index(idx, n, used)
-        selected_indices.append(idx)
-        used.add(idx)
-
-    idx = n - 1
-    while len(selected_indices) < count and idx >= 0:
-        if idx not in used:
-            selected_indices.append(idx)
-            used.add(idx)
-        idx -= 1
-
-    return [ranked_ascending[idx] for idx in selected_indices]
-
-
-def _upper_quantile_scenarios(
-    ranked_ascending: list[Scenario],
-    count: int,
-) -> list[Scenario]:
-    """
-    Select evenly from the upper half of a Greedy excess ranking.
-
-    This targets near-SLA and SLA-violating profiles while avoiding an initial
-    active set made entirely of extreme outliers.
-    """
-    n = len(ranked_ascending)
-    count = min(max(count, 0), n)
-    if count == 0:
-        return []
-
-    selected_indices: list[int] = []
-    used: set[int] = set()
-    for j in range(count):
-        position = 0.5 + 0.5 * ((j + 0.5) / count)
-        idx = min(n - 1, max(0, math.floor(position * n)))
-        if idx in used:
-            idx = _nearest_unused_index(idx, n, used)
-        selected_indices.append(idx)
-        used.add(idx)
-    return [ranked_ascending[idx] for idx in selected_indices]
-
-
-def _risk_mixed_scenarios(
-    query_scenarios: list[Scenario],
-    ranked_ascending: list[Scenario],
-    count: int,
-    rng: random.Random,
-) -> list[Scenario]:
-    """
-    Combine random coverage with a small upper-risk slice for one query.
-
-    The risk slice nudges the active set toward SLA-relevant scenarios, while
-    the random slice preserves broad calibration coverage and avoids making the
-    first MILP consist mostly of tail outliers.
-    """
-    count = min(max(count, 0), len(query_scenarios))
-    if count == 0:
-        return []
-
-    risk_count = min(count, max(1, math.ceil(count * 0.3)))
-    selected = _upper_quantile_scenarios(ranked_ascending, risk_count)
-    selected_ids = {scenario.scenario_id for scenario in selected}
-    remaining = [
-        scenario
-        for scenario in query_scenarios
-        if scenario.scenario_id not in selected_ids
-    ]
-    rng.shuffle(remaining)
-    selected.extend(remaining[: count - len(selected)])
-    return selected
-
-
-def _unique_midpoint_quantile_indices(n: int, count: int) -> list[int]:
-    """Midpoint empirical-quantile indices with deterministic duplicate repair."""
-    if n <= 0 or count <= 0:
-        return []
-    count = min(count, n)
-    selected: list[int] = []
-    used: set[int] = set()
-    for j in range(count):
-        idx = min(n - 1, max(0, math.floor(((j + 0.5) / count) * n)))
-        if idx in used:
-            idx = _nearest_unused_index(idx, n, used)
-        selected.append(idx)
-        used.add(idx)
-    return selected
-
-
-def _nearest_unused_index(idx: int, n: int, used: set[int]) -> int:
-    for delta in range(1, n):
-        left = idx - delta
-        if left >= 0 and left not in used:
-            return left
-        right = idx + delta
-        if right < n and right not in used:
-            return right
-    raise ValueError("No unused quantile index available")
 
 
 def solve_decomposition(

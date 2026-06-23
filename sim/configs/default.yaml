@@ -9,13 +9,11 @@ regions_per_provider: all
 num_queries_per_workflow_quality: 1000
 num_queries_per_quality: 1000
 top_k: 10
-initial_active_fraction: 0.20
-initial_active_strategy: qbu
+initial_active_fraction: 0.30
+initial_active_strategy: qbr
 initializer_validation_fraction: 0.20
 initializer_selection_candidates:
   - qbr
-  - qbu
-  - qbm
 active_batch_fraction: 0.05
 violation_tolerance: 1.0e-6
 max_iterations: 100
