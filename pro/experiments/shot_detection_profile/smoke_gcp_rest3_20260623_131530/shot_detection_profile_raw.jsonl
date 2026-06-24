@@ -1,0 +1,1 @@
+{"provider": "gcp", "region": "asia-east1", "job_id": "projects/360779988854/locations/asia-east1/operations/8058696977893101113", "input_uri": "gs://skyflow-prototype-gcp-asia-east1/profile/videos/-ZBsdK10Trs.mp4", "annotation_result_count": 1, "shot_count": 36}

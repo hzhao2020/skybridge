@@ -1,0 +1,118 @@
+{
+  "provider": "aws",
+  "region": "us-west-2",
+  "job_id": "8b72bb32d276a39e6896d5a1be218f4a6b4842fe9576c1ae104962d40c18ffbe",
+  "input_uri": "s3://skyflow-prototype-aws-us-west-2/profile/videos/OBDq689jDDY.mp4",
+  "status": "SUCCEEDED",
+  "shot_count": 6,
+  "page_count": 1,
+  "completion_event": {
+    "JobId": "8b72bb32d276a39e6896d5a1be218f4a6b4842fe9576c1ae104962d40c18ffbe",
+    "Status": "SUCCEEDED",
+    "API": "StartSegmentDetection",
+    "JobTag": "aws_us_west_2:OBDq689jDDY",
+    "Timestamp": 1782217499083,
+    "Video": {
+      "S3ObjectName": "profile/videos/OBDq689jDDY.mp4",
+      "S3Bucket": "skyflow-prototype-aws-us-west-2"
+    }
+  },
+  "segments": [
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 33,
+      "EndTimestampMillis": 66,
+      "DurationMillis": 33,
+      "StartTimecodeSMPTE": "00:00:00:00",
+      "EndTimecodeSMPTE": "00:00:00:01",
+      "DurationSMPTE": "00:00:00:01",
+      "ShotSegment": {
+        "Index": 0,
+        "Confidence": 99.85025024414062
+      },
+      "StartFrameNumber": 0,
+      "EndFrameNumber": 1,
+      "DurationFrames": 1
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 100,
+      "EndTimestampMillis": 3103,
+      "DurationMillis": 3003,
+      "StartTimecodeSMPTE": "00:00:00:02",
+      "EndTimecodeSMPTE": "00:00:03:02",
+      "DurationSMPTE": "00:00:03:00",
+      "ShotSegment": {
+        "Index": 1,
+        "Confidence": 99.37195587158203
+      },
+      "StartFrameNumber": 2,
+      "EndFrameNumber": 91,
+      "DurationFrames": 89
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 3272,
+      "EndTimestampMillis": 60303,
+      "DurationMillis": 57031,
+      "StartTimecodeSMPTE": "00:00:03:07",
+      "EndTimecodeSMPTE": "00:01:00:08",
+      "DurationSMPTE": "00:00:57:00",
+      "ShotSegment": {
+        "Index": 2,
+        "Confidence": 98.87474060058594
+      },
+      "StartFrameNumber": 96,
+      "EndFrameNumber": 1786,
+      "DurationFrames": 1690
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 60371,
+      "EndTimestampMillis": 60404,
+      "DurationMillis": 33,
+      "StartTimecodeSMPTE": "00:01:00:10",
+      "EndTimecodeSMPTE": "00:01:00:11",
+      "DurationSMPTE": "00:00:00:01",
+      "ShotSegment": {
+        "Index": 3,
+        "Confidence": 63.39700698852539
+      },
+      "StartFrameNumber": 1788,
+      "EndFrameNumber": 1789,
+      "DurationFrames": 1
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 60438,
+      "EndTimestampMillis": 60506,
+      "DurationMillis": 68,
+      "StartTimecodeSMPTE": "00:01:00:12",
+      "EndTimecodeSMPTE": "00:01:00:14",
+      "DurationSMPTE": "00:00:00:02",
+      "ShotSegment": {
+        "Index": 4,
+        "Confidence": 63.39700698852539
+      },
+      "StartFrameNumber": 1790,
+      "EndFrameNumber": 1792,
+      "DurationFrames": 2
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 60539,
+      "EndTimestampMillis": 61214,
+      "DurationMillis": 675,
+      "StartTimecodeSMPTE": "00:01:00:15",
+      "EndTimecodeSMPTE": "00:01:01:05",
+      "DurationSMPTE": "00:00:00:20",
+      "ShotSegment": {
+        "Index": 5,
+        "Confidence": 99.97301483154297
+      },
+      "StartFrameNumber": 1793,
+      "EndFrameNumber": 1813,
+      "DurationFrames": 20
+    }
+  ]
+}

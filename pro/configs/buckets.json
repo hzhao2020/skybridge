@@ -1,0 +1,23 @@
+{
+  "prefix": "skyflow-prototype",
+  "buckets": {
+    "gcp": {
+      "us-east1": "skyflow-prototype-gcp-us-east1",
+      "us-west1": "skyflow-prototype-gcp-us-west1",
+      "europe-west1": "skyflow-prototype-gcp-europe-west1",
+      "asia-east1": "skyflow-prototype-gcp-asia-east1"
+    },
+    "aws": {
+      "us-west-2": "skyflow-prototype-aws-us-west-2",
+      "us-east-2": "skyflow-prototype-aws-us-east-2",
+      "ap-southeast-1": "skyflow-prototype-aws-ap-southeast-1",
+      "eu-central-1": "skyflow-prototype-aws-eu-central-1"
+    },
+    "aliyun": {
+      "cn-shanghai": "skyflow-prototype-aliyun-cn-shanghai",
+      "cn-beijing": "skyflow-prototype-aliyun-cn-beijing",
+      "us-east-1": "skyflow-prototype-aliyun-us-east-1",
+      "ap-southeast-1": "skyflow-prototype-aliyun-ap-southeast-1"
+    }
+  }
+}

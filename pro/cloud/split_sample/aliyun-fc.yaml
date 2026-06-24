@@ -1,0 +1,33 @@
+edition: 3.0.0
+name: skyflow-prototype
+access: default
+resources:
+  splitSample:
+    component: fc3
+    props:
+      region: ${env(ALIYUN_REGION)}
+      functionName: skyflow-prototype-split-sample-${env(ALIYUN_REGION)}
+      description: SkyFlow prototype split/sample node, 3 frames per shot
+      runtime: custom-container
+      cpu: 2
+      memorySize: 2048
+      timeout: 900
+      customContainerConfig:
+        image: ${env(ALIYUN_IMAGE)}
+        command:
+          - python
+        args:
+          - app.py
+      environmentVariables:
+        SAMPLES_PER_SHOT: "3"
+        PORT: "9000"
+      triggers:
+        - triggerName: http
+          triggerType: http
+          description: HTTP endpoint for split/sample
+          triggerConfig:
+            authType: anonymous
+            methods:
+              - POST
+              - GET
+

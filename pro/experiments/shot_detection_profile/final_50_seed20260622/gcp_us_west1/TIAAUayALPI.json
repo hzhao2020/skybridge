@@ -1,0 +1,325 @@
+{
+  "provider": "gcp",
+  "region": "us-west1",
+  "job_id": "projects/360779988854/locations/us-west1/operations/12150586070137401191",
+  "input_uri": "gs://skyflow-prototype-gcp-us-west1/profile/videos/TIAAUayALPI.mp4",
+  "annotation_result_count": 1,
+  "shot_count": 72,
+  "operation": {
+    "name": "projects/360779988854/locations/us-west1/operations/12150586070137401191",
+    "metadata": {
+      "@type": "type.googleapis.com/google.cloud.videointelligence.v1.AnnotateVideoProgress",
+      "annotationProgress": [
+        {
+          "inputUri": "/skyflow-prototype-gcp-us-west1/profile/videos/TIAAUayALPI.mp4",
+          "progressPercent": 100,
+          "startTime": "2026-06-23T08:02:59.815951Z",
+          "updateTime": "2026-06-23T08:03:12.585426Z"
+        }
+      ]
+    },
+    "done": true,
+    "response": {
+      "@type": "type.googleapis.com/google.cloud.videointelligence.v1.AnnotateVideoResponse",
+      "annotationResults": [
+        {
+          "inputUri": "/skyflow-prototype-gcp-us-west1/profile/videos/TIAAUayALPI.mp4",
+          "shotAnnotations": [
+            {
+              "startTimeOffset": "0.041708s",
+              "endTimeOffset": "1.876875s"
+            },
+            {
+              "startTimeOffset": "1.918583s",
+              "endTimeOffset": "3.336666s"
+            },
+            {
+              "startTimeOffset": "3.378375s",
+              "endTimeOffset": "5.880875s"
+            },
+            {
+              "startTimeOffset": "5.922583s",
+              "endTimeOffset": "7.632625s"
+            },
+            {
+              "startTimeOffset": "7.674333s",
+              "endTimeOffset": "9.801458s"
+            },
+            {
+              "startTimeOffset": "9.843166s",
+              "endTimeOffset": "11.136125s"
+            },
+            {
+              "startTimeOffset": "11.177833s",
+              "endTimeOffset": "13.388375s"
+            },
+            {
+              "startTimeOffset": "13.430083s",
+              "endTimeOffset": "14.180833s"
+            },
+            {
+              "startTimeOffset": "14.222541s",
+              "endTimeOffset": "15.598916s"
+            },
+            {
+              "startTimeOffset": "15.640625s",
+              "endTimeOffset": "17.142125s"
+            },
+            {
+              "startTimeOffset": "17.183833s",
+              "endTimeOffset": "18.935583s"
+            },
+            {
+              "startTimeOffset": "18.977291s",
+              "endTimeOffset": "21.021s"
+            },
+            {
+              "startTimeOffset": "21.062708s",
+              "endTimeOffset": "22.897875s"
+            },
+            {
+              "startTimeOffset": "22.939583s",
+              "endTimeOffset": "25.900875s"
+            },
+            {
+              "startTimeOffset": "25.942583s",
+              "endTimeOffset": "38.538500s"
+            },
+            {
+              "startTimeOffset": "38.580208s",
+              "endTimeOffset": "42.667625s"
+            },
+            {
+              "startTimeOffset": "42.709333s",
+              "endTimeOffset": "45.462083s"
+            },
+            {
+              "startTimeOffset": "45.503791s",
+              "endTimeOffset": "47.213833s"
+            },
+            {
+              "startTimeOffset": "47.255541s",
+              "endTimeOffset": "50.675625s"
+            },
+            {
+              "startTimeOffset": "50.717333s",
+              "endTimeOffset": "53.678625s"
+            },
+            {
+              "startTimeOffset": "53.720333s",
+              "endTimeOffset": "55.680625s"
+            },
+            {
+              "startTimeOffset": "55.722333s",
+              "endTimeOffset": "58.183125s"
+            },
+            {
+              "startTimeOffset": "58.224833s",
+              "endTimeOffset": "60.602208s"
+            },
+            {
+              "startTimeOffset": "60.643916s",
+              "endTimeOffset": "61.644916s"
+            },
+            {
+              "startTimeOffset": "61.686625s",
+              "endTimeOffset": "63.188125s"
+            },
+            {
+              "startTimeOffset": "63.229833s",
+              "endTimeOffset": "65.982583s"
+            },
+            {
+              "startTimeOffset": "66.024291s",
+              "endTimeOffset": "69.778041s"
+            },
+            {
+              "startTimeOffset": "69.819750s",
+              "endTimeOffset": "75.992583s"
+            },
+            {
+              "startTimeOffset": "76.034291s",
+              "endTimeOffset": "78.661916s"
+            },
+            {
+              "startTimeOffset": "78.703625s",
+              "endTimeOffset": "80.163416s"
+            },
+            {
+              "startTimeOffset": "80.205125s",
+              "endTimeOffset": "85.293541s"
+            },
+            {
+              "startTimeOffset": "85.335250s",
+              "endTimeOffset": "91.299541s"
+            },
+            {
+              "startTimeOffset": "91.341250s",
+              "endTimeOffset": "98.389958s"
+            },
+            {
+              "startTimeOffset": "98.431666s",
+              "endTimeOffset": "105.188416s"
+            },
+            {
+              "startTimeOffset": "105.230125s",
+              "endTimeOffset": "110.276833s"
+            },
+            {
+              "startTimeOffset": "110.318541s",
+              "endTimeOffset": "113.029583s"
+            },
+            {
+              "startTimeOffset": "113.071291s",
+              "endTimeOffset": "115.198416s"
+            },
+            {
+              "startTimeOffset": "115.240125s",
+              "endTimeOffset": "116.282833s"
+            },
+            {
+              "startTimeOffset": "116.324541s",
+              "endTimeOffset": "118.827041s"
+            },
+            {
+              "startTimeOffset": "118.868750s",
+              "endTimeOffset": "121.830041s"
+            },
+            {
+              "startTimeOffset": "121.871750s",
+              "endTimeOffset": "123.206416s"
+            },
+            {
+              "startTimeOffset": "123.248125s",
+              "endTimeOffset": "124.374250s"
+            },
+            {
+              "startTimeOffset": "124.415958s",
+              "endTimeOffset": "130.255125s"
+            },
+            {
+              "startTimeOffset": "130.296833s",
+              "endTimeOffset": "132.799333s"
+            },
+            {
+              "startTimeOffset": "132.841041s",
+              "endTimeOffset": "134.342541s"
+            },
+            {
+              "startTimeOffset": "134.384250s",
+              "endTimeOffset": "137.512375s"
+            },
+            {
+              "startTimeOffset": "137.554083s",
+              "endTimeOffset": "143.059583s"
+            },
+            {
+              "startTimeOffset": "143.101291s",
+              "endTimeOffset": "146.479666s"
+            },
+            {
+              "startTimeOffset": "146.521375s",
+              "endTimeOffset": "153.987166s"
+            },
+            {
+              "startTimeOffset": "154.028875s",
+              "endTimeOffset": "157.448958s"
+            },
+            {
+              "startTimeOffset": "157.490666s",
+              "endTimeOffset": "161.828333s"
+            },
+            {
+              "startTimeOffset": "161.870041s",
+              "endTimeOffset": "165.415250s"
+            },
+            {
+              "startTimeOffset": "165.456958s",
+              "endTimeOffset": "167.709208s"
+            },
+            {
+              "startTimeOffset": "167.750916s",
+              "endTimeOffset": "172.463958s"
+            },
+            {
+              "startTimeOffset": "172.505666s",
+              "endTimeOffset": "174.465958s"
+            },
+            {
+              "startTimeOffset": "174.507666s",
+              "endTimeOffset": "175.842333s"
+            },
+            {
+              "startTimeOffset": "175.884041s",
+              "endTimeOffset": "177.886041s"
+            },
+            {
+              "startTimeOffset": "177.927750s",
+              "endTimeOffset": "179.470958s"
+            },
+            {
+              "startTimeOffset": "179.512666s",
+              "endTimeOffset": "180.930750s"
+            },
+            {
+              "startTimeOffset": "180.972458s",
+              "endTimeOffset": "183.600083s"
+            },
+            {
+              "startTimeOffset": "183.641791s",
+              "endTimeOffset": "186.603083s"
+            },
+            {
+              "startTimeOffset": "186.644791s",
+              "endTimeOffset": "190.982458s"
+            },
+            {
+              "startTimeOffset": "191.024166s",
+              "endTimeOffset": "194.903041s"
+            },
+            {
+              "startTimeOffset": "194.944750s",
+              "endTimeOffset": "195.778916s"
+            },
+            {
+              "startTimeOffset": "195.820625s",
+              "endTimeOffset": "197.947750s"
+            },
+            {
+              "startTimeOffset": "197.989458s",
+              "endTimeOffset": "199.616083s"
+            },
+            {
+              "startTimeOffset": "199.657791s",
+              "endTimeOffset": "201.492958s"
+            },
+            {
+              "startTimeOffset": "201.534666s",
+              "endTimeOffset": "203.912041s"
+            },
+            {
+              "startTimeOffset": "203.953750s",
+              "endTimeOffset": "206.039166s"
+            },
+            {
+              "startTimeOffset": "206.080875s",
+              "endTimeOffset": "208.416541s"
+            },
+            {
+              "startTimeOffset": "208.458250s",
+              "endTimeOffset": "210.919041s"
+            },
+            {
+              "startTimeOffset": "210.960750s",
+              "endTimeOffset": "212.837625s"
+            }
+          ],
+          "segment": {
+            "startTimeOffset": "0s",
+            "endTimeOffset": "212.795917s"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,89 @@
+[
+  {
+    "split": "profile",
+    "count": 50,
+    "source_counts": {
+      "train": 50
+    },
+    "duration_sec_mean": 114.0605728,
+    "duration_sec_median": 114.660136,
+    "size_mb_mean": 18.648730812072753,
+    "size_mb_median": 11.729974746704102,
+    "strata_counts": {
+      "duration_high__size_high": 5,
+      "duration_high__size_low": 5,
+      "duration_high__size_mid": 6,
+      "duration_low__size_high": 6,
+      "duration_low__size_low": 6,
+      "duration_low__size_mid": 6,
+      "duration_mid__size_high": 6,
+      "duration_mid__size_low": 5,
+      "duration_mid__size_mid": 5
+    }
+  },
+  {
+    "split": "validation",
+    "count": 30,
+    "source_counts": {
+      "train": 30
+    },
+    "duration_sec_mean": 107.5893371,
+    "duration_sec_median": 100.867483,
+    "size_mb_mean": 21.64493004480998,
+    "size_mb_median": 14.591459274291992,
+    "strata_counts": {
+      "duration_high__size_high": 3,
+      "duration_high__size_low": 2,
+      "duration_high__size_mid": 4,
+      "duration_low__size_high": 4,
+      "duration_low__size_low": 4,
+      "duration_low__size_mid": 3,
+      "duration_mid__size_high": 4,
+      "duration_mid__size_low": 3,
+      "duration_mid__size_mid": 3
+    }
+  },
+  {
+    "split": "test",
+    "count": 200,
+    "source_counts": {
+      "test": 200
+    },
+    "duration_sec_mean": 114.86143172000004,
+    "duration_sec_median": 109.667846,
+    "size_mb_mean": 18.82116136074066,
+    "size_mb_median": 11.808507919311523,
+    "strata_counts": {
+      "duration_high__size_high": 36,
+      "duration_high__size_low": 8,
+      "duration_high__size_mid": 24,
+      "duration_low__size_high": 3,
+      "duration_low__size_low": 49,
+      "duration_low__size_mid": 11,
+      "duration_mid__size_high": 27,
+      "duration_mid__size_low": 19,
+      "duration_mid__size_mid": 23
+    }
+  },
+  {
+    "split": "reserve_train",
+    "count": 220,
+    "source_counts": {
+      "train": 220
+    },
+    "duration_sec_mean": 111.63169505454539,
+    "duration_sec_median": 105.488254,
+    "size_mb_mean": 19.531265406175095,
+    "size_mb_median": 12.463873863220215,
+    "strata_counts": {
+      "duration_high__size_high": 43,
+      "duration_high__size_mid": 31,
+      "duration_low__size_high": 4,
+      "duration_low__size_low": 60,
+      "duration_low__size_mid": 8,
+      "duration_mid__size_high": 24,
+      "duration_mid__size_low": 16,
+      "duration_mid__size_mid": 34
+    }
+  }
+]

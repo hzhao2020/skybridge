@@ -1,0 +1,41 @@
+{
+  "provider": "gcp",
+  "region": "europe-west1",
+  "job_id": "projects/360779988854/locations/europe-west1/operations/1712624349373969791",
+  "input_uri": "gs://skyflow-prototype-gcp-europe-west1/profile/videos/_crwKCjKRjg.mp4",
+  "annotation_result_count": 1,
+  "shot_count": 1,
+  "operation": {
+    "name": "projects/360779988854/locations/europe-west1/operations/1712624349373969791",
+    "metadata": {
+      "@type": "type.googleapis.com/google.cloud.videointelligence.v1.AnnotateVideoProgress",
+      "annotationProgress": [
+        {
+          "inputUri": "/skyflow-prototype-gcp-europe-west1/profile/videos/_crwKCjKRjg.mp4",
+          "progressPercent": 100,
+          "startTime": "2026-06-23T08:49:23.341519Z",
+          "updateTime": "2026-06-23T08:49:27.762367Z"
+        }
+      ]
+    },
+    "done": true,
+    "response": {
+      "@type": "type.googleapis.com/google.cloud.videointelligence.v1.AnnotateVideoResponse",
+      "annotationResults": [
+        {
+          "inputUri": "/skyflow-prototype-gcp-europe-west1/profile/videos/_crwKCjKRjg.mp4",
+          "shotAnnotations": [
+            {
+              "startTimeOffset": "0s",
+              "endTimeOffset": "190.190s"
+            }
+          ],
+          "segment": {
+            "startTimeOffset": "0s",
+            "endTimeOffset": "190.190s"
+          }
+        }
+      ]
+    }
+  }
+}

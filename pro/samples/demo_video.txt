@@ -1,0 +1,2 @@
+This is a tiny stand-in for a user-side video file.
+The mock split/sample function will create text frame artifacts from this input.

@@ -1,0 +1,806 @@
+{
+  "provider": "aws",
+  "region": "ap-southeast-1",
+  "job_id": "dd7807080723840d7d8db54a030b3dacbc3711e9f72afe975c7487c0e43f66ed",
+  "input_uri": "s3://skyflow-prototype-aws-ap-southeast-1/profile/videos/hr8zkCXbTTk.mp4",
+  "status": "SUCCEEDED",
+  "shot_count": 49,
+  "page_count": 1,
+  "completion_event": {
+    "JobId": "dd7807080723840d7d8db54a030b3dacbc3711e9f72afe975c7487c0e43f66ed",
+    "Status": "SUCCEEDED",
+    "API": "StartSegmentDetection",
+    "JobTag": "aws_ap_southeast_1:hr8zkCXbTTk",
+    "Timestamp": 1782208480439,
+    "Video": {
+      "S3ObjectName": "profile/videos/hr8zkCXbTTk.mp4",
+      "S3Bucket": "skyflow-prototype-aws-ap-southeast-1"
+    }
+  },
+  "segments": [
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 0,
+      "EndTimestampMillis": 5541,
+      "DurationMillis": 5541,
+      "StartTimecodeSMPTE": "00:00:00:00",
+      "EndTimecodeSMPTE": "00:00:05:13",
+      "DurationSMPTE": "00:00:05:13",
+      "ShotSegment": {
+        "Index": 0,
+        "Confidence": 92.31866455078125
+      },
+      "StartFrameNumber": 0,
+      "EndFrameNumber": 133,
+      "DurationFrames": 133
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 5833,
+      "EndTimestampMillis": 5916,
+      "DurationMillis": 83,
+      "StartTimecodeSMPTE": "00:00:05:20",
+      "EndTimecodeSMPTE": "00:00:05:22",
+      "DurationSMPTE": "00:00:00:02",
+      "ShotSegment": {
+        "Index": 1,
+        "Confidence": 87.55844116210938
+      },
+      "StartFrameNumber": 140,
+      "EndFrameNumber": 142,
+      "DurationFrames": 2
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 6083,
+      "EndTimestampMillis": 10000,
+      "DurationMillis": 3917,
+      "StartTimecodeSMPTE": "00:00:06:02",
+      "EndTimecodeSMPTE": "00:00:10:00",
+      "DurationSMPTE": "00:00:03:22",
+      "ShotSegment": {
+        "Index": 2,
+        "Confidence": 87.55844116210938
+      },
+      "StartFrameNumber": 146,
+      "EndFrameNumber": 240,
+      "DurationFrames": 94
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 10125,
+      "EndTimestampMillis": 13041,
+      "DurationMillis": 2916,
+      "StartTimecodeSMPTE": "00:00:10:03",
+      "EndTimecodeSMPTE": "00:00:13:01",
+      "DurationSMPTE": "00:00:02:22",
+      "ShotSegment": {
+        "Index": 3,
+        "Confidence": 97.25733184814453
+      },
+      "StartFrameNumber": 243,
+      "EndFrameNumber": 313,
+      "DurationFrames": 70
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 13083,
+      "EndTimestampMillis": 15125,
+      "DurationMillis": 2042,
+      "StartTimecodeSMPTE": "00:00:13:02",
+      "EndTimecodeSMPTE": "00:00:15:03",
+      "DurationSMPTE": "00:00:02:01",
+      "ShotSegment": {
+        "Index": 4,
+        "Confidence": 99.74502563476562
+      },
+      "StartFrameNumber": 314,
+      "EndFrameNumber": 363,
+      "DurationFrames": 49
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 15208,
+      "EndTimestampMillis": 17666,
+      "DurationMillis": 2458,
+      "StartTimecodeSMPTE": "00:00:15:05",
+      "EndTimecodeSMPTE": "00:00:17:16",
+      "DurationSMPTE": "00:00:02:11",
+      "ShotSegment": {
+        "Index": 5,
+        "Confidence": 99.3869857788086
+      },
+      "StartFrameNumber": 365,
+      "EndFrameNumber": 424,
+      "DurationFrames": 59
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 17833,
+      "EndTimestampMillis": 19791,
+      "DurationMillis": 1958,
+      "StartTimecodeSMPTE": "00:00:17:20",
+      "EndTimecodeSMPTE": "00:00:19:19",
+      "DurationSMPTE": "00:00:01:23",
+      "ShotSegment": {
+        "Index": 6,
+        "Confidence": 99.3869857788086
+      },
+      "StartFrameNumber": 428,
+      "EndFrameNumber": 475,
+      "DurationFrames": 47
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 19916,
+      "EndTimestampMillis": 28083,
+      "DurationMillis": 8167,
+      "StartTimecodeSMPTE": "00:00:19:22",
+      "EndTimecodeSMPTE": "00:00:28:02",
+      "DurationSMPTE": "00:00:08:04",
+      "ShotSegment": {
+        "Index": 7,
+        "Confidence": 98.37225341796875
+      },
+      "StartFrameNumber": 478,
+      "EndFrameNumber": 674,
+      "DurationFrames": 196
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 28166,
+      "EndTimestampMillis": 33291,
+      "DurationMillis": 5125,
+      "StartTimecodeSMPTE": "00:00:28:04",
+      "EndTimecodeSMPTE": "00:00:33:07",
+      "DurationSMPTE": "00:00:05:03",
+      "ShotSegment": {
+        "Index": 8,
+        "Confidence": 98.37225341796875
+      },
+      "StartFrameNumber": 676,
+      "EndFrameNumber": 799,
+      "DurationFrames": 123
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 33375,
+      "EndTimestampMillis": 35458,
+      "DurationMillis": 2083,
+      "StartTimecodeSMPTE": "00:00:33:09",
+      "EndTimecodeSMPTE": "00:00:35:11",
+      "DurationSMPTE": "00:00:02:02",
+      "ShotSegment": {
+        "Index": 9,
+        "Confidence": 98.03197479248047
+      },
+      "StartFrameNumber": 801,
+      "EndFrameNumber": 851,
+      "DurationFrames": 50
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 35541,
+      "EndTimestampMillis": 48750,
+      "DurationMillis": 13209,
+      "StartTimecodeSMPTE": "00:00:35:13",
+      "EndTimecodeSMPTE": "00:00:48:18",
+      "DurationSMPTE": "00:00:13:05",
+      "ShotSegment": {
+        "Index": 10,
+        "Confidence": 98.03197479248047
+      },
+      "StartFrameNumber": 853,
+      "EndFrameNumber": 1170,
+      "DurationFrames": 317
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 48833,
+      "EndTimestampMillis": 50375,
+      "DurationMillis": 1542,
+      "StartTimecodeSMPTE": "00:00:48:20",
+      "EndTimecodeSMPTE": "00:00:50:09",
+      "DurationSMPTE": "00:00:01:13",
+      "ShotSegment": {
+        "Index": 11,
+        "Confidence": 99.520263671875
+      },
+      "StartFrameNumber": 1172,
+      "EndFrameNumber": 1209,
+      "DurationFrames": 37
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 50458,
+      "EndTimestampMillis": 58916,
+      "DurationMillis": 8458,
+      "StartTimecodeSMPTE": "00:00:50:11",
+      "EndTimecodeSMPTE": "00:00:58:22",
+      "DurationSMPTE": "00:00:08:11",
+      "ShotSegment": {
+        "Index": 12,
+        "Confidence": 89.86394500732422
+      },
+      "StartFrameNumber": 1211,
+      "EndFrameNumber": 1414,
+      "DurationFrames": 203
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 59000,
+      "EndTimestampMillis": 61125,
+      "DurationMillis": 2125,
+      "StartTimecodeSMPTE": "00:00:59:00",
+      "EndTimecodeSMPTE": "00:01:01:03",
+      "DurationSMPTE": "00:00:02:03",
+      "ShotSegment": {
+        "Index": 13,
+        "Confidence": 89.86394500732422
+      },
+      "StartFrameNumber": 1416,
+      "EndFrameNumber": 1467,
+      "DurationFrames": 51
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 61291,
+      "EndTimestampMillis": 69833,
+      "DurationMillis": 8542,
+      "StartTimecodeSMPTE": "00:01:01:07",
+      "EndTimecodeSMPTE": "00:01:09:20",
+      "DurationSMPTE": "00:00:08:13",
+      "ShotSegment": {
+        "Index": 14,
+        "Confidence": 96.7467269897461
+      },
+      "StartFrameNumber": 1471,
+      "EndFrameNumber": 1676,
+      "DurationFrames": 205
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 69916,
+      "EndTimestampMillis": 73458,
+      "DurationMillis": 3542,
+      "StartTimecodeSMPTE": "00:01:09:22",
+      "EndTimecodeSMPTE": "00:01:13:11",
+      "DurationSMPTE": "00:00:03:13",
+      "ShotSegment": {
+        "Index": 15,
+        "Confidence": 97.66431427001953
+      },
+      "StartFrameNumber": 1678,
+      "EndFrameNumber": 1763,
+      "DurationFrames": 85
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 73583,
+      "EndTimestampMillis": 81500,
+      "DurationMillis": 7917,
+      "StartTimecodeSMPTE": "00:01:13:14",
+      "EndTimecodeSMPTE": "00:01:21:12",
+      "DurationSMPTE": "00:00:07:22",
+      "ShotSegment": {
+        "Index": 16,
+        "Confidence": 99.44593811035156
+      },
+      "StartFrameNumber": 1766,
+      "EndFrameNumber": 1956,
+      "DurationFrames": 190
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 81583,
+      "EndTimestampMillis": 90416,
+      "DurationMillis": 8833,
+      "StartTimecodeSMPTE": "00:01:21:14",
+      "EndTimecodeSMPTE": "00:01:30:10",
+      "DurationSMPTE": "00:00:08:20",
+      "ShotSegment": {
+        "Index": 17,
+        "Confidence": 99.76908874511719
+      },
+      "StartFrameNumber": 1958,
+      "EndFrameNumber": 2170,
+      "DurationFrames": 212
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 90458,
+      "EndTimestampMillis": 92000,
+      "DurationMillis": 1542,
+      "StartTimecodeSMPTE": "00:01:30:11",
+      "EndTimecodeSMPTE": "00:01:32:00",
+      "DurationSMPTE": "00:00:01:13",
+      "ShotSegment": {
+        "Index": 18,
+        "Confidence": 99.9501724243164
+      },
+      "StartFrameNumber": 2171,
+      "EndFrameNumber": 2208,
+      "DurationFrames": 37
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 92041,
+      "EndTimestampMillis": 93791,
+      "DurationMillis": 1750,
+      "StartTimecodeSMPTE": "00:01:32:01",
+      "EndTimecodeSMPTE": "00:01:33:19",
+      "DurationSMPTE": "00:00:01:18",
+      "ShotSegment": {
+        "Index": 19,
+        "Confidence": 99.56998443603516
+      },
+      "StartFrameNumber": 2209,
+      "EndFrameNumber": 2251,
+      "DurationFrames": 42
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 93833,
+      "EndTimestampMillis": 95000,
+      "DurationMillis": 1167,
+      "StartTimecodeSMPTE": "00:01:33:20",
+      "EndTimecodeSMPTE": "00:01:35:00",
+      "DurationSMPTE": "00:00:01:04",
+      "ShotSegment": {
+        "Index": 20,
+        "Confidence": 99.56998443603516
+      },
+      "StartFrameNumber": 2252,
+      "EndFrameNumber": 2280,
+      "DurationFrames": 28
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 95041,
+      "EndTimestampMillis": 96583,
+      "DurationMillis": 1542,
+      "StartTimecodeSMPTE": "00:01:35:01",
+      "EndTimecodeSMPTE": "00:01:36:14",
+      "DurationSMPTE": "00:00:01:13",
+      "ShotSegment": {
+        "Index": 21,
+        "Confidence": 75.39063262939453
+      },
+      "StartFrameNumber": 2281,
+      "EndFrameNumber": 2318,
+      "DurationFrames": 37
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 96666,
+      "EndTimestampMillis": 96750,
+      "DurationMillis": 84,
+      "StartTimecodeSMPTE": "00:01:36:16",
+      "EndTimecodeSMPTE": "00:01:36:18",
+      "DurationSMPTE": "00:00:00:02",
+      "ShotSegment": {
+        "Index": 22,
+        "Confidence": 75.39063262939453
+      },
+      "StartFrameNumber": 2320,
+      "EndFrameNumber": 2322,
+      "DurationFrames": 2
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 96875,
+      "EndTimestampMillis": 98000,
+      "DurationMillis": 1125,
+      "StartTimecodeSMPTE": "00:01:36:21",
+      "EndTimecodeSMPTE": "00:01:38:00",
+      "DurationSMPTE": "00:00:01:03",
+      "ShotSegment": {
+        "Index": 23,
+        "Confidence": 95.03123474121094
+      },
+      "StartFrameNumber": 2325,
+      "EndFrameNumber": 2352,
+      "DurationFrames": 27
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 98166,
+      "EndTimestampMillis": 102291,
+      "DurationMillis": 4125,
+      "StartTimecodeSMPTE": "00:01:38:04",
+      "EndTimecodeSMPTE": "00:01:42:07",
+      "DurationSMPTE": "00:00:04:03",
+      "ShotSegment": {
+        "Index": 24,
+        "Confidence": 98.0229263305664
+      },
+      "StartFrameNumber": 2356,
+      "EndFrameNumber": 2455,
+      "DurationFrames": 99
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 102333,
+      "EndTimestampMillis": 104875,
+      "DurationMillis": 2542,
+      "StartTimecodeSMPTE": "00:01:42:08",
+      "EndTimecodeSMPTE": "00:01:44:21",
+      "DurationSMPTE": "00:00:02:13",
+      "ShotSegment": {
+        "Index": 25,
+        "Confidence": 97.7497787475586
+      },
+      "StartFrameNumber": 2456,
+      "EndFrameNumber": 2517,
+      "DurationFrames": 61
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 104916,
+      "EndTimestampMillis": 106250,
+      "DurationMillis": 1334,
+      "StartTimecodeSMPTE": "00:01:44:22",
+      "EndTimecodeSMPTE": "00:01:46:06",
+      "DurationSMPTE": "00:00:01:08",
+      "ShotSegment": {
+        "Index": 26,
+        "Confidence": 97.7497787475586
+      },
+      "StartFrameNumber": 2518,
+      "EndFrameNumber": 2550,
+      "DurationFrames": 32
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 106333,
+      "EndTimestampMillis": 114208,
+      "DurationMillis": 7875,
+      "StartTimecodeSMPTE": "00:01:46:08",
+      "EndTimecodeSMPTE": "00:01:54:05",
+      "DurationSMPTE": "00:00:07:21",
+      "ShotSegment": {
+        "Index": 27,
+        "Confidence": 99.67337036132812
+      },
+      "StartFrameNumber": 2552,
+      "EndFrameNumber": 2741,
+      "DurationFrames": 189
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 114291,
+      "EndTimestampMillis": 114333,
+      "DurationMillis": 42,
+      "StartTimecodeSMPTE": "00:01:54:07",
+      "EndTimecodeSMPTE": "00:01:54:08",
+      "DurationSMPTE": "00:00:00:01",
+      "ShotSegment": {
+        "Index": 28,
+        "Confidence": 50.06563949584961
+      },
+      "StartFrameNumber": 2743,
+      "EndFrameNumber": 2744,
+      "DurationFrames": 1
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 114333,
+      "EndTimestampMillis": 114958,
+      "DurationMillis": 625,
+      "StartTimecodeSMPTE": "00:01:54:08",
+      "EndTimecodeSMPTE": "00:01:54:23",
+      "DurationSMPTE": "00:00:00:15",
+      "ShotSegment": {
+        "Index": 29,
+        "Confidence": 50.06563949584961
+      },
+      "StartFrameNumber": 2744,
+      "EndFrameNumber": 2759,
+      "DurationFrames": 15
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 114958,
+      "EndTimestampMillis": 116291,
+      "DurationMillis": 1333,
+      "StartTimecodeSMPTE": "00:01:54:23",
+      "EndTimecodeSMPTE": "00:01:56:07",
+      "DurationSMPTE": "00:00:01:08",
+      "ShotSegment": {
+        "Index": 30,
+        "Confidence": 91.580322265625
+      },
+      "StartFrameNumber": 2759,
+      "EndFrameNumber": 2791,
+      "DurationFrames": 32
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 116541,
+      "EndTimestampMillis": 121833,
+      "DurationMillis": 5292,
+      "StartTimecodeSMPTE": "00:01:56:13",
+      "EndTimecodeSMPTE": "00:02:01:20",
+      "DurationSMPTE": "00:00:05:07",
+      "ShotSegment": {
+        "Index": 31,
+        "Confidence": 97.8744125366211
+      },
+      "StartFrameNumber": 2797,
+      "EndFrameNumber": 2924,
+      "DurationFrames": 127
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 121875,
+      "EndTimestampMillis": 123458,
+      "DurationMillis": 1583,
+      "StartTimecodeSMPTE": "00:02:01:21",
+      "EndTimecodeSMPTE": "00:02:03:11",
+      "DurationSMPTE": "00:00:01:14",
+      "ShotSegment": {
+        "Index": 32,
+        "Confidence": 99.76435089111328
+      },
+      "StartFrameNumber": 2925,
+      "EndFrameNumber": 2963,
+      "DurationFrames": 38
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 123500,
+      "EndTimestampMillis": 124500,
+      "DurationMillis": 1000,
+      "StartTimecodeSMPTE": "00:02:03:12",
+      "EndTimecodeSMPTE": "00:02:04:12",
+      "DurationSMPTE": "00:00:01:00",
+      "ShotSegment": {
+        "Index": 33,
+        "Confidence": 98.76917266845703
+      },
+      "StartFrameNumber": 2964,
+      "EndFrameNumber": 2988,
+      "DurationFrames": 24
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 124583,
+      "EndTimestampMillis": 125916,
+      "DurationMillis": 1333,
+      "StartTimecodeSMPTE": "00:02:04:14",
+      "EndTimecodeSMPTE": "00:02:05:22",
+      "DurationSMPTE": "00:00:01:08",
+      "ShotSegment": {
+        "Index": 34,
+        "Confidence": 98.76917266845703
+      },
+      "StartFrameNumber": 2990,
+      "EndFrameNumber": 3022,
+      "DurationFrames": 32
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 126000,
+      "EndTimestampMillis": 133666,
+      "DurationMillis": 7666,
+      "StartTimecodeSMPTE": "00:02:06:00",
+      "EndTimecodeSMPTE": "00:02:13:16",
+      "DurationSMPTE": "00:00:07:16",
+      "ShotSegment": {
+        "Index": 35,
+        "Confidence": 99.2451171875
+      },
+      "StartFrameNumber": 3024,
+      "EndFrameNumber": 3208,
+      "DurationFrames": 184
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 133708,
+      "EndTimestampMillis": 139833,
+      "DurationMillis": 6125,
+      "StartTimecodeSMPTE": "00:02:13:17",
+      "EndTimecodeSMPTE": "00:02:19:20",
+      "DurationSMPTE": "00:00:06:03",
+      "ShotSegment": {
+        "Index": 36,
+        "Confidence": 98.12561798095703
+      },
+      "StartFrameNumber": 3209,
+      "EndFrameNumber": 3356,
+      "DurationFrames": 147
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 139916,
+      "EndTimestampMillis": 139958,
+      "DurationMillis": 42,
+      "StartTimecodeSMPTE": "00:02:19:22",
+      "EndTimecodeSMPTE": "00:02:19:23",
+      "DurationSMPTE": "00:00:00:01",
+      "ShotSegment": {
+        "Index": 37,
+        "Confidence": 72.5282974243164
+      },
+      "StartFrameNumber": 3358,
+      "EndFrameNumber": 3359,
+      "DurationFrames": 1
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 140000,
+      "EndTimestampMillis": 142708,
+      "DurationMillis": 2708,
+      "StartTimecodeSMPTE": "00:02:20:00",
+      "EndTimecodeSMPTE": "00:02:22:17",
+      "DurationSMPTE": "00:00:02:17",
+      "ShotSegment": {
+        "Index": 38,
+        "Confidence": 72.5282974243164
+      },
+      "StartFrameNumber": 3360,
+      "EndFrameNumber": 3425,
+      "DurationFrames": 65
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 142750,
+      "EndTimestampMillis": 144291,
+      "DurationMillis": 1541,
+      "StartTimecodeSMPTE": "00:02:22:18",
+      "EndTimecodeSMPTE": "00:02:24:07",
+      "DurationSMPTE": "00:00:01:13",
+      "ShotSegment": {
+        "Index": 39,
+        "Confidence": 99.45086669921875
+      },
+      "StartFrameNumber": 3426,
+      "EndFrameNumber": 3463,
+      "DurationFrames": 37
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 144333,
+      "EndTimestampMillis": 145291,
+      "DurationMillis": 958,
+      "StartTimecodeSMPTE": "00:02:24:08",
+      "EndTimecodeSMPTE": "00:02:25:07",
+      "DurationSMPTE": "00:00:00:23",
+      "ShotSegment": {
+        "Index": 40,
+        "Confidence": 99.71328735351562
+      },
+      "StartFrameNumber": 3464,
+      "EndFrameNumber": 3487,
+      "DurationFrames": 23
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 145333,
+      "EndTimestampMillis": 147000,
+      "DurationMillis": 1667,
+      "StartTimecodeSMPTE": "00:02:25:08",
+      "EndTimecodeSMPTE": "00:02:27:00",
+      "DurationSMPTE": "00:00:01:16",
+      "ShotSegment": {
+        "Index": 41,
+        "Confidence": 99.41934204101562
+      },
+      "StartFrameNumber": 3488,
+      "EndFrameNumber": 3528,
+      "DurationFrames": 40
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 147083,
+      "EndTimestampMillis": 154416,
+      "DurationMillis": 7333,
+      "StartTimecodeSMPTE": "00:02:27:02",
+      "EndTimecodeSMPTE": "00:02:34:10",
+      "DurationSMPTE": "00:00:07:08",
+      "ShotSegment": {
+        "Index": 42,
+        "Confidence": 99.41934204101562
+      },
+      "StartFrameNumber": 3530,
+      "EndFrameNumber": 3706,
+      "DurationFrames": 176
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 154583,
+      "EndTimestampMillis": 160333,
+      "DurationMillis": 5750,
+      "StartTimecodeSMPTE": "00:02:34:14",
+      "EndTimecodeSMPTE": "00:02:40:08",
+      "DurationSMPTE": "00:00:05:18",
+      "ShotSegment": {
+        "Index": 43,
+        "Confidence": 99.1279067993164
+      },
+      "StartFrameNumber": 3710,
+      "EndFrameNumber": 3848,
+      "DurationFrames": 138
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 160416,
+      "EndTimestampMillis": 168208,
+      "DurationMillis": 7792,
+      "StartTimecodeSMPTE": "00:02:40:10",
+      "EndTimecodeSMPTE": "00:02:48:05",
+      "DurationSMPTE": "00:00:07:19",
+      "ShotSegment": {
+        "Index": 44,
+        "Confidence": 99.1279067993164
+      },
+      "StartFrameNumber": 3850,
+      "EndFrameNumber": 4037,
+      "DurationFrames": 187
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 168291,
+      "EndTimestampMillis": 170166,
+      "DurationMillis": 1875,
+      "StartTimecodeSMPTE": "00:02:48:07",
+      "EndTimecodeSMPTE": "00:02:50:04",
+      "DurationSMPTE": "00:00:01:21",
+      "ShotSegment": {
+        "Index": 45,
+        "Confidence": 98.78102111816406
+      },
+      "StartFrameNumber": 4039,
+      "EndFrameNumber": 4084,
+      "DurationFrames": 45
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 170333,
+      "EndTimestampMillis": 171708,
+      "DurationMillis": 1375,
+      "StartTimecodeSMPTE": "00:02:50:08",
+      "EndTimecodeSMPTE": "00:02:51:17",
+      "DurationSMPTE": "00:00:01:09",
+      "ShotSegment": {
+        "Index": 46,
+        "Confidence": 98.78102111816406
+      },
+      "StartFrameNumber": 4088,
+      "EndFrameNumber": 4121,
+      "DurationFrames": 33
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 171750,
+      "EndTimestampMillis": 176208,
+      "DurationMillis": 4458,
+      "StartTimecodeSMPTE": "00:02:51:18",
+      "EndTimecodeSMPTE": "00:02:56:05",
+      "DurationSMPTE": "00:00:04:11",
+      "ShotSegment": {
+        "Index": 47,
+        "Confidence": 97.73182678222656
+      },
+      "StartFrameNumber": 4122,
+      "EndFrameNumber": 4229,
+      "DurationFrames": 107
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 176375,
+      "EndTimestampMillis": 180000,
+      "DurationMillis": 3625,
+      "StartTimecodeSMPTE": "00:02:56:09",
+      "EndTimecodeSMPTE": "00:03:00:00",
+      "DurationSMPTE": "00:00:03:15",
+      "ShotSegment": {
+        "Index": 48,
+        "Confidence": 97.73182678222656
+      },
+      "StartFrameNumber": 4233,
+      "EndFrameNumber": 4320,
+      "DurationFrames": 87
+    }
+  ]
+}

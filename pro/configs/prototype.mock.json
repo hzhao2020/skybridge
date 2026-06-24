@@ -1,0 +1,212 @@
+{
+  "selected": {
+    "shot_detection": "aliyun_cn_shanghai",
+    "split_sample": "aliyun_cn_shanghai",
+    "caption": "gcp_asia_east1",
+    "qa": "anthropic"
+  },
+  "providers": {
+    "shot_detection": {
+      "gcp_us_east1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "us-east1",
+        "shots_per_video": 3
+      },
+      "gcp_us_west1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "us-west1",
+        "shots_per_video": 3
+      },
+      "gcp_europe_west1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "europe-west1",
+        "shots_per_video": 3
+      },
+      "gcp_asia_east1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "asia-east1",
+        "shots_per_video": 3
+      },
+      "aws_us_west_2": {
+        "type": "mock",
+        "provider": "aws",
+        "region": "us-west-2",
+        "shots_per_video": 3
+      },
+      "aws_us_east_2": {
+        "type": "mock",
+        "provider": "aws",
+        "region": "us-east-2",
+        "shots_per_video": 3
+      },
+      "aws_ap_southeast_1": {
+        "type": "mock",
+        "provider": "aws",
+        "region": "ap-southeast-1",
+        "shots_per_video": 3
+      },
+      "aws_eu_central_1": {
+        "type": "mock",
+        "provider": "aws",
+        "region": "eu-central-1",
+        "shots_per_video": 3
+      },
+      "aliyun_cn_shanghai": {
+        "type": "mock",
+        "provider": "aliyun",
+        "region": "cn-shanghai",
+        "shots_per_video": 3
+      },
+      "aliyun_cn_beijing": {
+        "type": "mock",
+        "provider": "aliyun",
+        "region": "cn-beijing",
+        "shots_per_video": 3
+      },
+      "aliyun_us_east_1": {
+        "type": "mock",
+        "provider": "aliyun",
+        "region": "us-east-1",
+        "shots_per_video": 3
+      },
+      "aliyun_ap_southeast_1": {
+        "type": "mock",
+        "provider": "aliyun",
+        "region": "ap-southeast-1",
+        "shots_per_video": 3
+      }
+    },
+    "split_sample": {
+      "gcp_us_east1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "us-east1",
+        "samples_per_shot": 3
+      },
+      "gcp_us_west1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "us-west1",
+        "samples_per_shot": 3
+      },
+      "gcp_europe_west1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "europe-west1",
+        "samples_per_shot": 3
+      },
+      "gcp_asia_east1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "asia-east1",
+        "samples_per_shot": 3
+      },
+      "aws_us_west_2": {
+        "type": "mock",
+        "provider": "aws",
+        "region": "us-west-2",
+        "samples_per_shot": 3
+      },
+      "aws_us_east_2": {
+        "type": "mock",
+        "provider": "aws",
+        "region": "us-east-2",
+        "samples_per_shot": 3
+      },
+      "aws_ap_southeast_1": {
+        "type": "mock",
+        "provider": "aws",
+        "region": "ap-southeast-1",
+        "samples_per_shot": 3
+      },
+      "aws_eu_central_1": {
+        "type": "mock",
+        "provider": "aws",
+        "region": "eu-central-1",
+        "samples_per_shot": 3
+      },
+      "aliyun_cn_shanghai": {
+        "type": "mock",
+        "provider": "aliyun",
+        "region": "cn-shanghai",
+        "samples_per_shot": 3
+      },
+      "aliyun_cn_beijing": {
+        "type": "mock",
+        "provider": "aliyun",
+        "region": "cn-beijing",
+        "samples_per_shot": 3
+      },
+      "aliyun_us_east_1": {
+        "type": "mock",
+        "provider": "aliyun",
+        "region": "us-east-1",
+        "samples_per_shot": 3
+      },
+      "aliyun_ap_southeast_1": {
+        "type": "mock",
+        "provider": "aliyun",
+        "region": "ap-southeast-1",
+        "samples_per_shot": 3
+      }
+    },
+    "caption": {
+      "gcp_us_east1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "us-east1"
+      },
+      "gcp_us_west1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "us-west1"
+      },
+      "gcp_europe_west1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "europe-west1"
+      },
+      "gcp_asia_east1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "asia-east1"
+      },
+      "anthropic": {
+        "type": "mock",
+        "provider": "anthropic",
+        "region": "api"
+      }
+    },
+    "qa": {
+      "gcp_us_east1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "us-east1"
+      },
+      "gcp_us_west1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "us-west1"
+      },
+      "gcp_europe_west1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "europe-west1"
+      },
+      "gcp_asia_east1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "asia-east1"
+      },
+      "anthropic": {
+        "type": "mock",
+        "provider": "anthropic",
+        "region": "api"
+      }
+    }
+  }
+}

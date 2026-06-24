@@ -1,0 +1,70 @@
+{
+  "provider": "aws",
+  "region": "us-west-2",
+  "job_id": "a1041ab8ab18372aa1f29632a3993929ec6e297057a58bb3b0153bdbf98e9dd0",
+  "input_uri": "s3://skyflow-prototype-aws-us-west-2/profile/videos/WU4ISFy651Y.mp4",
+  "status": "SUCCEEDED",
+  "shot_count": 3,
+  "page_count": 1,
+  "completion_event": {
+    "JobId": "a1041ab8ab18372aa1f29632a3993929ec6e297057a58bb3b0153bdbf98e9dd0",
+    "Status": "SUCCEEDED",
+    "API": "StartSegmentDetection",
+    "JobTag": "aws_us_west_2:WU4ISFy651Y",
+    "Timestamp": 1782208003987,
+    "Video": {
+      "S3ObjectName": "profile/videos/WU4ISFy651Y.mp4",
+      "S3Bucket": "skyflow-prototype-aws-us-west-2"
+    }
+  },
+  "segments": [
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 0,
+      "EndTimestampMillis": 6740,
+      "DurationMillis": 6740,
+      "StartTimecodeSMPTE": "00:00:00;00",
+      "EndTimecodeSMPTE": "00:00:06;22",
+      "DurationSMPTE": "00:00:06;22",
+      "ShotSegment": {
+        "Index": 0,
+        "Confidence": 80.26904296875
+      },
+      "StartFrameNumber": 0,
+      "EndFrameNumber": 202,
+      "DurationFrames": 202
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 7073,
+      "EndTimestampMillis": 152318,
+      "DurationMillis": 145245,
+      "StartTimecodeSMPTE": "00:00:07;02",
+      "EndTimecodeSMPTE": "00:02:32;09",
+      "DurationSMPTE": "00:02:25;07",
+      "ShotSegment": {
+        "Index": 1,
+        "Confidence": 80.26904296875
+      },
+      "StartFrameNumber": 212,
+      "EndFrameNumber": 4565,
+      "DurationFrames": 4353
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 152752,
+      "EndTimestampMillis": 156723,
+      "DurationMillis": 3971,
+      "StartTimecodeSMPTE": "00:02:32;22",
+      "EndTimecodeSMPTE": "00:02:36;21",
+      "DurationSMPTE": "00:00:03;29",
+      "ShotSegment": {
+        "Index": 2,
+        "Confidence": 90.54296112060547
+      },
+      "StartFrameNumber": 4578,
+      "EndFrameNumber": 4697,
+      "DurationFrames": 119
+    }
+  ]
+}

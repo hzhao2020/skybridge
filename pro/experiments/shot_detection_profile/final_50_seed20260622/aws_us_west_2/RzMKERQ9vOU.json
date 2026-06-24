@@ -1,0 +1,38 @@
+{
+  "provider": "aws",
+  "region": "us-west-2",
+  "job_id": "f372573110c9c99279800ccd30881be9f3b19e00bd64c21699a0e5528db1d357",
+  "input_uri": "s3://skyflow-prototype-aws-us-west-2/profile/videos/RzMKERQ9vOU.mp4",
+  "status": "SUCCEEDED",
+  "shot_count": 1,
+  "page_count": 1,
+  "completion_event": {
+    "JobId": "f372573110c9c99279800ccd30881be9f3b19e00bd64c21699a0e5528db1d357",
+    "Status": "SUCCEEDED",
+    "API": "StartSegmentDetection",
+    "JobTag": "aws_us_west_2:RzMKERQ9vOU",
+    "Timestamp": 1782217714475,
+    "Video": {
+      "S3ObjectName": "profile/videos/RzMKERQ9vOU.mp4",
+      "S3Bucket": "skyflow-prototype-aws-us-west-2"
+    }
+  },
+  "segments": [
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 0,
+      "EndTimestampMillis": 156960,
+      "DurationMillis": 156960,
+      "StartTimecodeSMPTE": "00:00:00:00",
+      "EndTimecodeSMPTE": "00:02:36:24",
+      "DurationSMPTE": "00:02:36:24",
+      "ShotSegment": {
+        "Index": 0,
+        "Confidence": 100.0
+      },
+      "StartFrameNumber": 0,
+      "EndFrameNumber": 3924,
+      "DurationFrames": 3924
+    }
+  ]
+}

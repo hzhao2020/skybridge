@@ -1,0 +1,20 @@
+run_id,node_id,provider,region,video_id,filename,object_key,input_uri,size_bytes,duration_sec,submit_start_ts,submit_end_ts,complete_ts,submit_wall_ms,job_elapsed_ms,client_wall_ms,poll_interval_sec,poll_count,job_id,status,shot_count,result_bytes,error_type,error_message
+20260623_131438,gcp_asia_east1,gcp,asia-east1,-ZBsdK10Trs,-ZBsdK10Trs.mp4,profile/videos/-ZBsdK10Trs.mp4,,12812931,49.272744,2026-06-23T05:14:42.275+00:00,,2026-06-23T05:14:42.275+00:00,,,,10,,,error,,,RuntimeError,"HTTP 403: {
+  ""error"": {
+    ""code"": 403,
+    ""message"": ""Your application is authenticating by using local Application Default Credentials. The videointelligence.googleapis.com API requires a quota project, which is not set by default. To learn how to set your quota project, see https://cloud.google.com/docs/authentication/adc-troubleshooting/user-creds ."",
+    ""status"": ""PERMISSION_DENIED"",
+    ""details"": [
+      {
+        ""@type"": ""type.googleapis.com/google.rpc.ErrorInfo"",
+        ""reason"": ""SERVICE_DISABLED"",
+        ""domain"": ""googleapis.com"",
+        ""metadata"": {
+          ""service"": ""videointelligence.googleapis.com"",
+          ""consumer"": ""projects/32555940559""
+        }
+      },
+      {
+        ""@type"": ""type.googleapis.com/google.rpc.LocalizedMessage"",
+        ""locale"": ""en-US"",
+        ""message"": ""Your application is authenticating by using local Application Default Credentials. The videointelligence.googleapis.com API requires a quota project, which is not set by default."

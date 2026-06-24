@@ -1,0 +1,10 @@
+{
+  "provider": "aliyun",
+  "region": "cn-shanghai",
+  "job_id": "6472B294-9B28-5786-86B3-E637EF57543B",
+  "input_uri": "oss://skyflow-prototype-aliyun-cn-shanghai/profile/videos/Bh8RcPBQjxo.mp4",
+  "status": "PROCESS_SUCCESS",
+  "result": {
+    "ShotFrameIds": "[0,34,126]"
+  }
+}

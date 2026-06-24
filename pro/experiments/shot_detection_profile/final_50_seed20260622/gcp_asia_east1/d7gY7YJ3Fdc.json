@@ -1,0 +1,41 @@
+{
+  "provider": "gcp",
+  "region": "asia-east1",
+  "job_id": "projects/360779988854/locations/asia-east1/operations/10582483980290264329",
+  "input_uri": "gs://skyflow-prototype-gcp-asia-east1/profile/videos/d7gY7YJ3Fdc.mp4",
+  "annotation_result_count": 1,
+  "shot_count": 1,
+  "operation": {
+    "name": "projects/360779988854/locations/asia-east1/operations/10582483980290264329",
+    "metadata": {
+      "@type": "type.googleapis.com/google.cloud.videointelligence.v1.AnnotateVideoProgress",
+      "annotationProgress": [
+        {
+          "inputUri": "/skyflow-prototype-gcp-asia-east1/profile/videos/d7gY7YJ3Fdc.mp4",
+          "progressPercent": 100,
+          "startTime": "2026-06-23T07:21:09.599007Z",
+          "updateTime": "2026-06-23T07:21:17.070280Z"
+        }
+      ]
+    },
+    "done": true,
+    "response": {
+      "@type": "type.googleapis.com/google.cloud.videointelligence.v1.AnnotateVideoResponse",
+      "annotationResults": [
+        {
+          "inputUri": "/skyflow-prototype-gcp-asia-east1/profile/videos/d7gY7YJ3Fdc.mp4",
+          "shotAnnotations": [
+            {
+              "startTimeOffset": "0s",
+              "endTimeOffset": "11.763380s"
+            }
+          ],
+          "segment": {
+            "startTimeOffset": "0s",
+            "endTimeOffset": "11.763380s"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "provider": "aws",
+  "region": "us-east-2",
+  "job_id": "501165458706707350cf50017fab4bb9587e349e92b58484bafec7a1473d5e11",
+  "input_uri": "s3://skyflow-prototype-aws-us-east-2/profile/videos/tjEMbP2SODQ.mp4",
+  "status": "SUCCEEDED",
+  "shot_count": 3,
+  "page_count": 1,
+  "completion_event": {
+    "JobId": "501165458706707350cf50017fab4bb9587e349e92b58484bafec7a1473d5e11",
+    "Status": "SUCCEEDED",
+    "API": "StartSegmentDetection",
+    "JobTag": "aws_us_east_2:tjEMbP2SODQ",
+    "Timestamp": 1782208927788,
+    "Video": {
+      "S3ObjectName": "profile/videos/tjEMbP2SODQ.mp4",
+      "S3Bucket": "skyflow-prototype-aws-us-east-2"
+    }
+  },
+  "segments": [
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 0,
+      "EndTimestampMillis": 131100,
+      "DurationMillis": 131100,
+      "StartTimecodeSMPTE": "00:00:00:00",
+      "EndTimecodeSMPTE": "00:02:11:03",
+      "DurationSMPTE": "00:02:11:03",
+      "ShotSegment": {
+        "Index": 0,
+        "Confidence": 75.80953979492188
+      },
+      "StartFrameNumber": 0,
+      "EndFrameNumber": 3933,
+      "DurationFrames": 3933
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 131166,
+      "EndTimestampMillis": 146466,
+      "DurationMillis": 15300,
+      "StartTimecodeSMPTE": "00:02:11:05",
+      "EndTimecodeSMPTE": "00:02:26:14",
+      "DurationSMPTE": "00:00:15:09",
+      "ShotSegment": {
+        "Index": 1,
+        "Confidence": 75.80953979492188
+      },
+      "StartFrameNumber": 3935,
+      "EndFrameNumber": 4394,
+      "DurationFrames": 459
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 146533,
+      "EndTimestampMillis": 180333,
+      "DurationMillis": 33800,
+      "StartTimecodeSMPTE": "00:02:26:16",
+      "EndTimecodeSMPTE": "00:03:00:10",
+      "DurationSMPTE": "00:00:33:24",
+      "ShotSegment": {
+        "Index": 2,
+        "Confidence": 79.09976196289062
+      },
+      "StartFrameNumber": 4396,
+      "EndFrameNumber": 5410,
+      "DurationFrames": 1014
+    }
+  ]
+}

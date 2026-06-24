@@ -1,0 +1,869 @@
+{
+  "workflow": {
+    "name": "video_qa_user_relay",
+    "nodes": [
+      "shot_detection",
+      "split_sample",
+      "caption",
+      "qa"
+    ],
+    "edges": [
+      [
+        "shot_detection",
+        "split_sample"
+      ],
+      [
+        "split_sample",
+        "caption"
+      ],
+      [
+        "caption",
+        "qa"
+      ]
+    ]
+  },
+  "planner": {
+    "eta": 0.05,
+    "initial_active_fraction": 0.34,
+    "active_batch_fraction": 0.25,
+    "initial_active_strategy": "qbu",
+    "max_iterations": 20,
+    "gurobi_time_limit_sec": 30.0,
+    "gurobi_mip_gap": 0.01,
+    "mtgp_population_size": 18,
+    "mtgp_generations": 8,
+    "mtgp_elite_count": 2,
+    "mtgp_mutation_rate": 0.15
+  },
+  "queries": [
+    {
+      "query_id": "demo-small",
+      "video_size_mb": 20.0,
+      "sla_sec": 18.0
+    },
+    {
+      "query_id": "demo-large",
+      "video_size_mb": 120.0,
+      "sla_sec": 45.0
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "s-base",
+      "query_id": "demo-small",
+      "output_ratio": {
+        "shot_detection": 0.02,
+        "split_sample": 0.08,
+        "caption": 0.03,
+        "qa": 0.01
+      }
+    },
+    {
+      "scenario_id": "s-busy",
+      "query_id": "demo-small",
+      "node_latency_multiplier": {
+        "aws_us_west_2-shot_detection": 1.15,
+        "gcp_asia_east1-caption": 1.1,
+        "anthropic-qa": 1.2
+      },
+      "upload_bandwidth_multiplier": {
+        "gcp_asia_east1-caption": 0.85
+      },
+      "download_bandwidth_multiplier": {
+        "aliyun_cn_shanghai-split_sample": 0.85
+      },
+      "output_ratio": {
+        "shot_detection": 0.02,
+        "split_sample": 0.1,
+        "caption": 0.03,
+        "qa": 0.01
+      }
+    },
+    {
+      "scenario_id": "l-base",
+      "query_id": "demo-large",
+      "output_ratio": {
+        "shot_detection": 0.02,
+        "split_sample": 0.08,
+        "caption": 0.03,
+        "qa": 0.01
+      }
+    },
+    {
+      "scenario_id": "l-tail",
+      "query_id": "demo-large",
+      "node_latency_multiplier": {
+        "aliyun_us_east_1-shot_detection": 1.25,
+        "aws_us_west_2-split_sample": 1.15,
+        "anthropic-caption": 1.2,
+        "gcp_europe_west1-qa": 1.15
+      },
+      "upload_bandwidth_multiplier": {
+        "aliyun_us_east_1-shot_detection": 0.75,
+        "aws_us_west_2-split_sample": 0.8
+      },
+      "download_bandwidth_multiplier": {
+        "aliyun_us_east_1-shot_detection": 0.7,
+        "aws_us_west_2-split_sample": 0.8
+      },
+      "output_ratio": {
+        "shot_detection": 0.025,
+        "split_sample": 0.12,
+        "caption": 0.04,
+        "qa": 0.01
+      }
+    }
+  ],
+  "endpoints": [
+    {
+      "endpoint_id": "gcp_us_east1-shot_detection",
+      "role": "shot_detection",
+      "provider_key": "gcp_us_east1",
+      "provider": "gcp",
+      "region": "us-east1",
+      "base_latency_sec": 1.54,
+      "latency_per_mb": 0.016,
+      "fixed_cost": 0.0008925,
+      "cost_per_mb": 2.94e-05,
+      "storage_cost_per_mb": 1e-06,
+      "capability": 0.94
+    },
+    {
+      "endpoint_id": "gcp_us_west1-shot_detection",
+      "role": "shot_detection",
+      "provider_key": "gcp_us_west1",
+      "provider": "gcp",
+      "region": "us-west1",
+      "base_latency_sec": 1.54,
+      "latency_per_mb": 0.016,
+      "fixed_cost": 0.0008925,
+      "cost_per_mb": 2.94e-05,
+      "storage_cost_per_mb": 1e-06,
+      "capability": 0.94
+    },
+    {
+      "endpoint_id": "gcp_europe_west1-shot_detection",
+      "role": "shot_detection",
+      "provider_key": "gcp_europe_west1",
+      "provider": "gcp",
+      "region": "europe-west1",
+      "base_latency_sec": 1.54,
+      "latency_per_mb": 0.016,
+      "fixed_cost": 0.0008925,
+      "cost_per_mb": 2.94e-05,
+      "storage_cost_per_mb": 1e-06,
+      "capability": 0.94
+    },
+    {
+      "endpoint_id": "gcp_asia_east1-shot_detection",
+      "role": "shot_detection",
+      "provider_key": "gcp_asia_east1",
+      "provider": "gcp",
+      "region": "asia-east1",
+      "base_latency_sec": 1.54,
+      "latency_per_mb": 0.016,
+      "fixed_cost": 0.0008925,
+      "cost_per_mb": 2.94e-05,
+      "storage_cost_per_mb": 1e-06,
+      "capability": 0.94
+    },
+    {
+      "endpoint_id": "aws_us_west_2-shot_detection",
+      "role": "shot_detection",
+      "provider_key": "aws_us_west_2",
+      "provider": "aws",
+      "region": "us-west-2",
+      "base_latency_sec": 1.5,
+      "latency_per_mb": 0.016,
+      "fixed_cost": 0.00085,
+      "cost_per_mb": 2.8e-05,
+      "storage_cost_per_mb": 1e-06,
+      "capability": 0.92
+    },
+    {
+      "endpoint_id": "aws_us_east_2-shot_detection",
+      "role": "shot_detection",
+      "provider_key": "aws_us_east_2",
+      "provider": "aws",
+      "region": "us-east-2",
+      "base_latency_sec": 1.5,
+      "latency_per_mb": 0.016,
+      "fixed_cost": 0.00085,
+      "cost_per_mb": 2.8e-05,
+      "storage_cost_per_mb": 1e-06,
+      "capability": 0.92
+    },
+    {
+      "endpoint_id": "aws_ap_southeast_1-shot_detection",
+      "role": "shot_detection",
+      "provider_key": "aws_ap_southeast_1",
+      "provider": "aws",
+      "region": "ap-southeast-1",
+      "base_latency_sec": 1.5,
+      "latency_per_mb": 0.016,
+      "fixed_cost": 0.00085,
+      "cost_per_mb": 2.8e-05,
+      "storage_cost_per_mb": 1e-06,
+      "capability": 0.92
+    },
+    {
+      "endpoint_id": "aws_eu_central_1-shot_detection",
+      "role": "shot_detection",
+      "provider_key": "aws_eu_central_1",
+      "provider": "aws",
+      "region": "eu-central-1",
+      "base_latency_sec": 1.5,
+      "latency_per_mb": 0.016,
+      "fixed_cost": 0.00085,
+      "cost_per_mb": 2.8e-05,
+      "storage_cost_per_mb": 1e-06,
+      "capability": 0.92
+    },
+    {
+      "endpoint_id": "aliyun_cn_shanghai-shot_detection",
+      "role": "shot_detection",
+      "provider_key": "aliyun_cn_shanghai",
+      "provider": "aliyun",
+      "region": "cn-shanghai",
+      "base_latency_sec": 1.58,
+      "latency_per_mb": 0.016,
+      "fixed_cost": 0.000782,
+      "cost_per_mb": 2.576e-05,
+      "storage_cost_per_mb": 1e-06,
+      "capability": 0.91
+    },
+    {
+      "endpoint_id": "aliyun_cn_beijing-shot_detection",
+      "role": "shot_detection",
+      "provider_key": "aliyun_cn_beijing",
+      "provider": "aliyun",
+      "region": "cn-beijing",
+      "base_latency_sec": 1.58,
+      "latency_per_mb": 0.016,
+      "fixed_cost": 0.000782,
+      "cost_per_mb": 2.576e-05,
+      "storage_cost_per_mb": 1e-06,
+      "capability": 0.91
+    },
+    {
+      "endpoint_id": "aliyun_us_east_1-shot_detection",
+      "role": "shot_detection",
+      "provider_key": "aliyun_us_east_1",
+      "provider": "aliyun",
+      "region": "us-east-1",
+      "base_latency_sec": 1.58,
+      "latency_per_mb": 0.016,
+      "fixed_cost": 0.000782,
+      "cost_per_mb": 2.576e-05,
+      "storage_cost_per_mb": 1e-06,
+      "capability": 0.91
+    },
+    {
+      "endpoint_id": "aliyun_ap_southeast_1-shot_detection",
+      "role": "shot_detection",
+      "provider_key": "aliyun_ap_southeast_1",
+      "provider": "aliyun",
+      "region": "ap-southeast-1",
+      "base_latency_sec": 1.58,
+      "latency_per_mb": 0.016,
+      "fixed_cost": 0.000782,
+      "cost_per_mb": 2.576e-05,
+      "storage_cost_per_mb": 1e-06,
+      "capability": 0.91
+    },
+    {
+      "endpoint_id": "gcp_us_east1-split_sample",
+      "role": "split_sample",
+      "provider_key": "gcp_us_east1",
+      "provider": "gcp",
+      "region": "us-east1",
+      "base_latency_sec": 0.84,
+      "latency_per_mb": 0.01,
+      "fixed_cost": 0.000336,
+      "cost_per_mb": 1.155e-05,
+      "storage_cost_per_mb": 1e-06,
+      "capability": 0.93
+    },
+    {
+      "endpoint_id": "gcp_us_west1-split_sample",
+      "role": "split_sample",
+      "provider_key": "gcp_us_west1",
+      "provider": "gcp",
+      "region": "us-west1",
+      "base_latency_sec": 0.84,
+      "latency_per_mb": 0.01,
+      "fixed_cost": 0.000336,
+      "cost_per_mb": 1.155e-05,
+      "storage_cost_per_mb": 1e-06,
+      "capability": 0.93
+    },
+    {
+      "endpoint_id": "gcp_europe_west1-split_sample",
+      "role": "split_sample",
+      "provider_key": "gcp_europe_west1",
+      "provider": "gcp",
+      "region": "europe-west1",
+      "base_latency_sec": 0.84,
+      "latency_per_mb": 0.01,
+      "fixed_cost": 0.000336,
+      "cost_per_mb": 1.155e-05,
+      "storage_cost_per_mb": 1e-06,
+      "capability": 0.93
+    },
+    {
+      "endpoint_id": "gcp_asia_east1-split_sample",
+      "role": "split_sample",
+      "provider_key": "gcp_asia_east1",
+      "provider": "gcp",
+      "region": "asia-east1",
+      "base_latency_sec": 0.84,
+      "latency_per_mb": 0.01,
+      "fixed_cost": 0.000336,
+      "cost_per_mb": 1.155e-05,
+      "storage_cost_per_mb": 1e-06,
+      "capability": 0.93
+    },
+    {
+      "endpoint_id": "aws_us_west_2-split_sample",
+      "role": "split_sample",
+      "provider_key": "aws_us_west_2",
+      "provider": "aws",
+      "region": "us-west-2",
+      "base_latency_sec": 0.8,
+      "latency_per_mb": 0.01,
+      "fixed_cost": 0.00032,
+      "cost_per_mb": 1.1e-05,
+      "storage_cost_per_mb": 1e-06,
+      "capability": 0.91
+    },
+    {
+      "endpoint_id": "aws_us_east_2-split_sample",
+      "role": "split_sample",
+      "provider_key": "aws_us_east_2",
+      "provider": "aws",
+      "region": "us-east-2",
+      "base_latency_sec": 0.8,
+      "latency_per_mb": 0.01,
+      "fixed_cost": 0.00032,
+      "cost_per_mb": 1.1e-05,
+      "storage_cost_per_mb": 1e-06,
+      "capability": 0.91
+    },
+    {
+      "endpoint_id": "aws_ap_southeast_1-split_sample",
+      "role": "split_sample",
+      "provider_key": "aws_ap_southeast_1",
+      "provider": "aws",
+      "region": "ap-southeast-1",
+      "base_latency_sec": 0.8,
+      "latency_per_mb": 0.01,
+      "fixed_cost": 0.00032,
+      "cost_per_mb": 1.1e-05,
+      "storage_cost_per_mb": 1e-06,
+      "capability": 0.91
+    },
+    {
+      "endpoint_id": "aws_eu_central_1-split_sample",
+      "role": "split_sample",
+      "provider_key": "aws_eu_central_1",
+      "provider": "aws",
+      "region": "eu-central-1",
+      "base_latency_sec": 0.8,
+      "latency_per_mb": 0.01,
+      "fixed_cost": 0.00032,
+      "cost_per_mb": 1.1e-05,
+      "storage_cost_per_mb": 1e-06,
+      "capability": 0.91
+    },
+    {
+      "endpoint_id": "aliyun_cn_shanghai-split_sample",
+      "role": "split_sample",
+      "provider_key": "aliyun_cn_shanghai",
+      "provider": "aliyun",
+      "region": "cn-shanghai",
+      "base_latency_sec": 0.88,
+      "latency_per_mb": 0.01,
+      "fixed_cost": 0.0002944,
+      "cost_per_mb": 1.012e-05,
+      "storage_cost_per_mb": 1e-06,
+      "capability": 0.9
+    },
+    {
+      "endpoint_id": "aliyun_cn_beijing-split_sample",
+      "role": "split_sample",
+      "provider_key": "aliyun_cn_beijing",
+      "provider": "aliyun",
+      "region": "cn-beijing",
+      "base_latency_sec": 0.88,
+      "latency_per_mb": 0.01,
+      "fixed_cost": 0.0002944,
+      "cost_per_mb": 1.012e-05,
+      "storage_cost_per_mb": 1e-06,
+      "capability": 0.9
+    },
+    {
+      "endpoint_id": "aliyun_us_east_1-split_sample",
+      "role": "split_sample",
+      "provider_key": "aliyun_us_east_1",
+      "provider": "aliyun",
+      "region": "us-east-1",
+      "base_latency_sec": 0.88,
+      "latency_per_mb": 0.01,
+      "fixed_cost": 0.0002944,
+      "cost_per_mb": 1.012e-05,
+      "storage_cost_per_mb": 1e-06,
+      "capability": 0.9
+    },
+    {
+      "endpoint_id": "aliyun_ap_southeast_1-split_sample",
+      "role": "split_sample",
+      "provider_key": "aliyun_ap_southeast_1",
+      "provider": "aliyun",
+      "region": "ap-southeast-1",
+      "base_latency_sec": 0.88,
+      "latency_per_mb": 0.01,
+      "fixed_cost": 0.0002944,
+      "cost_per_mb": 1.012e-05,
+      "storage_cost_per_mb": 1e-06,
+      "capability": 0.9
+    },
+    {
+      "endpoint_id": "gcp_us_east1-caption",
+      "role": "caption",
+      "provider_key": "gcp_us_east1",
+      "provider": "gcp",
+      "region": "us-east1",
+      "base_latency_sec": 1.09,
+      "latency_per_mb": 0.028,
+      "fixed_cost": 0.001785,
+      "cost_per_mb": 0.000378,
+      "storage_cost_per_mb": 0.0,
+      "capability": 0.96
+    },
+    {
+      "endpoint_id": "gcp_us_west1-caption",
+      "role": "caption",
+      "provider_key": "gcp_us_west1",
+      "provider": "gcp",
+      "region": "us-west1",
+      "base_latency_sec": 1.09,
+      "latency_per_mb": 0.028,
+      "fixed_cost": 0.001785,
+      "cost_per_mb": 0.000378,
+      "storage_cost_per_mb": 0.0,
+      "capability": 0.96
+    },
+    {
+      "endpoint_id": "gcp_europe_west1-caption",
+      "role": "caption",
+      "provider_key": "gcp_europe_west1",
+      "provider": "gcp",
+      "region": "europe-west1",
+      "base_latency_sec": 1.09,
+      "latency_per_mb": 0.028,
+      "fixed_cost": 0.001785,
+      "cost_per_mb": 0.000378,
+      "storage_cost_per_mb": 0.0,
+      "capability": 0.96
+    },
+    {
+      "endpoint_id": "gcp_asia_east1-caption",
+      "role": "caption",
+      "provider_key": "gcp_asia_east1",
+      "provider": "gcp",
+      "region": "asia-east1",
+      "base_latency_sec": 1.09,
+      "latency_per_mb": 0.028,
+      "fixed_cost": 0.001785,
+      "cost_per_mb": 0.000378,
+      "storage_cost_per_mb": 0.0,
+      "capability": 0.96
+    },
+    {
+      "endpoint_id": "anthropic-caption",
+      "role": "caption",
+      "provider_key": "anthropic",
+      "provider": "anthropic",
+      "region": "api",
+      "base_latency_sec": 1.0,
+      "latency_per_mb": 0.028,
+      "fixed_cost": 0.002125,
+      "cost_per_mb": 0.00045,
+      "storage_cost_per_mb": 0.0,
+      "capability": 0.98
+    },
+    {
+      "endpoint_id": "gcp_us_east1-qa",
+      "role": "qa",
+      "provider_key": "gcp_us_east1",
+      "provider": "gcp",
+      "region": "us-east1",
+      "base_latency_sec": 0.89,
+      "latency_per_mb": 0.023,
+      "fixed_cost": 0.001575,
+      "cost_per_mb": 0.0003465,
+      "storage_cost_per_mb": 0.0,
+      "capability": 0.96
+    },
+    {
+      "endpoint_id": "gcp_us_west1-qa",
+      "role": "qa",
+      "provider_key": "gcp_us_west1",
+      "provider": "gcp",
+      "region": "us-west1",
+      "base_latency_sec": 0.89,
+      "latency_per_mb": 0.023,
+      "fixed_cost": 0.001575,
+      "cost_per_mb": 0.0003465,
+      "storage_cost_per_mb": 0.0,
+      "capability": 0.96
+    },
+    {
+      "endpoint_id": "gcp_europe_west1-qa",
+      "role": "qa",
+      "provider_key": "gcp_europe_west1",
+      "provider": "gcp",
+      "region": "europe-west1",
+      "base_latency_sec": 0.89,
+      "latency_per_mb": 0.023,
+      "fixed_cost": 0.001575,
+      "cost_per_mb": 0.0003465,
+      "storage_cost_per_mb": 0.0,
+      "capability": 0.96
+    },
+    {
+      "endpoint_id": "gcp_asia_east1-qa",
+      "role": "qa",
+      "provider_key": "gcp_asia_east1",
+      "provider": "gcp",
+      "region": "asia-east1",
+      "base_latency_sec": 0.89,
+      "latency_per_mb": 0.023,
+      "fixed_cost": 0.001575,
+      "cost_per_mb": 0.0003465,
+      "storage_cost_per_mb": 0.0,
+      "capability": 0.96
+    },
+    {
+      "endpoint_id": "anthropic-qa",
+      "role": "qa",
+      "provider_key": "anthropic",
+      "provider": "anthropic",
+      "region": "api",
+      "base_latency_sec": 0.8,
+      "latency_per_mb": 0.023,
+      "fixed_cost": 0.001875,
+      "cost_per_mb": 0.0004125,
+      "storage_cost_per_mb": 0.0,
+      "capability": 0.98
+    }
+  ],
+  "relay_links": [
+    {
+      "endpoint_id": "gcp_us_east1-shot_detection",
+      "upload_bandwidth_mb_per_sec": 34.0,
+      "download_bandwidth_mb_per_sec": 39.0,
+      "upload_rtt_sec": 0.2,
+      "download_rtt_sec": 0.2,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.1
+    },
+    {
+      "endpoint_id": "gcp_us_west1-shot_detection",
+      "upload_bandwidth_mb_per_sec": 44.0,
+      "download_bandwidth_mb_per_sec": 50.0,
+      "upload_rtt_sec": 0.14,
+      "download_rtt_sec": 0.14,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.1
+    },
+    {
+      "endpoint_id": "gcp_europe_west1-shot_detection",
+      "upload_bandwidth_mb_per_sec": 30.0,
+      "download_bandwidth_mb_per_sec": 35.0,
+      "upload_rtt_sec": 0.23,
+      "download_rtt_sec": 0.23,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.1
+    },
+    {
+      "endpoint_id": "gcp_asia_east1-shot_detection",
+      "upload_bandwidth_mb_per_sec": 70.0,
+      "download_bandwidth_mb_per_sec": 75.0,
+      "upload_rtt_sec": 0.075,
+      "download_rtt_sec": 0.075,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.1
+    },
+    {
+      "endpoint_id": "aws_us_west_2-shot_detection",
+      "upload_bandwidth_mb_per_sec": 42.0,
+      "download_bandwidth_mb_per_sec": 48.0,
+      "upload_rtt_sec": 0.145,
+      "download_rtt_sec": 0.145,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.09
+    },
+    {
+      "endpoint_id": "aws_us_east_2-shot_detection",
+      "upload_bandwidth_mb_per_sec": 33.0,
+      "download_bandwidth_mb_per_sec": 38.0,
+      "upload_rtt_sec": 0.205,
+      "download_rtt_sec": 0.205,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.09
+    },
+    {
+      "endpoint_id": "aws_ap_southeast_1-shot_detection",
+      "upload_bandwidth_mb_per_sec": 65.0,
+      "download_bandwidth_mb_per_sec": 70.0,
+      "upload_rtt_sec": 0.09,
+      "download_rtt_sec": 0.09,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.09
+    },
+    {
+      "endpoint_id": "aws_eu_central_1-shot_detection",
+      "upload_bandwidth_mb_per_sec": 29.0,
+      "download_bandwidth_mb_per_sec": 34.0,
+      "upload_rtt_sec": 0.235,
+      "download_rtt_sec": 0.235,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.09
+    },
+    {
+      "endpoint_id": "aliyun_cn_shanghai-shot_detection",
+      "upload_bandwidth_mb_per_sec": 90.0,
+      "download_bandwidth_mb_per_sec": 95.0,
+      "upload_rtt_sec": 0.04,
+      "download_rtt_sec": 0.04,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.08
+    },
+    {
+      "endpoint_id": "aliyun_cn_beijing-shot_detection",
+      "upload_bandwidth_mb_per_sec": 80.0,
+      "download_bandwidth_mb_per_sec": 85.0,
+      "upload_rtt_sec": 0.055,
+      "download_rtt_sec": 0.055,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.08
+    },
+    {
+      "endpoint_id": "aliyun_us_east_1-shot_detection",
+      "upload_bandwidth_mb_per_sec": 35.0,
+      "download_bandwidth_mb_per_sec": 40.0,
+      "upload_rtt_sec": 0.195,
+      "download_rtt_sec": 0.195,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.08
+    },
+    {
+      "endpoint_id": "aliyun_ap_southeast_1-shot_detection",
+      "upload_bandwidth_mb_per_sec": 65.0,
+      "download_bandwidth_mb_per_sec": 70.0,
+      "upload_rtt_sec": 0.09,
+      "download_rtt_sec": 0.09,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.08
+    },
+    {
+      "endpoint_id": "gcp_us_east1-split_sample",
+      "upload_bandwidth_mb_per_sec": 34.0,
+      "download_bandwidth_mb_per_sec": 39.0,
+      "upload_rtt_sec": 0.2,
+      "download_rtt_sec": 0.2,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.1
+    },
+    {
+      "endpoint_id": "gcp_us_west1-split_sample",
+      "upload_bandwidth_mb_per_sec": 44.0,
+      "download_bandwidth_mb_per_sec": 50.0,
+      "upload_rtt_sec": 0.14,
+      "download_rtt_sec": 0.14,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.1
+    },
+    {
+      "endpoint_id": "gcp_europe_west1-split_sample",
+      "upload_bandwidth_mb_per_sec": 30.0,
+      "download_bandwidth_mb_per_sec": 35.0,
+      "upload_rtt_sec": 0.23,
+      "download_rtt_sec": 0.23,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.1
+    },
+    {
+      "endpoint_id": "gcp_asia_east1-split_sample",
+      "upload_bandwidth_mb_per_sec": 70.0,
+      "download_bandwidth_mb_per_sec": 75.0,
+      "upload_rtt_sec": 0.075,
+      "download_rtt_sec": 0.075,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.1
+    },
+    {
+      "endpoint_id": "aws_us_west_2-split_sample",
+      "upload_bandwidth_mb_per_sec": 42.0,
+      "download_bandwidth_mb_per_sec": 48.0,
+      "upload_rtt_sec": 0.145,
+      "download_rtt_sec": 0.145,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.09
+    },
+    {
+      "endpoint_id": "aws_us_east_2-split_sample",
+      "upload_bandwidth_mb_per_sec": 33.0,
+      "download_bandwidth_mb_per_sec": 38.0,
+      "upload_rtt_sec": 0.205,
+      "download_rtt_sec": 0.205,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.09
+    },
+    {
+      "endpoint_id": "aws_ap_southeast_1-split_sample",
+      "upload_bandwidth_mb_per_sec": 65.0,
+      "download_bandwidth_mb_per_sec": 70.0,
+      "upload_rtt_sec": 0.09,
+      "download_rtt_sec": 0.09,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.09
+    },
+    {
+      "endpoint_id": "aws_eu_central_1-split_sample",
+      "upload_bandwidth_mb_per_sec": 29.0,
+      "download_bandwidth_mb_per_sec": 34.0,
+      "upload_rtt_sec": 0.235,
+      "download_rtt_sec": 0.235,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.09
+    },
+    {
+      "endpoint_id": "aliyun_cn_shanghai-split_sample",
+      "upload_bandwidth_mb_per_sec": 90.0,
+      "download_bandwidth_mb_per_sec": 95.0,
+      "upload_rtt_sec": 0.04,
+      "download_rtt_sec": 0.04,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.08
+    },
+    {
+      "endpoint_id": "aliyun_cn_beijing-split_sample",
+      "upload_bandwidth_mb_per_sec": 80.0,
+      "download_bandwidth_mb_per_sec": 85.0,
+      "upload_rtt_sec": 0.055,
+      "download_rtt_sec": 0.055,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.08
+    },
+    {
+      "endpoint_id": "aliyun_us_east_1-split_sample",
+      "upload_bandwidth_mb_per_sec": 35.0,
+      "download_bandwidth_mb_per_sec": 40.0,
+      "upload_rtt_sec": 0.195,
+      "download_rtt_sec": 0.195,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.08
+    },
+    {
+      "endpoint_id": "aliyun_ap_southeast_1-split_sample",
+      "upload_bandwidth_mb_per_sec": 65.0,
+      "download_bandwidth_mb_per_sec": 70.0,
+      "upload_rtt_sec": 0.09,
+      "download_rtt_sec": 0.09,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.08
+    },
+    {
+      "endpoint_id": "gcp_us_east1-caption",
+      "upload_bandwidth_mb_per_sec": 34.0,
+      "download_bandwidth_mb_per_sec": 39.0,
+      "upload_rtt_sec": 0.2,
+      "download_rtt_sec": 0.2,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.1
+    },
+    {
+      "endpoint_id": "gcp_us_west1-caption",
+      "upload_bandwidth_mb_per_sec": 44.0,
+      "download_bandwidth_mb_per_sec": 50.0,
+      "upload_rtt_sec": 0.14,
+      "download_rtt_sec": 0.14,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.1
+    },
+    {
+      "endpoint_id": "gcp_europe_west1-caption",
+      "upload_bandwidth_mb_per_sec": 30.0,
+      "download_bandwidth_mb_per_sec": 35.0,
+      "upload_rtt_sec": 0.23,
+      "download_rtt_sec": 0.23,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.1
+    },
+    {
+      "endpoint_id": "gcp_asia_east1-caption",
+      "upload_bandwidth_mb_per_sec": 70.0,
+      "download_bandwidth_mb_per_sec": 75.0,
+      "upload_rtt_sec": 0.075,
+      "download_rtt_sec": 0.075,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.1
+    },
+    {
+      "endpoint_id": "anthropic-caption",
+      "upload_bandwidth_mb_per_sec": 50.0,
+      "download_bandwidth_mb_per_sec": 65.0,
+      "upload_rtt_sec": 0.11,
+      "download_rtt_sec": 0.11,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.0
+    },
+    {
+      "endpoint_id": "gcp_us_east1-qa",
+      "upload_bandwidth_mb_per_sec": 34.0,
+      "download_bandwidth_mb_per_sec": 39.0,
+      "upload_rtt_sec": 0.2,
+      "download_rtt_sec": 0.2,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.1
+    },
+    {
+      "endpoint_id": "gcp_us_west1-qa",
+      "upload_bandwidth_mb_per_sec": 44.0,
+      "download_bandwidth_mb_per_sec": 50.0,
+      "upload_rtt_sec": 0.14,
+      "download_rtt_sec": 0.14,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.1
+    },
+    {
+      "endpoint_id": "gcp_europe_west1-qa",
+      "upload_bandwidth_mb_per_sec": 30.0,
+      "download_bandwidth_mb_per_sec": 35.0,
+      "upload_rtt_sec": 0.23,
+      "download_rtt_sec": 0.23,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.1
+    },
+    {
+      "endpoint_id": "gcp_asia_east1-qa",
+      "upload_bandwidth_mb_per_sec": 70.0,
+      "download_bandwidth_mb_per_sec": 75.0,
+      "upload_rtt_sec": 0.075,
+      "download_rtt_sec": 0.075,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.1
+    },
+    {
+      "endpoint_id": "anthropic-qa",
+      "upload_bandwidth_mb_per_sec": 50.0,
+      "download_bandwidth_mb_per_sec": 65.0,
+      "upload_rtt_sec": 0.11,
+      "download_rtt_sec": 0.11,
+      "upload_cost_per_gb": 0.0,
+      "download_cost_per_gb": 0.0
+    }
+  ]
+}

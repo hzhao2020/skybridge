@@ -1,0 +1,1 @@
+run_id,node_id,provider,region,video_id,filename,object_key,input_uri,size_bytes,duration_sec,submit_start_ts,submit_end_ts,complete_ts,submit_wall_ms,job_elapsed_ms,client_wall_ms,poll_interval_sec,poll_count,job_id,status,shot_count,result_bytes,error_type,error_message

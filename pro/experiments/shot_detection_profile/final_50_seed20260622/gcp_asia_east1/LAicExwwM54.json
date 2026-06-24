@@ -1,0 +1,109 @@
+{
+  "provider": "gcp",
+  "region": "asia-east1",
+  "job_id": "projects/360779988854/locations/asia-east1/operations/3076198199646662372",
+  "input_uri": "gs://skyflow-prototype-gcp-asia-east1/profile/videos/LAicExwwM54.mp4",
+  "annotation_result_count": 1,
+  "shot_count": 18,
+  "operation": {
+    "name": "projects/360779988854/locations/asia-east1/operations/3076198199646662372",
+    "metadata": {
+      "@type": "type.googleapis.com/google.cloud.videointelligence.v1.AnnotateVideoProgress",
+      "annotationProgress": [
+        {
+          "inputUri": "/skyflow-prototype-gcp-asia-east1/profile/videos/LAicExwwM54.mp4",
+          "progressPercent": 100,
+          "startTime": "2026-06-23T07:05:15.539999Z",
+          "updateTime": "2026-06-23T07:05:56.816192Z"
+        }
+      ]
+    },
+    "done": true,
+    "response": {
+      "@type": "type.googleapis.com/google.cloud.videointelligence.v1.AnnotateVideoResponse",
+      "annotationResults": [
+        {
+          "inputUri": "/skyflow-prototype-gcp-asia-east1/profile/videos/LAicExwwM54.mp4",
+          "shotAnnotations": [
+            {
+              "startTimeOffset": "0.040s",
+              "endTimeOffset": "5.480s"
+            },
+            {
+              "startTimeOffset": "5.520s",
+              "endTimeOffset": "6.480s"
+            },
+            {
+              "startTimeOffset": "6.520s",
+              "endTimeOffset": "7.480s"
+            },
+            {
+              "startTimeOffset": "7.520s",
+              "endTimeOffset": "9.680s"
+            },
+            {
+              "startTimeOffset": "9.720s",
+              "endTimeOffset": "11.160s"
+            },
+            {
+              "startTimeOffset": "11.200s",
+              "endTimeOffset": "12.200s"
+            },
+            {
+              "startTimeOffset": "12.240s",
+              "endTimeOffset": "18.480s"
+            },
+            {
+              "startTimeOffset": "18.520s",
+              "endTimeOffset": "42.760s"
+            },
+            {
+              "startTimeOffset": "42.800s",
+              "endTimeOffset": "78.600s"
+            },
+            {
+              "startTimeOffset": "78.640s",
+              "endTimeOffset": "82.280s"
+            },
+            {
+              "startTimeOffset": "82.320s",
+              "endTimeOffset": "107.840s"
+            },
+            {
+              "startTimeOffset": "107.880s",
+              "endTimeOffset": "120.280s"
+            },
+            {
+              "startTimeOffset": "120.320s",
+              "endTimeOffset": "157.440s"
+            },
+            {
+              "startTimeOffset": "157.480s",
+              "endTimeOffset": "164.520s"
+            },
+            {
+              "startTimeOffset": "164.560s",
+              "endTimeOffset": "179.560s"
+            },
+            {
+              "startTimeOffset": "179.600s",
+              "endTimeOffset": "208s"
+            },
+            {
+              "startTimeOffset": "208.040s",
+              "endTimeOffset": "210.720s"
+            },
+            {
+              "startTimeOffset": "210.760s",
+              "endTimeOffset": "212.760s"
+            }
+          ],
+          "segment": {
+            "startTimeOffset": "0s",
+            "endTimeOffset": "212.720s"
+          }
+        }
+      ]
+    }
+  }
+}

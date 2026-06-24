@@ -1,0 +1,203 @@
+{
+  "duration_sec": {
+    "profile": {
+      "n": 50,
+      "mean": 107.40434332,
+      "median": 82.7493645,
+      "p25": 54.410159,
+      "p75": 176.68063474999997,
+      "p95": 212.96994099999998,
+      "min": 10.44898,
+      "max": 233.012245
+    },
+    "test": {
+      "n": 200,
+      "mean": 115.021772395,
+      "median": 107.55483,
+      "p25": 62.53163275,
+      "p75": 166.54512475,
+      "p95": 222.62595894999998,
+      "min": 10.26322,
+      "max": 238.167075
+    },
+    "mean_relative_diff_profile_minus_test": -0.06622597545133233,
+    "median_relative_diff_profile_minus_test": -0.23063088380131322,
+    "cohens_d_profile_minus_test": -0.12019561618852148,
+    "ks_statistic": 0.16500000000000004,
+    "ks_pvalue_approx": 0.2056457620997499,
+    "histogram": [
+      {
+        "range": [
+          0,
+          30
+        ],
+        "profile_count": 7,
+        "profile_pct": 0.14,
+        "test_count": 12,
+        "test_pct": 0.06,
+        "pct_diff_profile_minus_test": 0.08000000000000002
+      },
+      {
+        "range": [
+          30,
+          60
+        ],
+        "profile_count": 8,
+        "profile_pct": 0.16,
+        "test_count": 32,
+        "test_pct": 0.16,
+        "pct_diff_profile_minus_test": 0.0
+      },
+      {
+        "range": [
+          60,
+          90
+        ],
+        "profile_count": 12,
+        "profile_pct": 0.24,
+        "test_count": 37,
+        "test_pct": 0.185,
+        "pct_diff_profile_minus_test": 0.05499999999999999
+      },
+      {
+        "range": [
+          90,
+          120
+        ],
+        "profile_count": 1,
+        "profile_pct": 0.02,
+        "test_count": 27,
+        "test_pct": 0.135,
+        "pct_diff_profile_minus_test": -0.115
+      },
+      {
+        "range": [
+          120,
+          180
+        ],
+        "profile_count": 10,
+        "profile_pct": 0.2,
+        "test_count": 52,
+        "test_pct": 0.26,
+        "pct_diff_profile_minus_test": -0.06
+      },
+      {
+        "range": [
+          180,
+          240
+        ],
+        "profile_count": 12,
+        "profile_pct": 0.24,
+        "test_count": 40,
+        "test_pct": 0.2,
+        "pct_diff_profile_minus_test": 0.03999999999999998
+      }
+    ]
+  },
+  "size_mb": {
+    "profile": {
+      "n": 50,
+      "mean": 17.036846313476563,
+      "median": 11.315399169921875,
+      "p25": 4.482469320297241,
+      "p75": 25.03281807899475,
+      "p95": 48.882014083862295,
+      "min": 0.50537109375,
+      "max": 84.33190536499023
+    },
+    "test": {
+      "n": 200,
+      "mean": 20.668536310195922,
+      "median": 14.023219585418701,
+      "p25": 5.8393003940582275,
+      "p75": 29.604117155075073,
+      "p95": 59.82522659301753,
+      "min": 0.678492546081543,
+      "max": 114.51839542388916
+    },
+    "mean_relative_diff_profile_minus_test": -0.17571103934088567,
+    "median_relative_diff_profile_minus_test": -0.1930954870244212,
+    "cohens_d_profile_minus_test": -0.1816655595195198,
+    "ks_statistic": 0.11500000000000005,
+    "ks_pvalue_approx": 0.6387516949677394,
+    "histogram": [
+      {
+        "range": [
+          0,
+          1
+        ],
+        "profile_count": 4,
+        "profile_pct": 0.08,
+        "test_count": 2,
+        "test_pct": 0.01,
+        "pct_diff_profile_minus_test": 0.07
+      },
+      {
+        "range": [
+          1,
+          5
+        ],
+        "profile_count": 10,
+        "profile_pct": 0.2,
+        "test_count": 40,
+        "test_pct": 0.2,
+        "pct_diff_profile_minus_test": 0.0
+      },
+      {
+        "range": [
+          5,
+          10
+        ],
+        "profile_count": 9,
+        "profile_pct": 0.18,
+        "test_count": 40,
+        "test_pct": 0.2,
+        "pct_diff_profile_minus_test": -0.020000000000000018
+      },
+      {
+        "range": [
+          10,
+          20
+        ],
+        "profile_count": 10,
+        "profile_pct": 0.2,
+        "test_count": 39,
+        "test_pct": 0.195,
+        "pct_diff_profile_minus_test": 0.0050000000000000044
+      },
+      {
+        "range": [
+          20,
+          40
+        ],
+        "profile_count": 12,
+        "profile_pct": 0.24,
+        "test_count": 50,
+        "test_pct": 0.25,
+        "pct_diff_profile_minus_test": -0.010000000000000009
+      },
+      {
+        "range": [
+          40,
+          80
+        ],
+        "profile_count": 4,
+        "profile_pct": 0.08,
+        "test_count": 25,
+        "test_pct": 0.125,
+        "pct_diff_profile_minus_test": -0.045
+      },
+      {
+        "range": [
+          80,
+          130
+        ],
+        "profile_count": 1,
+        "profile_pct": 0.02,
+        "test_count": 4,
+        "test_pct": 0.02,
+        "pct_diff_profile_minus_test": 0.0
+      }
+    ]
+  }
+}

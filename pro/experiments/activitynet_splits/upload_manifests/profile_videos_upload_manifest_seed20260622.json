@@ -1,0 +1,510 @@
+{
+  "split_file": "experiments/activitynet_splits/activitynet_video_random_splits_seed20260622.csv",
+  "seed": 20260622,
+  "prefix": "profile/videos/",
+  "count": 50,
+  "total_bytes": 893221408,
+  "total_mb": 851.8423156738281,
+  "items": [
+    {
+      "filename": "-ZBsdK10Trs.mp4",
+      "video_id": "-ZBsdK10Trs",
+      "path": "/Users/heng/Movies/videos_sampled/-ZBsdK10Trs.mp4",
+      "size_bytes": 12812931,
+      "size_mb": 12.21936321258545,
+      "duration_sec": 49.272744,
+      "sha256": "de40127282255167450c8bc2691f2dbe7e425b10da00c5e7e38fa9bb49536554",
+      "object_key": "profile/videos/-ZBsdK10Trs.mp4"
+    },
+    {
+      "filename": "03JdaRepHkA.mp4",
+      "video_id": "03JdaRepHkA",
+      "path": "/Users/heng/Movies/videos_sampled/03JdaRepHkA.mp4",
+      "size_bytes": 48810307,
+      "size_mb": 46.5491361618042,
+      "duration_sec": 123.4563,
+      "sha256": "17e189eba522903ae77d05142105bca89cff0566206e6abfd3540f1ec327c669",
+      "object_key": "profile/videos/03JdaRepHkA.mp4"
+    },
+    {
+      "filename": "0vQs3ztG7vg.mp4",
+      "video_id": "0vQs3ztG7vg",
+      "path": "/Users/heng/Movies/videos_sampled/0vQs3ztG7vg.mp4",
+      "size_bytes": 2109703,
+      "size_mb": 2.011969566345215,
+      "duration_sec": 37.918186,
+      "sha256": "e11503e6e02d54c0cfb07de39e1dea0e5ada025b1b8c0b4c015db8e6103b124c",
+      "object_key": "profile/videos/0vQs3ztG7vg.mp4"
+    },
+    {
+      "filename": "5c8HvpeRWrc.mp4",
+      "video_id": "5c8HvpeRWrc",
+      "path": "/Users/heng/Movies/videos_sampled/5c8HvpeRWrc.mp4",
+      "size_bytes": 2072930,
+      "size_mb": 1.9769001007080078,
+      "duration_sec": 40.7278,
+      "sha256": "099916d454f97c2b7afe72dd28415295740630597a6c7abd7d523a4b99249e58",
+      "object_key": "profile/videos/5c8HvpeRWrc.mp4"
+    },
+    {
+      "filename": "8OEts-YLeW0.mp4",
+      "video_id": "8OEts-YLeW0",
+      "path": "/Users/heng/Movies/videos_sampled/8OEts-YLeW0.mp4",
+      "size_bytes": 5749063,
+      "size_mb": 5.482733726501465,
+      "duration_sec": 57.353288,
+      "sha256": "cda4dae4c7cbada073649bca9d12b324b8465a12780cac925ddde6b7869c051a",
+      "object_key": "profile/videos/8OEts-YLeW0.mp4"
+    },
+    {
+      "filename": "8QEG_1GhoEc.mp4",
+      "video_id": "8QEG_1GhoEc",
+      "path": "/Users/heng/Movies/videos_sampled/8QEG_1GhoEc.mp4",
+      "size_bytes": 35784853,
+      "size_mb": 34.127095222473145,
+      "duration_sec": 148.050431,
+      "sha256": "f556ebe843fff0f263ffefb34a8cd238ddb36dff9238f47ef74e2087b52c8c32",
+      "object_key": "profile/videos/8QEG_1GhoEc.mp4"
+    },
+    {
+      "filename": "95UgspVYJSM.mp4",
+      "video_id": "95UgspVYJSM",
+      "path": "/Users/heng/Movies/videos_sampled/95UgspVYJSM.mp4",
+      "size_bytes": 11623480,
+      "size_mb": 11.085014343261719,
+      "duration_sec": 46.556009,
+      "sha256": "faabf7bfbfbd973ac999e765893c8a099e24aa639429ad50b300d8851312c746",
+      "object_key": "profile/videos/95UgspVYJSM.mp4"
+    },
+    {
+      "filename": "9hE6VRD3qXQ.mp4",
+      "video_id": "9hE6VRD3qXQ",
+      "path": "/Users/heng/Movies/videos_sampled/9hE6VRD3qXQ.mp4",
+      "size_bytes": 20483488,
+      "size_mb": 19.534576416015625,
+      "duration_sec": 177.098594,
+      "sha256": "d2251981c46b01d3ba6441a74b80ce85d13865767b736166ae638f006373ea90",
+      "object_key": "profile/videos/9hE6VRD3qXQ.mp4"
+    },
+    {
+      "filename": "AUPs7Ukfc1I.mp4",
+      "video_id": "AUPs7Ukfc1I",
+      "path": "/Users/heng/Movies/videos_sampled/AUPs7Ukfc1I.mp4",
+      "size_bytes": 4667627,
+      "size_mb": 4.4513959884643555,
+      "duration_sec": 136.277914,
+      "sha256": "eba3b4f7d0028e30f9d18a742022b9aba3108b74f4e5b3836cd8ee60a70c6384",
+      "object_key": "profile/videos/AUPs7Ukfc1I.mp4"
+    },
+    {
+      "filename": "Bh8RcPBQjxo.mp4",
+      "video_id": "Bh8RcPBQjxo",
+      "path": "/Users/heng/Movies/videos_sampled/Bh8RcPBQjxo.mp4",
+      "size_bytes": 1265313,
+      "size_mb": 1.2066965103149414,
+      "duration_sec": 10.44898,
+      "sha256": "2e554a68a3771bafe8c837880e22ad3e1ef9e2aeb2bf1e5df326568103f77289",
+      "object_key": "profile/videos/Bh8RcPBQjxo.mp4"
+    },
+    {
+      "filename": "Hn3-SRXssY4.mp4",
+      "video_id": "Hn3-SRXssY4",
+      "path": "/Users/heng/Movies/videos_sampled/Hn3-SRXssY4.mp4",
+      "size_bytes": 23860465,
+      "size_mb": 22.755112648010254,
+      "duration_sec": 213.043084,
+      "sha256": "3cc92b6d2177d6aa3ef03a6ee6c0523d2bb29bca44cb6c3ac95142ea610c9a84",
+      "object_key": "profile/videos/Hn3-SRXssY4.mp4"
+    },
+    {
+      "filename": "JDM9Akcs96g.mp4",
+      "video_id": "JDM9Akcs96g",
+      "path": "/Users/heng/Movies/videos_sampled/JDM9Akcs96g.mp4",
+      "size_bytes": 597588,
+      "size_mb": 0.5699043273925781,
+      "duration_sec": 14.001633,
+      "sha256": "9512fe99c446c77e682dca7ebb4f261673c2035c347b9a3de411842bca4968d4",
+      "object_key": "profile/videos/JDM9Akcs96g.mp4"
+    },
+    {
+      "filename": "KwBuRjh_v9M.mp4",
+      "video_id": "KwBuRjh_v9M",
+      "path": "/Users/heng/Movies/videos_sampled/KwBuRjh_v9M.mp4",
+      "size_bytes": 34350232,
+      "size_mb": 32.758934020996094,
+      "duration_sec": 87.28,
+      "sha256": "be12eb402d82fe6e2f3de72b5a12201e29abd7a618b5e41cbe49edc537a8628c",
+      "object_key": "profile/videos/KwBuRjh_v9M.mp4"
+    },
+    {
+      "filename": "LAicExwwM54.mp4",
+      "video_id": "LAicExwwM54",
+      "path": "/Users/heng/Movies/videos_sampled/LAicExwwM54.mp4",
+      "size_bytes": 53257943,
+      "size_mb": 50.79073238372803,
+      "duration_sec": 212.810884,
+      "sha256": "060ee70ae63b4ac6e90d73e69d2871feedcdc9e22eeab5031eec9dc395609b8b",
+      "object_key": "profile/videos/LAicExwwM54.mp4"
+    },
+    {
+      "filename": "LCLDhKiMAPA.mp4",
+      "video_id": "LCLDhKiMAPA",
+      "path": "/Users/heng/Movies/videos_sampled/LCLDhKiMAPA.mp4",
+      "size_bytes": 27631089,
+      "size_mb": 26.351059913635254,
+      "duration_sec": 215.22576,
+      "sha256": "48fb20f86e08d826c46a1011500e6c9abc59d6e8e920e5b537fe390a73e88507",
+      "object_key": "profile/videos/LCLDhKiMAPA.mp4"
+    },
+    {
+      "filename": "MdOAr_4FJvc.mp4",
+      "video_id": "MdOAr_4FJvc",
+      "path": "/Users/heng/Movies/videos_sampled/MdOAr_4FJvc.mp4",
+      "size_bytes": 6546582,
+      "size_mb": 6.243307113647461,
+      "duration_sec": 233.012245,
+      "sha256": "5666b3cdc6897cb3434c796183bc246014af792f1464a8d5b8c5f015a3ed251f",
+      "object_key": "profile/videos/MdOAr_4FJvc.mp4"
+    },
+    {
+      "filename": "NBXH7A2EO7Q.mp4",
+      "video_id": "NBXH7A2EO7Q",
+      "path": "/Users/heng/Movies/videos_sampled/NBXH7A2EO7Q.mp4",
+      "size_bytes": 8700769,
+      "size_mb": 8.297699928283691,
+      "duration_sec": 100.240544,
+      "sha256": "6abe718de47a760d05f40372e22a567809c58c80c4aa0ce6abe4fe6cd7254068",
+      "object_key": "profile/videos/NBXH7A2EO7Q.mp4"
+    },
+    {
+      "filename": "Nqh3RtLRleU.mp4",
+      "video_id": "Nqh3RtLRleU",
+      "path": "/Users/heng/Movies/videos_sampled/Nqh3RtLRleU.mp4",
+      "size_bytes": 23846528,
+      "size_mb": 22.7418212890625,
+      "duration_sec": 62.554558,
+      "sha256": "12274bd2f837f964b4921c571b3df5055c85da1046e1c13eb0daf0d8fafb004f",
+      "object_key": "profile/videos/Nqh3RtLRleU.mp4"
+    },
+    {
+      "filename": "OBDq689jDDY.mp4",
+      "video_id": "OBDq689jDDY",
+      "path": "/Users/heng/Movies/videos_sampled/OBDq689jDDY.mp4",
+      "size_bytes": 4641722,
+      "size_mb": 4.426691055297852,
+      "duration_sec": 61.30068,
+      "sha256": "562cb268923984574077a65760edef9d49ecd14f2addb6e6b80706871f74175b",
+      "object_key": "profile/videos/OBDq689jDDY.mp4"
+    },
+    {
+      "filename": "Qnr73D2zIjU.mp4",
+      "video_id": "Qnr73D2zIjU",
+      "path": "/Users/heng/Movies/videos_sampled/Qnr73D2zIjU.mp4",
+      "size_bytes": 2462349,
+      "size_mb": 2.3482789993286133,
+      "duration_sec": 62.600998,
+      "sha256": "ff3b321c265c4844017af0ca2b1eca90b6aea355445a2bcac468a27c35814b80",
+      "object_key": "profile/videos/Qnr73D2zIjU.mp4"
+    },
+    {
+      "filename": "RHb_nF11Scc.mp4",
+      "video_id": "RHb_nF11Scc",
+      "path": "/Users/heng/Movies/videos_sampled/RHb_nF11Scc.mp4",
+      "size_bytes": 1038153,
+      "size_mb": 0.9900598526000977,
+      "duration_sec": 30.528,
+      "sha256": "44993f2f39f7604515fb16d37804f63573dbf920b46457524ba3a7a738a7d26e",
+      "object_key": "profile/videos/RHb_nF11Scc.mp4"
+    },
+    {
+      "filename": "RzMKERQ9vOU.mp4",
+      "video_id": "RzMKERQ9vOU",
+      "path": "/Users/heng/Movies/videos_sampled/RzMKERQ9vOU.mp4",
+      "size_bytes": 6120386,
+      "size_mb": 5.836854934692383,
+      "duration_sec": 157.013333,
+      "sha256": "e9d86675d73ca3e7d53fcd8e6f93049559c25bcc6462e87845480f586609edc2",
+      "object_key": "profile/videos/RzMKERQ9vOU.mp4"
+    },
+    {
+      "filename": "TIAAUayALPI.mp4",
+      "video_id": "TIAAUayALPI",
+      "path": "/Users/heng/Movies/videos_sampled/TIAAUayALPI.mp4",
+      "size_bytes": 39011619,
+      "size_mb": 37.204379081726074,
+      "duration_sec": 212.880544,
+      "sha256": "c4ceef8ad9f7eab7e76beb4145bee8dbc0645e99dbc86d08bbc90da814e4431a",
+      "object_key": "profile/videos/TIAAUayALPI.mp4"
+    },
+    {
+      "filename": "U9Dcet1qdRE.mp4",
+      "video_id": "U9Dcet1qdRE",
+      "path": "/Users/heng/Movies/videos_sampled/U9Dcet1qdRE.mp4",
+      "size_bytes": 7417610,
+      "size_mb": 7.073984146118164,
+      "duration_sec": 29.350023,
+      "sha256": "1e95cfdd7edcfea4ca634418398ed7c53afc495ab6597d820b86fd827a75d673",
+      "object_key": "profile/videos/U9Dcet1qdRE.mp4"
+    },
+    {
+      "filename": "Vn4wrgBpgP8.mp4",
+      "video_id": "Vn4wrgBpgP8",
+      "path": "/Users/heng/Movies/videos_sampled/Vn4wrgBpgP8.mp4",
+      "size_bytes": 28832811,
+      "size_mb": 27.497111320495605,
+      "duration_sec": 69.172245,
+      "sha256": "168eec8cdbc5abb66a26efaffdb6141b529ce627620318010467316998fc471a",
+      "object_key": "profile/videos/Vn4wrgBpgP8.mp4"
+    },
+    {
+      "filename": "WU4ISFy651Y.mp4",
+      "video_id": "WU4ISFy651Y",
+      "path": "/Users/heng/Movies/videos_sampled/WU4ISFy651Y.mp4",
+      "size_bytes": 5305786,
+      "size_mb": 5.059991836547852,
+      "duration_sec": 156.757914,
+      "sha256": "046ae97afd2d5ed2983600a2f4f0b9c19ac1e69bc244ad6ca895454903abad6b",
+      "object_key": "profile/videos/WU4ISFy651Y.mp4"
+    },
+    {
+      "filename": "XYW6F_4qKJU.mp4",
+      "video_id": "XYW6F_4qKJU",
+      "path": "/Users/heng/Movies/videos_sampled/XYW6F_4qKJU.mp4",
+      "size_bytes": 2388330,
+      "size_mb": 2.277688980102539,
+      "duration_sec": 59.698503,
+      "sha256": "73526b4c7efe7d55b5dac37ea51d6f19024f1d1a72d61cf4a39229f24b365a68",
+      "object_key": "profile/videos/XYW6F_4qKJU.mp4"
+    },
+    {
+      "filename": "ZUM89wyBcYY.mp4",
+      "video_id": "ZUM89wyBcYY",
+      "path": "/Users/heng/Movies/videos_sampled/ZUM89wyBcYY.mp4",
+      "size_bytes": 16780551,
+      "size_mb": 16.003180503845215,
+      "duration_sec": 199.52907,
+      "sha256": "56e9d3ddb8578481dfe4b9205787b2e148eac5af594dfbbf2c40c3493afe19d9",
+      "object_key": "profile/videos/ZUM89wyBcYY.mp4"
+    },
+    {
+      "filename": "_crwKCjKRjg.mp4",
+      "video_id": "_crwKCjKRjg",
+      "path": "/Users/heng/Movies/videos_sampled/_crwKCjKRjg.mp4",
+      "size_bytes": 8106269,
+      "size_mb": 7.730740547180176,
+      "duration_sec": 190.264308,
+      "sha256": "39f830fffb178b9fe9059945f4a0aaf88982a5b55191847c322baad27c986190",
+      "object_key": "profile/videos/_crwKCjKRjg.mp4"
+    },
+    {
+      "filename": "_nGlzZystmo.mp4",
+      "video_id": "_nGlzZystmo",
+      "path": "/Users/heng/Movies/videos_sampled/_nGlzZystmo.mp4",
+      "size_bytes": 60711337,
+      "size_mb": 57.89884281158447,
+      "duration_sec": 139.017868,
+      "sha256": "cf5aef0201e2bae6c69dd7e4b8e8f6d7eec0ec7297dcd8aee47e92637e30acb0",
+      "object_key": "profile/videos/_nGlzZystmo.mp4"
+    },
+    {
+      "filename": "aS0wGPhD48o.mp4",
+      "video_id": "aS0wGPhD48o",
+      "path": "/Users/heng/Movies/videos_sampled/aS0wGPhD48o.mp4",
+      "size_bytes": 23439769,
+      "size_mb": 22.35390567779541,
+      "duration_sec": 79.969524,
+      "sha256": "2d6d75217c56112b5448b4bf30c1668e8ff0723e4e1da24ff4d50fe0d5693fb2",
+      "object_key": "profile/videos/aS0wGPhD48o.mp4"
+    },
+    {
+      "filename": "d7gY7YJ3Fdc.mp4",
+      "video_id": "d7gY7YJ3Fdc",
+      "path": "/Users/heng/Movies/videos_sampled/d7gY7YJ3Fdc.mp4",
+      "size_bytes": 529920,
+      "size_mb": 0.50537109375,
+      "duration_sec": 12.353016,
+      "sha256": "b6814c5bf88c9bc6f59c693b04278a7607fc886a9a3177c7fc8651cbe96b8db9",
+      "object_key": "profile/videos/d7gY7YJ3Fdc.mp4"
+    },
+    {
+      "filename": "dcEdjqyHj8M.mp4",
+      "video_id": "dcEdjqyHj8M",
+      "path": "/Users/heng/Movies/videos_sampled/dcEdjqyHj8M.mp4",
+      "size_bytes": 36250999,
+      "size_mb": 34.57164669036865,
+      "duration_sec": 62.554558,
+      "sha256": "9e186d40d5bcad153bf9131776c4a145bf14e9273ad8370b1d2aae719ab0a0dd",
+      "object_key": "profile/videos/dcEdjqyHj8M.mp4"
+    },
+    {
+      "filename": "gmnwqOPcOo0.mp4",
+      "video_id": "gmnwqOPcOo0",
+      "path": "/Users/heng/Movies/videos_sampled/gmnwqOPcOo0.mp4",
+      "size_bytes": 12106632,
+      "size_mb": 11.545783996582031,
+      "duration_sec": 136.394014,
+      "sha256": "5398ac8714753e6e78cb17c9f4cc7b49064bc18fcd36a7adf8431a9bc48c00ec",
+      "object_key": "profile/videos/gmnwqOPcOo0.mp4"
+    },
+    {
+      "filename": "hr8zkCXbTTk.mp4",
+      "video_id": "hr8zkCXbTTk",
+      "path": "/Users/heng/Movies/videos_sampled/hr8zkCXbTTk.mp4",
+      "size_bytes": 15264075,
+      "size_mb": 14.55695629119873,
+      "duration_sec": 180.047528,
+      "sha256": "e7dda45db5be80477ae4ae15cc9a1e6c58df679bd3a11ac8c0ee4c96b3994186",
+      "object_key": "profile/videos/hr8zkCXbTTk.mp4"
+    },
+    {
+      "filename": "i0Z8I2WCLNk.mp4",
+      "video_id": "i0Z8I2WCLNk",
+      "path": "/Users/heng/Movies/videos_sampled/i0Z8I2WCLNk.mp4",
+      "size_bytes": 30788461,
+      "size_mb": 29.36216449737549,
+      "duration_sec": 190.984127,
+      "sha256": "97fa0bb3d695fd2062a3efddfb62f4324bc38887f6d02ddedb3451e54f32eb77",
+      "object_key": "profile/videos/i0Z8I2WCLNk.mp4"
+    },
+    {
+      "filename": "kRom61pt8zk.mp4",
+      "video_id": "kRom61pt8zk",
+      "path": "/Users/heng/Movies/videos_sampled/kRom61pt8zk.mp4",
+      "size_bytes": 11147023,
+      "size_mb": 10.630629539489746,
+      "duration_sec": 184.29678,
+      "sha256": "2b17697bc684fff51f921f2c4697a88ccd20670f9f26f5f722883c64642bca8f",
+      "object_key": "profile/videos/kRom61pt8zk.mp4"
+    },
+    {
+      "filename": "ksNvNH4fpdo.mp4",
+      "video_id": "ksNvNH4fpdo",
+      "path": "/Users/heng/Movies/videos_sampled/ksNvNH4fpdo.mp4",
+      "size_bytes": 982448,
+      "size_mb": 0.9369354248046875,
+      "duration_sec": 18.250884,
+      "sha256": "736bc3a94dc556b3e5b5bf2c81bb3d79b03c746303a7d33a3fe879d737e7462e",
+      "object_key": "profile/videos/ksNvNH4fpdo.mp4"
+    },
+    {
+      "filename": "mf6UsZuW9Nw.mp4",
+      "video_id": "mf6UsZuW9Nw",
+      "path": "/Users/heng/Movies/videos_sampled/mf6UsZuW9Nw.mp4",
+      "size_bytes": 12599015,
+      "size_mb": 12.01535701751709,
+      "duration_sec": 63.460136,
+      "sha256": "ad18f6f035b408a3e5898d865bde1e778f0cdaed7e4cb0290633092c3b65a055",
+      "object_key": "profile/videos/mf6UsZuW9Nw.mp4"
+    },
+    {
+      "filename": "nLAm7USuYbA.mp4",
+      "video_id": "nLAm7USuYbA",
+      "path": "/Users/heng/Movies/videos_sampled/nLAm7USuYbA.mp4",
+      "size_bytes": 43577771,
+      "size_mb": 41.559000968933105,
+      "duration_sec": 80.132063,
+      "sha256": "cca40111ace55afaa9a8984388493b7c38656679ab3f72dcdc4bd398dd772786",
+      "object_key": "profile/videos/nLAm7USuYbA.mp4"
+    },
+    {
+      "filename": "nrvB8pcrY7o.mp4",
+      "video_id": "nrvB8pcrY7o",
+      "path": "/Users/heng/Movies/videos_sampled/nrvB8pcrY7o.mp4",
+      "size_bytes": 17901881,
+      "size_mb": 17.072564125061035,
+      "duration_sec": 175.426757,
+      "sha256": "68eaa57905a487068a750b203e49dabfeeee9b68ad962c1789d1ee7a5ad6bb92",
+      "object_key": "profile/videos/nrvB8pcrY7o.mp4"
+    },
+    {
+      "filename": "qXD7myRvw0M.mp4",
+      "video_id": "qXD7myRvw0M",
+      "path": "/Users/heng/Movies/videos_sampled/qXD7myRvw0M.mp4",
+      "size_bytes": 2284089,
+      "size_mb": 2.178277015686035,
+      "duration_sec": 28.281905,
+      "sha256": "583b7e872ce4c6fee77c5497930f8ef8ccd5ae6f01818542e6712fa2372ac084",
+      "object_key": "profile/videos/qXD7myRvw0M.mp4"
+    },
+    {
+      "filename": "r8AXq1Q5bn0.mp4",
+      "video_id": "r8AXq1Q5bn0",
+      "path": "/Users/heng/Movies/videos_sampled/r8AXq1Q5bn0.mp4",
+      "size_bytes": 27044928,
+      "size_mb": 25.79205322265625,
+      "duration_sec": 85.366666,
+      "sha256": "79b1e4c9a0fbcf6a5399f7323cc141eea8e6e026908306fa451548fe0c298d8f",
+      "object_key": "profile/videos/r8AXq1Q5bn0.mp4"
+    },
+    {
+      "filename": "tjEMbP2SODQ.mp4",
+      "video_id": "tjEMbP2SODQ",
+      "path": "/Users/heng/Movies/videos_sampled/tjEMbP2SODQ.mp4",
+      "size_bytes": 7113489,
+      "size_mb": 6.783951759338379,
+      "duration_sec": 180.372608,
+      "sha256": "2fe6e6098a0cfe1e617e29a42794069e36e67907f1e0b70ea4c697cd8d699f50",
+      "object_key": "profile/videos/tjEMbP2SODQ.mp4"
+    },
+    {
+      "filename": "u2329Chp6IY.mp4",
+      "video_id": "u2329Chp6IY",
+      "path": "/Users/heng/Movies/videos_sampled/u2329Chp6IY.mp4",
+      "size_bytes": 88428412,
+      "size_mb": 84.33190536499023,
+      "duration_sec": 165.186757,
+      "sha256": "d3bf525c82f6a4a982dbb90e298ec020e208a203311dfa19cb3ddbec60b8e0a7",
+      "object_key": "profile/videos/u2329Chp6IY.mp4"
+    },
+    {
+      "filename": "we6Ddq1ABcQ.mp4",
+      "video_id": "we6Ddq1ABcQ",
+      "path": "/Users/heng/Movies/videos_sampled/we6Ddq1ABcQ.mp4",
+      "size_bytes": 4797958,
+      "size_mb": 4.575689315795898,
+      "duration_sec": 68.011247,
+      "sha256": "462daa5eef61d6b79692f296fc29af531317624c41342f7c386b60654626e44c",
+      "object_key": "profile/videos/we6Ddq1ABcQ.mp4"
+    },
+    {
+      "filename": "ybkcKusf-Kg.mp4",
+      "video_id": "ybkcKusf-Kg",
+      "path": "/Users/heng/Movies/videos_sampled/ybkcKusf-Kg.mp4",
+      "size_bytes": 22681575,
+      "size_mb": 21.63083553314209,
+      "duration_sec": 62.136599,
+      "sha256": "d9fcab543ea403a0ad4ad983526f401ee33db9f78b16ab15605e95a116201829",
+      "object_key": "profile/videos/ybkcKusf-Kg.mp4"
+    },
+    {
+      "filename": "zPV8s8ZuLBY.mp4",
+      "video_id": "zPV8s8ZuLBY",
+      "path": "/Users/heng/Movies/videos_sampled/zPV8s8ZuLBY.mp4",
+      "size_bytes": 4444696,
+      "size_mb": 4.238792419433594,
+      "duration_sec": 26.5667,
+      "sha256": "7398c7b4c54f47ef815bd51f0f593b6ec7fe0c6e5b54b23642f3af67131647d8",
+      "object_key": "profile/videos/zPV8s8ZuLBY.mp4"
+    },
+    {
+      "filename": "zQVUXbyCV1o.mp4",
+      "video_id": "zQVUXbyCV1o",
+      "path": "/Users/heng/Movies/videos_sampled/zQVUXbyCV1o.mp4",
+      "size_bytes": 18172979,
+      "size_mb": 17.331103324890137,
+      "duration_sec": 183.553741,
+      "sha256": "c9c72776b06d563aae3bf561945aec03c6259bc0f3cbafc95cb9c8052591204e",
+      "object_key": "profile/videos/zQVUXbyCV1o.mp4"
+    },
+    {
+      "filename": "zWiu-wdKeWs.mp4",
+      "video_id": "zWiu-wdKeWs",
+      "path": "/Users/heng/Movies/videos_sampled/zWiu-wdKeWs.mp4",
+      "size_bytes": 6677474,
+      "size_mb": 6.368135452270508,
+      "duration_sec": 53.429116,
+      "sha256": "08193a1815b2a550ad1b06ff9b1b5586b3b8bada37dba958bd61d4714599394f",
+      "object_key": "profile/videos/zWiu-wdKeWs.mp4"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "provider": "gcp",
+  "region": "asia-east1",
+  "video": "-ZBsdK10Trs.mp4",
+  "error_type": "FileNotFoundError",
+  "error_message": "[Errno 2] No such file or directory: 'gcloud'",
+  "traceback": "Traceback (most recent call last):\n  File \"/Users/heng/Documents/skybridge/pro/scripts/profile_shot_detection.py\", line 583, in profile_node\n    row, raw = detect(item, node, poll_interval_sec)\n  File \"/Users/heng/Documents/skybridge/pro/scripts/profile_shot_detection.py\", line 559, in detect\n    return gcp_detect(item, node, poll_interval_sec)\n  File \"/Users/heng/Documents/skybridge/pro/scripts/profile_shot_detection.py\", line 146, in gcp_detect\n    token = gcp_access_token()\n  File \"/Users/heng/Documents/skybridge/pro/scripts/profile_shot_detection.py\", line 207, in gcp_access_token\n    result = subprocess.run(\n  File \"/opt/anaconda3/envs/sky/lib/python3.10/subprocess.py\", line 503, in run\n    with Popen(*popenargs, **kwargs) as process:\n  File \"/opt/anaconda3/envs/sky/lib/python3.10/subprocess.py\", line 971, in __init__\n    self._execute_child(args, executable, preexec_fn, close_fds,\n  File \"/opt/anaconda3/envs/sky/lib/python3.10/subprocess.py\", line 1863, in _execute_child\n    raise child_exception_type(errno_num, err_msg, err_filename)\nFileNotFoundError: [Errno 2] No such file or directory: 'gcloud'\n"
+}

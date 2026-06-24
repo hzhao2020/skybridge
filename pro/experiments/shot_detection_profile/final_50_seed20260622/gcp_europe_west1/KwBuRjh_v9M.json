@@ -1,0 +1,69 @@
+{
+  "provider": "gcp",
+  "region": "europe-west1",
+  "job_id": "projects/360779988854/locations/europe-west1/operations/10965112917300841863",
+  "input_uri": "gs://skyflow-prototype-gcp-europe-west1/profile/videos/KwBuRjh_v9M.mp4",
+  "annotation_result_count": 1,
+  "shot_count": 8,
+  "operation": {
+    "name": "projects/360779988854/locations/europe-west1/operations/10965112917300841863",
+    "metadata": {
+      "@type": "type.googleapis.com/google.cloud.videointelligence.v1.AnnotateVideoProgress",
+      "annotationProgress": [
+        {
+          "inputUri": "/skyflow-prototype-gcp-europe-west1/profile/videos/KwBuRjh_v9M.mp4",
+          "progressPercent": 100,
+          "startTime": "2026-06-23T08:36:13.323759Z",
+          "updateTime": "2026-06-23T08:36:29.907205Z"
+        }
+      ]
+    },
+    "done": true,
+    "response": {
+      "@type": "type.googleapis.com/google.cloud.videointelligence.v1.AnnotateVideoResponse",
+      "annotationResults": [
+        {
+          "inputUri": "/skyflow-prototype-gcp-europe-west1/profile/videos/KwBuRjh_v9M.mp4",
+          "shotAnnotations": [
+            {
+              "startTimeOffset": "0.040s",
+              "endTimeOffset": "4.080s"
+            },
+            {
+              "startTimeOffset": "4.120s",
+              "endTimeOffset": "27.200s"
+            },
+            {
+              "startTimeOffset": "27.240s",
+              "endTimeOffset": "37.120s"
+            },
+            {
+              "startTimeOffset": "37.160s",
+              "endTimeOffset": "39.440s"
+            },
+            {
+              "startTimeOffset": "39.480s",
+              "endTimeOffset": "41.800s"
+            },
+            {
+              "startTimeOffset": "41.840s",
+              "endTimeOffset": "45.160s"
+            },
+            {
+              "startTimeOffset": "45.200s",
+              "endTimeOffset": "86.280s"
+            },
+            {
+              "startTimeOffset": "86.320s",
+              "endTimeOffset": "87.240s"
+            }
+          ],
+          "segment": {
+            "startTimeOffset": "0s",
+            "endTimeOffset": "87.200s"
+          }
+        }
+      ]
+    }
+  }
+}

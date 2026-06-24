@@ -1,0 +1,70 @@
+{
+  "provider": "aws",
+  "region": "ap-southeast-1",
+  "job_id": "61a5b85338cb4e1b5082b0fc1856eeffdbfe56be79c861caf303b5ffd1acdc64",
+  "input_uri": "s3://skyflow-prototype-aws-ap-southeast-1/profile/videos/i0Z8I2WCLNk.mp4",
+  "status": "SUCCEEDED",
+  "shot_count": 3,
+  "page_count": 1,
+  "completion_event": {
+    "JobId": "61a5b85338cb4e1b5082b0fc1856eeffdbfe56be79c861caf303b5ffd1acdc64",
+    "Status": "SUCCEEDED",
+    "API": "StartSegmentDetection",
+    "JobTag": "aws_ap_southeast_1:i0Z8I2WCLNk",
+    "Timestamp": 1782208537111,
+    "Video": {
+      "S3ObjectName": "profile/videos/i0Z8I2WCLNk.mp4",
+      "S3Bucket": "skyflow-prototype-aws-ap-southeast-1"
+    }
+  },
+  "segments": [
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 33,
+      "EndTimestampMillis": 533,
+      "DurationMillis": 500,
+      "StartTimecodeSMPTE": "00:00:00;00",
+      "EndTimecodeSMPTE": "00:00:00;15",
+      "DurationSMPTE": "00:00:00;15",
+      "ShotSegment": {
+        "Index": 0,
+        "Confidence": 98.96281433105469
+      },
+      "StartFrameNumber": 0,
+      "EndFrameNumber": 15,
+      "DurationFrames": 15
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 633,
+      "EndTimestampMillis": 190089,
+      "DurationMillis": 189456,
+      "StartTimecodeSMPTE": "00:00:00;18",
+      "EndTimecodeSMPTE": "00:03:10;02",
+      "DurationSMPTE": "00:03:09;14",
+      "ShotSegment": {
+        "Index": 1,
+        "Confidence": 98.67329406738281
+      },
+      "StartFrameNumber": 18,
+      "EndFrameNumber": 5696,
+      "DurationFrames": 5678
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 190256,
+      "EndTimestampMillis": 190923,
+      "DurationMillis": 667,
+      "StartTimecodeSMPTE": "00:03:10;07",
+      "EndTimecodeSMPTE": "00:03:10;27",
+      "DurationSMPTE": "00:00:00;20",
+      "ShotSegment": {
+        "Index": 2,
+        "Confidence": 98.67329406738281
+      },
+      "StartFrameNumber": 5701,
+      "EndFrameNumber": 5721,
+      "DurationFrames": 20
+    }
+  ]
+}

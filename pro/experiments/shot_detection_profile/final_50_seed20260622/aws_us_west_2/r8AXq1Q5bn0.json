@@ -1,0 +1,23 @@
+{
+  "provider": "aws",
+  "region": "us-west-2",
+  "job_id": "23267f6b50c14b4a37e96340285fbd5951e26f1337cf5b720ac8264c015a8c39",
+  "input_uri": "s3://skyflow-prototype-aws-us-west-2/profile/videos/r8AXq1Q5bn0.mp4",
+  "status": "FAILED",
+  "shot_count": 0,
+  "page_count": 1,
+  "completion_event": {
+    "JobId": "23267f6b50c14b4a37e96340285fbd5951e26f1337cf5b720ac8264c015a8c39",
+    "Status": "FAILED",
+    "API": "StartSegmentDetection",
+    "Message": "Unsupported codec/format.",
+    "JobTag": "aws_us_west_2:r8AXq1Q5bn0",
+    "Timestamp": 1782217890888,
+    "Video": {
+      "S3ObjectName": "profile/videos/r8AXq1Q5bn0.mp4",
+      "S3Bucket": "skyflow-prototype-aws-us-west-2"
+    },
+    "ErrorCode": "UnsupportedVideoCodec"
+  },
+  "segments": []
+}

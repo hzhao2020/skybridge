@@ -1,0 +1,70 @@
+{
+  "provider": "aws",
+  "region": "us-east-2",
+  "job_id": "f8234ea3745ee039b9152ee4bb82956d34aa193457c41ccaeb08ac07b2120af3",
+  "input_uri": "s3://skyflow-prototype-aws-us-east-2/profile/videos/Bh8RcPBQjxo.mp4",
+  "status": "SUCCEEDED",
+  "shot_count": 3,
+  "page_count": 1,
+  "completion_event": {
+    "JobId": "f8234ea3745ee039b9152ee4bb82956d34aa193457c41ccaeb08ac07b2120af3",
+    "Status": "SUCCEEDED",
+    "API": "StartSegmentDetection",
+    "JobTag": "aws_us_east_2:Bh8RcPBQjxo",
+    "Timestamp": 1782216890374,
+    "Video": {
+      "S3ObjectName": "profile/videos/Bh8RcPBQjxo.mp4",
+      "S3Bucket": "skyflow-prototype-aws-us-east-2"
+    }
+  },
+  "segments": [
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 82,
+      "EndTimestampMillis": 1396,
+      "DurationMillis": 1314,
+      "StartTimecodeSMPTE": "00:00:00:00",
+      "EndTimecodeSMPTE": "00:00:01:03",
+      "DurationSMPTE": "00:00:01:03",
+      "ShotSegment": {
+        "Index": 0,
+        "Confidence": 55.52656173706055
+      },
+      "StartFrameNumber": 0,
+      "EndFrameNumber": 16,
+      "DurationFrames": 16
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 1725,
+      "EndTimestampMillis": 10106,
+      "DurationMillis": 8381,
+      "StartTimecodeSMPTE": "00:00:01:07",
+      "EndTimecodeSMPTE": "00:00:10:00",
+      "DurationSMPTE": "00:00:08:04",
+      "ShotSegment": {
+        "Index": 1,
+        "Confidence": 55.52656173706055
+      },
+      "StartFrameNumber": 20,
+      "EndFrameNumber": 122,
+      "DurationFrames": 102
+    },
+    {
+      "Type": "SHOT",
+      "StartTimestampMillis": 10352,
+      "EndTimestampMillis": 10352,
+      "DurationMillis": 0,
+      "StartTimecodeSMPTE": "00:00:10:03",
+      "EndTimecodeSMPTE": "00:00:10:03",
+      "DurationSMPTE": "00:00:00:00",
+      "ShotSegment": {
+        "Index": 2,
+        "Confidence": 90.68710327148438
+      },
+      "StartFrameNumber": 125,
+      "EndFrameNumber": 125,
+      "DurationFrames": 0
+    }
+  ]
+}

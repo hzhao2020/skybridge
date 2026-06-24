@@ -1,0 +1,502 @@
+[
+  {
+    "question": "what color is the hair of the person in black tshirt",
+    "answer": "black",
+    "qid": "v_-ZBsdK10Trs_7",
+    "video_name": "-ZBsdK10Trs.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/-ZBsdK10Trs.mp4",
+    "duration_sec": 49.272744,
+    "size_mb": 12.21936321258545,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "what color of the clothes does the person wear in the video",
+    "answer": "black",
+    "qid": "v_03JdaRepHkA_8",
+    "video_name": "03JdaRepHkA.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/03JdaRepHkA.mp4",
+    "duration_sec": 123.4563,
+    "size_mb": 46.5491361618042,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "what is the style of trousers for men wearing striped clothes",
+    "answer": "short",
+    "qid": "v_0vQs3ztG7vg_7",
+    "video_name": "0vQs3ztG7vg.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/0vQs3ztG7vg.mp4",
+    "duration_sec": 37.918186,
+    "size_mb": 2.011969566345215,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "why do the girls in the skirt stand on tiptoe",
+    "answer": "accumulating force",
+    "qid": "v_5c8HvpeRWrc_6",
+    "video_name": "5c8HvpeRWrc.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/5c8HvpeRWrc.mp4",
+    "duration_sec": 40.7278,
+    "size_mb": 1.9769001007080078,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "what happened to the person in the video before he started boxing",
+    "answer": "bow",
+    "qid": "v_8OEts-YLeW0_5",
+    "video_name": "8OEts-YLeW0.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/8OEts-YLeW0.mp4",
+    "duration_sec": 57.353288,
+    "size_mb": 5.482733726501465,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "is the person in black indoors",
+    "answer": "no",
+    "qid": "v_8QEG_1GhoEc_3",
+    "video_name": "8QEG_1GhoEc.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/8QEG_1GhoEc.mp4",
+    "duration_sec": 148.050431,
+    "size_mb": 34.127095222473145,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "what is the gender of the person with a headband",
+    "answer": "female",
+    "qid": "v_95UgspVYJSM_8",
+    "video_name": "95UgspVYJSM.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/95UgspVYJSM.mp4",
+    "duration_sec": 46.556009,
+    "size_mb": 11.085014343261719,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "what is the relationship between the three people who are paving cement",
+    "answer": "colleague",
+    "qid": "v_9hE6VRD3qXQ_10",
+    "video_name": "9hE6VRD3qXQ.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/9hE6VRD3qXQ.mp4",
+    "duration_sec": 177.098594,
+    "size_mb": 19.534576416015625,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "what is the color of the person's clothes in the video",
+    "answer": "black",
+    "qid": "v_AUPs7Ukfc1I_9",
+    "video_name": "AUPs7Ukfc1I.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/AUPs7Ukfc1I.mp4",
+    "duration_sec": 136.277914,
+    "size_mb": 4.4513959884643555,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "is the person in a helmet indoors",
+    "answer": "no",
+    "qid": "v_Bh8RcPBQjxo_3",
+    "video_name": "Bh8RcPBQjxo.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/Bh8RcPBQjxo.mp4",
+    "duration_sec": 10.44898,
+    "size_mb": 1.2066965103149414,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "why does the man in white sportswear run before they jump",
+    "answer": "jump high",
+    "qid": "v_Hn3-SRXssY4_6",
+    "video_name": "Hn3-SRXssY4.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/Hn3-SRXssY4.mp4",
+    "duration_sec": 213.043084,
+    "size_mb": 22.755112648010254,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "what happened to the person in blue before he bathed the dog",
+    "answer": "touch washwash table",
+    "qid": "v_JDM9Akcs96g_5",
+    "video_name": "JDM9Akcs96g.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/JDM9Akcs96g.mp4",
+    "duration_sec": 14.001633,
+    "size_mb": 0.5699043273925781,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "what happened to the purple hair woman after she had finished her eye nails",
+    "answer": "facial bleeding",
+    "qid": "v_KwBuRjh_v9M_5",
+    "video_name": "KwBuRjh_v9M.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/KwBuRjh_v9M.mp4",
+    "duration_sec": 87.28,
+    "size_mb": 32.758934020996094,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "what color is the hair of the person in blue clothes",
+    "answer": "brown",
+    "qid": "v_LAicExwwM54_9",
+    "video_name": "LAicExwwM54.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/LAicExwwM54.mp4",
+    "duration_sec": 212.810884,
+    "size_mb": 50.79073238372803,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "what happened to the coin on the table before the second goal",
+    "answer": "fall down",
+    "qid": "v_LCLDhKiMAPA_5",
+    "video_name": "LCLDhKiMAPA.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/LCLDhKiMAPA.mp4",
+    "duration_sec": 215.22576,
+    "size_mb": 26.351059913635254,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "which hand of the person in video is wearing a watch",
+    "answer": "left",
+    "qid": "v_MdOAr_4FJvc_6",
+    "video_name": "MdOAr_4FJvc.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/MdOAr_4FJvc.mp4",
+    "duration_sec": 233.012245,
+    "size_mb": 6.243307113647461,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "what is the person in the video doing",
+    "answer": "assemble bicycle",
+    "qid": "v_NBXH7A2EO7Q_1",
+    "video_name": "NBXH7A2EO7Q.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/NBXH7A2EO7Q.mp4",
+    "duration_sec": 100.240544,
+    "size_mb": 8.297699928283691,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "what color is the clothes the man who plays the violin",
+    "answer": "white",
+    "qid": "v_Nqh3RtLRleU_6",
+    "video_name": "Nqh3RtLRleU.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/Nqh3RtLRleU.mp4",
+    "duration_sec": 62.554558,
+    "size_mb": 22.7418212890625,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "does the person in black pants have short hair",
+    "answer": "yes",
+    "qid": "v_OBDq689jDDY_2",
+    "video_name": "OBDq689jDDY.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/OBDq689jDDY.mp4",
+    "duration_sec": 61.30068,
+    "size_mb": 4.426691055297852,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "what is the shape of the bull ring in the video",
+    "answer": "circular",
+    "qid": "v_Qnr73D2zIjU_7",
+    "video_name": "Qnr73D2zIjU.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/Qnr73D2zIjU.mp4",
+    "duration_sec": 62.600998,
+    "size_mb": 2.3482789993286133,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "what is the gender of the person in black clothes",
+    "answer": "male",
+    "qid": "v_RHb_nF11Scc_9",
+    "video_name": "RHb_nF11Scc.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/RHb_nF11Scc.mp4",
+    "duration_sec": 30.528,
+    "size_mb": 0.9900598526000977,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "what does the person sitting on the floor wear on his left hand",
+    "answer": "hand ring",
+    "qid": "v_RzMKERQ9vOU_9",
+    "video_name": "RzMKERQ9vOU.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/RzMKERQ9vOU.mp4",
+    "duration_sec": 157.013333,
+    "size_mb": 5.836854934692383,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "what does the man in black wear in his right hand",
+    "answer": "hand ring",
+    "qid": "v_TIAAUayALPI_9",
+    "video_name": "TIAAUayALPI.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/TIAAUayALPI.mp4",
+    "duration_sec": 212.880544,
+    "size_mb": 37.204379081726074,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "what kind of pants does the person in red clothes wear",
+    "answer": "trousers",
+    "qid": "v_U9Dcet1qdRE_8",
+    "video_name": "U9Dcet1qdRE.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/U9Dcet1qdRE.mp4",
+    "duration_sec": 29.350023,
+    "size_mb": 7.073984146118164,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "what is the man in black doing",
+    "answer": "powder",
+    "qid": "v_Vn4wrgBpgP8_1",
+    "video_name": "Vn4wrgBpgP8.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/Vn4wrgBpgP8.mp4",
+    "duration_sec": 69.172245,
+    "size_mb": 27.497111320495605,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "how difficult ismaking biscuits",
+    "answer": "commonly",
+    "qid": "v_WU4ISFy651Y_10",
+    "video_name": "WU4ISFy651Y.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/WU4ISFy651Y.mp4",
+    "duration_sec": 156.757914,
+    "size_mb": 5.059991836547852,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "is the nail clipper white",
+    "answer": "no",
+    "qid": "v_XYW6F_4qKJU_3",
+    "video_name": "XYW6F_4qKJU.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/XYW6F_4qKJU.mp4",
+    "duration_sec": 59.698503,
+    "size_mb": 2.277688980102539,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "what color is the hair of the person wearing grey skirt",
+    "answer": "black",
+    "qid": "v_ZUM89wyBcYY_10",
+    "video_name": "ZUM89wyBcYY.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/ZUM89wyBcYY.mp4",
+    "duration_sec": 199.52907,
+    "size_mb": 16.003180503845215,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "what's the man in the blue car doing",
+    "answer": "drive",
+    "qid": "v__crwKCjKRjg_1",
+    "video_name": "_crwKCjKRjg.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/_crwKCjKRjg.mp4",
+    "duration_sec": 190.264308,
+    "size_mb": 7.730740547180176,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "how many sportsmen are there at the beginning of the video",
+    "answer": "2",
+    "qid": "v__nGlzZystmo_7",
+    "video_name": "_nGlzZystmo.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/_nGlzZystmo.mp4",
+    "duration_sec": 139.017868,
+    "size_mb": 57.89884281158447,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "does the person in the video have a coat of armor",
+    "answer": "yes",
+    "qid": "v_aS0wGPhD48o_2",
+    "video_name": "aS0wGPhD48o.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/aS0wGPhD48o.mp4",
+    "duration_sec": 79.969524,
+    "size_mb": 22.35390567779541,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "what is the gender of the person in the video",
+    "answer": "female",
+    "qid": "v_d7gY7YJ3Fdc_9",
+    "video_name": "d7gY7YJ3Fdc.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/d7gY7YJ3Fdc.mp4",
+    "duration_sec": 12.353016,
+    "size_mb": 0.50537109375,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "is the person who plays in the video chinese",
+    "answer": "no",
+    "qid": "v_dcEdjqyHj8M_9",
+    "video_name": "dcEdjqyHj8M.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/dcEdjqyHj8M.mp4",
+    "duration_sec": 62.554558,
+    "size_mb": 34.57164669036865,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "is the person in the video outdoors",
+    "answer": "no",
+    "qid": "v_gmnwqOPcOo0_3",
+    "video_name": "gmnwqOPcOo0.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/gmnwqOPcOo0.mp4",
+    "duration_sec": 136.394014,
+    "size_mb": 11.545783996582031,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "how many people are wearing red clothes",
+    "answer": "6",
+    "qid": "v_hr8zkCXbTTk_7",
+    "video_name": "hr8zkCXbTTk.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/hr8zkCXbTTk.mp4",
+    "duration_sec": 180.047528,
+    "size_mb": 14.55695629119873,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "what kind of pants does the person in a hat wear",
+    "answer": "jeans",
+    "qid": "v_i0Z8I2WCLNk_10",
+    "video_name": "i0Z8I2WCLNk.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/i0Z8I2WCLNk.mp4",
+    "duration_sec": 190.984127,
+    "size_mb": 29.36216449737549,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "is the woman in white outdoors",
+    "answer": "no",
+    "qid": "v_kRom61pt8zk_3",
+    "video_name": "kRom61pt8zk.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/kRom61pt8zk.mp4",
+    "duration_sec": 184.29678,
+    "size_mb": 10.630629539489746,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "is the person sitting indoors",
+    "answer": "yes",
+    "qid": "v_ksNvNH4fpdo_2",
+    "video_name": "ksNvNH4fpdo.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/ksNvNH4fpdo.mp4",
+    "duration_sec": 18.250884,
+    "size_mb": 0.9369354248046875,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "how many journalists are there in the video",
+    "answer": "1",
+    "qid": "v_mf6UsZuW9Nw_7",
+    "video_name": "mf6UsZuW9Nw.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/mf6UsZuW9Nw.mp4",
+    "duration_sec": 63.460136,
+    "size_mb": 12.01535701751709,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "what is in front of the person in white clothes",
+    "answer": "jump pole",
+    "qid": "v_nLAm7USuYbA_4",
+    "video_name": "nLAm7USuYbA.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/nLAm7USuYbA.mp4",
+    "duration_sec": 80.132063,
+    "size_mb": 41.559000968933105,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "why do the skis have to wax",
+    "answer": "protect",
+    "qid": "v_nrvB8pcrY7o_6",
+    "video_name": "nrvB8pcrY7o.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/nrvB8pcrY7o.mp4",
+    "duration_sec": 175.426757,
+    "size_mb": 17.072564125061035,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "how difficult is to play badminton",
+    "answer": "simple",
+    "qid": "v_qXD7myRvw0M_10",
+    "video_name": "qXD7myRvw0M.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/qXD7myRvw0M.mp4",
+    "duration_sec": 28.281905,
+    "size_mb": 2.178277015686035,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "how many people are wearing black pants",
+    "answer": "1",
+    "qid": "v_r8AXq1Q5bn0_7",
+    "video_name": "r8AXq1Q5bn0.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/r8AXq1Q5bn0.mp4",
+    "duration_sec": 85.366666,
+    "size_mb": 25.79205322265625,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "what color is the hair of the man in head hoop",
+    "answer": "black",
+    "qid": "v_tjEMbP2SODQ_8",
+    "video_name": "tjEMbP2SODQ.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/tjEMbP2SODQ.mp4",
+    "duration_sec": 180.372608,
+    "size_mb": 6.783951759338379,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "what is the gender of the person in a black and white striped coat",
+    "answer": "male",
+    "qid": "v_u2329Chp6IY_9",
+    "video_name": "u2329Chp6IY.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/u2329Chp6IY.mp4",
+    "duration_sec": 165.186757,
+    "size_mb": 84.33190536499023,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "what is on the head of the no. 4 dress",
+    "answer": "cricket cap",
+    "qid": "v_we6Ddq1ABcQ_4",
+    "video_name": "we6Ddq1ABcQ.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/we6Ddq1ABcQ.mp4",
+    "duration_sec": 68.011247,
+    "size_mb": 4.575689315795898,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "how many people are wearing red pants",
+    "answer": "1",
+    "qid": "v_ybkcKusf-Kg_10",
+    "video_name": "ybkcKusf-Kg.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/ybkcKusf-Kg.mp4",
+    "duration_sec": 62.136599,
+    "size_mb": 21.63083553314209,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "what color is the hat of the man in black",
+    "answer": "black",
+    "qid": "v_zPV8s8ZuLBY_8",
+    "video_name": "zPV8s8ZuLBY.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/zPV8s8ZuLBY.mp4",
+    "duration_sec": 26.5667,
+    "size_mb": 4.238792419433594,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "is no. 10 on land",
+    "answer": "yes",
+    "qid": "v_zQVUXbyCV1o_2",
+    "video_name": "zQVUXbyCV1o.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/zQVUXbyCV1o.mp4",
+    "duration_sec": 183.553741,
+    "size_mb": 17.331103324890137,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "what is in front of the person in green clothes",
+    "answer": "tree",
+    "qid": "v_zWiu-wdKeWs_4",
+    "video_name": "zWiu-wdKeWs.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/zWiu-wdKeWs.mp4",
+    "duration_sec": 53.429116,
+    "size_mb": 6.368135452270508,
+    "original_dataset_split": "train"
+  }
+]

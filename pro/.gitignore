@@ -1,0 +1,6 @@
+.pytest_cache/
+__pycache__/
+*.py[cod]
+runs/
+build/
+experiments/shot_detection_profile/latest

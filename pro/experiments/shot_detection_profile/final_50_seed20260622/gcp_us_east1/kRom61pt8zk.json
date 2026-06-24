@@ -1,0 +1,65 @@
+{
+  "provider": "gcp",
+  "region": "us-east1",
+  "job_id": "projects/360779988854/locations/us-east1/operations/10832237549947635423",
+  "input_uri": "gs://skyflow-prototype-gcp-us-east1/profile/videos/kRom61pt8zk.mp4",
+  "annotation_result_count": 1,
+  "shot_count": 7,
+  "operation": {
+    "name": "projects/360779988854/locations/us-east1/operations/10832237549947635423",
+    "metadata": {
+      "@type": "type.googleapis.com/google.cloud.videointelligence.v1.AnnotateVideoProgress",
+      "annotationProgress": [
+        {
+          "inputUri": "/skyflow-prototype-gcp-us-east1/profile/videos/kRom61pt8zk.mp4",
+          "progressPercent": 100,
+          "startTime": "2026-06-23T08:15:10.101839Z",
+          "updateTime": "2026-06-23T08:15:15.499967Z"
+        }
+      ]
+    },
+    "done": true,
+    "response": {
+      "@type": "type.googleapis.com/google.cloud.videointelligence.v1.AnnotateVideoResponse",
+      "annotationResults": [
+        {
+          "inputUri": "/skyflow-prototype-gcp-us-east1/profile/videos/kRom61pt8zk.mp4",
+          "shotAnnotations": [
+            {
+              "startTimeOffset": "0s",
+              "endTimeOffset": "2.882352s"
+            },
+            {
+              "startTimeOffset": "2.941176s",
+              "endTimeOffset": "60.941176s"
+            },
+            {
+              "startTimeOffset": "61s",
+              "endTimeOffset": "70.882352s"
+            },
+            {
+              "startTimeOffset": "70.941176s",
+              "endTimeOffset": "131.588235s"
+            },
+            {
+              "startTimeOffset": "131.647058s",
+              "endTimeOffset": "140.235294s"
+            },
+            {
+              "startTimeOffset": "140.294117s",
+              "endTimeOffset": "150.470588s"
+            },
+            {
+              "startTimeOffset": "150.529411s",
+              "endTimeOffset": "184.235294s"
+            }
+          ],
+          "segment": {
+            "startTimeOffset": "0s",
+            "endTimeOffset": "184.235294s"
+          }
+        }
+      ]
+    }
+  }
+}

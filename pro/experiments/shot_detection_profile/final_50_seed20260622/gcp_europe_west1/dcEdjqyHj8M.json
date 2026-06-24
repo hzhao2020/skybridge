@@ -1,0 +1,77 @@
+{
+  "provider": "gcp",
+  "region": "europe-west1",
+  "job_id": "projects/360779988854/locations/europe-west1/operations/16378245092990204969",
+  "input_uri": "gs://skyflow-prototype-gcp-europe-west1/profile/videos/dcEdjqyHj8M.mp4",
+  "annotation_result_count": 1,
+  "shot_count": 10,
+  "operation": {
+    "name": "projects/360779988854/locations/europe-west1/operations/16378245092990204969",
+    "metadata": {
+      "@type": "type.googleapis.com/google.cloud.videointelligence.v1.AnnotateVideoProgress",
+      "annotationProgress": [
+        {
+          "inputUri": "/skyflow-prototype-gcp-europe-west1/profile/videos/dcEdjqyHj8M.mp4",
+          "progressPercent": 100,
+          "startTime": "2026-06-23T08:53:11.308367Z",
+          "updateTime": "2026-06-23T08:53:37.020906Z"
+        }
+      ]
+    },
+    "done": true,
+    "response": {
+      "@type": "type.googleapis.com/google.cloud.videointelligence.v1.AnnotateVideoResponse",
+      "annotationResults": [
+        {
+          "inputUri": "/skyflow-prototype-gcp-europe-west1/profile/videos/dcEdjqyHj8M.mp4",
+          "shotAnnotations": [
+            {
+              "startTimeOffset": "0.033366s",
+              "endTimeOffset": "2.836166s"
+            },
+            {
+              "startTimeOffset": "2.869533s",
+              "endTimeOffset": "9.209200s"
+            },
+            {
+              "startTimeOffset": "9.242566s",
+              "endTimeOffset": "19.352666s"
+            },
+            {
+              "startTimeOffset": "19.386033s",
+              "endTimeOffset": "24.891533s"
+            },
+            {
+              "startTimeOffset": "24.924900s",
+              "endTimeOffset": "27.994633s"
+            },
+            {
+              "startTimeOffset": "28.028s",
+              "endTimeOffset": "30.330300s"
+            },
+            {
+              "startTimeOffset": "30.363666s",
+              "endTimeOffset": "40.573866s"
+            },
+            {
+              "startTimeOffset": "40.607233s",
+              "endTimeOffset": "47.447400s"
+            },
+            {
+              "startTimeOffset": "47.480766s",
+              "endTimeOffset": "52.452400s"
+            },
+            {
+              "startTimeOffset": "52.485766s",
+              "endTimeOffset": "62.462400s"
+            }
+          ],
+          "segment": {
+            "startTimeOffset": "0s",
+            "endTimeOffset": "62.429034s"
+          }
+        }
+      ]
+    }
+  }
+}

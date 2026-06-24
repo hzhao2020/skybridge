@@ -1,0 +1,19 @@
+[project]
+name = "skybridge-prototype"
+version = "0.1.0"
+description = "User-side relay prototype for a cross-cloud video QA workflow."
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0"]
+
+[project.scripts]
+skybridge-prototype = "skybridge_prototype.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

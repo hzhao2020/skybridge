@@ -1,0 +1,302 @@
+[
+  {
+    "question": "where is the person in the video",
+    "answer": "snow mountain",
+    "qid": "v_-02DygXbn6w_7",
+    "video_name": "-02DygXbn6w.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/-02DygXbn6w.mp4",
+    "duration_sec": 109.667846,
+    "size_mb": 46.81384754180908,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "how many people in black are there in the video",
+    "answer": "1",
+    "qid": "v_-UWE4jXuLoo_8",
+    "video_name": "-UWE4jXuLoo.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/-UWE4jXuLoo.mp4",
+    "duration_sec": 180.581587,
+    "size_mb": 66.01915645599365,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "what is behind the person in hat",
+    "answer": "sofa",
+    "qid": "v_3iLo6lxAarc_4",
+    "video_name": "3iLo6lxAarc.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/3iLo6lxAarc.mp4",
+    "duration_sec": 123.855238,
+    "size_mb": 8.018856048583984,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "what is worn on the manicurist's face",
+    "answer": "mask",
+    "qid": "v_92fD8Cy2zL0_9",
+    "video_name": "92fD8Cy2zL0.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/92fD8Cy2zL0.mp4",
+    "duration_sec": 203.685442,
+    "size_mb": 7.754046440124512,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "does welding have any harm to the body in the video",
+    "answer": "yes",
+    "qid": "v_Czw85LWCGes_7",
+    "video_name": "Czw85LWCGes.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/Czw85LWCGes.mp4",
+    "duration_sec": 56.09941,
+    "size_mb": 6.204362869262695,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "is the person in blue playing football on the table outside",
+    "answer": "no",
+    "qid": "v_EXxckPa76vc_3",
+    "video_name": "EXxckPa76vc.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/EXxckPa76vc.mp4",
+    "duration_sec": 70.170703,
+    "size_mb": 37.506343841552734,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "what color are the pants of the person in white clothes",
+    "answer": "pink",
+    "qid": "v_EYIYohKR0Qo_9",
+    "video_name": "EYIYohKR0Qo.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/EYIYohKR0Qo.mp4",
+    "duration_sec": 108.530068,
+    "size_mb": 15.120641708374023,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "what is the person in the video doing",
+    "answer": "clean",
+    "qid": "v_Fky1ioAUt38_1",
+    "video_name": "Fky1ioAUt38.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/Fky1ioAUt38.mp4",
+    "duration_sec": 54.056054,
+    "size_mb": 4.333388328552246,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "what is the gender of the person in white clothes",
+    "answer": "female",
+    "qid": "v_H80bs53Arrw_8",
+    "video_name": "H80bs53Arrw.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/H80bs53Arrw.mp4",
+    "duration_sec": 126.780952,
+    "size_mb": 14.929332733154297,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "what happened to the old person before he hit the ball",
+    "answer": "pick up ball",
+    "qid": "v_HZWdMK6zhec_5",
+    "video_name": "HZWdMK6zhec.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/HZWdMK6zhec.mp4",
+    "duration_sec": 79.574785,
+    "size_mb": 3.2176265716552734,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "what style of clothes are the man wearing blue pants",
+    "answer": "short sleeve",
+    "qid": "v_IsM_xfhJzps_9",
+    "video_name": "IsM_xfhJzps.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/IsM_xfhJzps.mp4",
+    "duration_sec": 134.652517,
+    "size_mb": 50.241390228271484,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "what color is the kid's clothes",
+    "answer": "white",
+    "qid": "v_J8pZtBhpqMI_6",
+    "video_name": "J8pZtBhpqMI.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/J8pZtBhpqMI.mp4",
+    "duration_sec": 81.502041,
+    "size_mb": 5.889708518981934,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "is the woman with the braid indoors",
+    "answer": "no",
+    "qid": "v_KZLEUd2ALVI_3",
+    "video_name": "KZLEUd2ALVI.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/KZLEUd2ALVI.mp4",
+    "duration_sec": 42.074558,
+    "size_mb": 9.6683931350708,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "what color is the hair of the person in the grey coat",
+    "answer": "black",
+    "qid": "v_L21zcZlFfIY_9",
+    "video_name": "L21zcZlFfIY.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/L21zcZlFfIY.mp4",
+    "duration_sec": 201.758186,
+    "size_mb": 18.685080528259277,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "how many paint cans are there",
+    "answer": "1",
+    "qid": "v_SBj7yuFEwQI_8",
+    "video_name": "SBj7yuFEwQI.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/SBj7yuFEwQI.mp4",
+    "duration_sec": 131.819683,
+    "size_mb": 17.901691436767578,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "what is the gender of the person in gray clothes",
+    "answer": "male",
+    "qid": "v_SvYeqLg4dQU_9",
+    "video_name": "SvYeqLg4dQU.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/SvYeqLg4dQU.mp4",
+    "duration_sec": 113.824218,
+    "size_mb": 8.214284896850586,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "why do they throw the snow out of video",
+    "answer": "going shoveled",
+    "qid": "v_YjE1by2PX08_6",
+    "video_name": "YjE1by2PX08.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/YjE1by2PX08.mp4",
+    "duration_sec": 72.933878,
+    "size_mb": 6.354194641113281,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "do you use a mobile phone in the course of kicking the ball",
+    "answer": "no",
+    "qid": "v_j4iaeT5xIdw_3",
+    "video_name": "j4iaeT5xIdw.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/j4iaeT5xIdw.mp4",
+    "duration_sec": 192.261224,
+    "size_mb": 79.00807285308838,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "what is the person in black pants doing",
+    "answer": "leather shoes",
+    "qid": "v_k85EQoiLckw_1",
+    "video_name": "k85EQoiLckw.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/k85EQoiLckw.mp4",
+    "duration_sec": 80.248163,
+    "size_mb": 21.119293212890625,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "what is the man in a hat doing",
+    "answer": "run",
+    "qid": "v_kUQ4bTeoG-Y_1",
+    "video_name": "kUQ4bTeoG-Y.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/kUQ4bTeoG-Y.mp4",
+    "duration_sec": 137.160272,
+    "size_mb": 54.489542961120605,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "what is the person in the video doing",
+    "answer": "waxing",
+    "qid": "v_p-vfyM7ew04_1",
+    "video_name": "p-vfyM7ew04.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/p-vfyM7ew04.mp4",
+    "duration_sec": 226.905397,
+    "size_mb": 84.40017700195312,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "what is in front of the person in blue clothes",
+    "answer": "floor",
+    "qid": "v_plMBtIbzX6w_4",
+    "video_name": "plMBtIbzX6w.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/plMBtIbzX6w.mp4",
+    "duration_sec": 20.3639,
+    "size_mb": 4.037920951843262,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "where is the video taken",
+    "answer": "market",
+    "qid": "v_prqwtY9cn6s_8",
+    "video_name": "prqwtY9cn6s.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/prqwtY9cn6s.mp4",
+    "duration_sec": 100.867483,
+    "size_mb": 12.046977043151855,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "why do they hold water in your hand",
+    "answer": "no dirty hands",
+    "qid": "v_rFTVKkMqpIQ_9",
+    "video_name": "rFTVKkMqpIQ.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/rFTVKkMqpIQ.mp4",
+    "duration_sec": 230.41161,
+    "size_mb": 11.53083324432373,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "what does the man in white cook",
+    "answer": "pasta",
+    "qid": "v_rwxSphRRIL8_8",
+    "video_name": "rwxSphRRIL8.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/rwxSphRRIL8.mp4",
+    "duration_sec": 88.468027,
+    "size_mb": 6.55573844909668,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "what is the gender of the first athlete",
+    "answer": "male",
+    "qid": "v_spJaetMCD20_9",
+    "video_name": "spJaetMCD20.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/spJaetMCD20.mp4",
+    "duration_sec": 90.7907,
+    "size_mb": 49.78295135498047,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "what color is the hair of the person in dress",
+    "answer": "brown",
+    "qid": "v_wMwJObSq21Y_9",
+    "video_name": "wMwJObSq21Y.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/wMwJObSq21Y.mp4",
+    "duration_sec": 132.841361,
+    "size_mb": 14.240293502807617,
+    "original_dataset_split": "train"
+  },
+  {
+    "question": "how easy is the cooking in the video",
+    "answer": "simple",
+    "qid": "v_xaCOYdzox0g_10",
+    "video_name": "xaCOYdzox0g.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/xaCOYdzox0g.mp4",
+    "duration_sec": 229.738231,
+    "size_mb": 0.1202096939086914,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "what is the gender of the person in white clothes",
+    "answer": "female",
+    "qid": "v_z5xZrF421HE_9",
+    "video_name": "z5xZrF421HE.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/z5xZrF421HE.mp4",
+    "duration_sec": 219.080272,
+    "size_mb": 11.222371101379395,
+    "original_dataset_split": "test"
+  },
+  {
+    "question": "is the person wearing yellow shorts playing croquet indoors",
+    "answer": "no",
+    "qid": "v_zwa44U585FE_3",
+    "video_name": "zwa44U585FE.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/zwa44U585FE.mp4",
+    "duration_sec": 143.49932,
+    "size_mb": 15.76882266998291,
+    "original_dataset_split": "test"
+  }
+]

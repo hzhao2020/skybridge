@@ -1,0 +1,83 @@
+{
+  "selected": {
+    "shot_detection": "aws",
+    "split_sample": "gcp",
+    "caption": "gcp",
+    "qa": "anthropic"
+  },
+  "providers": {
+    "shot_detection": {
+      "aws": {
+        "type": "http_json",
+        "provider": "aws",
+        "region": "us-west-2",
+        "endpoint": "https://example.execute-api.us-west-2.amazonaws.com/shot-detection"
+      },
+      "gcp": {
+        "type": "http_json",
+        "provider": "gcp",
+        "region": "us-west1",
+        "endpoint": "https://example-cloud-run-url/shot-detection"
+      },
+      "aliyun": {
+        "type": "http_json",
+        "provider": "aliyun",
+        "region": "cn-shanghai",
+        "endpoint": "https://example.fc.aliyuncs.com/shot-detection"
+      }
+    },
+    "split_sample": {
+      "aws": {
+        "type": "http_json",
+        "provider": "aws",
+        "region": "us-west-2",
+        "endpoint": "https://example.execute-api.us-west-2.amazonaws.com/split-sample",
+        "samples_per_shot": 3
+      },
+      "gcp": {
+        "type": "http_json",
+        "provider": "gcp",
+        "region": "us-west1",
+        "endpoint": "https://example-cloud-run-url/split-sample",
+        "samples_per_shot": 3
+      },
+      "aliyun": {
+        "type": "http_json",
+        "provider": "aliyun",
+        "region": "cn-shanghai",
+        "endpoint": "https://example.fc.aliyuncs.com/split-sample",
+        "samples_per_shot": 3
+      }
+    },
+    "caption": {
+      "gcp": {
+        "type": "http_json",
+        "provider": "gcp",
+        "region": "us-west1",
+        "endpoint": "https://example-cloud-run-url/frame-caption"
+      },
+      "anthropic": {
+        "type": "anthropic",
+        "provider": "anthropic",
+        "region": "api",
+        "model_env": "ANTHROPIC_MODEL",
+        "api_key_env": "ANTHROPIC_API_KEY"
+      }
+    },
+    "qa": {
+      "gcp": {
+        "type": "http_json",
+        "provider": "gcp",
+        "region": "us-west1",
+        "endpoint": "https://example-cloud-run-url/video-qa"
+      },
+      "anthropic": {
+        "type": "anthropic",
+        "provider": "anthropic",
+        "region": "api",
+        "model_env": "ANTHROPIC_MODEL",
+        "api_key_env": "ANTHROPIC_API_KEY"
+      }
+    }
+  }
+}

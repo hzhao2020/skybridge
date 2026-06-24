@@ -1,0 +1,224 @@
+{
+  "selected": {
+    "shot_detection": "aliyun_cn_shanghai",
+    "split_sample": "gcp_us_west1",
+    "caption": "gcp_asia_east1",
+    "qa": "anthropic"
+  },
+  "providers": {
+    "shot_detection": {
+      "gcp_us_east1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "us-east1",
+        "shots_per_video": 3
+      },
+      "gcp_us_west1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "us-west1",
+        "shots_per_video": 3
+      },
+      "gcp_europe_west1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "europe-west1",
+        "shots_per_video": 3
+      },
+      "gcp_asia_east1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "asia-east1",
+        "shots_per_video": 3
+      },
+      "aws_us_west_2": {
+        "type": "mock",
+        "provider": "aws",
+        "region": "us-west-2",
+        "shots_per_video": 3
+      },
+      "aws_us_east_2": {
+        "type": "mock",
+        "provider": "aws",
+        "region": "us-east-2",
+        "shots_per_video": 3
+      },
+      "aws_ap_southeast_1": {
+        "type": "mock",
+        "provider": "aws",
+        "region": "ap-southeast-1",
+        "shots_per_video": 3
+      },
+      "aws_eu_central_1": {
+        "type": "mock",
+        "provider": "aws",
+        "region": "eu-central-1",
+        "shots_per_video": 3
+      },
+      "aliyun_cn_shanghai": {
+        "type": "mock",
+        "provider": "aliyun",
+        "region": "cn-shanghai",
+        "shots_per_video": 3
+      },
+      "aliyun_cn_beijing": {
+        "type": "mock",
+        "provider": "aliyun",
+        "region": "cn-beijing",
+        "shots_per_video": 3
+      },
+      "aliyun_us_east_1": {
+        "type": "mock",
+        "provider": "aliyun",
+        "region": "us-east-1",
+        "shots_per_video": 3
+      },
+      "aliyun_ap_southeast_1": {
+        "type": "mock",
+        "provider": "aliyun",
+        "region": "ap-southeast-1",
+        "shots_per_video": 3
+      }
+    },
+    "split_sample": {
+      "gcp_us_east1": {
+        "type": "http_json",
+        "provider": "gcp",
+        "region": "us-east1",
+        "samples_per_shot": 3,
+        "endpoint": "https://skyflow-prototype-split-sample-us-east1-ogprjbfmtq-ue.a.run.app"
+      },
+      "gcp_us_west1": {
+        "type": "http_json",
+        "provider": "gcp",
+        "region": "us-west1",
+        "samples_per_shot": 3,
+        "endpoint": "https://skyflow-prototype-split-sample-us-west1-ogprjbfmtq-uw.a.run.app"
+      },
+      "gcp_europe_west1": {
+        "type": "http_json",
+        "provider": "gcp",
+        "region": "europe-west1",
+        "samples_per_shot": 3,
+        "endpoint": "https://skyflow-prototype-split-sample-europe-west1-ogprjbfmtq-ew.a.run.app"
+      },
+      "gcp_asia_east1": {
+        "type": "http_json",
+        "provider": "gcp",
+        "region": "asia-east1",
+        "samples_per_shot": 3,
+        "endpoint": "https://skyflow-prototype-split-sample-asia-east1-ogprjbfmtq-de.a.run.app"
+      },
+      "aws_us_west_2": {
+        "type": "http_json",
+        "provider": "aws",
+        "region": "us-west-2",
+        "samples_per_shot": 3,
+        "endpoint": "https://ynl3hwezsv2buykbrobvk2p2gy0ymjne.lambda-url.us-west-2.on.aws/"
+      },
+      "aws_us_east_2": {
+        "type": "http_json",
+        "provider": "aws",
+        "region": "us-east-2",
+        "samples_per_shot": 3,
+        "endpoint": "https://4roceajrtfehif3w5umgj2jliu0yidkf.lambda-url.us-east-2.on.aws/"
+      },
+      "aws_ap_southeast_1": {
+        "type": "http_json",
+        "provider": "aws",
+        "region": "ap-southeast-1",
+        "samples_per_shot": 3,
+        "endpoint": "https://pkhaffkpvz55kg2me3ckg4aziy0jiqls.lambda-url.ap-southeast-1.on.aws/"
+      },
+      "aws_eu_central_1": {
+        "type": "http_json",
+        "provider": "aws",
+        "region": "eu-central-1",
+        "samples_per_shot": 3,
+        "endpoint": "https://dlkvenwkq5wtuvepf7b6jlfciu0wjirx.lambda-url.eu-central-1.on.aws/"
+      },
+      "aliyun_cn_shanghai": {
+        "type": "http_json",
+        "provider": "aliyun",
+        "region": "cn-shanghai",
+        "samples_per_shot": 3,
+        "endpoint": "https://skyflowshanghai-iqbmuaxggj.cn-shanghai.fcapp.run"
+      },
+      "aliyun_cn_beijing": {
+        "type": "http_json",
+        "provider": "aliyun",
+        "region": "cn-beijing",
+        "samples_per_shot": 3,
+        "endpoint": "https://skyflow-beijing-rexgsgwugs.cn-beijing.fcapp.run"
+      },
+      "aliyun_us_east_1": {
+        "type": "http_json",
+        "provider": "aliyun",
+        "region": "us-east-1",
+        "samples_per_shot": 3,
+        "endpoint": "https://skyflow-us-east-ruhqzfxucn.us-east-1.fcapp.run"
+      },
+      "aliyun_ap_southeast_1": {
+        "type": "http_json",
+        "provider": "aliyun",
+        "region": "ap-southeast-1",
+        "samples_per_shot": 3,
+        "endpoint": "https://skyflowoutheast-smhhbcburj.ap-southeast-1.fcapp.run"
+      }
+    },
+    "caption": {
+      "gcp_us_east1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "us-east1"
+      },
+      "gcp_us_west1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "us-west1"
+      },
+      "gcp_europe_west1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "europe-west1"
+      },
+      "gcp_asia_east1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "asia-east1"
+      },
+      "anthropic": {
+        "type": "mock",
+        "provider": "anthropic",
+        "region": "api"
+      }
+    },
+    "qa": {
+      "gcp_us_east1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "us-east1"
+      },
+      "gcp_us_west1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "us-west1"
+      },
+      "gcp_europe_west1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "europe-west1"
+      },
+      "gcp_asia_east1": {
+        "type": "mock",
+        "provider": "gcp",
+        "region": "asia-east1"
+      },
+      "anthropic": {
+        "type": "mock",
+        "provider": "anthropic",
+        "region": "api"
+      }
+    }
+  }
+}

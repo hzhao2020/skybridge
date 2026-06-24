@@ -1,0 +1,302 @@
+[
+  {
+    "question": "is the person in the video indoors",
+    "answer": "no",
+    "qid": "v_55IErOrgQOA_3",
+    "video_name": "55IErOrgQOA.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/55IErOrgQOA.mp4",
+    "duration_sec": 70.681542,
+    "size_mb": 15.139708518981934,
+    "stratum": "duration_low__size_mid"
+  },
+  {
+    "question": "is the athlete in the video indoors",
+    "answer": "yes",
+    "qid": "v_5fW_2c_kKfc_2",
+    "video_name": "5fW_2c_kKfc.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/5fW_2c_kKfc.mp4",
+    "duration_sec": 200.109569,
+    "size_mb": 11.715685844421387,
+    "stratum": "duration_high__size_mid"
+  },
+  {
+    "question": "what is the color of the person's pants in the video",
+    "answer": "black",
+    "qid": "v_5oD3-y66g_8_6",
+    "video_name": "5oD3-y66g_8.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/5oD3-y66g_8.mp4",
+    "duration_sec": 146.657234,
+    "size_mb": 6.83601188659668,
+    "stratum": "duration_high__size_low"
+  },
+  {
+    "question": "how difficult is the sport in the video ",
+    "answer": "easily",
+    "qid": "v_69X7tP6p7E0_9",
+    "video_name": "69X7tP6p7E0.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/69X7tP6p7E0.mp4",
+    "duration_sec": 70.054603,
+    "size_mb": 22.002856254577637,
+    "stratum": "duration_low__size_high"
+  },
+  {
+    "question": "what is behind the people in green clothes",
+    "answer": "spectator seats",
+    "qid": "v_9jivQgF6J1g_4",
+    "video_name": "9jivQgF6J1g.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/9jivQgF6J1g.mp4",
+    "duration_sec": 152.021043,
+    "size_mb": 11.089259147644043,
+    "stratum": "duration_high__size_mid"
+  },
+  {
+    "question": "is it dangerous to throw the discus",
+    "answer": "no",
+    "qid": "v_C8Toxe4fE30_8",
+    "video_name": "C8Toxe4fE30.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/C8Toxe4fE30.mp4",
+    "duration_sec": 7.476825,
+    "size_mb": 0.30463409423828125,
+    "stratum": "duration_low__size_low"
+  },
+  {
+    "question": "what is the gender of the person painting",
+    "answer": "female",
+    "qid": "v_H91Dm6jaUPg_7",
+    "video_name": "H91Dm6jaUPg.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/H91Dm6jaUPg.mp4",
+    "duration_sec": 145.914195,
+    "size_mb": 16.61861801147461,
+    "stratum": "duration_high__size_mid"
+  },
+  {
+    "question": "what is in front of the person in green clothes",
+    "answer": "sports equipment",
+    "qid": "v_HD_vpQCUSCQ_4",
+    "video_name": "HD_vpQCUSCQ.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/HD_vpQCUSCQ.mp4",
+    "duration_sec": 160.983946,
+    "size_mb": 85.49897575378418,
+    "stratum": "duration_high__size_high"
+  },
+  {
+    "question": "does fighting need arm strength",
+    "answer": "yes",
+    "qid": "v_IU6LVYI0FZM_2",
+    "video_name": "IU6LVYI0FZM.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/IU6LVYI0FZM.mp4",
+    "duration_sec": 62.508118,
+    "size_mb": 6.031166076660156,
+    "stratum": "duration_low__size_low"
+  },
+  {
+    "question": "what is in front of the person in black clothes",
+    "answer": "drum",
+    "qid": "v_Ii3jLIcf92s_4",
+    "video_name": "Ii3jLIcf92s.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/Ii3jLIcf92s.mp4",
+    "duration_sec": 31.114739,
+    "size_mb": 16.090774536132812,
+    "stratum": "duration_low__size_mid"
+  },
+  {
+    "question": "what style of clothes are the man wearing blue pants",
+    "answer": "short sleeve",
+    "qid": "v_IsM_xfhJzps_9",
+    "video_name": "IsM_xfhJzps.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/IsM_xfhJzps.mp4",
+    "duration_sec": 134.652517,
+    "size_mb": 50.241390228271484,
+    "stratum": "duration_mid__size_high"
+  },
+  {
+    "question": "is the person playing indoors",
+    "answer": "yes",
+    "qid": "v_LANB732DHbo_2",
+    "video_name": "LANB732DHbo.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/LANB732DHbo.mp4",
+    "duration_sec": 99.683265,
+    "size_mb": 38.48530387878418,
+    "stratum": "duration_mid__size_high"
+  },
+  {
+    "question": "which hand of the person in video is wearing a watch",
+    "answer": "left",
+    "qid": "v_MdOAr_4FJvc_6",
+    "video_name": "MdOAr_4FJvc.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/MdOAr_4FJvc.mp4",
+    "duration_sec": 233.012245,
+    "size_mb": 6.243307113647461,
+    "stratum": "duration_high__size_low"
+  },
+  {
+    "question": "is the first woman dressed in white",
+    "answer": "no",
+    "qid": "v_POYg9zju63U_3",
+    "video_name": "POYg9zju63U.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/POYg9zju63U.mp4",
+    "duration_sec": 148.979229,
+    "size_mb": 62.390390396118164,
+    "stratum": "duration_high__size_high"
+  },
+  {
+    "question": "what happens to the person in yellow shorts before he play volleyball",
+    "answer": "take volleyball",
+    "qid": "v_Uc1_7BXtXZs_5",
+    "video_name": "Uc1_7BXtXZs.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/Uc1_7BXtXZs.mp4",
+    "duration_sec": 95.921633,
+    "size_mb": 64.19580936431885,
+    "stratum": "duration_mid__size_high"
+  },
+  {
+    "question": "what is the gender of the person in white clothes",
+    "answer": "male",
+    "qid": "v_Wy0u0amd4Ko_7",
+    "video_name": "Wy0u0amd4Ko.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/Wy0u0amd4Ko.mp4",
+    "duration_sec": 60.627302,
+    "size_mb": 3.8223533630371094,
+    "stratum": "duration_low__size_low"
+  },
+  {
+    "question": "how difficult is the maintenance of the tree",
+    "answer": "commonly",
+    "qid": "v_Xt86M-mRxi8_10",
+    "video_name": "Xt86M-mRxi8.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/Xt86M-mRxi8.mp4",
+    "duration_sec": 129.079728,
+    "size_mb": 57.28756523132324,
+    "stratum": "duration_mid__size_high"
+  },
+  {
+    "question": "is the person with braid outdoors",
+    "answer": "no",
+    "qid": "v_YWfLZFXwjTE_3",
+    "video_name": "YWfLZFXwjTE.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/YWfLZFXwjTE.mp4",
+    "duration_sec": 112.129161,
+    "size_mb": 5.752239227294922,
+    "stratum": "duration_mid__size_low"
+  },
+  {
+    "question": "what is the clothes style of the old person",
+    "answer": "short sleeve",
+    "qid": "v_Yu18MvEn-To_7",
+    "video_name": "Yu18MvEn-To.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/Yu18MvEn-To.mp4",
+    "duration_sec": 82.454059,
+    "size_mb": 3.352166175842285,
+    "stratum": "duration_mid__size_low"
+  },
+  {
+    "question": "what color is the meadow in the video",
+    "answer": "green",
+    "qid": "v__RCe4Q0p1aA_7",
+    "video_name": "_RCe4Q0p1aA.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/_RCe4Q0p1aA.mp4",
+    "duration_sec": 89.536145,
+    "size_mb": 8.692695617675781,
+    "stratum": "duration_mid__size_mid"
+  },
+  {
+    "question": "what should be the product smeared in the video",
+    "answer": "sunscreen cream",
+    "qid": "v_bMJlN9iPpCI_9",
+    "video_name": "bMJlN9iPpCI.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/bMJlN9iPpCI.mp4",
+    "duration_sec": 189.33551,
+    "size_mb": 9.557482719421387,
+    "stratum": "duration_high__size_mid"
+  },
+  {
+    "question": "is the person in the video outdoors",
+    "answer": "no",
+    "qid": "v_c1tbdVxIhH4_3",
+    "video_name": "c1tbdVxIhH4.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/c1tbdVxIhH4.mp4",
+    "duration_sec": 68.661406,
+    "size_mb": 20.8206205368042,
+    "stratum": "duration_low__size_high"
+  },
+  {
+    "question": "what color is the dress of the girl on the left",
+    "answer": "pink",
+    "qid": "v_chMp_uvII5g_6",
+    "video_name": "chMp_uvII5g.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/chMp_uvII5g.mp4",
+    "duration_sec": 45.673651,
+    "size_mb": 23.277907371520996,
+    "stratum": "duration_low__size_high"
+  },
+  {
+    "question": "is the person in the video playing outdoors",
+    "answer": "no",
+    "qid": "v_dDmc6n79ek0_3",
+    "video_name": "dDmc6n79ek0.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/dDmc6n79ek0.mp4",
+    "duration_sec": 110.7495,
+    "size_mb": 14.591459274291992,
+    "stratum": "duration_mid__size_mid"
+  },
+  {
+    "question": "is the person who plays in the video chinese",
+    "answer": "no",
+    "qid": "v_dcEdjqyHj8M_9",
+    "video_name": "dcEdjqyHj8M.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/dcEdjqyHj8M.mp4",
+    "duration_sec": 62.554558,
+    "size_mb": 34.57164669036865,
+    "stratum": "duration_low__size_high"
+  },
+  {
+    "question": "what color is the dress of the whistle man",
+    "answer": "red",
+    "qid": "v_iMB_mb11KWM_7",
+    "video_name": "iMB_mb11KWM.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/iMB_mb11KWM.mp4",
+    "duration_sec": 50.062222,
+    "size_mb": 13.103620529174805,
+    "stratum": "duration_low__size_mid"
+  },
+  {
+    "question": "where is the video taken",
+    "answer": "market",
+    "qid": "v_prqwtY9cn6s_8",
+    "video_name": "prqwtY9cn6s.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/prqwtY9cn6s.mp4",
+    "duration_sec": 100.867483,
+    "size_mb": 12.046977043151855,
+    "stratum": "duration_mid__size_mid"
+  },
+  {
+    "question": "how difficult is to play badminton",
+    "answer": "simple",
+    "qid": "v_qXD7myRvw0M_10",
+    "video_name": "qXD7myRvw0M.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/qXD7myRvw0M.mp4",
+    "duration_sec": 28.281905,
+    "size_mb": 2.178277015686035,
+    "stratum": "duration_low__size_low"
+  },
+  {
+    "question": "is the chef indoors",
+    "answer": "yes",
+    "qid": "v_sf2zGT5nN04_2",
+    "video_name": "sf2zGT5nN04.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/sf2zGT5nN04.mp4",
+    "duration_sec": 225.976599,
+    "size_mb": 21.503090858459473,
+    "stratum": "duration_high__size_high"
+  },
+  {
+    "question": "where is the video taken",
+    "answer": "kitchen",
+    "qid": "v_xiICsWY0xOk_7",
+    "video_name": "xiICsWY0xOk.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/xiICsWY0xOk.mp4",
+    "duration_sec": 111.920181,
+    "size_mb": 5.905908584594727,
+    "stratum": "duration_mid__size_low"
+  }
+]

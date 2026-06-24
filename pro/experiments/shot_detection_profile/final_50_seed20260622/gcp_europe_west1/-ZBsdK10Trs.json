@@ -1,0 +1,181 @@
+{
+  "provider": "gcp",
+  "region": "europe-west1",
+  "job_id": "projects/360779988854/locations/europe-west1/operations/5202364163916786016",
+  "input_uri": "gs://skyflow-prototype-gcp-europe-west1/profile/videos/-ZBsdK10Trs.mp4",
+  "annotation_result_count": 1,
+  "shot_count": 36,
+  "operation": {
+    "name": "projects/360779988854/locations/europe-west1/operations/5202364163916786016",
+    "metadata": {
+      "@type": "type.googleapis.com/google.cloud.videointelligence.v1.AnnotateVideoProgress",
+      "annotationProgress": [
+        {
+          "inputUri": "/skyflow-prototype-gcp-europe-west1/profile/videos/-ZBsdK10Trs.mp4",
+          "progressPercent": 100,
+          "startTime": "2026-06-23T08:26:08.820431Z",
+          "updateTime": "2026-06-23T08:26:22.221479Z"
+        }
+      ]
+    },
+    "done": true,
+    "response": {
+      "@type": "type.googleapis.com/google.cloud.videointelligence.v1.AnnotateVideoResponse",
+      "annotationResults": [
+        {
+          "inputUri": "/skyflow-prototype-gcp-europe-west1/profile/videos/-ZBsdK10Trs.mp4",
+          "shotAnnotations": [
+            {
+              "startTimeOffset": "0.033366s",
+              "endTimeOffset": "7.040366s"
+            },
+            {
+              "startTimeOffset": "7.073733s",
+              "endTimeOffset": "16.683333s"
+            },
+            {
+              "startTimeOffset": "16.716700s",
+              "endTimeOffset": "18.618600s"
+            },
+            {
+              "startTimeOffset": "18.651966s",
+              "endTimeOffset": "22.188833s"
+            },
+            {
+              "startTimeOffset": "22.222200s",
+              "endTimeOffset": "22.455766s"
+            },
+            {
+              "startTimeOffset": "22.489133s",
+              "endTimeOffset": "26.359666s"
+            },
+            {
+              "startTimeOffset": "26.393033s",
+              "endTimeOffset": "28.294933s"
+            },
+            {
+              "startTimeOffset": "28.328300s",
+              "endTimeOffset": "30.196833s"
+            },
+            {
+              "startTimeOffset": "30.230200s",
+              "endTimeOffset": "33.833800s"
+            },
+            {
+              "startTimeOffset": "33.867166s",
+              "endTimeOffset": "34.100733s"
+            },
+            {
+              "startTimeOffset": "34.134100s",
+              "endTimeOffset": "34.367666s"
+            },
+            {
+              "startTimeOffset": "34.401033s",
+              "endTimeOffset": "34.634600s"
+            },
+            {
+              "startTimeOffset": "34.667966s",
+              "endTimeOffset": "35.168466s"
+            },
+            {
+              "startTimeOffset": "35.201833s",
+              "endTimeOffset": "35.435400s"
+            },
+            {
+              "startTimeOffset": "35.468766s",
+              "endTimeOffset": "35.702333s"
+            },
+            {
+              "startTimeOffset": "35.735700s",
+              "endTimeOffset": "35.969266s"
+            },
+            {
+              "startTimeOffset": "36.002633s",
+              "endTimeOffset": "36.236200s"
+            },
+            {
+              "startTimeOffset": "36.269566s",
+              "endTimeOffset": "36.503133s"
+            },
+            {
+              "startTimeOffset": "36.536500s",
+              "endTimeOffset": "36.770066s"
+            },
+            {
+              "startTimeOffset": "36.803433s",
+              "endTimeOffset": "37.303933s"
+            },
+            {
+              "startTimeOffset": "37.337300s",
+              "endTimeOffset": "37.570866s"
+            },
+            {
+              "startTimeOffset": "37.604233s",
+              "endTimeOffset": "37.837800s"
+            },
+            {
+              "startTimeOffset": "37.871166s",
+              "endTimeOffset": "38.104733s"
+            },
+            {
+              "startTimeOffset": "38.138100s",
+              "endTimeOffset": "38.371666s"
+            },
+            {
+              "startTimeOffset": "38.405033s",
+              "endTimeOffset": "38.638600s"
+            },
+            {
+              "startTimeOffset": "38.671966s",
+              "endTimeOffset": "38.905533s"
+            },
+            {
+              "startTimeOffset": "38.938900s",
+              "endTimeOffset": "39.172466s"
+            },
+            {
+              "startTimeOffset": "39.205833s",
+              "endTimeOffset": "39.439400s"
+            },
+            {
+              "startTimeOffset": "39.472766s",
+              "endTimeOffset": "39.706333s"
+            },
+            {
+              "startTimeOffset": "39.739700s",
+              "endTimeOffset": "39.973266s"
+            },
+            {
+              "startTimeOffset": "40.006633s",
+              "endTimeOffset": "40.240200s"
+            },
+            {
+              "startTimeOffset": "40.273566s",
+              "endTimeOffset": "40.507133s"
+            },
+            {
+              "startTimeOffset": "40.540500s",
+              "endTimeOffset": "40.774066s"
+            },
+            {
+              "startTimeOffset": "40.807433s",
+              "endTimeOffset": "41.041s"
+            },
+            {
+              "startTimeOffset": "41.074366s",
+              "endTimeOffset": "42.175466s"
+            },
+            {
+              "startTimeOffset": "42.208833s",
+              "endTimeOffset": "49.182466s"
+            }
+          ],
+          "segment": {
+            "startTimeOffset": "0s",
+            "endTimeOffset": "49.149100s"
+          }
+        }
+      ]
+    }
+  }
+}

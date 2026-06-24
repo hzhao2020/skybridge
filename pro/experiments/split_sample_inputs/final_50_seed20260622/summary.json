@@ -1,0 +1,9 @@
+{
+  "video_count": 50,
+  "skipped": [],
+  "shot_count_min": 1,
+  "shot_count_max": 108,
+  "shot_count_mean": 13.26,
+  "frame_count_total": 1989,
+  "dropped_short_shot_total": 54
+}

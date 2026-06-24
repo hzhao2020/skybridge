@@ -1,0 +1,24 @@
+{
+  "run_id": "20260623_131238",
+  "manifest": "experiments/activitynet_splits/upload_manifests/profile_videos_upload_manifest_seed20260622.json",
+  "run_dir": "experiments/shot_detection_profile/smoke_gcp_aws_20260623_131238",
+  "videos": 1,
+  "nodes": [
+    {
+      "node_id": "gcp_asia_east1",
+      "provider": "gcp",
+      "region": "asia-east1"
+    },
+    {
+      "node_id": "aws_ap_southeast_1",
+      "provider": "aws",
+      "region": "ap-southeast-1"
+    }
+  ],
+  "poll_interval_sec": 10,
+  "per_video_sleep_sec": 0,
+  "batch_size": 10,
+  "batch_sleep_sec": 0,
+  "started_at": "2026-06-23T05:12:38.141+00:00",
+  "finished_at": "2026-06-23T05:13:58.065+00:00"
+}

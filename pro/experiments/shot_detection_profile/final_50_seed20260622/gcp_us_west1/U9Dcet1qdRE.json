@@ -1,0 +1,45 @@
+{
+  "provider": "gcp",
+  "region": "us-west1",
+  "job_id": "projects/360779988854/locations/us-west1/operations/2088651374142295478",
+  "input_uri": "gs://skyflow-prototype-gcp-us-west1/profile/videos/U9Dcet1qdRE.mp4",
+  "annotation_result_count": 1,
+  "shot_count": 2,
+  "operation": {
+    "name": "projects/360779988854/locations/us-west1/operations/2088651374142295478",
+    "metadata": {
+      "@type": "type.googleapis.com/google.cloud.videointelligence.v1.AnnotateVideoProgress",
+      "annotationProgress": [
+        {
+          "inputUri": "/skyflow-prototype-gcp-us-west1/profile/videos/U9Dcet1qdRE.mp4",
+          "progressPercent": 100,
+          "startTime": "2026-06-23T08:03:44.931327Z",
+          "updateTime": "2026-06-23T08:03:57.936119Z"
+        }
+      ]
+    },
+    "done": true,
+    "response": {
+      "@type": "type.googleapis.com/google.cloud.videointelligence.v1.AnnotateVideoResponse",
+      "annotationResults": [
+        {
+          "inputUri": "/skyflow-prototype-gcp-us-west1/profile/videos/U9Dcet1qdRE.mp4",
+          "shotAnnotations": [
+            {
+              "startTimeOffset": "0.041708s",
+              "endTimeOffset": "21.646625s"
+            },
+            {
+              "startTimeOffset": "21.688333s",
+              "endTimeOffset": "29.279250s"
+            }
+          ],
+          "segment": {
+            "startTimeOffset": "0s",
+            "endTimeOffset": "29.237542s"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "run_id": "20260624_172207",
+  "manifest": "/Users/heng/Documents/skybridge/pro/experiments/activitynet_splits/upload_manifests/profile_videos_upload_manifest_seed20260622.json",
+  "run_dir": "/Users/heng/Documents/skybridge/pro/experiments/shot_detection_profile/launch_debug_20260623_132116",
+  "videos": 1,
+  "nodes": [
+    {
+      "node_id": "gcp_asia_east1",
+      "provider": "gcp",
+      "region": "asia-east1"
+    },
+    {
+      "node_id": "aws_ap_southeast_1",
+      "provider": "aws",
+      "region": "ap-southeast-1"
+    },
+    {
+      "node_id": "aliyun_cn_shanghai",
+      "provider": "aliyun",
+      "region": "cn-shanghai"
+    }
+  ],
+  "poll_interval_sec": 10.0,
+  "timing": {
+    "effective_latency_field": "effective_latency_ms",
+    "gcp": "provider metadata when present",
+    "aws": "SNS/SQS completion event when configured, otherwise polling upper bound",
+    "aliyun": "polling upper bound",
+    "aws_event_enabled": false,
+    "aws_sqs_region": "ap-southeast-1"
+  },
+  "per_video_sleep_sec": 0,
+  "batch_size": 10,
+  "batch_sleep_sec": 0,
+  "started_at": "2026-06-24T09:22:07.028+00:00"
+}

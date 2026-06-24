@@ -1,0 +1,59 @@
+{
+  "samples_per_shot": 3,
+  "providers": {
+    "gcp": {
+      "gcp_us_east1": {
+        "region": "us-east1",
+        "endpoint": "https://skyflow-prototype-split-sample-us-east1-ogprjbfmtq-ue.a.run.app"
+      },
+      "gcp_us_west1": {
+        "region": "us-west1",
+        "endpoint": "https://skyflow-prototype-split-sample-us-west1-ogprjbfmtq-uw.a.run.app"
+      },
+      "gcp_europe_west1": {
+        "region": "europe-west1",
+        "endpoint": "https://skyflow-prototype-split-sample-europe-west1-ogprjbfmtq-ew.a.run.app"
+      },
+      "gcp_asia_east1": {
+        "region": "asia-east1",
+        "endpoint": "https://skyflow-prototype-split-sample-asia-east1-ogprjbfmtq-de.a.run.app"
+      }
+    },
+    "aws": {
+      "aws_us_west_2": {
+        "region": "us-west-2",
+        "endpoint": "https://ynl3hwezsv2buykbrobvk2p2gy0ymjne.lambda-url.us-west-2.on.aws/"
+      },
+      "aws_us_east_2": {
+        "region": "us-east-2",
+        "endpoint": "https://4roceajrtfehif3w5umgj2jliu0yidkf.lambda-url.us-east-2.on.aws/"
+      },
+      "aws_ap_southeast_1": {
+        "region": "ap-southeast-1",
+        "endpoint": "https://pkhaffkpvz55kg2me3ckg4aziy0jiqls.lambda-url.ap-southeast-1.on.aws/"
+      },
+      "aws_eu_central_1": {
+        "region": "eu-central-1",
+        "endpoint": "https://dlkvenwkq5wtuvepf7b6jlfciu0wjirx.lambda-url.eu-central-1.on.aws/"
+      }
+    },
+    "aliyun": {
+      "aliyun_cn_shanghai": {
+        "region": "cn-shanghai",
+        "endpoint": "https://skyflowshanghai-iqbmuaxggj.cn-shanghai.fcapp.run"
+      },
+      "aliyun_cn_beijing": {
+        "region": "cn-beijing",
+        "endpoint": "https://skyflow-beijing-rexgsgwugs.cn-beijing.fcapp.run"
+      },
+      "aliyun_us_east_1": {
+        "region": "us-east-1",
+        "endpoint": "https://skyflow-us-east-ruhqzfxucn.us-east-1.fcapp.run"
+      },
+      "aliyun_ap_southeast_1": {
+        "region": "ap-southeast-1",
+        "endpoint": "https://skyflowoutheast-smhhbcburj.ap-southeast-1.fcapp.run"
+      }
+    }
+  }
+}

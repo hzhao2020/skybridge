@@ -1,0 +1,502 @@
+[
+  {
+    "question": "what is in front of the person with the red hat",
+    "answer": "people",
+    "qid": "v_-9l1Rh10bO8_4",
+    "video_name": "-9l1Rh10bO8.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/-9l1Rh10bO8.mp4",
+    "duration_sec": 91.97424,
+    "size_mb": 19.75463104248047,
+    "stratum": "duration_mid__size_mid"
+  },
+  {
+    "question": "what color is the hair of the person in black tshirt",
+    "answer": "black",
+    "qid": "v_-ZBsdK10Trs_7",
+    "video_name": "-ZBsdK10Trs.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/-ZBsdK10Trs.mp4",
+    "duration_sec": 49.272744,
+    "size_mb": 12.21936321258545,
+    "stratum": "duration_low__size_mid"
+  },
+  {
+    "question": "how difficult is playing ice hockey",
+    "answer": "secondary",
+    "qid": "v_5ssP_EapV9Q_10",
+    "video_name": "5ssP_EapV9Q.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/5ssP_EapV9Q.mp4",
+    "duration_sec": 101.796281,
+    "size_mb": 29.373034477233887,
+    "stratum": "duration_mid__size_high"
+  },
+  {
+    "question": "what is behind the person in the video",
+    "answer": "house",
+    "qid": "v_6J45AbWiGIE_4",
+    "video_name": "6J45AbWiGIE.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/6J45AbWiGIE.mp4",
+    "duration_sec": 121.068844,
+    "size_mb": 11.701038360595703,
+    "stratum": "duration_mid__size_mid"
+  },
+  {
+    "question": "does boxing use the brick",
+    "answer": "no",
+    "qid": "v_8nyOw9vBh2E_3",
+    "video_name": "8nyOw9vBh2E.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/8nyOw9vBh2E.mp4",
+    "duration_sec": 158.91737,
+    "size_mb": 6.456799507141113,
+    "stratum": "duration_high__size_low"
+  },
+  {
+    "question": "what is in front of the person in red clothes",
+    "answer": "girl",
+    "qid": "v_96c3BWVDoq4_4",
+    "video_name": "96c3BWVDoq4.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/96c3BWVDoq4.mp4",
+    "duration_sec": 123.669478,
+    "size_mb": 7.458521842956543,
+    "stratum": "duration_mid__size_mid"
+  },
+  {
+    "question": "what is the gender of the person in blue clothes",
+    "answer": "male",
+    "qid": "v_9I4H8O6B7yM_7",
+    "video_name": "9I4H8O6B7yM.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/9I4H8O6B7yM.mp4",
+    "duration_sec": 139.760907,
+    "size_mb": 11.711782455444336,
+    "stratum": "duration_mid__size_mid"
+  },
+  {
+    "question": "what is the relationship between the three people who are paving cement",
+    "answer": "colleague",
+    "qid": "v_9hE6VRD3qXQ_10",
+    "video_name": "9hE6VRD3qXQ.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/9hE6VRD3qXQ.mp4",
+    "duration_sec": 177.098594,
+    "size_mb": 19.534576416015625,
+    "stratum": "duration_high__size_mid"
+  },
+  {
+    "question": "how many clothes are the children ironing in the video",
+    "answer": "2",
+    "qid": "v_CXbVcrVgNzQ_10",
+    "video_name": "CXbVcrVgNzQ.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/CXbVcrVgNzQ.mp4",
+    "duration_sec": 46.30059,
+    "size_mb": 2.737685203552246,
+    "stratum": "duration_low__size_low"
+  },
+  {
+    "question": "what color is the person's clothes in the video",
+    "answer": "black",
+    "qid": "v_DBGea9pST1A_7",
+    "video_name": "DBGea9pST1A.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/DBGea9pST1A.mp4",
+    "duration_sec": 60.418322,
+    "size_mb": 21.670783042907715,
+    "stratum": "duration_low__size_high"
+  },
+  {
+    "question": "what is the gender of the person in black clothes",
+    "answer": "male",
+    "qid": "v_EVtM8DKW4bc_9",
+    "video_name": "EVtM8DKW4bc.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/EVtM8DKW4bc.mp4",
+    "duration_sec": 126.316553,
+    "size_mb": 33.732150077819824,
+    "stratum": "duration_mid__size_high"
+  },
+  {
+    "question": "is the person in blue playing football on the table outside",
+    "answer": "no",
+    "qid": "v_EXxckPa76vc_3",
+    "video_name": "EXxckPa76vc.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/EXxckPa76vc.mp4",
+    "duration_sec": 70.170703,
+    "size_mb": 37.506343841552734,
+    "stratum": "duration_low__size_high"
+  },
+  {
+    "question": "what happened to the old person before he hit the ball",
+    "answer": "pick up ball",
+    "qid": "v_HZWdMK6zhec_5",
+    "video_name": "HZWdMK6zhec.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/HZWdMK6zhec.mp4",
+    "duration_sec": 79.574785,
+    "size_mb": 3.2176265716552734,
+    "stratum": "duration_mid__size_low"
+  },
+  {
+    "question": "what happened to the man in the blue vest after he jumped into the bunker",
+    "answer": "measuring distance",
+    "qid": "v_IajP-SB2D5c_5",
+    "video_name": "IajP-SB2D5c.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/IajP-SB2D5c.mp4",
+    "duration_sec": 182.067664,
+    "size_mb": 42.23388957977295,
+    "stratum": "duration_high__size_high"
+  },
+  {
+    "question": "how many people are there in the video",
+    "answer": "6",
+    "qid": "v_J_CJSmMFWlg_9",
+    "video_name": "J_CJSmMFWlg.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/J_CJSmMFWlg.mp4",
+    "duration_sec": 33.343855,
+    "size_mb": 17.44729709625244,
+    "stratum": "duration_low__size_mid"
+  },
+  {
+    "question": "is the woman with the braid indoors",
+    "answer": "no",
+    "qid": "v_KZLEUd2ALVI_3",
+    "video_name": "KZLEUd2ALVI.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/KZLEUd2ALVI.mp4",
+    "duration_sec": 42.074558,
+    "size_mb": 9.6683931350708,
+    "stratum": "duration_low__size_mid"
+  },
+  {
+    "question": "what happened to the person in the video after the carpet was flattened",
+    "answer": "blanking",
+    "qid": "v_KbEoaYhMZ6c_5",
+    "video_name": "KbEoaYhMZ6c.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/KbEoaYhMZ6c.mp4",
+    "duration_sec": 44.628753,
+    "size_mb": 4.871645927429199,
+    "stratum": "duration_low__size_low"
+  },
+  {
+    "question": "what is in front of the referee",
+    "answer": "clothes",
+    "qid": "v_P-04xkAdWSY_4",
+    "video_name": "P-04xkAdWSY.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/P-04xkAdWSY.mp4",
+    "duration_sec": 30.185941,
+    "size_mb": 6.371345520019531,
+    "stratum": "duration_low__size_low"
+  },
+  {
+    "question": "what color is the person's pants in the video",
+    "answer": "blue",
+    "qid": "v_Q_32kySHzCQ_9",
+    "video_name": "Q_32kySHzCQ.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/Q_32kySHzCQ.mp4",
+    "duration_sec": 153.39102,
+    "size_mb": 11.729974746704102,
+    "stratum": "duration_high__size_mid"
+  },
+  {
+    "question": "how many paint cans are there",
+    "answer": "1",
+    "qid": "v_SBj7yuFEwQI_8",
+    "video_name": "SBj7yuFEwQI.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/SBj7yuFEwQI.mp4",
+    "duration_sec": 131.819683,
+    "size_mb": 17.901691436767578,
+    "stratum": "duration_mid__size_mid"
+  },
+  {
+    "question": "what is behind the person in the video",
+    "answer": "two towels",
+    "qid": "v_TDROfnEk0NQ_4",
+    "video_name": "TDROfnEk0NQ.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/TDROfnEk0NQ.mp4",
+    "duration_sec": 220.496689,
+    "size_mb": 6.04347038269043,
+    "stratum": "duration_high__size_low"
+  },
+  {
+    "question": "what kind of cooking pot is it",
+    "answer": "pan",
+    "qid": "v_UUjTMDSUvs0_10",
+    "video_name": "UUjTMDSUvs0.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/UUjTMDSUvs0.mp4",
+    "duration_sec": 114.660136,
+    "size_mb": 6.777461051940918,
+    "stratum": "duration_mid__size_low"
+  },
+  {
+    "question": "what is the shape of the sandwich box",
+    "answer": "rectangle",
+    "qid": "v_W1FmiUTYt3I_7",
+    "video_name": "W1FmiUTYt3I.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/W1FmiUTYt3I.mp4",
+    "duration_sec": 121.672562,
+    "size_mb": 6.184243202209473,
+    "stratum": "duration_mid__size_low"
+  },
+  {
+    "question": "how safe is this sport in the video",
+    "answer": "danger",
+    "qid": "v_XZZRyOhxQBE_7",
+    "video_name": "XZZRyOhxQBE.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/XZZRyOhxQBE.mp4",
+    "duration_sec": 66.176871,
+    "size_mb": 22.980401039123535,
+    "stratum": "duration_low__size_high"
+  },
+  {
+    "question": "is the person in purple outdoors",
+    "answer": "yes",
+    "qid": "v_Z7ZODw0C_hY_2",
+    "video_name": "Z7ZODw0C_hY.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/Z7ZODw0C_hY.mp4",
+    "duration_sec": 226.649977,
+    "size_mb": 16.92154312133789,
+    "stratum": "duration_high__size_mid"
+  },
+  {
+    "question": "is the person in the video dancing outdoors",
+    "answer": "yes",
+    "qid": "v_dGxJGvw_sUg_2",
+    "video_name": "dGxJGvw_sUg.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/dGxJGvw_sUg.mp4",
+    "duration_sec": 102.19102,
+    "size_mb": 89.43808460235596,
+    "stratum": "duration_mid__size_high"
+  },
+  {
+    "question": "what happened to the kid in black shorts before he flipped over",
+    "answer": "running",
+    "qid": "v_dnJLvsqqSgQ_5",
+    "video_name": "dnJLvsqqSgQ.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/dnJLvsqqSgQ.mp4",
+    "duration_sec": 176.169796,
+    "size_mb": 6.805118560791016,
+    "stratum": "duration_high__size_low"
+  },
+  {
+    "question": "what color is her hair",
+    "answer": "brown",
+    "qid": "v_euyYRNOSPE0_10",
+    "video_name": "euyYRNOSPE0.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/euyYRNOSPE0.mp4",
+    "duration_sec": 180.651247,
+    "size_mb": 9.725829124450684,
+    "stratum": "duration_high__size_mid"
+  },
+  {
+    "question": "what is behind the people in black clothes",
+    "answer": "oven",
+    "qid": "v_iAQY-FHckIM_4",
+    "video_name": "iAQY-FHckIM.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/iAQY-FHckIM.mp4",
+    "duration_sec": 68.92,
+    "size_mb": 31.381980895996094,
+    "stratum": "duration_low__size_high"
+  },
+  {
+    "question": "does the knife been used when making lemonade",
+    "answer": "yes",
+    "qid": "v_iS_ms9ajumY_2",
+    "video_name": "iS_ms9ajumY.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/iS_ms9ajumY.mp4",
+    "duration_sec": 132.93424,
+    "size_mb": 33.278879165649414,
+    "stratum": "duration_mid__size_high"
+  },
+  {
+    "question": "are the girls in the tights outdoors",
+    "answer": "no",
+    "qid": "v_iWSKl7vOd2s_3",
+    "video_name": "iWSKl7vOd2s.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/iWSKl7vOd2s.mp4",
+    "duration_sec": 67.453968,
+    "size_mb": 8.693451881408691,
+    "stratum": "duration_low__size_mid"
+  },
+  {
+    "question": "what happened to the person in the checkered shirt before he threw the ball",
+    "answer": "pick ball",
+    "qid": "v_jkaevzzYdP8_5",
+    "video_name": "jkaevzzYdP8.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/jkaevzzYdP8.mp4",
+    "duration_sec": 223.445624,
+    "size_mb": 100.3631420135498,
+    "stratum": "duration_high__size_high"
+  },
+  {
+    "question": "how does the person blow the harmonica",
+    "answer": "hanging neck",
+    "qid": "v_l9HcwQPNvWo_8",
+    "video_name": "l9HcwQPNvWo.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/l9HcwQPNvWo.mp4",
+    "duration_sec": 196.533696,
+    "size_mb": 8.009285926818848,
+    "stratum": "duration_high__size_mid"
+  },
+  {
+    "question": "what is the person in green clothes doing",
+    "answer": "darts",
+    "qid": "v_lVu-4SKcb4c_1",
+    "video_name": "lVu-4SKcb4c.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/lVu-4SKcb4c.mp4",
+    "duration_sec": 17.984,
+    "size_mb": 0.6764926910400391,
+    "stratum": "duration_low__size_low"
+  },
+  {
+    "question": "where are the women wearing glasses playing volleyball",
+    "answer": "sandbeach",
+    "qid": "v_laeOL4ipHck_7",
+    "video_name": "laeOL4ipHck.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/laeOL4ipHck.mp4",
+    "duration_sec": 184.900499,
+    "size_mb": 40.838982582092285,
+    "stratum": "duration_high__size_high"
+  },
+  {
+    "question": "what is the gender of the person in blue",
+    "answer": "female",
+    "qid": "v_lgu-DBDWlEs_8",
+    "video_name": "lgu-DBDWlEs.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/lgu-DBDWlEs.mp4",
+    "duration_sec": 18.784943,
+    "size_mb": 6.438138008117676,
+    "stratum": "duration_low__size_low"
+  },
+  {
+    "question": "is the person with the sword outside",
+    "answer": "no",
+    "qid": "v_mO1T8zhIliY_3",
+    "video_name": "mO1T8zhIliY.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/mO1T8zhIliY.mp4",
+    "duration_sec": 233.871383,
+    "size_mb": 24.831405639648438,
+    "stratum": "duration_high__size_high"
+  },
+  {
+    "question": "what kind of shoe is the person wearing a vest",
+    "answer": "slipper",
+    "qid": "v_n4apOkL24BE_7",
+    "video_name": "n4apOkL24BE.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/n4apOkL24BE.mp4",
+    "duration_sec": 108.019229,
+    "size_mb": 4.659720420837402,
+    "stratum": "duration_mid__size_low"
+  },
+  {
+    "question": "what color is the hair dryer in the video",
+    "answer": "black",
+    "qid": "v_oKauZV0DHHk_9",
+    "video_name": "oKauZV0DHHk.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/oKauZV0DHHk.mp4",
+    "duration_sec": 160.542766,
+    "size_mb": 23.591325759887695,
+    "stratum": "duration_high__size_high"
+  },
+  {
+    "question": "is there a person wearing a purple dress in the video",
+    "answer": "yes",
+    "qid": "v_pk7LcugO3zg_6",
+    "video_name": "pk7LcugO3zg.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/pk7LcugO3zg.mp4",
+    "duration_sec": 161.309025,
+    "size_mb": 7.5711565017700195,
+    "stratum": "duration_high__size_mid"
+  },
+  {
+    "question": "how difficult is the activity of throwing the hammer in the video",
+    "answer": "simple",
+    "qid": "v_qN0a8-A-5Pg_10",
+    "video_name": "qN0a8-A-5Pg.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/qN0a8-A-5Pg.mp4",
+    "duration_sec": 164.513379,
+    "size_mb": 6.137341499328613,
+    "stratum": "duration_high__size_low"
+  },
+  {
+    "question": "what is the hairstyle of the person in black clothes",
+    "answer": "bald",
+    "qid": "v_qokr0bO828E_6",
+    "video_name": "qokr0bO828E.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/qokr0bO828E.mp4",
+    "duration_sec": 128.161,
+    "size_mb": 21.300556182861328,
+    "stratum": "duration_mid__size_high"
+  },
+  {
+    "question": "what is the hairstyle of the person in white clothes",
+    "answer": "bald",
+    "qid": "v_r-iXUXMP4DY_7",
+    "video_name": "r-iXUXMP4DY.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/r-iXUXMP4DY.mp4",
+    "duration_sec": 113.68,
+    "size_mb": 26.459732055664062,
+    "stratum": "duration_mid__size_high"
+  },
+  {
+    "question": "what does the man in white cook",
+    "answer": "pasta",
+    "qid": "v_rwxSphRRIL8_8",
+    "video_name": "rwxSphRRIL8.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/rwxSphRRIL8.mp4",
+    "duration_sec": 88.468027,
+    "size_mb": 6.55573844909668,
+    "stratum": "duration_mid__size_low"
+  },
+  {
+    "question": "what is under the feet of the person in red",
+    "answer": "runway",
+    "qid": "v_vTbeVoT1Gsg_4",
+    "video_name": "vTbeVoT1Gsg.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/vTbeVoT1Gsg.mp4",
+    "duration_sec": 49.295964,
+    "size_mb": 13.326068878173828,
+    "stratum": "duration_low__size_mid"
+  },
+  {
+    "question": "what is the number of people who drink coffee every day in north america",
+    "answer": "180 million",
+    "qid": "v_vutxJfF0Rlg_8",
+    "video_name": "vutxJfF0Rlg.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/vutxJfF0Rlg.mp4",
+    "duration_sec": 183.600181,
+    "size_mb": 6.912487983703613,
+    "stratum": "duration_high__size_low"
+  },
+  {
+    "question": "is the person wearing a white dress wearing a shoelace in the room",
+    "answer": "yes",
+    "qid": "v_xynscQyItDQ_2",
+    "video_name": "xynscQyItDQ.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/xynscQyItDQ.mp4",
+    "duration_sec": 67.570068,
+    "size_mb": 8.674824714660645,
+    "stratum": "duration_low__size_mid"
+  },
+  {
+    "question": "what happens after the hammer throw",
+    "answer": "rest",
+    "qid": "v_xzQRc682Isc_5",
+    "video_name": "xzQRc682Isc.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/xzQRc682Isc.mp4",
+    "duration_sec": 31.184399,
+    "size_mb": 4.307428359985352,
+    "stratum": "duration_low__size_low"
+  },
+  {
+    "question": "how many people are wearing red pants",
+    "answer": "1",
+    "qid": "v_ybkcKusf-Kg_10",
+    "video_name": "ybkcKusf-Kg.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/ybkcKusf-Kg.mp4",
+    "duration_sec": 62.136599,
+    "size_mb": 21.63083553314209,
+    "stratum": "duration_low__size_high"
+  },
+  {
+    "question": "is the person in red clothes playing outdoors",
+    "answer": "yes",
+    "qid": "v_yfjnahzAPSc_2",
+    "video_name": "yfjnahzAPSc.mp4",
+    "video_path": "/Users/heng/Movies/videos_sampled/yfjnahzAPSc.mp4",
+    "duration_sec": 67.200467,
+    "size_mb": 34.622840881347656,
+    "stratum": "duration_low__size_high"
+  }
+]
