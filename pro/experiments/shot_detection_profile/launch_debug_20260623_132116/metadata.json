@@ -1,5 +1,5 @@
 {
-  "run_id": "20260624_172207",
+  "run_id": "20260624_172450",
   "manifest": "/Users/heng/Documents/skybridge/pro/experiments/activitynet_splits/upload_manifests/profile_videos_upload_manifest_seed20260622.json",
   "run_dir": "/Users/heng/Documents/skybridge/pro/experiments/shot_detection_profile/launch_debug_20260623_132116",
   "videos": 1,
@@ -32,5 +32,5 @@
   "per_video_sleep_sec": 0,
   "batch_size": 10,
   "batch_sleep_sec": 0,
-  "started_at": "2026-06-24T09:22:07.028+00:00"
+  "started_at": "2026-06-24T09:24:50.168+00:00"
 }
