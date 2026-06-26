@@ -1,6 +1,0 @@
-run_id,index,duration_min,sample_fps,repeat_index,video_uri,segments,client_roundtrip_sec,server_elapsed_total_sec,server_split_sample_sec,server_upload_sec,total_frames,http_status,success,submit_utc,done_utc,error_message
-20260607_120839_3a4b5e10,24,6,0.5,3,gs://skyflow-ae/gvi_shot_measure/perfect_planet_6min.mkv,82,217.848013,215.712843,215.577597,0,180,200,1,2026-06-07T12:08:39.322059+00:00,2026-06-07T12:12:17.176630+00:00,
-20260607_120839_3a4b5e10,29,8,0.2,2,gs://skyflow-ae/gvi_shot_measure/perfect_planet_8min.mkv,97,342.620434,337.049774,336.930123,0,96,200,1,2026-06-07T12:12:17.176915+00:00,2026-06-07T12:17:59.807647+00:00,
-20260607_120839_3a4b5e10,34,8,1.0,1,gs://skyflow-ae/gvi_shot_measure/perfect_planet_8min.mkv,97,332.030879,330.967355,330.893399,0,480,200,1,2026-06-07T12:17:59.807850+00:00,2026-06-07T12:23:31.848690+00:00,
-20260607_120839_3a4b5e10,39,10,0.2,3,gs://skyflow-ae/gvi_shot_measure/perfect_planet_10min.mkv,110,416.491836,414.602518,414.525196,0,120,200,1,2026-06-07T12:23:31.848830+00:00,2026-06-07T12:30:28.353179+00:00,
-20260607_120839_3a4b5e10,44,10,1.0,2,gs://skyflow-ae/gvi_shot_measure/perfect_planet_10min.mkv,110,414.095229,412.627037,412.539906,0,600,200,1,2026-06-07T12:30:28.353433+00:00,2026-06-07T12:37:22.461109+00:00,
