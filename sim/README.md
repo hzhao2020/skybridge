@@ -8,7 +8,7 @@ SkyFlow is an offline deployment optimizer for multi-cloud agentic video analyti
 - Heterogeneous endpoints across GCP, AWS, Aliyun, and Azure
 - Quality levels Q1 / Q2 / Q3 with model and sampling mappings
 - Synthetic data generation (replaceable via CSV)
-- Full SAA-CVaR MILP and scenario-adaptive decomposition
+- Full SAA-CVaR MILP and critical-path-aware scenario-path cut generation
 - Modular ablation flags for future experiments
 - Result export and matplotlib plots
 
@@ -43,6 +43,7 @@ python scripts/generate_synthetic_data.py
 ```
 
 This writes CSV files under `data/synthetic/` with deterministic seed `42` by default (see `configs/default.yaml`). Cloud **pricing**, **data conversion ratios** (rho), and **region network** tables live in `configs/pricing.yaml` and `configs/region_network.yaml`; endpoint costs and scenario rho values are derived from them in `src/pricing.py`.
+Generated synthetic CSVs, solver outputs under `results/`, and rendered figures under `fig/` are intentionally ignored by Git to keep the repository lightweight.
 
 **Fixed experiment hyperparameters** (in `configs/default.yaml`):
 
@@ -53,8 +54,7 @@ This writes CSV files under `data/synthetic/` with deterministic seed `42` by de
 | S_test | `num_heldout_scenarios_per_query` | 50 |
 | η | `eta` | 0.05 |
 
-Data generation, measurement latency scaling (`populate_from_measurements`), SAA-CVaR MILP, and post-hoc CVaR evaluation all read these values from config.
-For SkyFlow, each workflow-quality calibration set is split per query into 80% training scenarios and 20% validation scenarios to select one of QBR/QBW/QBB/QBQ by a fixed cost-SVR rule; the final SkyFlow plan is then re-solved on the full calibration set and evaluated once on held-out test scenarios.
+Data generation, measurement latency scaling (`populate_from_measurements`), SAA-CVaR MILP, and post-hoc CVaR evaluation all read these values from config. SkyFlow initializes the active scenario-path cut set as empty and iteratively adds the top violated critical-path cuts.
 
 **Query workload** (in `pricing.yaml` → `queries.csv`): 100 requests per quality level; video duration ~ Uniform(1 min, 30 min); `fps=30`; Workflow 1 : Workflow 2 = 1 : 1. Only **documented** `(operation, provider, region[, model])` combinations appear in `endpoints.csv`.
 
@@ -90,7 +90,7 @@ Runs **6 isolated SkyFlow jobs** (not 12): `workflow1`×`Q1|Q2|Q3` and `workflow
 | Method | Module | Description |
 |--------|--------|-------------|
 | `full_milp` | `src/milp_full.py` | Full SAA-CVaR MILP with latency excess constraints on all query–scenario pairs |
-| `decomposition` | `src/milp_decomposition.py` | SkyFlow with calibration train/validation initializer selection, then final solve on full calibration scenarios |
+| `decomposition` | `src/milp_decomposition.py` | SkyFlow critical-path-aware scenario-path cut generation for the SAA-CVaR MILP |
 | `single_cloud` | `src/baselines.py` | **SC:** one cloud provider; min cost subject to empirical SLA violation threshold |
 | `logical_optimal` | `src/baselines.py` | **LO:** per-node argmax capability μ_k (ignores cross-node effects) |
 | `greedy` | `src/baselines.py` | **Greedy:** topological DAG pass; per-node min expected execution/storage cost with latency tie-break |

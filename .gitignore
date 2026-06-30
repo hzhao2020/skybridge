@@ -87,6 +87,15 @@ service-account-key.json
 # Results and outputs
 *.json.bak
 
+# SkyFlow simulation generated artifacts
+/sim/data/synthetic/*.csv
+!/sim/data/synthetic/.gitkeep
+/sim/results/**
+!/sim/results/
+!/sim/results/.gitkeep
+/sim/fig/**
+/sim/tmp/
+
 tmp.ipynb
 
 # Configuration file with sensitive information

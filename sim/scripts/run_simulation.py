@@ -19,7 +19,6 @@ from src.experiment_protocol import split_scenarios_by_query  # noqa: E402
 from src.baselines import CANONICAL_BASELINE_METHODS, solve_baseline  # noqa: E402
 from src.milp_decomposition import (  # noqa: E402
     solve_decomposition,
-    solve_decomposition_with_initializer_selection,
 )
 from src.milp_full import solve_full_milp  # noqa: E402
 from src.pricing import query_generation_params  # noqa: E402
@@ -89,19 +88,19 @@ def main() -> None:
         "--initial-active-fraction",
         type=float,
         default=None,
-        help="Override decomposition initial active scenario fraction",
+        help="Deprecated; SkyFlow now starts with an empty cut set",
     )
     parser.add_argument(
         "--initial-active-strategy",
         choices=["qbr"],
         default=None,
-        help="Override decomposition initial active scenario selection strategy",
+        help="Deprecated; SkyFlow now starts with an empty cut set",
     )
     parser.add_argument(
         "--active-batch-fraction",
         type=float,
         default=None,
-        help="Override decomposition active scenario batch fraction",
+        help="Override decomposition active cut batch fraction when top_k <= 0",
     )
     parser.add_argument(
         "--eta",
@@ -118,7 +117,7 @@ def main() -> None:
     parser.add_argument(
         "--disable-initializer-selection",
         action="store_true",
-        help="Run decomposition directly with the configured initializer",
+        help="Deprecated no-op; decomposition always uses critical-path cut generation",
     )
     args = parser.parse_args()
 
@@ -183,19 +182,9 @@ def main() -> None:
             workflow, endpoints, queries, train_scenarios, args.quality, config
         )
     elif args.method == "decomposition":
-        has_initializer_override = (
-            args.initial_active_fraction is not None
-            or args.initial_active_strategy is not None
-            or args.active_batch_fraction is not None
+        result = solve_decomposition(
+            workflow, endpoints, queries, train_scenarios, args.quality, config
         )
-        if args.disable_initializer_selection or has_initializer_override:
-            result = solve_decomposition(
-                workflow, endpoints, queries, train_scenarios, args.quality, config
-            )
-        else:
-            result = solve_decomposition_with_initializer_selection(
-                workflow, endpoints, queries, train_scenarios, args.quality, config
-            )
     else:
         result = solve_baseline(
             args.method,

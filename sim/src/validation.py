@@ -463,7 +463,7 @@ def validate_saa_objective(report: ValidationReport) -> None:
 
 
 def validate_decomposition_delta(report: ValidationReport) -> None:
-    """Paper Eq.(scenario_violation_score): Delta = T - Theta - alpha - z_hat."""
+    """Paper Eq.(critical_path_violation_score): Delta = T_pi* - Theta - alpha - z_hat."""
     w1 = get_workflow("workflow1")
     endpoints = load_endpoints()
     cfg = load_solver_config()
@@ -476,7 +476,7 @@ def validate_decomposition_delta(report: ValidationReport) -> None:
         return
     report.add("decomposition returns plan", True, f"iter={result.num_iterations}")
 
-    # After convergence, max violation on inactive should be <= tol
+    # After convergence, every scenario critical-path cut should be separated.
     if result.convergence_history:
         last = result.convergence_history[-1]
         report.add(
@@ -703,7 +703,7 @@ def validate_endpoints_use_measurements(report: ValidationReport) -> None:
 
 
 def validate_decomposition_delta_eq(report: ValidationReport) -> None:
-    """Paper Eq.(scenario_violation_score): Delta = T - Theta - alpha - z_hat."""
+    """Paper Eq.(critical_path_violation_score): Delta = T_pi* - Theta - alpha - z_hat."""
     w1 = get_workflow("workflow1")
     endpoints = load_endpoints()
     cfg = load_solver_config()
@@ -712,26 +712,21 @@ def validate_decomposition_delta_eq(report: ValidationReport) -> None:
 
     artifacts = build_milp(
         w1, endpoints, queries, scenarios, "Q1", cfg,
-        active_scenario_keys={(queries[0].query_id, scenarios[0].scenario_id)},
+        active_path_cuts=set(),
     )
     x_sol, _, alpha_val, z_sol, status, _, _ = solve_model(artifacts)
     if not x_sol:
-        report.add("Eq.(scenario_violation_score)", False, status)
+        report.add("Eq.(critical_path_violation_score)", False, status)
         return
 
     assignment = extract_deployment(artifacts, x_sol)
     network_index = artifacts.network_index
     endpoint_map = artifacts.endpoint_by_id
-    inactive = {
-        (q.query_id, s.scenario_id)
-        for q in queries for s in scenarios
-        if (q.query_id, s.scenario_id) not in artifacts.active_keys
-    }
-    if not inactive:
-        report.add("Eq.(scenario_violation_score)", True, "no inactive scenarios to check")
+    if artifacts.active_path_cuts:
+        report.add("Eq.(critical_path_violation_score)", False, "expected empty initial cut set")
         return
 
-    key = next(iter(inactive))
+    key = (queries[0].query_id, scenarios[0].scenario_id)
     q = next(qx for qx in queries if qx.query_id == key[0])
     s = next(sx for sx in scenarios if sx.scenario_id == key[1])
     assign_full = {**assignment, **artifacts.virtual_assignment}
@@ -742,7 +737,7 @@ def validate_decomposition_delta_eq(report: ValidationReport) -> None:
     delta_impl = t_val - q.sla_sec - alpha_val - z_hat
     delta_paper = t_val - q.sla_sec - alpha_val - z_hat
     report.add(
-        "Eq.(scenario_violation_score) Delta = T - Theta - alpha - z",
+        "Eq.(critical_path_violation_score) Delta = T_pi* - Theta - alpha - z",
         abs(delta_impl - delta_paper) < 1e-9,
         f"Delta={delta_impl:.6f}, T={t_val:.4f}, SLA={q.sla_sec:.4f}",
     )

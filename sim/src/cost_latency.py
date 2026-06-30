@@ -207,6 +207,156 @@ def critical_path_latency(
     return max(latencies) if latencies else 0.0
 
 
+def critical_path(
+    workflow: WorkflowDAG,
+    assignment: dict[str, Endpoint],
+    endpoint_map: dict[str, Endpoint],
+    network_index: dict[tuple[str, str], NetworkLink],
+    query: Query,
+    scenario: Scenario,
+    ablation: AblationConfig,
+) -> tuple[list[str], float]:
+    """Return the source-to-sink critical path under a fixed deployment."""
+    source = "ClientSource"
+    sink = "ClientSink"
+    if source not in workflow.node_names() or sink not in workflow.node_names():
+        raise ValueError("Workflow must contain ClientSource and ClientSink")
+
+    input_sizes = propagate_data_sizes(workflow, query, scenario)
+    output_sizes = output_data_sizes(input_sizes, scenario, workflow, query)
+    node_latency = {
+        node: _node_latency(
+            node,
+            workflow,
+            assignment,
+            input_sizes,
+            output_sizes,
+            scenario,
+            query,
+        )
+        for node in workflow.node_names()
+    }
+
+    order = _topological_order(workflow)
+    dist = {node: float("-inf") for node in workflow.node_names()}
+    pred: dict[str, str | None] = {node: None for node in workflow.node_names()}
+    dist[source] = node_latency[source]
+
+    for src in order:
+        if dist[src] == float("-inf"):
+            continue
+        for dst in workflow.successors(src):
+            edge_lat = _edge_latency(
+                src,
+                dst,
+                workflow,
+                assignment,
+                endpoint_map,
+                network_index,
+                output_sizes,
+                scenario,
+                query,
+                ablation,
+            )
+            cand = dist[src] + edge_lat + node_latency[dst]
+            if cand > dist[dst]:
+                dist[dst] = cand
+                pred[dst] = src
+
+    if dist[sink] == float("-inf"):
+        return [], 0.0
+
+    path: list[str] = []
+    cur: str | None = sink
+    while cur is not None:
+        path.append(cur)
+        cur = pred[cur]
+    path.reverse()
+    return path, dist[sink]
+
+
+def _topological_order(workflow: WorkflowDAG) -> list[str]:
+    nodes = workflow.node_names()
+    indegree = {node: 0 for node in nodes}
+    for edge in workflow.edges:
+        indegree[edge.dst] += 1
+
+    queue = [node for node in nodes if indegree[node] == 0]
+    order: list[str] = []
+    while queue:
+        node = queue.pop(0)
+        order.append(node)
+        for succ in workflow.successors(node):
+            indegree[succ] -= 1
+            if indegree[succ] == 0:
+                queue.append(succ)
+
+    if len(order) != len(nodes):
+        raise ValueError(f"Workflow {workflow.name} is not a DAG")
+    return order
+
+
+def _node_latency(
+    node: str,
+    workflow: WorkflowDAG,
+    assignment: dict[str, Endpoint],
+    input_sizes: dict[str, float],
+    output_sizes: dict[str, float],
+    scenario: Scenario,
+    query: Query,
+) -> float:
+    if workflow.is_virtual(node):
+        return 0.0
+    ep = assignment.get(node)
+    if ep is None:
+        return 0.0
+    sampled = sampled_execution_latency(ep, query, scenario)
+    if sampled is not None:
+        return sampled
+    mult = scenario.exec_latency_multiplier.get(ep.endpoint_id, scenario.exec_stress)
+    return execution_latency(
+        ep,
+        input_sizes.get(node, 0.0),
+        output_sizes.get(node, 0.0),
+        mult,
+    )
+
+
+def _edge_latency(
+    src: str,
+    dst: str,
+    workflow: WorkflowDAG,
+    assignment: dict[str, Endpoint],
+    endpoint_map: dict[str, Endpoint],
+    network_index: dict[tuple[str, str], NetworkLink],
+    output_sizes: dict[str, float],
+    scenario: Scenario,
+    query: Query,
+    ablation: AblationConfig,
+) -> float:
+    if not ablation.enable_client_upload_download:
+        if src == "ClientSource" or dst == "ClientSink":
+            return 0.0
+    src_ep = _resolve_endpoint(src, assignment, endpoint_map, workflow)
+    dst_ep = _resolve_endpoint(dst, assignment, endpoint_map, workflow)
+    if src_ep is None or dst_ep is None:
+        return 0.0
+    link = network_index.get((src_ep.endpoint_id, dst_ep.endpoint_id))
+    if link is None:
+        return 0.0
+    pair_key = f"{src_ep.endpoint_id}->{dst_ep.endpoint_id}"
+    bw_mult = scenario.bandwidth_multiplier.get(pair_key, scenario.bw_stress)
+    rtt_mult = scenario.rtt_multiplier.get(pair_key, scenario.rtt_stress)
+    transferred = edge_transfer_size(src, dst, output_sizes, query)
+    return network_latency(
+        link,
+        transferred,
+        bw_mult,
+        rtt_mult,
+        ablation.enable_network_latency,
+    )
+
+
 def total_cost(
     workflow: WorkflowDAG,
     assignment: dict[str, Endpoint],

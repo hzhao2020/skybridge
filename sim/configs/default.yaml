@@ -9,6 +9,8 @@ regions_per_provider: all
 num_queries_per_workflow_quality: 1000
 num_queries_per_quality: 1000
 top_k: 10
+# Legacy initializer knobs are ignored by the current SkyFlow algorithm, which
+# starts with an empty active scenario-path cut set C^(0).
 initial_active_fraction: 0.30
 initial_active_strategy: qbr
 initializer_validation_fraction: 0.20

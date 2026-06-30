@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare full SAA-CVaR MILP with scenario-adaptive decomposition."""
+"""Compare full SAA-CVaR MILP with critical-path scenario-path cut generation."""
 
 from __future__ import annotations
 

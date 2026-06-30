@@ -69,7 +69,10 @@ def _plot_convergence(result: OptimizationResult, path: Path) -> None:
     iters = [h["iteration"] for h in hist]
     max_viol = [h["max_violation"] for h in hist]
     obj = [h["objective_value"] for h in hist]
-    active = [h["active_scenario_count"] for h in hist]
+    active = [
+        h.get("active_path_cut_count", h["active_scenario_count"])
+        for h in hist
+    ]
 
     fig, axes = plt.subplots(1, 3, figsize=(14, 4))
 
@@ -85,8 +88,8 @@ def _plot_convergence(result: OptimizationResult, path: Path) -> None:
 
     axes[2].plot(iters, active, marker="o", color="green")
     axes[2].set_xlabel("Iteration")
-    axes[2].set_ylabel("Active scenarios")
-    axes[2].set_title("Active scenario count")
+    axes[2].set_ylabel("Active cuts")
+    axes[2].set_title("Active path-cut count")
 
     fig.suptitle(f"Decomposition convergence ({result.workflow}, {result.quality_level})")
     fig.tight_layout()

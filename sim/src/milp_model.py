@@ -44,6 +44,7 @@ class MilpArtifacts:
     paths: list[list[str]]
     qs_pairs: list[tuple[Query, Scenario]]
     active_keys: set[tuple[str, str]]
+    active_path_cuts: set[tuple[str, str, tuple[str, ...]]]
     workflow: WorkflowDAG
     config: SolverConfig
     virtual_assignment: dict[str, Endpoint] = field(default_factory=dict)
@@ -59,6 +60,7 @@ def build_milp(
     quality_level: str,
     config: SolverConfig,
     active_scenario_keys: set[tuple[str, str]] | None = None,
+    active_path_cuts: set[tuple[str, str, tuple[str, ...]]] | None = None,
 ) -> MilpArtifacts:
     """Build SkyFlow MILP with optional restricted latency constraints."""
     ablation = config.ablation
@@ -87,16 +89,32 @@ def build_milp(
         for s in scenario_by_q.get(q.query_id, []):
             qs_pairs.append((q, s))
 
-    if active_scenario_keys is None:
+    paths = enumerate_source_to_sink_paths(workflow)
+    all_path_cuts = {
+        (q.query_id, s.scenario_id, tuple(path))
+        for q, s in qs_pairs
+        for path in paths
+    }
+
+    if active_path_cuts is not None:
+        active_cuts = set(active_path_cuts) & all_path_cuts
+        active_keys = {(qid, sid) for qid, sid, _ in active_cuts}
+    elif active_scenario_keys is None:
         active_keys = {(q.query_id, s.scenario_id) for q, s in qs_pairs}
+        active_cuts = all_path_cuts
     else:
         active_keys = active_scenario_keys
+        active_cuts = {
+            (q.query_id, s.scenario_id, tuple(path))
+            for q, s in qs_pairs
+            if (q.query_id, s.scenario_id) in active_keys
+            for path in paths
+        }
     active_qs_pairs = [
         (q, s) for q, s in qs_pairs if (q.query_id, s.scenario_id) in active_keys
     ]
 
     network_index = {(l.src_endpoint_id, l.dst_endpoint_id): l for l in _load_network_for_build()}
-    paths = enumerate_source_to_sink_paths(workflow)
 
     model = gp.Model("skyflow")
     model.Params.OutputFlag = 0
@@ -156,7 +174,7 @@ def build_milp(
 
     alpha = model.addVar(lb=-GRB.INFINITY, name="alpha")
     z: dict[tuple[str, str], gp.Var] = {}
-    for q, s in active_qs_pairs:
+    for q, s in qs_pairs:
         z[q.query_id, s.scenario_id] = model.addVar(lb=0, name=f"z_{q.query_id}_{s.scenario_id}")
 
     cost_expr = _build_cost_expression(
@@ -184,23 +202,34 @@ def build_milp(
 
     if ablation.enable_cvar:
         eta = config.eta
+        if qs_pairs:
+            model.addConstr(
+                alpha >= -max(q.sla_sec for q, _ in qs_pairs),
+                name="alpha_support_lower_bound",
+            )
         model.addConstr(
             alpha + (1.0 / (eta * n_qs)) * gp.quicksum(z.values()) <= 0,
             name="cvar_constraint",
         )
 
+        active_cuts_by_qs: dict[tuple[str, str], set[tuple[str, ...]]] = {}
+        for qid, sid, path in active_cuts:
+            active_cuts_by_qs.setdefault((qid, sid), set()).add(path)
+
+        path_index = {tuple(path): idx for idx, path in enumerate(paths)}
         for q, s in active_qs_pairs:
             key = (q.query_id, s.scenario_id)
             input_sizes = propagate_data_sizes(workflow, q, s)
             output_sizes = output_data_sizes(input_sizes, s, workflow, q)
-            for path in paths:
+            for path_tuple in active_cuts_by_qs.get(key, set()):
+                path = list(path_tuple)
                 path_expr = _path_latency_expr(
                     path, workflow, x, y, node_candidates, virtual_assignment,
                     network_index, input_sizes, output_sizes, q, s, ablation,
                 )
                 model.addConstr(
                     z[key] >= path_expr - q.sla_sec - alpha,
-                    name=f"lat_excess_{key}_{hash(tuple(path)) % 10000}",
+                    name=f"lat_excess_{q.query_id}_{s.scenario_id}_{path_index[path_tuple]}",
                 )
 
     return MilpArtifacts(
@@ -215,6 +244,7 @@ def build_milp(
         paths=paths,
         qs_pairs=qs_pairs,
         active_keys=active_keys,
+        active_path_cuts=active_cuts,
         workflow=workflow,
         config=config,
         virtual_assignment=virtual_assignment,

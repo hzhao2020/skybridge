@@ -153,6 +153,7 @@ class OptimizationResult(BaseModel):
     status: str
     num_iterations: int = 1
     active_scenario_count: int = 0
+    active_path_cut_count: int = 0
     selected_initializer: str | None = None
     initializer_selection_history: list[dict[str, Any]] = Field(default_factory=list)
     convergence_history: list[dict[str, Any]] = Field(default_factory=list)
@@ -164,7 +165,9 @@ class ConvergenceRecord(BaseModel):
     quality_level: str
     iteration: int
     active_scenario_count: int
+    active_path_cut_count: int = 0
     objective_value: float
     max_violation: float
     num_violated_scenarios: int
+    num_violated_cuts: int = 0
     runtime_sec: float

@@ -89,5 +89,6 @@ def solve_full_milp(
         status=status,
         num_iterations=1,
         active_scenario_count=len(artifacts.qs_pairs),
+        active_path_cut_count=len(artifacts.active_path_cuts),
         per_query_scenario_metrics=metrics["per_qs"],
     )

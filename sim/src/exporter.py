@@ -82,14 +82,20 @@ def export_results(
         conv_df = pd.DataFrame(result.convergence_history)
         conv_df["workflow"] = result.workflow
         conv_df["quality_level"] = result.quality_level
+        if "active_path_cut_count" not in conv_df:
+            conv_df["active_path_cut_count"] = conv_df["active_scenario_count"]
+        if "num_violated_cuts" not in conv_df:
+            conv_df["num_violated_cuts"] = conv_df["num_violated_scenarios"]
         cols = [
             "workflow",
             "quality_level",
             "iteration",
             "active_scenario_count",
+            "active_path_cut_count",
             "objective_value",
             "max_violation",
             "num_violated_scenarios",
+            "num_violated_cuts",
             "runtime_sec",
         ]
         conv_out = conv_df[cols]
