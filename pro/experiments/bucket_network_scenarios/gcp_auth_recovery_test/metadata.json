@@ -1,0 +1,60 @@
+{
+  "run_id": "20260625_110332",
+  "created_at": "2026-06-25T03:03:32.876+00:00",
+  "host": "HengPC",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "python": "3.11.7",
+  "buckets_config": "D:\\Document\\proj\\SkyBridge\\src\\pro\\configs\\buckets.json",
+  "node_ids": [
+    "gcp_asia_east1"
+  ],
+  "nodes": [
+    {
+      "node_id": "gcp_asia_east1",
+      "provider": "gcp",
+      "region": "asia-east1",
+      "bucket": "skyflow-prototype-gcp-asia-east1"
+    }
+  ],
+  "sizes_mib": [
+    1
+  ],
+  "rounds": 1,
+  "seed": 20260624,
+  "timeout_sec": 900,
+  "sleep_sec": 0.0,
+  "round_pause_sec": 0,
+  "prepare_attempts": 5,
+  "network_mode": "direct",
+  "cli_paths": {
+    "gcp": "D:\\Program Files (x86)\\Google\\Cloud SDK\\google-cloud-sdk\\bin\\gcloud.CMD"
+  },
+  "plan": {
+    "nodes": [
+      {
+        "node_id": "gcp_asia_east1",
+        "provider": "gcp",
+        "region": "asia-east1",
+        "bucket": "skyflow-prototype-gcp-asia-east1"
+      }
+    ],
+    "sizes_mib": [
+      1
+    ],
+    "rounds": 1,
+    "transfers_per_round": 2,
+    "total_transfers": 2,
+    "upload_gib": 0.0009765625,
+    "download_gib": 0.0009765625,
+    "total_transfer_gib": 0.001953125,
+    "network_mode": "direct",
+    "cli_paths": {
+      "gcp": "D:\\Program Files (x86)\\Google\\Cloud SDK\\google-cloud-sdk\\bin\\gcloud.CMD"
+    },
+    "missing_clis": []
+  },
+  "method": "Sequential wall-clock cloud CLI object transfers from the local relay. Each round covers every selected node, direction, and exact payload size in randomized order. Raw observations, including failures, are retained and aligned by round for joint resampling. Bucket network mode: direct.",
+  "last_completed_round": 1,
+  "updated_at": "2026-06-25T03:03:56.181+00:00",
+  "finished_at": "2026-06-25T03:03:56.181+00:00"
+}

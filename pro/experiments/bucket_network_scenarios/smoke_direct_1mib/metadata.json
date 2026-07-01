@@ -1,0 +1,207 @@
+{
+  "run_id": "20260624_231107",
+  "created_at": "2026-06-24T15:11:07.360+00:00",
+  "host": "HengPC",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "python": "3.11.7",
+  "buckets_config": "D:\\Document\\proj\\SkyBridge\\src\\pro\\configs\\buckets.json",
+  "node_ids": [
+    "gcp_us_east1",
+    "gcp_us_west1",
+    "gcp_europe_west1",
+    "gcp_asia_east1",
+    "aws_us_west_2",
+    "aws_us_east_2",
+    "aws_ap_southeast_1",
+    "aws_eu_central_1",
+    "aliyun_cn_shanghai",
+    "aliyun_cn_beijing",
+    "aliyun_us_east_1",
+    "aliyun_ap_southeast_1"
+  ],
+  "nodes": [
+    {
+      "node_id": "gcp_us_east1",
+      "provider": "gcp",
+      "region": "us-east1",
+      "bucket": "skyflow-prototype-gcp-us-east1"
+    },
+    {
+      "node_id": "gcp_us_west1",
+      "provider": "gcp",
+      "region": "us-west1",
+      "bucket": "skyflow-prototype-gcp-us-west1"
+    },
+    {
+      "node_id": "gcp_europe_west1",
+      "provider": "gcp",
+      "region": "europe-west1",
+      "bucket": "skyflow-prototype-gcp-europe-west1"
+    },
+    {
+      "node_id": "gcp_asia_east1",
+      "provider": "gcp",
+      "region": "asia-east1",
+      "bucket": "skyflow-prototype-gcp-asia-east1"
+    },
+    {
+      "node_id": "aws_us_west_2",
+      "provider": "aws",
+      "region": "us-west-2",
+      "bucket": "skyflow-prototype-aws-us-west-2"
+    },
+    {
+      "node_id": "aws_us_east_2",
+      "provider": "aws",
+      "region": "us-east-2",
+      "bucket": "skyflow-prototype-aws-us-east-2"
+    },
+    {
+      "node_id": "aws_ap_southeast_1",
+      "provider": "aws",
+      "region": "ap-southeast-1",
+      "bucket": "skyflow-prototype-aws-ap-southeast-1"
+    },
+    {
+      "node_id": "aws_eu_central_1",
+      "provider": "aws",
+      "region": "eu-central-1",
+      "bucket": "skyflow-prototype-aws-eu-central-1"
+    },
+    {
+      "node_id": "aliyun_cn_shanghai",
+      "provider": "aliyun",
+      "region": "cn-shanghai",
+      "bucket": "skyflow-prototype-aliyun-cn-shanghai"
+    },
+    {
+      "node_id": "aliyun_cn_beijing",
+      "provider": "aliyun",
+      "region": "cn-beijing",
+      "bucket": "skyflow-prototype-aliyun-cn-beijing"
+    },
+    {
+      "node_id": "aliyun_us_east_1",
+      "provider": "aliyun",
+      "region": "us-east-1",
+      "bucket": "skyflow-prototype-aliyun-us-east-1"
+    },
+    {
+      "node_id": "aliyun_ap_southeast_1",
+      "provider": "aliyun",
+      "region": "ap-southeast-1",
+      "bucket": "skyflow-prototype-aliyun-ap-southeast-1"
+    }
+  ],
+  "sizes_mib": [
+    1
+  ],
+  "rounds": 1,
+  "seed": 20260624,
+  "timeout_sec": 900,
+  "sleep_sec": 0.2,
+  "round_pause_sec": 0,
+  "prepare_attempts": 5,
+  "network_mode": "direct",
+  "cli_paths": {
+    "aliyun": "C:\\Users\\sjtuh\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Alibaba.AlibabaCloudCLI_Microsoft.Winget.Source_8wekyb3d8bbwe\\aliyun.exe",
+    "aws": "D:\\Program Files\\Amazon\\AWSCLIV2\\aws.EXE",
+    "gcp": "D:\\Program Files (x86)\\Google\\Cloud SDK\\google-cloud-sdk\\bin\\gcloud.CMD"
+  },
+  "plan": {
+    "nodes": [
+      {
+        "node_id": "gcp_us_east1",
+        "provider": "gcp",
+        "region": "us-east1",
+        "bucket": "skyflow-prototype-gcp-us-east1"
+      },
+      {
+        "node_id": "gcp_us_west1",
+        "provider": "gcp",
+        "region": "us-west1",
+        "bucket": "skyflow-prototype-gcp-us-west1"
+      },
+      {
+        "node_id": "gcp_europe_west1",
+        "provider": "gcp",
+        "region": "europe-west1",
+        "bucket": "skyflow-prototype-gcp-europe-west1"
+      },
+      {
+        "node_id": "gcp_asia_east1",
+        "provider": "gcp",
+        "region": "asia-east1",
+        "bucket": "skyflow-prototype-gcp-asia-east1"
+      },
+      {
+        "node_id": "aws_us_west_2",
+        "provider": "aws",
+        "region": "us-west-2",
+        "bucket": "skyflow-prototype-aws-us-west-2"
+      },
+      {
+        "node_id": "aws_us_east_2",
+        "provider": "aws",
+        "region": "us-east-2",
+        "bucket": "skyflow-prototype-aws-us-east-2"
+      },
+      {
+        "node_id": "aws_ap_southeast_1",
+        "provider": "aws",
+        "region": "ap-southeast-1",
+        "bucket": "skyflow-prototype-aws-ap-southeast-1"
+      },
+      {
+        "node_id": "aws_eu_central_1",
+        "provider": "aws",
+        "region": "eu-central-1",
+        "bucket": "skyflow-prototype-aws-eu-central-1"
+      },
+      {
+        "node_id": "aliyun_cn_shanghai",
+        "provider": "aliyun",
+        "region": "cn-shanghai",
+        "bucket": "skyflow-prototype-aliyun-cn-shanghai"
+      },
+      {
+        "node_id": "aliyun_cn_beijing",
+        "provider": "aliyun",
+        "region": "cn-beijing",
+        "bucket": "skyflow-prototype-aliyun-cn-beijing"
+      },
+      {
+        "node_id": "aliyun_us_east_1",
+        "provider": "aliyun",
+        "region": "us-east-1",
+        "bucket": "skyflow-prototype-aliyun-us-east-1"
+      },
+      {
+        "node_id": "aliyun_ap_southeast_1",
+        "provider": "aliyun",
+        "region": "ap-southeast-1",
+        "bucket": "skyflow-prototype-aliyun-ap-southeast-1"
+      }
+    ],
+    "sizes_mib": [
+      1
+    ],
+    "rounds": 1,
+    "transfers_per_round": 24,
+    "total_transfers": 24,
+    "upload_gib": 0.01171875,
+    "download_gib": 0.01171875,
+    "total_transfer_gib": 0.0234375,
+    "network_mode": "direct",
+    "cli_paths": {
+      "aliyun": "C:\\Users\\sjtuh\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Alibaba.AlibabaCloudCLI_Microsoft.Winget.Source_8wekyb3d8bbwe\\aliyun.exe",
+      "aws": "D:\\Program Files\\Amazon\\AWSCLIV2\\aws.EXE",
+      "gcp": "D:\\Program Files (x86)\\Google\\Cloud SDK\\google-cloud-sdk\\bin\\gcloud.CMD"
+    },
+    "missing_clis": []
+  },
+  "method": "Sequential wall-clock cloud CLI object transfers from the local relay. Each round covers every selected node, direction, and exact payload size in randomized order. Raw observations, including failures, are retained and aligned by round for joint resampling. Bucket network mode: direct.",
+  "last_completed_round": 1,
+  "updated_at": "2026-06-24T15:15:39.073+00:00",
+  "finished_at": "2026-06-24T15:15:39.074+00:00"
+}

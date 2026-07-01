@@ -4,3 +4,7 @@ __pycache__/
 runs/
 build/
 experiments/shot_detection_profile/latest
+/.ossutil_checkpoint/
+/experiments/network_payloads/
+/experiments/bucket_network_scenarios/*.pid
+/experiments/bucket_network_scenarios/**/auth_recovery_backup_*/
