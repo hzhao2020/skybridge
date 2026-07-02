@@ -58,16 +58,22 @@ def main() -> None:
     records: list[dict] = []
     new_sla: dict[str, float] = {}
     methods = CANONICAL_BASELINE_METHODS
-    for workflow_name in ("workflow1", "workflow2"):
+    for workflow_name in ("workflow1", "workflow2", "workflow3", "workflow4"):
         workflow = get_workflow(workflow_name)
         for quality in ("Q1", "Q2", "Q3"):
             logging.info("Calibrating %s %s", workflow_name, quality)
             queries = load_queries(quality_level=quality, workflow=workflow_name)[: args.query_count]
             scenarios = load_scenarios(query_ids=[q.query_id for q in queries])
-            calibration_scenarios, _ = split_scenarios_by_query(
-                scenarios,
-                calibration_count=args.calibration_count,
-            )
+            by_query: dict[str, list] = {}
+            for scenario in scenarios:
+                by_query.setdefault(scenario.query_id, []).append(scenario)
+            calibration_scenarios = []
+            for query_id in sorted(by_query):
+                calibration_scenarios.extend(
+                    sorted(by_query[query_id], key=lambda s: s.scenario_id)[
+                        : args.calibration_count
+                    ]
+                )
             scenario_by_q: dict[str, list] = {}
             for s in calibration_scenarios:
                 scenario_by_q.setdefault(s.query_id, []).append(s)

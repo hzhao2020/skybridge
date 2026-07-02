@@ -1,0 +1,32 @@
+name: workflow4
+description: Retrieval-Augmented Multi-Modal Evidence
+nodes:
+  - ClientSource
+  - Shot Detection
+  - Split & Sample
+  - Frame Caption
+  - OCR
+  - Label Detection
+  - Speech Transcription
+  - Database
+  - Reason
+  - ClientSink
+edges:
+  - [ClientSource, Shot Detection]
+  - [Shot Detection, Split & Sample]
+  - [Split & Sample, Frame Caption]
+  - [Frame Caption, Database]
+  - [Split & Sample, OCR]
+  - [OCR, Database]
+  - [Split & Sample, Label Detection]
+  - [Label Detection, Database]
+  - [ClientSource, Speech Transcription]
+  - [Speech Transcription, Database]
+  - [Database, Reason]
+  - [Reason, ClientSink]
+virtual_nodes:
+  - ClientSource
+  - ClientSink
+query_metadata_targets:
+  - Database
+  - Reason

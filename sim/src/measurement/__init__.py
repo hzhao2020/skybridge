@@ -12,8 +12,10 @@ from . import (
 )
 
 MEASURED_OPS = {
+    "Sample": video_split.build_params,
     "Shot Detection": shot_detection.build_params,
-    "Video Split & Sample": video_split.build_params,
+    "Split & Sample": video_split.build_params,
+    "Temporal Grounding": database.build_params,
     "Speech Transcription": speech_transcription.build_params,
     "OCR": ocr.build_params,
     "Label Detection": label_detection.build_params,

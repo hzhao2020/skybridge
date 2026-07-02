@@ -96,7 +96,7 @@ def _node_output_size(
     if workflow.is_virtual(node):
         return sizes.get(node, 0.0)
     if (
-        node == "Video Caption"
+        node == "Frame Caption"
         and scenario.caption_output_tokens_per_frame is not None
         and query is not None
     ):
@@ -107,7 +107,7 @@ def _node_output_size(
         )
     if node == "Database" and scenario.database_output_tokens is not None:
         return scenario.database_output_tokens / tokens_per_mb()
-    if node == "Q/A" and scenario.q_a_output_tokens is not None:
+    if node == "Reason" and scenario.q_a_output_tokens is not None:
         return scenario.q_a_output_tokens / tokens_per_mb()
     rho = scenario.rho.get(node, default_rho)
     return sizes.get(node, 0.0) * rho

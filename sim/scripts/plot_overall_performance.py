@@ -22,12 +22,9 @@ sys.path.insert(0, str(ROOT))
 from src.config import RESULTS_DIR, load_default_config  # noqa: E402
 
 SETTINGS = [
-    ("workflow1_Q1", "W1-Q1"),
-    ("workflow1_Q2", "W1-Q2"),
-    ("workflow1_Q3", "W1-Q3"),
-    ("workflow2_Q1", "W2-Q1"),
-    ("workflow2_Q2", "W2-Q2"),
-    ("workflow2_Q3", "W2-Q3"),
+    (f"workflow{workflow}_Q{quality}", f"W{workflow}-Q{quality}")
+    for workflow in range(1, 5)
+    for quality in range(1, 4)
 ]
 METHODS = [
     ("decomposition", "SkyFlow"),

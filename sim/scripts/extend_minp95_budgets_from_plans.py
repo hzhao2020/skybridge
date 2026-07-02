@@ -87,7 +87,7 @@ def main() -> None:
         for _, row in existing.iterrows()
     }
 
-    for workflow_name in ("workflow1", "workflow2"):
+    for workflow_name in ("workflow1", "workflow2", "workflow3", "workflow4"):
         workflow = get_workflow(workflow_name)
         for quality in ("Q1", "Q2", "Q3"):
             queries = [

@@ -77,11 +77,12 @@ def solve_decomposition(
         for s in scenario_by_q.get(q.query_id, []):
             qs_pairs.append((q, s))
 
-    batch = (
-        config.top_k
-        if config.top_k > 0
-        else max(1, math.ceil(len(qs_pairs) * config.active_batch_fraction))
-    )
+    if config.top_k > 0:
+        batch = config.top_k
+    else:
+        if config.active_batch_fraction <= 0:
+            raise ValueError("active_batch_fraction must be positive when top_k <= 0")
+        batch = max(1, math.ceil(len(qs_pairs) * config.active_batch_fraction))
     tol = config.violation_tolerance
     max_iter = config.max_iterations
 
@@ -93,6 +94,7 @@ def solve_decomposition(
     status = "UNKNOWN"
     alpha_val = 0.0
     completed_iterations = 0
+    converged = False
 
     network_links = load_network_links()
     network_index = {(l.src_endpoint_id, l.dst_endpoint_id): l for l in network_links}
@@ -136,27 +138,34 @@ def solve_decomposition(
             last_feasible_assignment = assignment
         elif last_feasible_assignment is not None:
             logger.warning(
-                "Iteration %d infeasible (status=%s); reusing last feasible plan",
+                "Iteration %d failed (status=%s); keeping last feasible restricted plan "
+                "only for diagnostics",
                 iteration,
                 status,
             )
             assignment = last_feasible_assignment
+            status = f"{status}_AFTER_{len(active_path_cuts)}_ACTIVE_CUTS"
+            artifacts.model.dispose()
+            gc.collect()
             if stop_on_infeasible:
-                status = f"{status}_REUSED_LAST_FEASIBLE"
-                artifacts.model.dispose()
-                gc.collect()
                 break
+            raise RuntimeError(
+                f"Decomposition master failed at iteration {iteration} "
+                f"with {len(active_path_cuts)} active cuts (status={status})"
+            )
         else:
             artifacts.model.dispose()
             gc.collect()
             raise RuntimeError(f"Decomposition infeasible at iteration {iteration} (status={status})")
 
-        violations: list[tuple[tuple[str, str, tuple[str, ...]], float]] = []
-        max_viol = 0.0
+        new_violated_cuts: list[tuple[tuple[str, str, tuple[str, ...]], float]] = []
+        max_critical_path_violation = 0.0
+        max_new_cut_violation = 0.0
+        active_cut_violation_count = 0
 
+        assign_full = {**assignment, **virtual_map}
         for q, s in qs_pairs:
             key = (q.query_id, s.scenario_id)
-            assign_full = {**assignment, **virtual_map}
             path, t_val = critical_path(
                 workflow,
                 assign_full,
@@ -168,11 +177,21 @@ def solve_decomposition(
             )
             z_hat = z_sol.get(key, 0.0)
             delta = t_val - q.sla_sec - alpha_val - z_hat
-            max_viol = max(max_viol, delta)
-            if delta > tol:
-                violations.append(((q.query_id, s.scenario_id, tuple(path)), delta))
+            max_critical_path_violation = max(max_critical_path_violation, delta)
+            if delta <= tol:
+                continue
+            cut = (q.query_id, s.scenario_id, tuple(path))
+            if cut in active_path_cuts:
+                active_cut_violation_count += 1
+                continue
+            if cut[2]:
+                new_violated_cuts.append((cut, delta))
+                max_new_cut_violation = max(max_new_cut_violation, delta)
 
         active_keys = {(qid, sid) for qid, sid, _ in active_path_cuts}
+        num_new_violated_scenarios = len(
+            {(qid, sid) for qid, sid, _ in (cut for cut, _ in new_violated_cuts)}
+        )
         convergence.append(
             ConvergenceRecord(
                 workflow=workflow.name,
@@ -181,37 +200,37 @@ def solve_decomposition(
                 active_scenario_count=len(active_keys),
                 active_path_cut_count=len(active_path_cuts),
                 objective_value=obj,
-                max_violation=max(max_viol, 0.0),
-                num_violated_scenarios=len(violations),
-                num_violated_cuts=len(violations),
+                max_violation=max(max_critical_path_violation, 0.0),
+                max_new_cut_violation=max(max_new_cut_violation, 0.0),
+                num_violated_scenarios=num_new_violated_scenarios,
+                num_violated_cuts=len(new_violated_cuts),
+                active_cut_violation_count=active_cut_violation_count,
+                active_cut_batch_size=batch,
                 runtime_sec=runtime,
             )
         )
 
-        if not violations:
+        if not new_violated_cuts:
             logger.info("Decomposition converged at iteration %d", iteration)
+            converged = True
             artifacts.model.dispose()
             gc.collect()
             break
 
-        violations.sort(key=lambda x: x[1], reverse=True)
-        new_cuts = [
-            cut for cut, _ in violations
-            if cut not in active_path_cuts and cut[2]
-        ]
-        if not new_cuts:
-            logger.warning(
-                "Decomposition stopped with violated active cuts only at iteration %d",
-                iteration,
-            )
-            artifacts.model.dispose()
-            gc.collect()
-            break
+        new_violated_cuts.sort(key=lambda x: x[1], reverse=True)
+        new_cuts = [cut for cut, _ in new_violated_cuts[:batch]]
         for cut in new_cuts[:batch]:
             active_path_cuts.add(cut)
         active_keys = {(qid, sid) for qid, sid, _ in active_path_cuts}
         artifacts.model.dispose()
         gc.collect()
+
+    if not converged:
+        status = f"{status}_MAX_ITERATIONS_REACHED"
+        logger.warning(
+            "Decomposition reached max_iterations=%d before satisfying the separation tolerance",
+            max_iter,
+        )
 
     metrics = evaluate_deployment(
         workflow=workflow,

@@ -14,7 +14,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parent.parent
 
 ETAS = ("0.075", "0.10", "0.125", "0.15")
-WORKFLOWS = ("workflow1", "workflow2")
+WORKFLOWS = ("workflow1", "workflow2", "workflow3", "workflow4")
 QUALITIES = ("Q1", "Q2", "Q3")
 BASELINES = ("single_cloud", "greedy", "dpgm", "mtgp")
 RESULTS_ROOT = ROOT / "results" / "sensitivity_eta_minp95_current_qbr030"

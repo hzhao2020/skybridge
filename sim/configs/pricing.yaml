@@ -31,7 +31,11 @@ mb_per_vision_image: 0.557626
 # Calibration query workload (paper Query section).
 query:
   requests_per_quality_level: 100
-  workflow1_workflow2_ratio: [1, 1]
+  workflow_ratios:
+    workflow1: 1
+    workflow2: 1
+    workflow3: 1
+    workflow4: 1
   video_duration_sec_min: 60
   video_duration_sec_max: 3600
 
@@ -40,7 +44,13 @@ quality_tiers:
   Q2: Standard
   Q3: Premium
 
-sampling_rates_fps:
+shots_per_minute: 1.0
+frames_per_shot:
+  Q1: 1
+  Q2: 2
+  Q3: 3
+
+sample_rates_fps:
   Q1: 0.2
   Q2: 0.5
   Q3: 1.0
@@ -234,12 +244,17 @@ database_instance_usd_per_month:
 
 # Data conversion ratio: population mean m and std v of output/input (LogNormal on R).
 data_conversion_ratio_mean_std:
+  Sample:
+    Essential: {mean: 0.089220, std: 0.0}
+    Standard: {mean: 0.223050, std: 0.0}
+    Premium: {mean: 0.446101, std: 0.0}
   Shot Detection: {tier: null, mean: 1.0, std: 0.0}
-  Video Split & Sample:
-    Essential: {mean: 0.089220, std: 0.009200}
-    Standard: {mean: 0.223050, std: 0.014547}
-    Premium: {mean: 0.446101, std: 0.020573}
-  Video Caption:
+  Split & Sample:
+    Essential: {mean: 0.007435, std: 0.0}
+    Standard: {mean: 0.014870, std: 0.0}
+    Premium: {mean: 0.022305, std: 0.0}
+  Temporal Grounding: {tier: null, mean: 0.150, std: 0.075}
+  Frame Caption:
     Essential: {mean: 0.0025, std: 0.0020}
     Standard: {mean: 0.0025, std: 0.0020}
     Premium: {mean: 0.0025, std: 0.0020}
@@ -247,7 +262,7 @@ data_conversion_ratio_mean_std:
   Label Detection: {tier: null, mean: 0.002671, std: 0.001597}
   Speech Transcription: {tier: null, mean: 0.000113, std: 0.000008}
   Database: {tier: null, mean: 0.150, std: 0.075}
-  Q/A:
+  Reason:
     Essential: {mean: 0.080, std: 0.060}
     Standard: {mean: 0.150, std: 0.120}
     Premium: {mean: 0.250, std: 0.250}

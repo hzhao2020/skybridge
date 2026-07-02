@@ -18,30 +18,30 @@ DEFAULT_FIG_DIR = ROOT / "fig" / "sensitivity_eta_minp95_current_qbr030"
 DEFAULT_SOURCE = DEFAULT_FIG_DIR / "skyflow_eta_cost_svr_by_setting.csv"
 
 SETTING_LABELS = [
-    ("workflow1_Q1", "W1-Q1"),
-    ("workflow1_Q2", "W1-Q2"),
-    ("workflow1_Q3", "W1-Q3"),
-    ("workflow2_Q1", "W2-Q1"),
-    ("workflow2_Q2", "W2-Q2"),
-    ("workflow2_Q3", "W2-Q3"),
+    (f"workflow{workflow}_Q{quality}", f"W{workflow}-Q{quality}")
+    for workflow in range(1, 5)
+    for quality in range(1, 4)
 ]
 
-# Match the main overall figure palette, with one extra muted red for the sixth setting.
+SETTING_STYLES = {
+    "W1-Q1": ("#3b6fb6", "o"),
+    "W1-Q2": ("#8a8a8a", "s"),
+    "W1-Q3": ("#64a85b", "^"),
+    "W2-Q1": ("#d9893d", "D"),
+    "W2-Q2": ("#8e6ab8", "P"),
+    "W2-Q3": ("#c85d5d", "X"),
+    "W3-Q1": ("#2a9d8f", "v"),
+    "W3-Q2": ("#b07d2c", "<"),
+    "W3-Q3": ("#6d8fbd", ">"),
+    "W4-Q1": ("#4a4a4a", "h"),
+    "W4-Q2": ("#9a5b42", "*"),
+    "W4-Q3": ("#0072b2", "p"),
+}
 PALETTE = {
-    "W1-Q1": "#3b6fb6",  # SkyFlow blue
-    "W1-Q2": "#8a8a8a",  # SC gray
-    "W1-Q3": "#64a85b",  # Greedy green
-    "W2-Q1": "#d9893d",  # DPGM orange
-    "W2-Q2": "#8e6ab8",  # MTGP purple
-    "W2-Q3": "#c85d5d",
+    label: color for label, (color, _) in SETTING_STYLES.items()
 }
 MARKERS = {
-    "W1-Q1": "o",
-    "W1-Q2": "s",
-    "W1-Q3": "^",
-    "W2-Q1": "D",
-    "W2-Q2": "P",
-    "W2-Q3": "X",
+    label: marker for label, (_, marker) in SETTING_STYLES.items()
 }
 
 

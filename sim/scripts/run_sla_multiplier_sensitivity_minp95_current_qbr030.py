@@ -16,7 +16,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parent.parent
 
 MULTIPLIERS = ("0.8", "0.9", "1.1", "1.2")
-WORKFLOWS = ("workflow1", "workflow2")
+WORKFLOWS = ("workflow1", "workflow2", "workflow3", "workflow4")
 QUALITIES = ("Q1", "Q2", "Q3")
 RESULTS_ROOT = ROOT / "results" / "sensitivity_sla_multiplier_minp95_current_qbr030"
 LOG_DIR = ROOT / "results" / "experiment_logs"

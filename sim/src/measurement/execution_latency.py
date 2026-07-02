@@ -7,7 +7,7 @@ from functools import lru_cache
 
 from src.config import load_default_config
 from src.measurement import MEASURED_OPS
-from src.measurement.populate import node_number
+from src.measurement.populate import measurement_profile_operation, node_number
 from src.schemas import Endpoint, Query, Scenario
 
 
@@ -23,7 +23,7 @@ def _measurement_params(
     region: str,
     op: str,
 ) -> tuple[float, ...]:
-    node = node_number(seed, provider, region, op)
+    node = node_number(seed, provider, region, measurement_profile_operation(op))
     return tuple(float(x) for x in MEASURED_OPS[op](node))
 
 

@@ -1,20 +1,16 @@
 name: workflow1
-description: Linear Video QA
+description: Sampled-Frame VLM Reasoning
 nodes:
   - ClientSource
-  - Shot Detection
-  - Video Split & Sample
-  - Video Caption
-  - Q/A
+  - Sample
+  - Reason
   - ClientSink
 edges:
-  - [ClientSource, Shot Detection]
-  - [Shot Detection, Video Split & Sample]
-  - [Video Split & Sample, Video Caption]
-  - [Video Caption, Q/A]
-  - [Q/A, ClientSink]
+  - [ClientSource, Sample]
+  - [Sample, Reason]
+  - [Reason, ClientSink]
 virtual_nodes:
   - ClientSource
   - ClientSink
 query_metadata_targets:
-  - Q/A
+  - Reason

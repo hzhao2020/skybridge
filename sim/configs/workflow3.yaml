@@ -1,20 +1,23 @@
-name: workflow2
-description: Linear Caption-Then-Reason
+name: workflow3
+description: Query-Guided Temporal Grounding
 nodes:
   - ClientSource
   - Shot Detection
   - Split & Sample
+  - Temporal Grounding
   - Frame Caption
   - Reason
   - ClientSink
 edges:
   - [ClientSource, Shot Detection]
   - [Shot Detection, Split & Sample]
-  - [Split & Sample, Frame Caption]
+  - [Split & Sample, Temporal Grounding]
+  - [Temporal Grounding, Frame Caption]
   - [Frame Caption, Reason]
   - [Reason, ClientSink]
 virtual_nodes:
   - ClientSource
   - ClientSink
 query_metadata_targets:
+  - Temporal Grounding
   - Reason

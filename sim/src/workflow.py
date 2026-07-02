@@ -9,32 +9,45 @@ import yaml
 from src.schemas import LogicalEdge, LogicalNode, WorkflowDAG
 
 LOGICAL_OPERATIONS = [
+    "Sample",
     "Shot Detection",
-    "Video Split & Sample",
-    "Video Caption",
+    "Split & Sample",
+    "Temporal Grounding",
+    "Frame Caption",
     "OCR",
     "Label Detection",
     "Speech Transcription",
     "Database",
-    "Q/A",
+    "Reason",
 ]
 
 WORKFLOW_OPERATIONS = {
     "workflow1": {
-        "Shot Detection",
-        "Video Split & Sample",
-        "Video Caption",
-        "Q/A",
+        "Sample",
+        "Reason",
     },
     "workflow2": {
         "Shot Detection",
-        "Video Split & Sample",
-        "Video Caption",
+        "Split & Sample",
+        "Frame Caption",
+        "Reason",
+    },
+    "workflow3": {
+        "Shot Detection",
+        "Split & Sample",
+        "Temporal Grounding",
+        "Frame Caption",
+        "Reason",
+    },
+    "workflow4": {
+        "Shot Detection",
+        "Split & Sample",
+        "Frame Caption",
         "OCR",
         "Label Detection",
         "Speech Transcription",
         "Database",
-        "Q/A",
+        "Reason",
     },
 }
 

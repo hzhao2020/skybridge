@@ -25,7 +25,7 @@ from src.evaluator import evaluate_deployment  # noqa: E402
 from src.milp_decomposition import solve_decomposition  # noqa: E402
 from src.workflow import get_workflow  # noqa: E402
 
-WORKFLOWS = ("workflow1", "workflow2")
+WORKFLOWS = ("workflow1", "workflow2", "workflow3", "workflow4")
 QUALITIES = ("Q1", "Q2", "Q3")
 
 

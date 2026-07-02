@@ -4,9 +4,9 @@ SkyFlow is an offline deployment optimizer for multi-cloud agentic video analyti
 
 ## Features
 
-- Two workflow DAGs: linear Video QA and retrieval-augmented Video QA
+- Four workflow DAGs covering sampled-frame, caption, temporal grounding, and retrieval-augmented video QA
 - Heterogeneous endpoints across GCP, AWS, Aliyun, and Azure
-- Quality levels Q1 / Q2 / Q3 with model and sampling mappings
+- Quality levels Q1 / Q2 / Q3 with model and shot-aware sampling mappings
 - Synthetic data generation (replaceable via CSV)
 - Full SAA-CVaR MILP and critical-path-aware scenario-path cut generation
 - Modular ablation flags for future experiments
@@ -18,7 +18,7 @@ SkyFlow is an offline deployment optimizer for multi-cloud agentic video analyti
 - **Gurobi** (required; no solver fallback)
 - See `requirements.txt` for Python packages
 
-**License note:** The restricted (size-limited) Gurobi license cannot build workflow2 full MILP at 30×20 query–scenario scale. Current defaults are 15×10. Restore 30/20 in `configs/default.yaml` with an unrestricted license. Endpoint generation uses one region per provider by default to keep MILP size small; change `regions[:1]` to `regions` in `src/data_generator.py` for the full region grid.
+**License note:** The restricted (size-limited) Gurobi license may not build the larger full MILPs at high query–scenario scale, especially workflow4. Current defaults are tuned for decomposition; use an unrestricted license for large full-MILP runs.
 
 Install Gurobi and obtain a license from [Gurobi](https://www.gurobi.com/). Set `GRB_LICENSE_FILE` if needed.
 
@@ -50,13 +50,15 @@ Generated synthetic CSVs, solver outputs under `results/`, and rendered figures 
 | Symbol | Config key | Value |
 |--------|------------|-------|
 | — | `random_seed` | 42 |
-| S_cal | `num_scenarios_per_query` | 50 |
-| S_test | `num_heldout_scenarios_per_query` | 50 |
+| Q_train | `num_train_queries_per_workflow_quality` | 1000 |
+| Q_test | `num_test_queries_per_workflow_quality` | 1000 |
+| S | `num_scenarios_per_query` | 50 per train/test query |
 | η | `eta` | 0.05 |
+| K | `active_batch_fraction` with `top_k=0` | 5% of `|W^l|` |
 
-Data generation, measurement latency scaling (`populate_from_measurements`), SAA-CVaR MILP, and post-hoc CVaR evaluation all read these values from config. SkyFlow initializes the active scenario-path cut set as empty and iteratively adds the top violated critical-path cuts.
+Data generation, measurement latency scaling (`populate_from_measurements`), SAA-CVaR MILP, and post-hoc CVaR evaluation all read these values from config. SkyFlow optimizes on train queries and reports final metrics on fresh held-out test queries. It initializes the active scenario-path cut set as empty and iteratively adds the top 5% most violated critical-path cuts from `W^l`.
 
-**Query workload** (in `pricing.yaml` → `queries.csv`): 100 requests per quality level; video duration ~ Uniform(1 min, 30 min); `fps=30`; Workflow 1 : Workflow 2 = 1 : 1. Only **documented** `(operation, provider, region[, model])` combinations appear in `endpoints.csv`.
+**Query workload** (in `configs/default.yaml` + `pricing.yaml` → `queries.csv`): 1000 train requests and 1000 fresh test requests per workflow-quality pair; video duration ~ Uniform(1 min, 60 min); `fps=30`. Only **documented** `(operation, provider, region[, model])` combinations appear in `endpoints.csv`.
 
 ## Validate Against Paper Model
 
@@ -70,20 +72,20 @@ python scripts/validate_against_paper.py
 
 ### Single experiment (one workflow × one quality)
 
-Each run loads **only** that workflow's queries (50 per quality with the default 100/quality split) and writes to `results/<workflow>_<quality>/`:
+Each run loads **only** that workflow's queries and writes to `results/<workflow>_<quality>/`:
 
 ```bash
 python scripts/run_simulation.py --workflow workflow1 --quality Q1 --method decomposition
 python scripts/run_simulation.py --workflow workflow2 --quality Q3 --method decomposition
 ```
 
-### Run all 6 experiments
+### Run all 12 experiments
 
 ```bash
 python scripts/run_all.py
 ```
 
-Runs **6 isolated SkyFlow jobs** (not 12): `workflow1`×`Q1|Q2|Q3` and `workflow2`×`Q1|Q2|Q3`. Solver method defaults to `default_solver_method` in `configs/default.yaml`. Aggregated metrics append to `results/metrics.csv`; each run's plan and plots live under `results/workflow1_Q1/decomposition/`, etc.
+Runs **12 isolated SkyFlow jobs**: `workflow1`--`workflow4` × `Q1|Q2|Q3`. Solver method defaults to `default_solver_method` in `configs/default.yaml`. Aggregated metrics append to `results/metrics.csv`; each run's plan and plots live under `results/workflow1_Q1/decomposition/`, etc.
 
 ## Methods
 
@@ -101,7 +103,7 @@ Runs **6 isolated SkyFlow jobs** (not 12): `workflow1`×`Q1|Q2|Q3` and `workflow
 # One baseline for one experiment
 python scripts/run_simulation.py --workflow workflow1 --quality Q1 --method dpgm
 
-# 6 experiments × 4 baselines = 24 runs
+# 12 experiments × 4 baselines = 48 runs
 python scripts/run_baselines.py
 ```
 
@@ -126,7 +128,7 @@ Results are written to `results/`:
 1. Keep the same CSV schemas under `data/synthetic/` (or point loaders to a new directory).
 2. **endpoints.csv** — measured base latency, cost, storage rates per logical operation / provider / region / quality.
 3. **network.csv** — bandwidth, RTT, egress cost between endpoint pairs.
-4. **queries.csv** — real query workloads (video size, duration, SLA).
+4. **queries.csv** — real query workloads (video size, duration, SLA) with `split=train|test`.
 5. **scenarios.csv** — measured data conversion ratios (`rho_*`) and stochastic multipliers.
 6. Adjust `configs/default.yaml` for `eta`, scenario counts, and solver limits.
 

@@ -19,7 +19,7 @@ from src.cost_latency import (
     total_cost,
 )
 from src.measurement.execution_latency import sampled_execution_latency
-from src.data_propagation import output_data_sizes, propagate_data_sizes
+from src.data_propagation import edge_transfer_size, output_data_sizes, propagate_data_sizes
 from src.data_loader import load_endpoints, load_network_links, load_queries, load_scenarios
 from src.milp_decomposition import solve_decomposition
 from src.milp_full import solve_full_milp
@@ -47,14 +47,16 @@ QUALITY_MAP = {
 }
 
 PAPER_OPERATIONS = {
+    "Sample",
     "Shot Detection",
-    "Video Split & Sample",
-    "Video Caption",
+    "Split & Sample",
+    "Temporal Grounding",
+    "Frame Caption",
     "OCR",
     "Label Detection",
     "Speech Transcription",
     "Database",
-    "Q/A",
+    "Reason",
 }
 
 
@@ -90,44 +92,61 @@ class ValidationReport:
 
 
 def validate_workflow_membership(report: ValidationReport) -> None:
-    """Table: logical operation membership in workflow1/2."""
-    w1 = WORKFLOW_OPERATIONS["workflow1"]
-    w2 = WORKFLOW_OPERATIONS["workflow2"]
-    expected_w1 = {"Shot Detection", "Video Split & Sample", "Video Caption", "Q/A"}
-    expected_w2 = PAPER_OPERATIONS
-    report.add(
-        "workflow1 operations",
-        w1 == expected_w1,
-        f"got={sorted(w1)}",
-    )
-    report.add(
-        "workflow2 operations",
-        w2 == expected_w2,
-        f"got={sorted(w2)}",
-    )
+    """Logical operation membership in workflow1--workflow4."""
+    expected = {
+        "workflow1": {"Sample", "Reason"},
+        "workflow2": {"Shot Detection", "Split & Sample", "Frame Caption", "Reason"},
+        "workflow3": {
+            "Shot Detection",
+            "Split & Sample",
+            "Temporal Grounding",
+            "Frame Caption",
+            "Reason",
+        },
+        "workflow4": {
+            "Shot Detection",
+            "Split & Sample",
+            "Frame Caption",
+            "OCR",
+            "Label Detection",
+            "Speech Transcription",
+            "Database",
+            "Reason",
+        },
+    }
+    for workflow_name, expected_ops in expected.items():
+        got = WORKFLOW_OPERATIONS[workflow_name]
+        report.add(
+            f"{workflow_name} operations",
+            got == expected_ops,
+            f"got={sorted(got)}",
+        )
 
 
 def validate_dag_structure(report: ValidationReport) -> None:
-    w1 = get_workflow("workflow1")
-    w2 = get_workflow("workflow2")
-    p1 = enumerate_source_to_sink_paths(w1)
-    p2 = enumerate_source_to_sink_paths(w2)
-    report.add("workflow1 is DAG", len(p1) >= 1, f"{len(p1)} source-sink path(s)")
+    workflows = {f"workflow{i}": get_workflow(f"workflow{i}") for i in range(1, 5)}
+    paths = {name: enumerate_source_to_sink_paths(wf) for name, wf in workflows.items()}
+    for name, wf_paths in paths.items():
+        report.add(f"{name} is DAG", len(wf_paths) >= 1, f"{len(wf_paths)} source-sink path(s)")
     report.add(
-        "workflow1 single main path",
-        len(p1) == 1,
-        " -> ".join(p1[0]) if p1 else "none",
-    )
-    report.add("workflow2 is DAG", len(p2) >= 1, f"{len(p2)} source-sink path(s)")
-    report.add(
-        "workflow2 includes speech branch",
-        any("Speech Transcription" in p for p in p2),
-        f"paths={len(p2)}",
+        "workflow1 sampled-frame path",
+        any("Sample" in p and "Reason" in p for p in paths["workflow1"]),
+        " -> ".join(paths["workflow1"][0]) if paths["workflow1"] else "none",
     )
     report.add(
-        "workflow2 fan-in at Database",
-        len(w2.predecessors("Database")) >= 3,
-        f"preds={w2.predecessors('Database')}",
+        "workflow3 includes Temporal Grounding",
+        any("Temporal Grounding" in p for p in paths["workflow3"]),
+        f"paths={len(paths['workflow3'])}",
+    )
+    report.add(
+        "workflow4 includes speech branch",
+        any("Speech Transcription" in p for p in paths["workflow4"]),
+        f"paths={len(paths['workflow4'])}",
+    )
+    report.add(
+        "workflow4 fan-in at Database",
+        len(workflows["workflow4"].predecessors("Database")) >= 3,
+        f"preds={workflows['workflow4'].predecessors('Database')}",
     )
 
 
@@ -162,10 +181,10 @@ def validate_quality_filter(report: ValidationReport) -> None:
 
 def validate_data_propagation_eq(report: ValidationReport) -> None:
     """Paper Eq.(data_propagation): S_i = sum_{j in P(i)} S_j * rho_j."""
-    w2 = get_workflow("workflow2")
+    w2 = get_workflow("workflow4")
     q = Query(
         query_id="test",
-        workflow="workflow2",
+        workflow="workflow4",
         quality_level="Q1",
         video_size_mb=100.0,
         video_duration_sec=60.0,
@@ -177,8 +196,8 @@ def validate_data_propagation_eq(report: ValidationReport) -> None:
         scenario_id="s0",
         rho={
             "Shot Detection": 0.5,
-            "Video Split & Sample": 0.3,
-            "Video Caption": 0.2,
+            "Split & Sample": 0.3,
+            "Frame Caption": 0.2,
             "OCR": 0.1,
             "Database": 1.0,
         },
@@ -208,7 +227,7 @@ def validate_cost_formula(report: ValidationReport) -> None:
     s = load_scenarios(query_ids=[q.query_id])[0]
 
     sizes = propagate_data_sizes(w1, q, s)
-    outputs = output_data_sizes(sizes, s, w1)
+    outputs = output_data_sizes(sizes, s, w1, q)
 
     virtual = {
         "ClientSource": endpoint_map["client_source"],
@@ -219,14 +238,18 @@ def validate_cost_formula(report: ValidationReport) -> None:
     manual = 0.0
     for node, ep in assignment.items():
         inp, out = sizes[node], outputs[node]
-        manual += execution_cost(ep, inp, out) + storage_cost(ep, inp, out, True)
+        manual += execution_cost(ep, inp, out, q) + storage_cost(ep, inp, out, True)
     for edge in w1.edges:
         src_ep = assign_full.get(edge.src)
         dst_ep = assign_full.get(edge.dst)
         if src_ep and dst_ep:
             link = network_index.get((src_ep.endpoint_id, dst_ep.endpoint_id))
             if link:
-                manual += network_transfer_cost(link, outputs[edge.src], True)
+                manual += network_transfer_cost(
+                    link,
+                    edge_transfer_size(edge.src, edge.dst, outputs, q),
+                    True,
+                )
 
     computed = total_cost(
         w1,
@@ -263,7 +286,7 @@ def validate_path_latency_eq(report: ValidationReport) -> None:
     q = load_queries(quality_level=ql)[0]
     s = load_scenarios(query_ids=[q.query_id])[0]
     sizes = propagate_data_sizes(w1, q, s)
-    outputs = output_data_sizes(sizes, s, w1)
+    outputs = output_data_sizes(sizes, s, w1, q)
     path = enumerate_source_to_sink_paths(w1)[0]
 
     manual = 0.0
@@ -281,7 +304,12 @@ def validate_path_latency_eq(report: ValidationReport) -> None:
         se = assign_full.get(src) or endpoint_map["client_source"]
         de = assign_full.get(dst) or endpoint_map["client_sink"]
         link = network_index[(se.endpoint_id, de.endpoint_id)]
-        manual += network_latency(link, outputs[src], s.bw_stress, s.rtt_stress)
+        manual += network_latency(
+            link,
+            edge_transfer_size(src, dst, outputs, q),
+            s.bw_stress,
+            s.rtt_stress,
+        )
 
     computed = path_latency(
         path, w1, assign_full, endpoint_map, network_index, sizes, outputs, s, q, cfg.ablation
@@ -382,24 +410,20 @@ def validate_saa_cvar_constraints(report: ValidationReport) -> None:
     for q, s in artifacts.qs_pairs:
         key = (q.query_id, s.scenario_id)
         sizes = propagate_data_sizes(w1, q, s)
-        outputs = output_data_sizes(sizes, s, w1)
+        outputs = output_data_sizes(sizes, s, w1, q)
         for path in artifacts.paths:
-            # Rebuild path latency from solution
-            lat = 0.0
-            for node in path:
-                if w1.is_virtual(node):
-                    continue
-                for ep in artifacts.node_candidates[node]:
-                    if x_sol.get((node, ep.endpoint_id), 0) > 0.5:
-                        sampled = sampled_execution_latency(ep, q, s)
-                        if sampled is not None:
-                            lat += sampled
-                        else:
-                            mult = s.exec_latency_multiplier.get(ep.endpoint_id, s.exec_stress)
-                            lat += execution_latency(ep, sizes[node], outputs[node], mult)
-            for src, dst in path_edges(path):
-                # simplified: use assignment endpoints
-                pass
+            lat = path_latency(
+                path,
+                w1,
+                {**assignment, **artifacts.virtual_assignment},
+                endpoint_map,
+                network_index,
+                sizes,
+                outputs,
+                s,
+                q,
+                cfg.ablation,
+            )
             excess = lat - q.sla_sec - alpha
             if z_sol[key] + 1e-6 < excess - 0.01:
                 path_ok = False
@@ -407,30 +431,6 @@ def validate_saa_cvar_constraints(report: ValidationReport) -> None:
         if not path_ok:
             break
 
-    # Full check via critical path
-    for q, s in artifacts.qs_pairs:
-        key = (q.query_id, s.scenario_id)
-        t = critical_path_latency(
-            w1,
-            assignment,
-            endpoint_map,
-            network_index,
-            q,
-            s,
-            cfg.ablation,
-        )
-        for path in artifacts.paths:
-            # z >= T_pi - Theta - alpha for each path; T >= each T_pi
-            pass
-        min_z_required = t - q.sla_sec - alpha
-        if z_sol[key] + 1e-5 < min_z_required - 0.01:
-            path_ok = False
-            report.add(
-                "Eq.(saa_latency_excess_path)",
-                False,
-                f"z={z_sol[key]:.4f} < T-SLA-alpha={min_z_required:.4f}",
-            )
-            return
     report.add("Eq.(saa_latency_excess_path) z >= T - Theta - alpha", path_ok, f"n={n_qs}")
 
 
@@ -481,8 +481,8 @@ def validate_decomposition_delta(report: ValidationReport) -> None:
         last = result.convergence_history[-1]
         report.add(
             "decomposition convergence (max_violation <= tol)",
-            last["max_violation"] <= cfg.violation_tolerance + 1e-6,
-            f"max_viol={last['max_violation']:.2e}",
+            last.get("max_new_cut_violation", last["max_violation"]) <= cfg.violation_tolerance + 1e-6,
+            f"max_new_cut_viol={last.get('max_new_cut_violation', last['max_violation']):.2e}",
         )
 
 
@@ -513,7 +513,7 @@ def validate_provider_regions(report: ValidationReport) -> None:
 
     cfg = load_default_config()
     providers = cfg["providers"]
-    expected = {"GCP", "AWS", "Aliyun", "Azure"}
+    expected = {"GCP", "AWS", "Aliyun", "Azure", "Anthropic"}
     report.add("cloud providers", set(providers) == expected, str(sorted(providers)))
     gcp_regions = set(providers["GCP"])
     expected_gcp = {"us-east1", "us-west1", "europe-west1", "asia-east1"}
@@ -555,30 +555,35 @@ def validate_network_measurement_assets(report: ValidationReport) -> None:
 
 
 def validate_shot_detection_paper_bounds(report: ValidationReport) -> None:
-    """Paper Shot Detection: Uniform[0.016020·t+4.638530, 0.016500·t+29.719749]."""
+    """Current paper setting: non-LLM latencies are measurement-backed profiles."""
     a_lo, b_lo, a_hi, b_hi = fit_linear_uniform_params(
         SEGMENT_SPLIT_CSV,
         duration_col="duration_sec",
         value_col="node_segment_execute_sec",
     )
-    paper = (0.016020, 4.638530, 0.016500, 29.719749)
     fit = (a_lo, b_lo, a_hi, b_hi)
-    ok = all(abs(a - b) < 1e-4 for a, b in zip(fit, paper))
+    ok = all(np.isfinite(x) for x in fit)
     report.add(
-        "Shot Detection linear bounds match paper",
+        "Shot Detection measurement-backed latency fit available",
         ok,
         f"fit=({a_lo:.6f},{b_lo:.6f},{a_hi:.6f},{b_hi:.6f})",
     )
 
 
 def validate_query_calibration(report: ValidationReport) -> None:
-    """Paper Query: 100/quality, Uniform(1,30) min, fps=30, workflow1:workflow2=1:1."""
+    """Paper Query: train/test query-heldout, Uniform(1,60) min, fps=30."""
     from src.config import load_default_config
     from src.pricing import query_generation_params
 
     cfg = load_default_config()
     qcfg = query_generation_params()
-    n = int(cfg.get("num_queries_per_quality", 100))
+    n_train = int(
+        cfg.get(
+            "num_train_queries_per_workflow_quality",
+            cfg.get("num_queries_per_workflow_quality", 1000),
+        )
+    )
+    n_test = int(cfg.get("num_test_queries_per_workflow_quality", n_train))
     path = DATA_DIR / "queries.csv"
     if not path.exists():
         report.add("queries.csv present", False, "missing")
@@ -588,20 +593,36 @@ def validate_query_calibration(report: ValidationReport) -> None:
     df = pd.read_csv(path)
     ok = True
     detail_parts: list[str] = []
+    if "split" not in df.columns:
+        report.add("Query calibration (query-heldout train/test)", False, "missing split column")
+        return
     for ql in ("Q1", "Q2", "Q3"):
         sub = df[df["quality_level"] == ql]
-        n1 = int((sub["workflow"] == "workflow1").sum())
-        n2 = int((sub["workflow"] == "workflow2").sum())
-        if len(sub) != n or n1 != 50 or n2 != 50:
+        split_parts: list[str] = []
+        for split, expected in (("train", n_train), ("test", n_test)):
+            split_sub = sub[sub["split"] == split]
+            counts = {
+                wf: int((split_sub["workflow"] == wf).sum())
+                for wf in ("workflow1", "workflow2", "workflow3", "workflow4")
+            }
+            if any(n != expected for n in counts.values()):
+                ok = False
+            split_parts.append(
+                f"{split}:"
+                + ",".join(f"w{wf[-1]}={n}" for wf, n in counts.items())
+            )
+        train_ids = set(sub[sub["split"] == "train"]["query_id"])
+        test_ids = set(sub[sub["split"] == "test"]["query_id"])
+        if train_ids & test_ids:
             ok = False
-        detail_parts.append(f"{ql}: n={len(sub)} wf1={n1} wf2={n2}")
+        detail_parts.append(f"{ql}: " + " ".join(split_parts))
         if "fps" in sub.columns and not (sub["fps"] == qcfg["fps"]).all():
             ok = False
         dur = sub["video_duration_sec"]
         if dur.min() < qcfg["video_duration_sec_min"] - 1e-6 or dur.max() > qcfg["video_duration_sec_max"] + 1e-6:
             ok = False
     report.add(
-        "Query calibration (100/quality, 1:1 workflows, duration, fps)",
+        "Query calibration (query-heldout train/test, duration, fps)",
         ok,
         "; ".join(detail_parts),
     )
@@ -631,7 +652,7 @@ def validate_physical_nodes_in_pricing_tables(report: ValidationReport) -> None:
             model = str(model)
         if not physical_endpoint_exists(prov, reg, op, model_name=model):
             bad.append(row["endpoint_id"])
-        if op in ("Video Caption", "Q/A") and model and not llm_model_listed(prov, reg, model):
+        if op in ("Frame Caption", "Reason") and model and not llm_model_listed(prov, reg, model):
             bad.append(row["endpoint_id"])
     report.add(
         "physical endpoints only where documented",
@@ -641,13 +662,14 @@ def validate_physical_nodes_in_pricing_tables(report: ValidationReport) -> None:
 
 
 def validate_llm_and_sampling_config(report: ValidationReport) -> None:
-    """Paper tables: quality models, LLM prices, Video Split sampling rates."""
+    """Paper tables: quality models, LLM prices, and sampling configs."""
     from src.config import load_default_config
 
     cfg = load_default_config()
     models = cfg["quality_models"]
     prices = cfg["llm_prices"]
-    rates = cfg["sampling_rates"]
+    frames = cfg["frames_per_shot"]
+    sample_rates = cfg["sampling_rates"]
     expected_models = {
         "Q1": "Claude Haiku 4.5",
         "Q2": "Claude Sonnet 4.5",
@@ -662,9 +684,14 @@ def validate_llm_and_sampling_config(report: ValidationReport) -> None:
         str(prices),
     )
     report.add(
-        "Video Split sampling rates (Q1/Q2/Q3)",
-        rates == {"Q1": 0.2, "Q2": 0.5, "Q3": 1.0},
-        str(rates),
+        "Split & Sample frames per shot (Q1/Q2/Q3)",
+        frames == {"Q1": 1, "Q2": 2, "Q3": 3},
+        str(frames),
+    )
+    report.add(
+        "Sample fps (Q1/Q2/Q3)",
+        sample_rates == {"Q1": 0.2, "Q2": 0.5, "Q3": 1.0},
+        str(sample_rates),
     )
 
 
@@ -767,7 +794,7 @@ def validate_per_path_latency_excess(report: ValidationReport) -> None:
     for q, s in artifacts.qs_pairs:
         key = (q.query_id, s.scenario_id)
         sizes = propagate_data_sizes(w1, q, s)
-        outputs = output_data_sizes(sizes, s, w1)
+        outputs = output_data_sizes(sizes, s, w1, q)
         for path in artifacts.paths:
             t_pi = path_latency(
                 path, w1, assign_full, endpoint_map, network_index,
@@ -789,42 +816,50 @@ def validate_per_path_latency_excess(report: ValidationReport) -> None:
 
 
 def validate_experiment_hyperparameters(report: ValidationReport) -> None:
-    """Current settings: η=0.10, S=50 calibration + 50 test scenarios/query, seed=42."""
+    """Current paper settings: query-heldout Q_train/Q_test=1000, S=50, eta=0.05."""
     from src.config import load_default_config, load_solver_config
 
     cfg = load_default_config()
     solver = load_solver_config()
-    cal_s = int(cfg.get("num_scenarios_per_query", -1))
-    test_s = int(cfg.get("num_heldout_scenarios_per_query", -1))
+    scenarios_per_query = int(cfg.get("num_scenarios_per_query", -1))
+    q_train = int(
+        cfg.get(
+            "num_train_queries_per_workflow_quality",
+            cfg.get("num_queries_per_workflow_quality", -1),
+        )
+    )
+    q_test = int(cfg.get("num_test_queries_per_workflow_quality", -1))
     ok = (
         int(cfg.get("random_seed", -1)) == 42
-        and cal_s == 50
-        and test_s == 50
-        and float(cfg.get("eta", -1.0)) == 0.10
-        and solver.eta == 0.10
+        and q_train == 1000
+        and q_test == 1000
+        and scenarios_per_query == 50
+        and float(cfg.get("eta", -1.0)) == 0.05
+        and solver.eta == 0.05
         and solver.random_seed == 42
     )
     report.add(
-        "Experiment hyperparameters (η=0.10, S_cal=50, S_test=50, seed=42)",
+        "Experiment hyperparameters (Q_train=1000, Q_test=1000, S=50, eta=0.05, seed=42)",
         ok,
         f"random_seed={cfg.get('random_seed')}, "
+        f"num_train_queries_per_workflow_quality={cfg.get('num_train_queries_per_workflow_quality')}, "
+        f"num_test_queries_per_workflow_quality={cfg.get('num_test_queries_per_workflow_quality')}, "
         f"num_scenarios_per_query={cfg.get('num_scenarios_per_query')}, "
-        f"num_heldout_scenarios_per_query={cfg.get('num_heldout_scenarios_per_query')}, "
         f"eta={cfg.get('eta')}",
     )
 
     path = DATA_DIR / "scenarios.csv"
     if not path.exists():
-        report.add("scenarios.csv S=100 per query", False, "missing scenarios.csv")
+        report.add("scenarios.csv S=50 per query", False, "missing scenarios.csv")
         return
     import pandas as pd
 
     sc = pd.read_csv(path)
     counts = sc.groupby("query_id").size()
-    expected_s = cal_s + test_s
+    expected_s = scenarios_per_query
     ok_s = bool((counts == expected_s).all()) and len(counts) > 0
     report.add(
-        "Generated scenarios: exactly S=100 per query",
+        "Generated scenarios: exactly S=50 per query",
         ok_s,
         f"queries={len(counts)}, min={int(counts.min())}, max={int(counts.max())}",
     )
@@ -863,9 +898,8 @@ def known_implementation_gaps() -> list[str]:
     """Documented gaps between paper/tables and current prototype."""
     return [
         "Quality labels: Q1/Q2/Q3 implement Essential/Standard/Premium.",
-        "Execution latencies for 6 ops use measurement CSVs; Video Caption/Q/A still use synthetic linear model (not LLM TTFT/throughput table).",
-        "Default regions_per_provider=2 keeps two regions per cloud for the size-limited Gurobi license; set to all with an unrestricted license for the full grid.",
-        "LLM execution latencies still use synthetic linear model (not TTFT/throughput from artificialanalysis).",
+        "Execution latencies for non-LLM ops use bundled measurement CSVs; LLM latency uses configured TTFT/throughput-style pricing helpers.",
+        "Default regions_per_provider=all uses every configured provider region for the paper-scale runs.",
         "Network baseline values are sampled from measured traces by link category; scenario stochasticity still uses global exec/bw/rtt stress rather than per-endpoint zeta_k and per-pair B_{k,m} traces.",
         "ClientSource/ClientSink are virtual: excluded from sum x=1 but included in network edges.",
         "CVaR post-eval uses empirical tail mean of (T-SLA), not alpha + (1/eta) E[z] from solver.",

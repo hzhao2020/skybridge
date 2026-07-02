@@ -12,7 +12,8 @@ _SHOT_BY_PROVIDER: dict[str, float] = {
 }
 _MAX_SHOT = max(_SHOT_BY_PROVIDER.values())
 
-_VIDEO_SPLIT = 1.0
+_SAMPLE = 1.0
+_SPLIT_SAMPLE = 1.0
 
 # Claude 4.5 tiers mapped to caption / Q&A columns (same ranking as Nova Pro / Flash in the doc).
 _CLAUDE_CAPTION_RAW: dict[str, float] = {
@@ -64,21 +65,23 @@ def endpoint_capability_mu(endpoint: Endpoint) -> float:
         if raw is None:
             raise KeyError(f"No shot_detection μ for provider={endpoint.provider!r}")
         return raw / _MAX_SHOT
-    if op == "Video Split & Sample":
-        return _VIDEO_SPLIT
-    if op == "Video Caption":
+    if op == "Sample":
+        return _SAMPLE
+    if op == "Split & Sample":
+        return _SPLIT_SAMPLE
+    if op == "Frame Caption":
         if not endpoint.model_name:
-            raise ValueError("Video Caption endpoint requires model_name")
+            raise ValueError("Frame Caption endpoint requires model_name")
         raw = _CLAUDE_CAPTION_RAW.get(endpoint.model_name)
         if raw is None:
             raise KeyError(f"No caption μ for model={endpoint.model_name!r}")
         return raw / _MAX_CAPTION
-    if op == "Q/A":
+    if op == "Reason":
         if not endpoint.model_name:
-            raise ValueError("Q/A endpoint requires model_name")
+            raise ValueError("Reason endpoint requires model_name")
         raw = _CLAUDE_QUERY_RAW.get(endpoint.model_name)
         if raw is None:
-            raise KeyError(f"No Q/A μ for model={endpoint.model_name!r}")
+            raise KeyError(f"No Reason μ for model={endpoint.model_name!r}")
         return raw / _MAX_QUERY
     if op == "OCR":
         raw = _OCR_BY_PROVIDER.get(endpoint.provider)
@@ -95,6 +98,6 @@ def endpoint_capability_mu(endpoint: Endpoint) -> float:
         if raw is None:
             raise KeyError(f"No speech_transcription μ for provider={endpoint.provider!r}")
         return raw / _MAX_SPEECH
-    if op == "Database":
+    if op in ("Database", "Temporal Grounding"):
         return _DATABASE
     raise ValueError(f"Unknown logical operation for capability: {op!r}")

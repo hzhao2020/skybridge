@@ -18,7 +18,7 @@ import pandas as pd
 
 
 METHOD_ORDER = ["SkyFlow", "Greedy", "DPGM"]
-WORKFLOW_ORDER = ["workflow1", "workflow2"]
+WORKFLOW_ORDER = ["workflow1", "workflow2", "workflow3", "workflow4"]
 QUALITY_ORDER = ["Q1", "Q2", "Q3"]
 COMPONENT_COLUMNS = ["execution_cost", "network_cost", "storage_cost"]
 
@@ -64,10 +64,8 @@ def _normalize_method(value: object) -> str:
 
 
 def _pretty_workflow(value: str) -> str:
-    if value == "workflow1":
-        return "Workflow 1"
-    if value == "workflow2":
-        return "Workflow 2"
+    if value.startswith("workflow") and value[len("workflow"):].isdigit():
+        return f"Workflow {value[len('workflow'):]}"
     return value
 
 

@@ -14,10 +14,10 @@ sys.path.insert(0, str(ROOT))
 
 from src.config import CONFIG_DIR, RESULTS_DIR, load_yaml  # noqa: E402
 
-WORKFLOWS = ["workflow1", "workflow2"]
+WORKFLOWS = ["workflow1", "workflow2", "workflow3", "workflow4"]
 QUALITIES = ["Q1", "Q2", "Q3"]
 
-# Exactly 6 runs: workflow1×Q1–Q3 and workflow2×Q1–Q3 (not crossed with multiple methods).
+# Exactly 12 runs: workflow1--workflow4 × Q1--Q3 (not crossed with multiple methods).
 EXPERIMENT_RUNS: list[tuple[str, str]] = [
     (workflow, quality) for workflow in WORKFLOWS for quality in QUALITIES
 ]
@@ -36,7 +36,7 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     parser = argparse.ArgumentParser(
         description=(
-            "Run 6 SkyFlow experiments (workflow1/2 × Q1/Q2/Q3). "
+            "Run 12 SkyFlow experiments (workflow1-4 × Q1/Q2/Q3). "
             "Each job uses only that workflow's queries and writes to its own results folder."
         )
     )
@@ -44,7 +44,7 @@ def main() -> None:
         "--method",
         choices=["full_milp", "decomposition"],
         default=None,
-        help=f"Solver method for all 6 runs (default: { _default_method()!r} from configs/default.yaml)",
+        help=f"Solver method for all 12 runs (default: { _default_method()!r} from configs/default.yaml)",
     )
     parser.add_argument(
         "--skip-data-gen",
@@ -54,7 +54,7 @@ def main() -> None:
     parser.add_argument(
         "--heldout-eval",
         action="store_true",
-        help="Use calibration scenarios for deployment selection and held-out scenarios for metrics",
+        help="Deprecated no-op; run_simulation always evaluates on fresh test queries",
     )
     args = parser.parse_args()
     method = args.method or _default_method()
@@ -95,7 +95,7 @@ def main() -> None:
         subprocess.run(cmd, check=True, cwd=str(ROOT))
 
     logging.info(
-        "All 6 experiments finished. Outputs under %s/<workflow>_<Q*>/<method>/",
+        "All 12 experiments finished. Outputs under %s/<workflow>_<Q*>/<method>/",
         RESULTS_DIR,
     )
 

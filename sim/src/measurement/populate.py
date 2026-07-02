@@ -17,6 +17,14 @@ def _default_measurement_seed() -> int:
 
 
 DEFAULT_SEED = _default_measurement_seed()
+
+
+def measurement_profile_operation(logical_op: str) -> str:
+    if logical_op == "Temporal Grounding":
+        return "Database"
+    return logical_op
+
+
 def node_number(seed: int, provider: str, region: str, logical_op: str) -> int:
     """Deterministic node index from seed + endpoint identity."""
     buf = hashlib.sha256(str(int(seed)).encode("utf-8"))
@@ -56,7 +64,7 @@ def latency_from_measurement(
     duration_per_mb: float,
 ) -> tuple[float, float]:
     build_params = MEASURED_OPS[logical_op]
-    node = node_number(seed, provider, region, logical_op)
+    node = node_number(seed, provider, region, measurement_profile_operation(logical_op))
     params = build_params(node)
     if len(params) == 4:
         base, per_mb = linear_to_endpoint(*params, duration_per_mb)

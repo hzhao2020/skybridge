@@ -52,7 +52,7 @@ def _load_source(csv_path: Path) -> pd.DataFrame:
 def _assert_complete(df: pd.DataFrame) -> None:
     expected = {
         (workflow, query_count, method)
-        for workflow in ("workflow1", "workflow2")
+        for workflow in ("workflow1", "workflow2", "workflow3", "workflow4")
         for query_count in (200, 400, 600, 800, 1000)
         for method in ("full_milp", "decomposed_milp")
     }
@@ -137,7 +137,7 @@ def _plot_panel(ax: plt.Axes, sub: pd.DataFrame, metric: str, workflow_label: st
 def plot_line_singlecol(df: pd.DataFrame, out_prefix: Path) -> None:
     _assert_complete(df)
     _style()
-    workflows = ["W1-Q1", "W2-Q1"]
+    workflows = [f"W{workflow}-Q1" for workflow in range(1, 5)]
     fig, axes = plt.subplots(2, 2, figsize=(7.1, 3.55), sharex="col")
 
     for row, workflow_label in enumerate(workflows):

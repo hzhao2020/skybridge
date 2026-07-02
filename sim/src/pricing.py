@@ -49,6 +49,10 @@ def sample_data_conversion_ratio(
     rng,
 ) -> float:
     """Sample output/input ratio R for one logical operation and quality level."""
+    if logical_operation == "Sample":
+        return sample_output_ratio(quality_level)
+    if logical_operation == "Split & Sample":
+        return split_sample_output_ratio(quality_level)
     cfg = load_pricing_config()
     table = cfg["data_conversion_ratio_mean_std"]
     tier = quality_tier(quality_level)
@@ -68,6 +72,10 @@ def sample_data_conversion_ratio(
 
 
 def expected_data_conversion_ratio(logical_operation: str, quality_level: str) -> float:
+    if logical_operation == "Sample":
+        return sample_output_ratio(quality_level)
+    if logical_operation == "Split & Sample":
+        return split_sample_output_ratio(quality_level)
     cfg = load_pricing_config()
     table = cfg["data_conversion_ratio_mean_std"]
     tier = quality_tier(quality_level)
@@ -191,10 +199,44 @@ def expected_caption_output_tokens_per_frame() -> float:
     return (lo + hi) / 2.0
 
 
-def sampling_fps(quality_level: str) -> float:
+def shots_per_minute() -> float:
     cfg = load_pricing_config()
-    rates = cfg.get("sampling_rates_fps", {})
-    return float(rates[quality_level])
+    return float(cfg.get("shots_per_minute", 1.0))
+
+
+def frames_per_shot(quality_level: str) -> int:
+    cfg = load_pricing_config()
+    table = cfg.get("frames_per_shot", {})
+    return int(table[quality_level])
+
+
+def sample_rate_fps(quality_level: str) -> float:
+    cfg = load_pricing_config()
+    table = cfg.get("sample_rates_fps", {})
+    return float(table[quality_level])
+
+
+def sampled_frame_count_simple(video_duration_sec: float, quality_level: str) -> float:
+    return video_duration_sec * sample_rate_fps(quality_level)
+
+
+def sampled_frame_count(video_duration_sec: float, quality_level: str) -> float:
+    shots = (video_duration_sec / 60.0) * shots_per_minute()
+    return shots * frames_per_shot(quality_level)
+
+
+def sample_output_ratio(quality_level: str) -> float:
+    frame_mb_per_min = sample_rate_fps(quality_level) * 60.0 * float(
+        load_pricing_config()["mb_per_vision_image"]
+    )
+    return frame_mb_per_min / max(video_mb_per_minute(), 1e-9)
+
+
+def split_sample_output_ratio(quality_level: str) -> float:
+    frame_mb_per_min = shots_per_minute() * frames_per_shot(quality_level) * float(
+        load_pricing_config()["mb_per_vision_image"]
+    )
+    return frame_mb_per_min / max(video_mb_per_minute(), 1e-9)
 
 
 def caption_input_tokens(
@@ -202,7 +244,7 @@ def caption_input_tokens(
     quality_level: str,
     model_name: str | None = None,
 ) -> float:
-    num_frames = video_duration_sec * sampling_fps(quality_level)
+    num_frames = sampled_frame_count(video_duration_sec, quality_level)
     return num_frames * caption_tokens_per_frame(model_name) + caption_prompt_tokens()
 
 
@@ -211,7 +253,7 @@ def caption_output_tokens(
     quality_level: str,
     output_tokens_per_frame: float,
 ) -> float:
-    num_frames = video_duration_sec * sampling_fps(quality_level)
+    num_frames = sampled_frame_count(video_duration_sec, quality_level)
     return num_frames * output_tokens_per_frame
 
 
@@ -265,7 +307,7 @@ def llm_performance(provider: str, region: str, model: str) -> tuple[float, floa
 
 
 def is_llm_operation(logical_operation: str) -> bool:
-    return logical_operation in ("Video Caption", "Q/A")
+    return logical_operation in ("Frame Caption", "Reason")
 
 
 def llm_cost_usd(
@@ -281,7 +323,7 @@ def llm_cost_usd(
 ) -> float:
     input_price, output_price = llm_prices_per_million(provider, region, model)
     tpm = tokens_per_mb()
-    if logical_operation == "Video Caption" and quality_level and video_duration_sec is not None:
+    if logical_operation == "Frame Caption" and quality_level and video_duration_sec is not None:
         input_tokens = caption_input_tokens(video_duration_sec, quality_level, model)
     else:
         input_tokens = input_size_mb * tpm
@@ -323,12 +365,12 @@ def endpoint_cost_fields(
     storage_per_mb_day = (storage_month / days_per_month) / 1024.0
 
     op = logical_operation
-    if op in ("Video Caption", "Q/A"):
+    if op in ("Frame Caption", "Reason"):
         if not model_name:
             raise ValueError(f"{op} requires model_name")
         inp_p, out_p = llm_prices_per_million(provider, region, model_name)
         tpm = tokens_per_mb()
-        if op == "Video Caption":
+        if op == "Frame Caption":
             qcfg = query_generation_params()
             mean_duration = (
                 float(qcfg["video_duration_sec_min"])
@@ -341,7 +383,7 @@ def endpoint_cost_fields(
             ) / tpm
             sampled_video_mb = video_mb_per_minute() * (mean_duration / 60.0)
             sampled_video_mb *= expected_data_conversion_ratio(
-                "Video Split & Sample",
+                "Split & Sample",
                 quality_level,
             )
             denom = max(sampled_video_mb, 1e-9)
@@ -365,7 +407,13 @@ def endpoint_cost_fields(
             raise KeyError(f"No shot detection price for {provider}/{region}")
         return 0.0, rate / mb_per_min, storage_per_mb_day
 
-    if op == "Video Split & Sample":
+    if op == "Sample":
+        rate = _lookup_nested(cfg["video_split_usd_per_minute"], provider, region)
+        if rate is None:
+            raise KeyError(f"No sample price for {provider}/{region}")
+        return 0.0, rate / mb_per_min, storage_per_mb_day
+
+    if op == "Split & Sample":
         rate = _lookup_nested(cfg["video_split_usd_per_minute"], provider, region)
         if rate is None:
             raise KeyError(f"No video split price for {provider}/{region}")
@@ -389,7 +437,7 @@ def endpoint_cost_fields(
             raise KeyError(f"No speech transcription price for {provider}/{region}")
         return 0.0, rate / mb_per_min, storage_per_mb_day
 
-    if op == "Database":
+    if op in ("Database", "Temporal Grounding"):
         inst = _lookup_nested(cfg["database_instance_usd_per_month"], provider, region)
         db_stor = _lookup_nested(cfg["database_storage_usd_per_gb_month"], provider, region)
         if inst is None:
@@ -407,14 +455,16 @@ def operation_supported(provider: str, region: str, logical_operation: str) -> b
     """Return whether pricing exists for this (provider, region, operation)."""
     cfg = load_pricing_config()
     key_map = {
+        "Sample": "video_split_usd_per_minute",
         "Shot Detection": "shot_detection_usd_per_minute",
-        "Video Split & Sample": "video_split_usd_per_minute",
+        "Split & Sample": "video_split_usd_per_minute",
         "OCR": "ocr_usd_per_image",
         "Label Detection": "label_detection_usd_per_image",
         "Speech Transcription": "speech_transcription_usd_per_minute",
         "Database": "database_instance_usd_per_month",
+        "Temporal Grounding": "database_instance_usd_per_month",
     }
-    if logical_operation in ("Video Caption", "Q/A"):
+    if logical_operation in ("Frame Caption", "Reason"):
         return bool(cfg.get("llm_price_per_million", {}).get(provider, {}).get(region))
     table_key = key_map.get(logical_operation)
     if table_key is None:
@@ -432,7 +482,7 @@ def physical_endpoint_exists(
     """Physical node exists only if documented in pricing tables (incl. LLM model/region)."""
     if not operation_supported(provider, region, logical_operation):
         return False
-    if logical_operation in ("Video Caption", "Q/A"):
+    if logical_operation in ("Frame Caption", "Reason"):
         if not model_name:
             return False
         try:
@@ -447,7 +497,15 @@ def query_generation_params() -> dict[str, Any]:
     cfg = load_pricing_config()
     q = dict(cfg.get("query", {}))
     q.setdefault("requests_per_quality_level", 100)
-    q.setdefault("workflow1_workflow2_ratio", [1, 1])
+    q.setdefault(
+        "workflow_ratios",
+        {
+            "workflow1": 1,
+            "workflow2": 1,
+            "workflow3": 1,
+            "workflow4": 1,
+        },
+    )
     q.setdefault("video_duration_sec_min", 60)
     q.setdefault("video_duration_sec_max", 1800)
     q["fps"] = float(cfg.get("video_fps", 30))

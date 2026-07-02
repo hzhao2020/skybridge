@@ -61,6 +61,7 @@ def load_queries(
     data_dir: Path | None = None,
     quality_level: str | None = None,
     workflow: str | None = None,
+    split: str | None = "train",
 ) -> list[Query]:
     path = (data_dir or DATA_DIR) / "queries.csv"
     df = pd.read_csv(path)
@@ -68,15 +69,28 @@ def load_queries(
         df = df[df["quality_level"] == quality_level]
     if workflow:
         df = df[df["workflow"] == workflow]
+    if split is not None:
+        if "split" not in df.columns:
+            raise ValueError(
+                "queries.csv does not contain a split column. "
+                "Regenerate data with python scripts/generate_synthetic_data.py"
+            )
+        df = df[df["split"] == split]
     queries: list[Query] = []
     for _, row in df.iterrows():
         fps = float(row["fps"]) if "fps" in row and pd.notna(row.get("fps")) else 30.0
         wf = str(row["workflow"]) if "workflow" in row and pd.notna(row.get("workflow")) else "workflow1"
+        query_split = (
+            str(row["split"])
+            if "split" in row and pd.notna(row.get("split"))
+            else "train"
+        )
         queries.append(
             Query(
                 query_id=str(row["query_id"]),
                 workflow=wf,
                 quality_level=str(row["quality_level"]),
+                split=query_split,
                 video_size_mb=float(row["video_size_mb"]),
                 video_duration_sec=float(row["video_duration_sec"]),
                 fps=fps,

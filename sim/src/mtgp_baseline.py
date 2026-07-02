@@ -5,9 +5,8 @@ This module follows the core MTGP idea from Sun et al. (IEEE TSC 2024): one
 individual contains three priority-rule trees for task, cloud, and resource
 selection. The repository evaluates static deployment plans rather than a
 multi-workflow event simulator, so endpoints are treated as the selectable
-resource instances. The rules are evolved against deterministic calibration
-profiles only; scenario-level violation rates and CVaR risk are reserved for
-SkyFlow and final evaluation.
+resource instances. The rules are evolved with empirical SLA violation rate as
+the primary selection criterion, then expected cost among SVR-feasible plans.
 """
 
 from __future__ import annotations
@@ -35,6 +34,7 @@ from src.schemas import Endpoint, Query, Scenario, SolverConfig, WorkflowDAG
 Decision = Literal["task", "cloud", "instance"]
 FunctionName = Literal["add", "sub", "mul", "div", "max", "min"]
 QueryScenarioData = tuple[Query, Scenario, dict[str, float], dict[str, float]]
+FitnessRank = tuple[int, float, float, float, float]
 
 SUB_DEADLINE_EPSILON = 0.95
 DEFAULT_POPULATION_SIZE = 12
@@ -44,7 +44,6 @@ DEFAULT_TOURNAMENT_SIZE = 3
 DEFAULT_ELITE_COUNT = 2
 DEFAULT_CROSSOVER_RATE = 0.80
 DEFAULT_MUTATION_RATE = 0.15
-PROFILE_LATENCY_PENALTY_WEIGHT = 8.0
 
 FUNCTIONS: tuple[FunctionName, ...] = ("add", "sub", "mul", "div", "max", "min")
 
@@ -183,7 +182,7 @@ def solve_mtgp(
         runtime_sec=time.perf_counter() - t0,
     )
     result.num_iterations = len(history)
-    result.active_scenario_count = len(avg_samples)
+    result.active_scenario_count = len(metrics_cache.qs_data)
     result.convergence_history = history
     return result
 
@@ -220,41 +219,41 @@ def _evolve_rules(
 
     population = [_random_individual(rng, max_depth, full=(i % 2 == 0)) for i in range(pop_size)]
     best_individual = population[0]
-    best_fitness = math.inf
+    best_rank: FitnessRank | None = None
     history: list[dict[str, float]] = []
 
     for generation in range(generations):
-        scored = [
-            (
-                _fitness(
-                    individual,
-                    workflow,
-                    node_candidates,
-                    avg_samples,
-                    terminal_stats,
-                    metrics_cache,
-                    config,
-                ),
+        scored = []
+        for individual in population:
+            rank, metrics = _fitness(
                 individual,
+                workflow,
+                node_candidates,
+                avg_samples,
+                terminal_stats,
+                metrics_cache,
+                config,
             )
-            for individual in population
-        ]
+            scored.append((rank, metrics, individual))
         scored.sort(key=lambda row: row[0])
-        if scored[0][0] < best_fitness:
-            best_fitness = scored[0][0]
-            best_individual = scored[0][1]
+        if best_rank is None or scored[0][0] < best_rank:
+            best_rank = scored[0][0]
+            best_individual = scored[0][2]
+        best_metrics = scored[0][1]
         history.append(
             {
                 "iteration": generation + 1,
-                "active_scenario_count": len(avg_samples),
-                "objective_value": float(scored[0][0]),
-                "max_violation": float(max(0.0, scored[0][0] - best_fitness)),
-                "num_violated_scenarios": 0,
+                "active_scenario_count": len(metrics_cache.qs_data),
+                "objective_value": _rank_scalar(scored[0][0]),
+                "max_violation": float(max(0.0, best_metrics["violation_rate"] - config.eta)),
+                "num_violated_scenarios": float(
+                    round(best_metrics["violation_rate"] * len(metrics_cache.qs_data))
+                ),
                 "runtime_sec": 0.0,
             }
         )
 
-        next_population = [ind for _, ind in scored[:elite_count]]
+        next_population = [ind for _, _, ind in scored[:elite_count]]
         while len(next_population) < pop_size:
             if rng.random() < crossover_rate and len(next_population) + 1 < pop_size:
                 parent_a = _tournament(scored, tournament_size, rng)
@@ -278,7 +277,7 @@ def _fitness(
     terminal_stats: _TerminalStats,
     metrics_cache: _BaselineEvaluationCache,
     config: SolverConfig,
-) -> float:
+) -> tuple[FitnessRank, dict[str, float]]:
     try:
         assignment = _schedule_with_individual(
             individual=individual,
@@ -290,23 +289,37 @@ def _fitness(
             config=config,
         )
     except Exception:
-        return math.inf
-    metrics = _evaluate_assignment_on_profiles(
-        workflow=workflow,
-        assignment=assignment,
-        avg_samples=avg_samples,
-        metrics_cache=metrics_cache,
-        config=config,
-    )
-    latency_penalty = (
-        metrics["mean_normalized_excess"]
-        + metrics["max_normalized_excess"]
-    )
-    return (
-        float(metrics["expected_cost"])
-        * (1.0 + PROFILE_LATENCY_PENALTY_WEIGHT * latency_penalty)
-        + 1e-6 * float(metrics["avg_latency"])
-    )
+        metrics = {
+            "violation_rate": math.inf,
+            "expected_cost": math.inf,
+            "p95_latency": math.inf,
+            "avg_latency": math.inf,
+        }
+        return _svr_first_rank(metrics, config.eta), metrics
+    metrics = metrics_cache.evaluate(assignment)
+    rank_metrics = {
+        "violation_rate": float(metrics["violation_rate"]),
+        "expected_cost": float(metrics["expected_cost"]),
+        "p95_latency": float(metrics["p95_latency"]),
+        "avg_latency": float(metrics["avg_latency"]),
+    }
+    return _svr_first_rank(rank_metrics, config.eta), rank_metrics
+
+
+def _svr_first_rank(metrics: dict[str, float], eta: float) -> FitnessRank:
+    violation = float(metrics["violation_rate"])
+    expected_cost = float(metrics["expected_cost"])
+    p95_latency = float(metrics["p95_latency"])
+    avg_latency = float(metrics["avg_latency"])
+    if violation <= eta:
+        return (0, expected_cost, p95_latency, avg_latency, violation)
+    return (1, violation, p95_latency, avg_latency, expected_cost)
+
+
+def _rank_scalar(rank: FitnessRank) -> float:
+    if rank[0] == 0:
+        return float(rank[1])
+    return 1_000_000.0 + 1_000_000.0 * float(rank[1]) + float(rank[2])
 
 
 def _schedule_with_individual(
@@ -946,12 +959,12 @@ def _random_tree(
 
 
 def _tournament(
-    scored: list[tuple[float, _Individual]],
+    scored: list[tuple[FitnessRank, dict[str, float], _Individual]],
     tournament_size: int,
     rng: random.Random,
 ) -> _Individual:
     contestants = rng.sample(scored, min(tournament_size, len(scored)))
-    return min(contestants, key=lambda row: row[0])[1]
+    return min(contestants, key=lambda row: row[0])[2]
 
 
 def _crossover(a: _Individual, b: _Individual, rng: random.Random) -> tuple[_Individual, _Individual]:

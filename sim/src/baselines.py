@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
+from itertools import product
 from typing import Callable
 
 import numpy as np
@@ -542,6 +543,65 @@ def _rank_violation_cost(violation_rate: float, expected_cost: float) -> tuple[f
     return (violation_rate, expected_cost)
 
 
+def _min_expected_node_cost_endpoints(
+    *,
+    node: str,
+    candidates: list[Endpoint],
+    metrics_cache: _BaselineEvaluationCache,
+    atol: float = 1e-12,
+    rtol: float = 1e-9,
+) -> list[Endpoint]:
+    """Return every candidate tied for the minimum expected node cost."""
+    if not candidates:
+        return []
+    costs = [(metrics_cache._average_node_cost(node, ep), ep) for ep in candidates]
+    min_cost = min(cost for cost, _ in costs)
+    return [
+        ep
+        for cost, ep in costs
+        if np.isclose(cost, min_cost, rtol=rtol, atol=atol)
+    ]
+
+
+def _best_assignment_from_tied_node_choices(
+    *,
+    workflow: WorkflowDAG,
+    choices_by_node: dict[str, list[Endpoint]],
+    metrics_cache: _BaselineEvaluationCache,
+    config: SolverConfig,
+    rank_suffix: tuple = (),
+) -> tuple[dict[str, Endpoint], dict, tuple]:
+    """
+    Enumerate tied local-cost choices and select by global SVR/cost policy.
+
+    Feasible plans (violation_rate <= eta) are ranked by expected cost first.
+    If none are feasible, plans are ranked by violation rate first.
+    """
+    nodes = _topological_compute_nodes(workflow)
+    best_assignment: dict[str, Endpoint] | None = None
+    best_metrics: dict | None = None
+    best_rank: tuple | None = None
+
+    for combo in product(*(choices_by_node[node] for node in nodes)):
+        assignment = dict(zip(nodes, combo, strict=True))
+        metrics = metrics_cache.evaluate(assignment)
+        violation = float(metrics["violation_rate"])
+        cost = float(metrics["expected_cost"])
+        endpoint_ids = tuple(ep.endpoint_id for ep in combo)
+        if violation <= config.eta:
+            rank = (0.0, cost, violation, endpoint_ids, *rank_suffix)
+        else:
+            rank = (1.0, violation, cost, endpoint_ids, *rank_suffix)
+        if best_rank is None or rank < best_rank:
+            best_rank = rank
+            best_assignment = assignment
+            best_metrics = metrics
+
+    if best_assignment is None or best_metrics is None or best_rank is None:
+        raise RuntimeError("No tied-cost endpoint combinations were available")
+    return best_assignment, best_metrics, best_rank
+
+
 def _to_result(
     *,
     workflow: WorkflowDAG,
@@ -629,9 +689,10 @@ def solve_single_cloud(
     config: SolverConfig,
 ) -> OptimizationResult:
     """
-    SC: build one provider-specific plan per cloud by choosing the lowest
-    expected-cost endpoint for each logical operator. Pick the cheapest plan
-    among providers satisfying SVR <= eta; otherwise pick the lowest-SVR plan.
+    SC: for each cloud provider, keep every endpoint tied for the lowest
+    expected node cost at each logical operator and evaluate all tied
+    combinations. Pick the cheapest plan among combinations satisfying
+    SVR <= eta; otherwise pick the lowest-SVR plan.
     """
     t0 = time.perf_counter()
     node_candidates = _node_candidates(workflow, endpoints, quality_level, config)
@@ -641,41 +702,41 @@ def solve_single_cloud(
     providers = _providers_covering_all_nodes(node_candidates)
 
     best_assign: dict[str, Endpoint] | None = None
-    best_rank: tuple[float, float, float, str] | None = None
+    best_provider: str | None = None
+    best_rank: tuple | None = None
     best_metrics: dict | None = None
 
     for prov in providers:
-        assignment: dict[str, Endpoint] = {}
+        choices_by_node: dict[str, list[Endpoint]] = {}
         for node in _topological_compute_nodes(workflow):
             cands = [ep for ep in node_candidates[node] if ep.provider == prov]
-            assignment[node] = min(
-                cands,
-                key=lambda ep: (
-                    metrics_cache._average_node_cost(node, ep),
-                    ep.endpoint_id,
-                ),
+            choices_by_node[node] = _min_expected_node_cost_endpoints(
+                node=node,
+                candidates=cands,
+                metrics_cache=metrics_cache,
             )
 
-        metrics = metrics_cache.evaluate(assignment)
-        violation = float(metrics["violation_rate"])
-        cost = float(metrics["expected_cost"])
-        if violation <= config.eta:
-            rank = (0.0, cost, violation, prov)
-        else:
-            rank = (1.0, violation, cost, prov)
+        assignment, metrics, rank = _best_assignment_from_tied_node_choices(
+            workflow=workflow,
+            choices_by_node=choices_by_node,
+            metrics_cache=metrics_cache,
+            config=config,
+            rank_suffix=(prov,),
+        )
         if best_rank is None or rank < best_rank:
             best_rank = rank
+            best_provider = prov
             best_assign = assignment
             best_metrics = metrics
 
-    if best_assign is None or best_metrics is None:
+    if best_assign is None or best_metrics is None or best_provider is None:
         raise RuntimeError(
             "Single-Cloud: no provider covers all logical operators"
         )
 
     logger.info(
         "Single-Cloud selected provider=%s violation=%.4f cost=%.4f",
-        best_rank[3],
+        best_provider,
         best_metrics["violation_rate"],
         best_metrics["expected_cost"],
     )
@@ -699,41 +760,38 @@ def solve_greedy(
     config: SolverConfig,
 ) -> OptimizationResult:
     """
-    Greedy: traverse the workflow DAG in topological order. For each logical node,
-    choose the physical candidate endpoint with the lowest expected node cost
-    from calibration profiles, including execution and storage costs. Ties break
-    by lower expected node latency. Decisions are irrevocable and local, and the
-    global deployment plan is not jointly optimized.
+    Greedy: for each logical node, keep every endpoint tied for the lowest
+    expected node cost from calibration profiles, including execution and
+    storage costs. Evaluate all tied combinations globally; feasible plans
+    (SVR <= eta) are ranked by expected cost, otherwise by violation rate.
     """
     t0 = time.perf_counter()
     node_candidates = _node_candidates(workflow, endpoints, quality_level, config)
     metrics_cache = _BaselineEvaluationCache(
         workflow, endpoints, queries, scenarios, quality_level, config
     )
-    partial: dict[str, Endpoint] = {}
+    choices_by_node: dict[str, list[Endpoint]] = {}
 
     for node in _topological_compute_nodes(workflow):
-        best_ep: Endpoint | None = None
-        best_rank: tuple[float, float, str] | None = None
-        for ep in node_candidates[node]:
-            node_cost, node_latency = _expected_node_profile_cost_latency(
-                node=node,
-                endpoint=ep,
-                qs_data=metrics_cache.qs_data,
-                config=config,
-            )
-            rank = (node_cost, node_latency, ep.endpoint_id)
-            if best_rank is None or rank < best_rank:
-                best_rank = rank
-                best_ep = ep
-        if best_ep is None:
+        choices = _min_expected_node_cost_endpoints(
+            node=node,
+            candidates=node_candidates[node],
+            metrics_cache=metrics_cache,
+        )
+        if not choices:
             raise RuntimeError(f"Greedy: no candidate for {node}")
-        partial[node] = best_ep
+        choices_by_node[node] = choices
 
-    metrics = metrics_cache.evaluate(partial, include_per_qs=True)
+    assignment, _, _ = _best_assignment_from_tied_node_choices(
+        workflow=workflow,
+        choices_by_node=choices_by_node,
+        metrics_cache=metrics_cache,
+        config=config,
+    )
+    metrics = metrics_cache.evaluate(assignment, include_per_qs=True)
     return _to_result(
         workflow=workflow,
-        assignment=partial,
+        assignment=assignment,
         quality_level=quality_level,
         method="greedy",
         metrics=metrics,
@@ -750,13 +808,13 @@ def solve_dpgm(
     config: SolverConfig,
 ) -> OptimizationResult:
     """
-    Deterministic Profile-Guided MILP (DPGM).
+    Deterministic Profile-Guided MILP (DPGM) with empirical SVR control.
 
     DPGM follows Murakkab's profile-guided optimization principle and adapts it
-    to multi-cloud endpoint selection. It minimizes deterministic profile cost
-    subject to profiled critical-path latency constraints. If the hard profile
-    constraints are infeasible, it returns the minimum-slack profiled solution.
-    Unlike SkyFlow's full MILP, it does not model per-scenario tail risk/CVaR.
+    to multi-cloud endpoint selection. It minimizes deterministic expected cost
+    subject to an empirical SLA violation-rate constraint over calibration
+    query-scenario pairs. Unlike SkyFlow's full MILP, it does not model tail
+    excess or CVaR.
     """
     import gurobipy as gp
     from gurobipy import GRB
@@ -766,48 +824,25 @@ def solve_dpgm(
     metrics_cache = _BaselineEvaluationCache(
         workflow, endpoints, queries, scenarios, quality_level, config
     )
-    profiles = _build_dpgm_query_profiles(
-        workflow,
-        node_candidates,
-        metrics_cache,
-        config,
-    )
-    artifacts = _build_dpgm_profile_milp(
+    artifacts = _build_dpgm_svr_milp(
         workflow=workflow,
         node_candidates=node_candidates,
         virtual_map=metrics_cache.virtual_map,
         network_index=metrics_cache.network_index,
-        query_profiles=profiles,
+        qs_data=metrics_cache.qs_data,
         config=config,
         gp=gp,
         GRB=GRB,
-        allow_latency_slack=False,
     )
     artifacts["model"].optimize()
-    used_slack = False
     if artifacts["model"].Status in (GRB.INFEASIBLE, GRB.INF_OR_UNBD):
-        logger.warning(
-            "DPGM profile MILP infeasible for %s %s; resolving with latency slack",
-            workflow.name,
-            quality_level,
+        raise RuntimeError(
+            "DPGM SVR MILP infeasible; fallback for infeasible SVR instances is intentionally unset"
         )
-        artifacts = _build_dpgm_profile_milp(
-            workflow=workflow,
-            node_candidates=node_candidates,
-            virtual_map=metrics_cache.virtual_map,
-            network_index=metrics_cache.network_index,
-            query_profiles=profiles,
-            config=config,
-            gp=gp,
-            GRB=GRB,
-            allow_latency_slack=True,
-        )
-        artifacts["model"].optimize()
-        used_slack = True
 
     model = artifacts["model"]
     if model.SolCount <= 0:
-        raise RuntimeError(f"DPGM profile MILP failed to find a solution (status={model.Status})")
+        raise RuntimeError(f"DPGM SVR MILP failed to find a solution (status={model.Status})")
 
     assignment = _extract_dpgm_assignment(node_candidates, artifacts["x"])
     metrics = metrics_cache.evaluate(assignment, include_per_qs=True)
@@ -821,8 +856,8 @@ def solve_dpgm(
     )
     result.objective_value = float(model.ObjVal)
     status_name = _dpgm_gurobi_status_name(model.Status, GRB)
-    result.status = f"profile_slack_{status_name}" if used_slack else status_name
-    result.active_scenario_count = len(profiles)
+    result.status = f"svr_{status_name}"
+    result.active_scenario_count = len(metrics_cache.qs_data)
     return result
 
 
@@ -836,6 +871,250 @@ def solve_murakkab_profile(
 ) -> OptimizationResult:
     """Backward-compatible alias for the DPGM baseline."""
     return solve_dpgm(workflow, endpoints, queries, scenarios, quality_level, config)
+
+
+def _build_dpgm_svr_milp(
+    *,
+    workflow: WorkflowDAG,
+    node_candidates: dict[str, list[Endpoint]],
+    virtual_map: dict[str, Endpoint],
+    network_index: dict[tuple[str, str], object],
+    qs_data: list[QueryScenarioData],
+    config: SolverConfig,
+    gp,
+    GRB,
+) -> dict:
+    model = gp.Model("dpgm_svr")
+    model.Params.OutputFlag = 0
+    if config.gurobi_time_limit_sec > 0:
+        model.Params.TimeLimit = config.gurobi_time_limit_sec
+    model.Params.MIPGap = config.gurobi_mip_gap
+    model.Params.MIPGapAbs = 1e-12
+    model.Params.Seed = config.random_seed
+    model.Params.Threads = 1
+
+    x: dict[tuple[str, str], object] = {}
+    for node, cands in node_candidates.items():
+        for ep in cands:
+            x[node, ep.endpoint_id] = model.addVar(
+                vtype=GRB.BINARY,
+                name=f"x_{node}_{ep.endpoint_id}",
+            )
+
+    y: dict[tuple[str, str, str, str], object] = {}
+    for edge in workflow.edges:
+        src_eps = _dpgm_candidates_for_node(edge.src, node_candidates, virtual_map, workflow)
+        dst_eps = _dpgm_candidates_for_node(edge.dst, node_candidates, virtual_map, workflow)
+        for src_ep in src_eps:
+            for dst_ep in dst_eps:
+                key = (edge.src, edge.dst, src_ep.endpoint_id, dst_ep.endpoint_id)
+                y[key] = model.addVar(
+                    lb=0.0,
+                    ub=1.0,
+                    name=f"y_{edge.src}_{edge.dst}_{src_ep.endpoint_id}_{dst_ep.endpoint_id}",
+                )
+
+    for node, cands in node_candidates.items():
+        model.addConstr(
+            gp.quicksum(x[node, ep.endpoint_id] for ep in cands) == 1,
+            name=f"assign_{node}",
+        )
+
+    for key, var in y.items():
+        src, dst, src_eid, dst_eid = key
+        src_x = _dpgm_endpoint_var(src, src_eid, x, workflow)
+        dst_x = _dpgm_endpoint_var(dst, dst_eid, x, workflow)
+        if isinstance(src_x, float):
+            model.addConstr(var <= dst_x, name=f"mc1_{src}_{dst}_{src_eid}_{dst_eid}")
+            model.addConstr(var >= dst_x - 1 + src_x, name=f"mc3_{src}_{dst}_{src_eid}_{dst_eid}")
+        elif isinstance(dst_x, float):
+            model.addConstr(var <= src_x, name=f"mc1b_{src}_{dst}_{src_eid}_{dst_eid}")
+            model.addConstr(var >= src_x - 1 + dst_x, name=f"mc3b_{src}_{dst}_{src_eid}_{dst_eid}")
+        else:
+            model.addConstr(var <= src_x, name=f"mc1_{src}_{dst}_{src_eid}_{dst_eid}")
+            model.addConstr(var <= dst_x, name=f"mc2_{src}_{dst}_{src_eid}_{dst_eid}")
+            model.addConstr(var >= src_x + dst_x - 1, name=f"mc3_{src}_{dst}_{src_eid}_{dst_eid}")
+
+    violation: dict[tuple[str, str], object] = {}
+    for query, scenario, _, _ in qs_data:
+        key = (query.query_id, scenario.scenario_id)
+        violation[key] = model.addVar(vtype=GRB.BINARY, name=f"svr_{query.query_id}_{scenario.scenario_id}")
+
+    paths = enumerate_source_to_sink_paths(workflow)
+    for query, scenario, input_sizes, output_sizes in qs_data:
+        key = (query.query_id, scenario.scenario_id)
+        for path_idx, path in enumerate(paths):
+            path_expr, path_upper_bound = _dpgm_svr_path_latency_expr(
+                path=path,
+                workflow=workflow,
+                x=x,
+                y=y,
+                node_candidates=node_candidates,
+                virtual_map=virtual_map,
+                network_index=network_index,
+                input_sizes=input_sizes,
+                output_sizes=output_sizes,
+                query=query,
+                scenario=scenario,
+                config=config,
+                gp=gp,
+            )
+            big_m = max(path_upper_bound - query.sla_sec, 1e-6)
+            model.addConstr(
+                path_expr <= query.sla_sec + big_m * violation[key],
+                name=f"svr_path_{query.query_id}_{scenario.scenario_id}_{path_idx}",
+            )
+
+    n_qs = max(len(qs_data), 1)
+    max_violations = int(np.floor(config.eta * n_qs + 1e-9))
+    model.addConstr(
+        gp.quicksum(violation.values()) <= max_violations,
+        name="empirical_svr_cap",
+    )
+
+    cost_expr = _dpgm_svr_cost_expr(
+        workflow=workflow,
+        x=x,
+        y=y,
+        node_candidates=node_candidates,
+        virtual_map=virtual_map,
+        network_index=network_index,
+        qs_data=qs_data,
+        config=config,
+        gp=gp,
+    )
+    expected_cost = cost_expr / n_qs
+    model.setObjective(expected_cost, GRB.MINIMIZE)
+    return {
+        "model": model,
+        "x": x,
+        "violation": violation,
+    }
+
+
+def _dpgm_svr_path_latency_expr(
+    *,
+    path: list[str],
+    workflow: WorkflowDAG,
+    x: dict[tuple[str, str], object],
+    y: dict[tuple[str, str, str, str], object],
+    node_candidates: dict[str, list[Endpoint]],
+    virtual_map: dict[str, Endpoint],
+    network_index: dict[tuple[str, str], object],
+    input_sizes: dict[str, float],
+    output_sizes: dict[str, float],
+    query: Query,
+    scenario: Scenario,
+    config: SolverConfig,
+    gp,
+) -> tuple[object, float]:
+    expr = gp.LinExpr()
+    upper_bound = 0.0
+
+    for node in path:
+        if workflow.is_virtual(node):
+            continue
+        inp = input_sizes.get(node, 0.0)
+        out = output_sizes.get(node, 0.0)
+        coeffs: list[float] = []
+        for ep in node_candidates[node]:
+            sampled = sampled_execution_latency(ep, query, scenario)
+            if sampled is not None:
+                latency = sampled
+            else:
+                mult = scenario.exec_latency_multiplier.get(ep.endpoint_id, scenario.exec_stress)
+                latency = execution_latency(ep, inp, out, mult)
+            expr += latency * x[node, ep.endpoint_id]
+            coeffs.append(latency)
+        upper_bound += max(coeffs) if coeffs else 0.0
+
+    for src, dst in path_edges(path):
+        if not config.ablation.enable_client_upload_download:
+            if src == "ClientSource" or dst == "ClientSink":
+                continue
+        if not config.ablation.enable_network_latency:
+            continue
+        src_eps = _dpgm_candidates_for_node(src, node_candidates, virtual_map, workflow)
+        dst_eps = _dpgm_candidates_for_node(dst, node_candidates, virtual_map, workflow)
+        transferred = edge_transfer_size(src, dst, output_sizes, query)
+        coeffs = []
+        for src_ep in src_eps:
+            for dst_ep in dst_eps:
+                link = network_index.get((src_ep.endpoint_id, dst_ep.endpoint_id))
+                if link is None:
+                    latency = 0.0
+                else:
+                    pair_key = f"{src_ep.endpoint_id}->{dst_ep.endpoint_id}"
+                    bw_mult = scenario.bandwidth_multiplier.get(pair_key, scenario.bw_stress)
+                    rtt_mult = scenario.rtt_multiplier.get(pair_key, scenario.rtt_stress)
+                    latency = network_latency(
+                        link,
+                        transferred,
+                        bw_mult,
+                        rtt_mult,
+                        config.ablation.enable_network_latency,
+                    )
+                key = (src, dst, src_ep.endpoint_id, dst_ep.endpoint_id)
+                var = y.get(key)
+                if var is not None:
+                    expr += latency * var
+                    coeffs.append(latency)
+        upper_bound += max(coeffs) if coeffs else 0.0
+
+    return expr, upper_bound
+
+
+def _dpgm_svr_cost_expr(
+    *,
+    workflow: WorkflowDAG,
+    x: dict[tuple[str, str], object],
+    y: dict[tuple[str, str, str, str], object],
+    node_candidates: dict[str, list[Endpoint]],
+    virtual_map: dict[str, Endpoint],
+    network_index: dict[tuple[str, str], object],
+    qs_data: list[QueryScenarioData],
+    config: SolverConfig,
+    gp,
+) -> object:
+    expr = gp.LinExpr()
+    for query, _, input_sizes, output_sizes in qs_data:
+        for node, cands in node_candidates.items():
+            inp = input_sizes.get(node, 0.0)
+            out = output_sizes.get(node, 0.0)
+            for ep in cands:
+                cost = execution_cost(ep, inp, out, query)
+                cost += storage_cost(
+                    ep,
+                    inp,
+                    out,
+                    config.ablation.enable_storage_cost,
+                )
+                expr += cost * x[node, ep.endpoint_id]
+
+        for edge in workflow.edges:
+            src, dst = edge.src, edge.dst
+            if not config.ablation.enable_client_upload_download:
+                if src == "ClientSource" or dst == "ClientSink":
+                    continue
+            if not config.ablation.enable_network_cost:
+                continue
+            src_eps = _dpgm_candidates_for_node(src, node_candidates, virtual_map, workflow)
+            dst_eps = _dpgm_candidates_for_node(dst, node_candidates, virtual_map, workflow)
+            transferred = edge_transfer_size(src, dst, output_sizes, query)
+            for src_ep in src_eps:
+                for dst_ep in dst_eps:
+                    link = network_index.get((src_ep.endpoint_id, dst_ep.endpoint_id))
+                    if link is None:
+                        continue
+                    key = (src, dst, src_ep.endpoint_id, dst_ep.endpoint_id)
+                    var = y.get(key)
+                    if var is not None:
+                        expr += network_transfer_cost(
+                            link,
+                            transferred,
+                            config.ablation.enable_network_cost,
+                        ) * var
+    return expr
 
 
 def _build_dpgm_query_profiles(

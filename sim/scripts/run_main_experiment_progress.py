@@ -22,7 +22,7 @@ from src.data_loader import load_endpoints, load_network_links, load_queries, lo
 from src.experiment_protocol import split_scenarios_by_query  # noqa: E402
 from src.workflow import get_workflow  # noqa: E402
 
-WORKFLOWS = ("workflow1", "workflow2")
+WORKFLOWS = ("workflow1", "workflow2", "workflow3", "workflow4")
 QUALITIES = ("Q1", "Q2", "Q3")
 METHODS = ("decomposition", "single_cloud", "greedy", "dpgm", "mtgp")
 
@@ -84,10 +84,15 @@ def calibrate_budgets(output: Path, progress: Progress, factor: float, query_cou
         for quality in QUALITIES:
             queries = load_queries(quality_level=quality, workflow=workflow_name)[:query_count]
             scenarios = load_scenarios(query_ids=[q.query_id for q in queries])
-            calibration_scenarios, _ = split_scenarios_by_query(
-                scenarios,
-                calibration_count=int(load_default_config().get("num_scenarios_per_query", 50)),
-            )
+            calibration_count = int(load_default_config().get("num_scenarios_per_query", 50))
+            by_query: dict[str, list] = {}
+            for scenario in scenarios:
+                by_query.setdefault(scenario.query_id, []).append(scenario)
+            calibration_scenarios = []
+            for query_id in sorted(by_query):
+                calibration_scenarios.extend(
+                    sorted(by_query[query_id], key=lambda s: s.scenario_id)[:calibration_count]
+                )
             scenario_by_q: dict[str, list] = {}
             for scenario in calibration_scenarios:
                 scenario_by_q.setdefault(scenario.query_id, []).append(scenario)

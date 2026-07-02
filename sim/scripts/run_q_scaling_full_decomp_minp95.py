@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sweep query count for full MILP and decomposed MILP with held-out evaluation."""
+"""Sweep query count for full MILP and decomposed MILP with query-heldout evaluation."""
 
 from __future__ import annotations
 
@@ -26,7 +26,6 @@ sys.path.insert(0, str(ROOT))
 from src.config import RESULTS_DIR, load_default_config, load_solver_config  # noqa: E402
 from src.data_loader import load_endpoints, load_queries, load_scenarios  # noqa: E402
 from src.evaluator import evaluate_deployment  # noqa: E402
-from src.experiment_protocol import split_scenarios_by_query  # noqa: E402
 from src.milp_decomposition import solve_decomposition  # noqa: E402
 from src.milp_full import solve_full_milp  # noqa: E402
 from src.workflow import get_workflow  # noqa: E402
@@ -86,24 +85,43 @@ def _worker(
             solver_overrides["gurobi_time_limit_sec"] = gurobi_time_limit_sec
         config = load_solver_config(solver_overrides)
         endpoints = load_endpoints()
-        queries = load_queries(quality_level=quality, workflow=workflow_name)[:query_count]
-        if len(queries) != query_count:
+        train_queries = load_queries(
+            quality_level=quality,
+            workflow=workflow_name,
+            split="train",
+        )[:query_count]
+        test_queries = load_queries(
+            quality_level=quality,
+            workflow=workflow_name,
+            split="test",
+        )[:query_count]
+        if len(train_queries) != query_count:
             raise ValueError(
-                f"requested {query_count} queries for {workflow_name}/{quality}, "
-                f"but only found {len(queries)}"
+                f"requested {query_count} train queries for {workflow_name}/{quality}, "
+                f"but only found {len(train_queries)}"
+            )
+        if len(test_queries) != query_count:
+            raise ValueError(
+                f"requested {query_count} test queries for {workflow_name}/{quality}, "
+                f"but only found {len(test_queries)}"
             )
 
-        scenarios = load_scenarios(query_ids=[q.query_id for q in queries])
-        calibration_scenarios, test_scenarios = split_scenarios_by_query(
-            scenarios,
-            calibration_count=calibration_count,
-        )
+        train_scenarios_all = load_scenarios(query_ids=[q.query_id for q in train_queries])
+        by_train_query: dict[str, list] = {}
+        for scenario in train_scenarios_all:
+            by_train_query.setdefault(scenario.query_id, []).append(scenario)
+        calibration_scenarios = []
+        for query_id in sorted(by_train_query):
+            calibration_scenarios.extend(
+                sorted(by_train_query[query_id], key=lambda s: s.scenario_id)[:calibration_count]
+            )
+        test_scenarios = load_scenarios(query_ids=[q.query_id for q in test_queries])
 
         if method == "full_milp":
             result = solve_full_milp(
                 workflow,
                 endpoints,
-                queries,
+                train_queries,
                 calibration_scenarios,
                 quality,
                 config,
@@ -112,7 +130,7 @@ def _worker(
             result = solve_decomposition(
                 workflow,
                 endpoints,
-                queries,
+                train_queries,
                 calibration_scenarios,
                 quality,
                 config,
@@ -129,7 +147,7 @@ def _worker(
             workflow=workflow,
             assignment=assignment,
             endpoints=endpoints,
-            queries=queries,
+            queries=test_queries,
             scenarios=test_scenarios,
             quality_level=quality,
             config=config,
@@ -437,7 +455,7 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     cfg = load_default_config()
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--workflows", default="workflow1,workflow2")
+    parser.add_argument("--workflows", default="workflow1,workflow2,workflow3,workflow4")
     parser.add_argument("--qualities", default="Q1,Q2,Q3")
     parser.add_argument(
         "--query-counts",
@@ -495,7 +513,7 @@ def main() -> None:
 
     total = len(workflows) * len(qualities) * len(query_counts) * len(methods)
     logging.info(
-        "Q-scaling full/decomp ablation: workflows=%s qualities=%s Q=%s methods=%s S_cal=%d eta=%.3f",
+        "Q-scaling full/decomp ablation: workflows=%s qualities=%s Q=%s methods=%s S_train=%d eta=%.3f",
         workflows,
         qualities,
         query_counts,

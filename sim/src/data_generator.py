@@ -116,7 +116,7 @@ def _generate_endpoints(
 
     for op in LOGICAL_OPERATIONS:
         for ql in quality_levels:
-            model_name = quality_models[ql] if op in ("Video Caption", "Q/A") else None
+            model_name = quality_models[ql] if op in ("Frame Caption", "Reason") else None
             for prov, regions in providers.items():
                 for region in _regions_for_provider(regions, regions_mode=regions_mode):
                     if not physical_endpoint_exists(
@@ -141,10 +141,10 @@ def _generate_endpoints(
                             float(rng.uniform(0.01, 0.1)),
                         )
                     base_lat, lat_per_mb = non_quality_latency[latency_key]
-                    if op in ("Video Caption", "Q/A"):
+                    if op in ("Frame Caption", "Reason"):
                         ttft, throughput = llm_performance(prov, region, model_name)
                         base_lat = ttft
-                        if op == "Video Caption":
+                        if op == "Frame Caption":
                             qcfg = query_generation_params()
                             mean_duration = (
                                 float(qcfg["video_duration_sec_min"])
@@ -152,7 +152,7 @@ def _generate_endpoints(
                             ) / 2.0
                             sampled_video_mb = video_mb_per_minute() * (mean_duration / 60.0)
                             sampled_video_mb *= expected_data_conversion_ratio(
-                                "Video Split & Sample",
+                                "Split & Sample",
                                 ql,
                             )
                             mean_output_tokens = caption_output_tokens(
@@ -240,20 +240,14 @@ def _generate_queries(
     cfg: dict,
 ) -> pd.DataFrame:
     """
-    Paper Query: 100 requests per quality; duration ~ Uniform(1min, 30min); fps=30;
-    Workflow1 : Workflow2 = 1 : 1.
+    Paper Query: duration ~ Uniform(1min, 60min); fps=30;
+    train/test query sets are generated independently per workflow-quality.
     """
     qcfg = query_generation_params()
-    per_workflow = cfg.get("num_queries_per_workflow_quality")
-    if per_workflow is not None:
-        n_wf1 = int(per_workflow)
-        n_wf2 = int(per_workflow)
-    else:
-        n_total = int(cfg.get("num_queries_per_quality", qcfg["requests_per_quality_level"]))
-        ratio = qcfg.get("workflow1_workflow2_ratio", [1, 1])
-        r_sum = sum(int(x) for x in ratio)
-        n_wf1 = n_total * int(ratio[0]) // r_sum
-        n_wf2 = n_total - n_wf1
+    workflow_ratios = qcfg.get("workflow_ratios", {})
+    workflows = list(WORKFLOW_OPERATIONS)
+    train_counts = _query_counts_for_split(cfg, qcfg, workflows, workflow_ratios, "train")
+    test_counts = _query_counts_for_split(cfg, qcfg, workflows, workflow_ratios, "test")
     dur_lo = float(qcfg["video_duration_sec_min"])
     dur_hi = float(qcfg["video_duration_sec_max"])
     fps = float(qcfg["fps"])
@@ -261,26 +255,56 @@ def _generate_queries(
 
     rows: list[dict] = []
     for ql in ["Q1", "Q2", "Q3"]:
-        for wf, count in (("workflow1", n_wf1), ("workflow2", n_wf2)):
-            for i in range(count):
-                qid = f"{wf}_{ql}_q{i:04d}"
-                duration = float(rng.uniform(dur_lo, dur_hi))
-                video_size = mb_per_min * (duration / 60.0)
-                base_sla = 600 + video_size * 0.8 + duration * 0.15
-                ql_factor = {"Q1": 2.0, "Q2": 1.5, "Q3": 1.2}[ql]
-                sla = base_sla * ql_factor
-                rows.append(
-                    {
-                        "query_id": qid,
-                        "workflow": wf,
-                        "quality_level": ql,
-                        "video_size_mb": video_size,
-                        "video_duration_sec": duration,
-                        "fps": fps,
-                        "sla_sec": sla,
-                    }
-                )
+        for split, counts in (("train", train_counts), ("test", test_counts)):
+            for wf, count in counts.items():
+                for i in range(count):
+                    qid = f"{wf}_{ql}_{split}_q{i:04d}"
+                    duration = float(rng.uniform(dur_lo, dur_hi))
+                    video_size = mb_per_min * (duration / 60.0)
+                    base_sla = 600 + video_size * 0.8 + duration * 0.15
+                    ql_factor = {"Q1": 2.0, "Q2": 1.5, "Q3": 1.2}[ql]
+                    sla = base_sla * ql_factor
+                    rows.append(
+                        {
+                            "query_id": qid,
+                            "workflow": wf,
+                            "quality_level": ql,
+                            "split": split,
+                            "video_size_mb": video_size,
+                            "video_duration_sec": duration,
+                            "fps": fps,
+                            "sla_sec": sla,
+                        }
+                    )
     return pd.DataFrame(rows)
+
+
+def _query_counts_for_split(
+    cfg: dict,
+    qcfg: dict,
+    workflows: list[str],
+    workflow_ratios: dict,
+    split: str,
+) -> dict[str, int]:
+    per_workflow = cfg.get(f"num_{split}_queries_per_workflow_quality")
+    if per_workflow is None and split == "train":
+        per_workflow = cfg.get("num_queries_per_workflow_quality")
+    if per_workflow is not None:
+        return {wf: int(per_workflow) for wf in workflows}
+
+    total_key = f"num_{split}_queries_per_quality"
+    fallback_total = cfg.get("num_queries_per_quality", qcfg["requests_per_quality_level"])
+    n_total = int(cfg.get(total_key, fallback_total))
+    ratios = {wf: int(workflow_ratios.get(wf, 1)) for wf in workflows}
+    r_sum = sum(ratios.values())
+    counts: dict[str, int] = {}
+    assigned = 0
+    for wf in workflows[:-1]:
+        count = n_total * ratios[wf] // r_sum
+        counts[wf] = count
+        assigned += count
+    counts[workflows[-1]] = n_total - assigned
+    return counts
 
 
 def _generate_scenarios(
@@ -289,9 +313,7 @@ def _generate_scenarios(
     cfg: dict,
 ) -> pd.DataFrame:
     """Scenario rows: rho from paper LogNormal means."""
-    n_scenarios = int(cfg.get("num_scenarios_per_query", 10)) + int(
-        cfg.get("num_heldout_scenarios_per_query", 0)
-    )
+    n_scenarios = int(cfg.get("num_scenarios_per_query", 10))
     rows: list[dict] = []
 
     for _, qrow in queries_df.iterrows():
@@ -314,7 +336,7 @@ def _generate_scenarios(
                 "rtt_stress": 1.0,
             }
             for op in LOGICAL_OPERATIONS:
-                if op in ("Database", "Q/A", "Video Caption"):
+                if op in ("Database", "Reason", "Frame Caption"):
                     continue
                 key = f"rho_{op.replace(' ', '_').replace('/', '_').replace('&', 'and')}"
                 row[key] = float(sample_data_conversion_ratio(op, ql, rng))

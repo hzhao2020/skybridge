@@ -68,6 +68,7 @@ class Query(BaseModel):
     query_id: str
     workflow: str
     quality_level: str
+    split: str = "train"
     video_size_mb: float
     video_duration_sec: float
     fps: float
@@ -103,7 +104,7 @@ class AblationConfig(BaseModel):
 class SolverConfig(BaseModel):
     random_seed: int = 42
     eta: float = 0.05
-    top_k: int = 10
+    top_k: int = 0
     initial_active_fraction: float = 0.20
     initial_active_strategy: str = "qbr"
     initializer_validation_fraction: float = 0.20
@@ -117,8 +118,8 @@ class SolverConfig(BaseModel):
     max_iterations: int = 100
     gurobi_time_limit_sec: float = 300.0
     gurobi_mip_gap: float = 0.01
-    latency_tiebreaker_weight: float = 1e-6
-    endpoint_tiebreaker_weight: float = 1e-6
+    latency_tiebreaker_weight: float = 0.0
+    endpoint_tiebreaker_weight: float = 0.0
     mtgp_population_size: int = 12
     mtgp_generations: int = 6
     mtgp_max_depth: int = 4
@@ -168,6 +169,9 @@ class ConvergenceRecord(BaseModel):
     active_path_cut_count: int = 0
     objective_value: float
     max_violation: float
+    max_new_cut_violation: float = 0.0
     num_violated_scenarios: int
     num_violated_cuts: int = 0
+    active_cut_violation_count: int = 0
+    active_cut_batch_size: int = 0
     runtime_sec: float

@@ -21,12 +21,11 @@ sys.path.insert(0, str(ROOT))
 from src.config import RESULTS_DIR, load_solver_config  # noqa: E402
 from src.data_loader import load_endpoints, load_queries, load_scenarios  # noqa: E402
 from src.evaluator import evaluate_deployment  # noqa: E402
-from src.experiment_protocol import split_scenarios_by_query  # noqa: E402
 from src.milp_decomposition import solve_decomposition  # noqa: E402
 from src.milp_full import solve_full_milp  # noqa: E402
 from src.workflow import get_workflow  # noqa: E402
 
-RUNS = [(wf, q) for wf in ("workflow1", "workflow2") for q in ("Q1", "Q2", "Q3")]
+RUNS = [(wf, q) for wf in ("workflow1", "workflow2", "workflow3", "workflow4") for q in ("Q1", "Q2", "Q3")]
 
 
 def _maxrss_mb() -> float:
@@ -47,17 +46,26 @@ def _worker(
         workflow = get_workflow(workflow_name)
         config = load_solver_config(solver_overrides)
         endpoints = load_endpoints()
-        queries = load_queries(quality_level=quality, workflow=workflow_name)
-        scenarios = load_scenarios(query_ids=[q.query_id for q in queries])
-        calibration_scenarios, test_scenarios = split_scenarios_by_query(scenarios)
+        train_queries = load_queries(
+            quality_level=quality,
+            workflow=workflow_name,
+            split="train",
+        )
+        test_queries = load_queries(
+            quality_level=quality,
+            workflow=workflow_name,
+            split="test",
+        )
+        calibration_scenarios = load_scenarios(query_ids=[q.query_id for q in train_queries])
+        test_scenarios = load_scenarios(query_ids=[q.query_id for q in test_queries])
 
         if method == "full_milp":
             result = solve_full_milp(
-                workflow, endpoints, queries, calibration_scenarios, quality, config
+                workflow, endpoints, train_queries, calibration_scenarios, quality, config
             )
         elif method == "decomposition":
             result = solve_decomposition(
-                workflow, endpoints, queries, calibration_scenarios, quality, config
+                workflow, endpoints, train_queries, calibration_scenarios, quality, config
             )
         else:
             raise ValueError(method)
@@ -70,7 +78,7 @@ def _worker(
             workflow,
             assignment,
             endpoints,
-            queries,
+            test_queries,
             test_scenarios,
             quality,
             config,

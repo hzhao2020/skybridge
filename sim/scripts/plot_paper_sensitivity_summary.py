@@ -25,12 +25,9 @@ DEFAULT_SLA = (
 DEFAULT_OUT = ROOT / "fig" / "paper_sensitivity_summary" / "paper_sensitivity_summary"
 
 SETTING_ORDER = [
-    ("workflow1_Q1", "W1-Q1"),
-    ("workflow1_Q2", "W1-Q2"),
-    ("workflow1_Q3", "W1-Q3"),
-    ("workflow2_Q1", "W2-Q1"),
-    ("workflow2_Q2", "W2-Q2"),
-    ("workflow2_Q3", "W2-Q3"),
+    (f"workflow{workflow}_Q{quality}", f"W{workflow}-Q{quality}")
+    for workflow in range(1, 5)
+    for quality in range(1, 4)
 ]
 
 

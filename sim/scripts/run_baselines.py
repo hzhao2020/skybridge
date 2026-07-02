@@ -16,7 +16,7 @@ from src.baselines import CANONICAL_BASELINE_METHODS  # noqa: E402
 
 EXPERIMENT_RUNS: list[tuple[str, str]] = [
     (workflow, quality)
-    for workflow in ("workflow1", "workflow2")
+    for workflow in ("workflow1", "workflow2", "workflow3", "workflow4")
     for quality in ("Q1", "Q2", "Q3")
 ]
 
@@ -39,7 +39,7 @@ def main() -> None:
     parser.add_argument(
         "--heldout-eval",
         action="store_true",
-        help="Use calibration scenarios for deployment selection and held-out scenarios for metrics",
+        help="Deprecated no-op; run_simulation always evaluates on fresh test queries",
     )
     args = parser.parse_args()
 
