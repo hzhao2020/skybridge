@@ -114,7 +114,6 @@ class SolverConfig(BaseModel):
         ]
     )
     active_batch_fraction: float = 0.05
-    violation_tolerance: float = 1e-6
     max_iterations: int = 100
     gurobi_time_limit_sec: float = 300.0
     gurobi_mip_gap: float = 0.01

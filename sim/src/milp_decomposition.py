@@ -83,7 +83,6 @@ def solve_decomposition(
         if config.active_batch_fraction <= 0:
             raise ValueError("active_batch_fraction must be positive when top_k <= 0")
         batch = max(1, math.ceil(len(qs_pairs) * config.active_batch_fraction))
-    tol = config.violation_tolerance
     max_iter = config.max_iterations
 
     convergence: list[ConvergenceRecord] = []
@@ -178,7 +177,7 @@ def solve_decomposition(
             z_hat = z_sol.get(key, 0.0)
             delta = t_val - q.sla_sec - alpha_val - z_hat
             max_critical_path_violation = max(max_critical_path_violation, delta)
-            if delta <= tol:
+            if delta <= 0:
                 continue
             cut = (q.query_id, s.scenario_id, tuple(path))
             if cut in active_path_cuts:
@@ -228,7 +227,7 @@ def solve_decomposition(
     if not converged:
         status = f"{status}_MAX_ITERATIONS_REACHED"
         logger.warning(
-            "Decomposition reached max_iterations=%d before satisfying the separation tolerance",
+            "Decomposition reached max_iterations=%d before convergence",
             max_iter,
         )
 

@@ -30,7 +30,10 @@ pip install -r requirements.txt
 
 ```text
 configs/          YAML workflow and default parameters
-data/synthetic/   Generated CSV inputs (endpoints, network, queries, scenarios)
+data/synthetic/   Generated CSV inputs (ignored; regenerate locally)
+data/measurement/ Runtime measurement profiles (empty until populated)
+profile_measurements/
+                  Measurement collection scripts and raw-output staging
 results/          Optimization outputs and plots
 src/              Core library modules
 scripts/          CLI entry points
@@ -44,6 +47,11 @@ python scripts/generate_synthetic_data.py
 
 This writes CSV files under `data/synthetic/` with deterministic seed `42` by default (see `configs/default.yaml`). Cloud **pricing**, **data conversion ratios** (rho), and **region network** tables live in `configs/pricing.yaml` and `configs/region_network.yaml`; endpoint costs and scenario rho values are derived from them in `src/pricing.py`.
 Generated synthetic CSVs, solver outputs under `results/`, and rendered figures under `fig/` are intentionally ignored by Git to keep the repository lightweight.
+
+Measurement CSVs are not committed. After collecting fresh execution and
+network profiles, place the processed runtime CSVs under `data/measurement/`
+before running `scripts/populate_from_measurements.py` or experiments that use
+measurement-backed latencies.
 
 **Fixed experiment hyperparameters** (in `configs/default.yaml`):
 
@@ -133,6 +141,13 @@ Results are written to `results/`:
 6. Adjust `configs/default.yaml` for `eta`, scenario counts, and solver limits.
 
 No code changes are required if column names match the generated files.
+
+## Refreshing Measurement Profiles
+
+The repository intentionally omits old measurement traces. Use the scripts under
+`profile_measurements/` to collect new database and network measurements, then
+copy or transform the processed runtime profiles into `data/measurement/` using
+the filenames expected by `src/measurement/`.
 
 ## Ablation Studies
 

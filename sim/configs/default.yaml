@@ -19,7 +19,6 @@ initializer_validation_fraction: 0.20
 initializer_selection_candidates:
   - qbr
 active_batch_fraction: 0.05
-violation_tolerance: 1.0e-6
 max_iterations: 100
 gurobi_time_limit_sec: 0
 gurobi_mip_gap: 1.0e-9

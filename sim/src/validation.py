@@ -476,13 +476,14 @@ def validate_decomposition_delta(report: ValidationReport) -> None:
         return
     report.add("decomposition returns plan", True, f"iter={result.num_iterations}")
 
-    # After convergence, every scenario critical-path cut should be separated.
+    # After convergence, no omitted critical path should have positive violation.
     if result.convergence_history:
         last = result.convergence_history[-1]
+        max_new = last.get("max_new_cut_violation", last["max_violation"])
         report.add(
-            "decomposition convergence (max_violation <= tol)",
-            last.get("max_new_cut_violation", last["max_violation"]) <= cfg.violation_tolerance + 1e-6,
-            f"max_new_cut_viol={last.get('max_new_cut_violation', last['max_violation']):.2e}",
+            "decomposition convergence (no positive omitted critical-path violation)",
+            max_new <= 1e-6,
+            f"max_new_cut_viol={max_new:.2e}",
         )
 
 
